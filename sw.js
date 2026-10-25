@@ -1,5 +1,5 @@
 // Chrome & Sorcery offline cache. Bump VERSION when you ship changes.
-const VERSION = 'cs-v3';
+const VERSION = 'cs-v4';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

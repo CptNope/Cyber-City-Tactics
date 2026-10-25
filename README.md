@@ -8,6 +8,9 @@
 - Install on a phone with "Add to Home Screen" / "Install app". It works offline after the first load. Bump `VERSION` in `sw.js` when you ship changes.
 
 ## What's in it
+- **Difficulty:** Street, Runner or Prime, chosen at the start of a run. After the final boss, **New Game+** keeps your runners, levels, gear, cyberware and spells, and makes enemies tougher, elites more common and loot better. You can repeat it.
+- **Elite enemies:** Armored (halves bullet damage), Berserk (faster, hits harder), Warded (can't be knocked down, resists magic) and Vampiric (heals when it hits you). Each has a colored aura and a name tag, and drops better gear.
+- **Boss rage phases:** at half health each boss enrages. The Gutter King and the Hollow Saint slam the ground and send shockwaves you have to jump. Razor Mei chains three dashes. The Hollow Saint summons fire spirits too. Director Voss fires five-way hexes and teleports more often.
 - **Four districts:** Rustline Barrens, Neon Market, Undercity Tunnels and Kagemori Arcology. Each has a boss: Gutter King, Razor Mei, the Hollow Saint and Director Voss.
 - **Enemies:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge) and fire spirits (bullets pass through).
 - **Combat:**
