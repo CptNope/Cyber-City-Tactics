@@ -44,4 +44,9 @@
 | Character sheet | C or Tab | | Select |
 | Pause | P or Esc | | Start |
 
-Touch controls appear automatically on phones.
+## On phones
+- Hold the phone sideways. The stick sits left of the screen and the buttons right, so your thumbs never cover the fight. Upright works too, with the controls under the screen.
+- The stick appears wherever your thumb lands on the left side.
+- The big buttons change their label to say what they'll do right now: LIFT, THROW, KNEE, TALK. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them.
+- Settings: control size (S/M/L), buttons on the left for left-handed play, screen shake, vibration, tips, sound, music and full screen.
+- First-time tips explain each mechanic the moment you meet it, worded for touch or keyboard.

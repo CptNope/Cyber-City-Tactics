@@ -15,17 +15,28 @@
   --neon:#ff3d8b; --mana:#45d2ff; --gold:#ffc63d; --ok:#7dffb0; --karma:#b98cff;
   --font-d:'Teko',Impact,'Arial Narrow',sans-serif;
   --font-b:'Chakra Petch',ui-sans-serif,system-ui,sans-serif;
+  --b:58px; --b2:48px; --s:132px;
   color-scheme:dark;
 }
-html,body{height:100%}
-body{background:var(--ink);color:var(--text);font-family:var(--font-b);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+body.size-s{--b:50px;--b2:42px;--s:116px}
+body.size-l{--b:68px;--b2:56px;--s:152px}
+html,body{height:100%;overscroll-behavior:none}
+body{-webkit-tap-highlight-color:transparent;background:var(--ink);color:var(--text);font-family:var(--font-b);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;box-sizing:border-box;position:relative}
 #stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
 #game{display:block;background:#000;border-radius:3px;box-shadow:0 0 0 1px var(--line)}
 #pauseBtn{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:rgba(23,18,31,.7);color:var(--text);font:600 15px var(--font-b);cursor:pointer;z-index:4}
 button:focus-visible{outline:2px solid var(--mana);outline-offset:2px}
 
-#ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,10,20,.88);z-index:5}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,10,20,.9);z-index:20;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);box-sizing:border-box}
+#rotHint{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:4;font:600 12px var(--font-b);letter-spacing:.04em;color:var(--text);background:rgba(23,18,31,.92);border:1px solid var(--neon);border-radius:20px;padding:8px 14px;white-space:nowrap;max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:600 12px var(--font-b);letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;background:transparent;color:var(--muted);border:0;border-left:1px solid var(--line);cursor:pointer;min-height:38px}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--neon);color:#16040c}
+.setrow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.setrow>div{min-width:0}.setrow .ds{font-size:12.5px;color:var(--muted)}
+@media (pointer:coarse){.btn{min-height:44px}.btn.sm{min-height:38px;padding:8px 12px}.tab{min-height:40px}}
 .card{width:100%;max-width:640px;max-height:100%;overflow:auto;box-sizing:border-box;padding:16px 18px;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch;touch-action:pan-y;animation:cardIn .2s ease-out}
 @keyframes cardIn{from{opacity:0;transform:translateY(8px)}}
 @media (prefers-reduced-motion:reduce){.card{animation:none}}
@@ -69,43 +80,55 @@ button:focus-visible{outline:2px solid var(--mana);outline-offset:2px}
 .job{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:4px}
 .job .st{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 
-#pad{display:none;justify-content:space-between;align-items:center;gap:12px;padding-block:8px 4px}
+#pad{display:none;justify-content:space-between;align-items:flex-end;gap:12px;padding-block:6px 2px}
 body.touch #pad{display:flex}
-#stick{width:128px;height:128px;flex:none;border-radius:50%;border:2px solid var(--line);background:rgba(23,18,31,.6);position:relative;touch-action:none}
-#knob{width:54px;height:54px;border-radius:50%;background:var(--panel);border:2px solid var(--muted);position:absolute;left:35px;top:35px;pointer-events:none}
-#btns{display:grid;grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px);gap:8px}
-.tb{border-radius:50%;border:2px solid var(--neon);background:rgba(255,61,139,.14);color:var(--text);font:600 10.5px var(--font-b);letter-spacing:.03em;touch-action:none;padding:0}
+body.touch.lefty #pad{flex-direction:row-reverse}
+#stick{width:calc(var(--s) * 1.25);height:calc(var(--s) * 1.12);flex:none;position:relative;touch-action:none}
+#ring{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:var(--s);height:var(--s);border-radius:50%;border:2px solid var(--line);background:rgba(23,18,31,.55);pointer-events:none}
+#knob{position:absolute;left:29%;top:29%;width:42%;height:42%;border-radius:50%;background:var(--panel);border:2px solid var(--muted);pointer-events:none}
+#btns{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+body.lefty #btns{align-items:flex-start}
+.urow,.mrow,.brow{display:flex;gap:8px}
+.tb{width:var(--b2);height:var(--b2);border-radius:50%;border:2px solid var(--neon);background:rgba(255,61,139,.14);color:var(--text);font:600 10.5px/1.05 var(--font-b);letter-spacing:.03em;touch-action:none;padding:0;flex:none}
+.tb.big{width:var(--b);height:var(--b);font-size:11.5px}
+.tb small{display:block;font-size:9.5px;opacity:.85;font-variant-numeric:tabular-nums}
 .tb.on{background:rgba(255,61,139,.45)}
+.tb.dim{opacity:.4}
 .tb.gun{border-color:var(--gold);background:rgba(255,198,61,.12)}
 .tb.spell{border-color:var(--mana);background:rgba(69,210,255,.12)}
-.tb.util{border-color:var(--muted);background:rgba(167,157,194,.1);border-radius:14px}
 .tb.move{border-color:var(--ok);background:rgba(125,255,176,.1)}
+.urow .tb{width:auto;min-width:var(--b2);height:34px;border-radius:17px;padding:0 10px;border-color:var(--muted);background:rgba(167,157,194,.1)}
 @media (orientation:landscape){
-  body.touch #pad{position:absolute;left:0;right:0;bottom:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px));pointer-events:none;opacity:.82}
-  body.touch #pad>*{pointer-events:auto}
-  #btns{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:6px}
+  body.touch #app{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr);column-gap:10px}
+  body.touch #pad{display:contents}
+  body.touch #stick{grid-column:1;grid-row:1;align-self:end}
+  body.touch #stage{grid-column:2;grid-row:1;min-width:0}
+  body.touch #btns{grid-column:3;grid-row:1;align-self:end;padding-bottom:4px}
+  body.touch.lefty #stick{grid-column:3}
+  body.touch.lefty #btns{grid-column:1}
 }
-@media (max-width:380px){#btns{grid-template-columns:repeat(3,48px);grid-template-rows:repeat(3,48px);gap:6px}#stick{width:112px;height:112px}#knob{left:27px;top:27px}}
+@media (orientation:landscape) and (max-height:460px){
+  body.touch{--b:50px;--b2:42px;--s:110px}
+  body.touch.size-s{--b:44px;--b2:38px;--s:96px}
+  body.touch.size-l{--b:56px;--b2:46px;--s:124px}
+  .urow .tb{height:30px}
+}
+@media (orientation:portrait) and (max-width:380px){body.touch:not(.size-l){--b:52px;--b2:44px;--s:118px}}
 </style>
 
 <div id="app">
   <div id="stage">
     <canvas id="game" aria-label="Chrome and Sorcery game screen"></canvas>
     <button id="pauseBtn" aria-label="Pause">II</button>
+    <button id="rotHint" hidden>Turn your phone sideways for a bigger screen · ✕</button>
     <div id="ov"></div>
   </div>
   <div id="pad" aria-hidden="true">
-    <div id="stick"><div id="knob"></div></div>
+    <div id="stick"><div id="ring"><div id="knob"></div></div></div>
     <div id="btns">
-      <button class="tb util" data-act="item">MEDKIT</button>
-      <button class="tb util" data-act="swap">SWAP</button>
-      <button class="tb util" data-act="sheet">CHAR</button>
-      <button class="tb gun" data-act="gun">GUN</button>
-      <button class="tb spell" data-act="spell">SPELL</button>
-      <button class="tb move" data-act="dodge">DODGE</button>
-      <button class="tb" data-act="punch">PUNCH</button>
-      <button class="tb" data-act="kick">KICK</button>
-      <button class="tb move" data-act="jump">JUMP</button>
+      <div class="urow"><button class="tb" data-act="item">MED</button><button class="tb" data-act="swap">SWAP</button><button class="tb" data-act="sheet">CHAR</button></div>
+      <div class="mrow"><button class="tb gun" data-act="gun">GUN</button><button class="tb spell" data-act="spell">SPELL</button><button class="tb move" data-act="dodge">DODGE</button></div>
+      <div class="brow"><button class="tb big" data-act="punch">PUNCH</button><button class="tb big" data-act="kick">KICK</button><button class="tb big move" data-act="jump">JUMP</button></div>
     </div>
   </div>
 </div>
@@ -136,7 +159,15 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 function srng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-const prefs=Object.assign({sound:true,music:true},store.get('cs_prefs')||{});
+const prefs=Object.assign({sound:true,music:true,shake:true,haptics:true,tips:true,seen:{},size:'m',lefty:false,rotDismissed:false},store.get('cs_prefs')||{});
+const isTouch=()=>!!(document.body.classList.contains&&document.body.classList.contains('touch'));
+function applyPrefs(){const c=document.body.classList;if(!c.toggle)return;c.toggle('size-s',prefs.size==='s');c.toggle('size-l',prefs.size==='l');c.toggle('lefty',!!prefs.lefty);setTimeout(fit,30);}
+function buzz(p){if(!prefs.haptics||!navigator.vibrate)return;try{navigator.vibrate(p);}catch(e){}}
+let wakeLock=null;
+async function wake(on){try{if(on&&!wakeLock&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}else if(!on&&wakeLock){const w=wakeLock;wakeLock=null;await w.release();}}catch(e){}}
+const canFull=()=>!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
+function goFull(){const el=document.documentElement,r=el&&(el.requestFullscreen||el.webkitRequestFullscreen);if(!r)return;
+  try{Promise.resolve(r.call(el)).then(()=>{try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}setTimeout(fit,200);}).catch(()=>{});}catch(e){}}
 function savePrefs(){store.set('cs_prefs',prefs);}
 
 /* ================= audio ================= */
@@ -223,13 +254,17 @@ addEventListener('blur',()=>{for(const s of INP)for(const k in s.held)s.held[k]=
 if(matchMedia('(pointer:coarse)').matches)document.body.classList.add('touch');
 addEventListener('touchstart',()=>{document.body.classList.add('touch');fit();},{once:true,passive:true});
 
-const stick=document.getElementById('stick'),knob=document.getElementById('knob');
+const stick=document.getElementById('stick'),ring=document.getElementById('ring'),knob=document.getElementById('knob');
 let stickId=null,sc={x:0,y:0};
-function stickSet(dx,dy){const R=40,m=Math.hypot(dx,dy);if(m>R){dx=dx/m*R;dy=dy/m*R;}knob.style.transform=`translate(${dx}px,${dy}px)`;const dz=11,h=INP[0].held;
+// Floating stick: the ring jumps to wherever the thumb lands inside the left zone.
+function stickSet(dx,dy){const R=(ring.offsetWidth||120)*.32,m=Math.hypot(dx,dy);if(m>R){dx=dx/m*R;dy=dy/m*R;}knob.style.transform=`translate(${dx}px,${dy}px)`;const dz=R*.3,h=INP[0].held;
   h.left=dx<-dz;h.right=dx>dz;h.up=dy<-dz;h.down=dy>dz;}
-stick.addEventListener('pointerdown',e=>{e.preventDefault();A.unlock();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);const r=stick.getBoundingClientRect();sc={x:r.left+r.width/2,y:r.top+r.height/2};stickSet(e.clientX-sc.x,e.clientY-sc.y);});
+stick.addEventListener('pointerdown',e=>{e.preventDefault();A.unlock();stickId=e.pointerId;stick.setPointerCapture(e.pointerId);
+  const zr=stick.getBoundingClientRect(),rw=(ring.offsetWidth||120)/2;
+  const cx=clamp(e.clientX,zr.left+Math.min(rw,zr.width/2),zr.right-Math.min(rw,zr.width/2)),cy=clamp(e.clientY,zr.top+Math.min(rw,zr.height/2),zr.bottom-Math.min(rw,zr.height/2));
+  ring.style.left=(cx-zr.left)+'px';ring.style.top=(cy-zr.top)+'px';sc={x:cx,y:cy};stickSet(e.clientX-sc.x,e.clientY-sc.y);});
 stick.addEventListener('pointermove',e=>{if(e.pointerId!==stickId)return;stickSet(e.clientX-sc.x,e.clientY-sc.y);});
-const stickEnd=e=>{if(e.pointerId!==stickId)return;stickId=null;stickSet(0,0);};
+const stickEnd=e=>{if(e.pointerId!==stickId)return;stickId=null;stickSet(0,0);ring.style.left='';ring.style.top='';};
 stick.addEventListener('pointerup',stickEnd);stick.addEventListener('pointercancel',stickEnd);
 document.querySelectorAll('.tb').forEach(b=>{const a=b.dataset.act;
   b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);b.classList.add('on');A.unlock();if(a==='sheet')globalAct('sheet',0);else kp(0,a,true);});
@@ -238,6 +273,32 @@ document.querySelectorAll('.tb').forEach(b=>{const a=b.dataset.act;
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 document.getElementById('pauseBtn').addEventListener('click',()=>globalAct('pause'));
+const rotHint=document.getElementById('rotHint');
+rotHint.addEventListener('click',()=>{prefs.rotDismissed=true;savePrefs();rotHint.hidden=true;goFull();});
+// Contextual touch labels: the big buttons say what they will do right now.
+const TB={};document.querySelectorAll('.tb').forEach(b=>{TB[b.dataset.act]=b;});
+const lastLbl={};
+function setLbl(a,html,dim){const b=TB[a];if(!b)return;const k=html+'|'+!!dim;if(lastLbl[a]===k)return;lastLbl[a]=k;b.innerHTML=html;b.classList.toggle('dim',!!dim);}
+const SPSHORT={fire:'FIRE',bolt:'BOLT',heal:'HEAL'};
+function updateTouchUI(){
+  if(!isTouch())return;
+  const portrait=(window.innerHeight||0)>(window.innerWidth||0);
+  rotHint.hidden=!(portrait&&!prefs.rotDismissed&&(G.mode==='play'||G.mode==='den'));
+  const p=PL[0];if(!p)return;
+  let punch='PUNCH',kick='KICK';
+  if(G.mode==='den'&&nearNPC(p))punch='TALK';
+  else if(p.state==='grab'){punch='KNEE';kick='THROW';}
+  else if(p.holding){punch='THROW';kick='DROP';}
+  else if(G.mode==='play'&&G.props.some(o=>Math.abs(o.x-p.x)<16&&Math.abs(o.y-p.y)<9))punch='LIFT';
+  setLbl('punch',punch);setLbl('kick',kick);
+  const sid=p.spells[p.spell],sp=SPELLS[sid];
+  setLbl('spell',`${SPSHORT[sid]}<small>${sp.cost}</small>`,p.mp<sp.cost||G.den);
+  setLbl('gun',p.eq.gun?`GUN<small>${p.ammo}</small>`:'GUN',!p.eq.gun||p.ammo<=0||G.den);
+  setLbl('item',`MED ${PARTY.med}`,PARTY.med<=0);
+  setLbl('swap','SWAP',p.spells.length<2);
+  setLbl('sheet',p.pts?`CHAR <b style="color:var(--gold)">+${p.pts}</b>`:'CHAR');
+}
+if(typeof ResizeObserver!=='undefined'){try{new ResizeObserver(()=>fit()).observe(document.getElementById('stage'));}catch(e){}}
 
 // Gamepads (standard mapping). Solo: pad 1 is runner 1. Co-op: two pads map 1:1; one pad goes to runner 2 so runner 1 can stay on keyboard.
 const padPrev={};
@@ -407,8 +468,14 @@ function gainKarma(n){
   if(!n)return;
   for(const p of active()){p.karma+=n;
     while(p.karma>=karmaNext(p.lvl)){p.karma-=karmaNext(p.lvl);p.lvl++;p.pts+=2;refresh(p);p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.3));
-      say(p,'LEVEL '+p.lvl,'#ffc63d',88,80);sfx.level();burst(p.x,p.y,30,'#ffc63d',16);}}
+      say(p,'LEVEL '+p.lvl,'#ffc63d',88,80);sfx.level();buzz([20,40,20]);burst(p.x,p.y,30,'#ffc63d',16);
+      tip('level','Level up! Tap CHAR to spend your attribute points.','Level up! Press C to spend your attribute points.');}}
   const p0=active()[0];if(p0)G.texts.push({x:p0.x,y:p0.y,z:74,s:'+'+n+' KARMA',c:'#b98cff',life:40,sm:true});
+}
+function tip(id,touchTxt,keyTxt){
+  if(!prefs.tips||prefs.seen[id])return;prefs.seen[id]=1;savePrefs();
+  const t={s:isTouch()?touchTxt:(keyTxt||touchTxt),life:330};
+  if(G.tip&&G.tip.life>0)(G.tipQ=G.tipQ||[]).push(t);else G.tip=t;
 }
 function say(p,s,c,z,life,sm){G.texts.push({x:p.x,y:p.y,z:z||62,s,c,life:life||46,sm:sm||s.length>10});}
 function contractTick(key,n){const c=PARTY.contract;if(!c||c.done||c.failed||c.key!==key)return;c.count=Math.min(c.need,c.count+(n||1));
@@ -435,6 +502,7 @@ function startStage(si){
   makeRain(S.rain);
   saveGame('play');musicPlay('d'+si);
   setMode('play');
+  if(si===0&&!G.ng)tip('move','Drag anywhere on the left to move. Tap PUNCH three times for an uppercut.','Move with WASD or the arrows. Press J three times for an uppercut, K to kick.');
 }
 function briefing(si,fromDen){
   const C=CONTRACTS[si];
@@ -449,6 +517,7 @@ function enterDen(){
   placeRunners(70);for(const p of PL){p.out=false;p.hp=Math.max(p.hp,Math.round(p.maxHp*.6));p.mp=p.maxMp;G.ents.push(p);}
   makeRain(true);musicPlay('den');saveGame('den');
   setMode('den');
+  tip('den','Walk up to people and tap TALK to chat or shop. The next job starts at the right end of the street.','Walk up to people and press J to talk or shop. The next job starts at the right end of the street.');
 }
 function joinRunner2(){
   if(G.coop)return;const p=newRunner(1);const p1=PL[0];
@@ -471,7 +540,13 @@ function spawnEnemy(kind,side){
     if(k==='berserk'){e.spdMul=1.35;e.dmg=Math.round(e.dmg*1.3);e.coolMul*=.75;}
     if(k==='warded'||k==='vampiric')e.hp=Math.round(e.hp*1.25);
   }
-  e.maxHp=e.hp;G.ents.push(e);return e;
+  e.maxHp=e.hp;G.ents.push(e);
+  if(G.mode==='play'){
+    if(kind==='riot')tip('riot','Riot shields block punches. KICK to break their guard.','Riot shields block punches. Kick (K) to break their guard.');
+    if(kind==='spirit')tip('spirit','Bullets pass through fire spirits. Use fists, kicks or spells.');
+    if(e.elite)tip('elite','Glowing enemies are elites. They hit harder but always drop gear.');
+  }
+  return e;
 }
 
 /* ================= combat ================= */
@@ -499,6 +574,7 @@ function hurt(t,dmg,dir,o){
   fxSpark(t.x-dir*4,t.y,t.z+(t.d&&t.d.fly?0:30),o.col||'#fff3c4',big);
   G.texts.push({x:t.x+rand(-4,4),y:t.y,z:t.z+50,s:(crit?'CRIT ':'')+dmg,c:t.team===0?'#ff3d8b':crit?'#ffc63d':(o.col||'#efe9ff'),life:34,big:crit});
   G.stop=big?5:3;G.shake=Math.max(G.shake,o.big?6:crit?4:2);if(crit)G.flash=Math.max(G.flash,.12);
+  if(t.team===0&&t.idx===0)buzz(big?60:30);else if(o.src&&o.src.idx===0&&big)buzz(12);
   (big?sfx.heavy:sfx.hit)();
   if(o.src){G.combo++;G.comboT=0;if(G.combo>G.bestCombo)G.bestCombo=G.combo;}
   if(t.team===0&&o.att&&o.att.elite==='vampiric'&&o.att.state!=='dead'){const v=o.att;v.hp=Math.min(v.maxHp,v.hp+Math.round(dmg*.6));G.texts.push({x:v.x,y:v.y,z:v.z+56,s:'+'+Math.round(dmg*.6),c:'#b98cff',life:28,sm:true});}
@@ -511,13 +587,16 @@ function hurt(t,dmg,dir,o){
   if(boss){if(o.kd&&Math.random()<.35){setS(t,'down');t.vz=2.2;t.vx=dir*1.6;t.hits=0;}return true;}
   if(t.d&&t.d.fly){t.x+=dir*6;return true;}
   if(o.kd||t.hits>=3){setS(t,'down');t.vz=2.8;t.vx=dir*2.2;t.hits=0;if(t.team===0)sfx.hurt();}
-  else{setS(t,'hurt');if(t.team===0)sfx.hurt();}
+  else{setS(t,'hurt');if(t.team===0)sfx.hurt();
+    else if(o.src&&G.combo>=4)tip('grab','Walk into a staggered enemy to grab it. PUNCH to knee, KICK to throw.','Walk into a staggered enemy to grab it. J to knee, K to throw them into the crowd.');}
+  if(t.team===0)tip('dodge','Tap DODGE to roll through attacks untouched.','Press O or Left Shift to roll through attacks untouched.');
   return true;
 }
 function enrage(e){
   e.enraged=true;e.spdMul=1.3;e.coolMul*=.7;e.inv=50;e.cool=40;setS(e,'idle');
   G.texts.push({x:e.x,y:e.y,z:e.z+80,s:'ENRAGED',c:'#ff4a4a',life:70,big:true});
-  G.flash=.35;G.shake=10;sfx.boom();G.fx.push({k:'ring',x:e.x,y:e.y,z:30,c:'#ff4a4a',life:26,max:26,r:80});burst(e.x,e.y,30,'#ff4a4a',24);
+  G.flash=.35;G.shake=10;sfx.boom();buzz([40,30,60]);
+  tip('rage','Enraged bosses learn new moves. Jump over shockwaves.','Enraged bosses learn new moves. Jump (Space) over shockwaves.');G.fx.push({k:'ring',x:e.x,y:e.y,z:30,c:'#ff4a4a',life:26,max:26,r:80});burst(e.x,e.y,30,'#ff4a4a',24);
 }
 function drop(k,x,y,extra){G.picks.push(Object.assign({k,x:clamp(x,G.camX+18,G.camX+W-18),y:clamp(y,FY0+4,FY1),t:0},extra||{}));}
 function kill(t,dir){
@@ -807,6 +886,10 @@ function update(){
   for(const k of G.picks){k.t++;for(const p of alive())if(!k.got&&p.z<12&&Math.abs(k.x-p.x)<13&&Math.abs(k.y-p.y)<10)collect(k,p);}
   G.picks=G.picks.filter(k=>!k.got&&(k.t<1200||k.k==='gear'||k.k==='chip'));
   for(const r of G.rain){r.y+=r.s;r.x-=1.2;if(r.y>H){r.y=-10;r.x=rand(0,W+40);}}
+  if(G.tip){G.tip.life--;if(G.tip.life<=0)G.tip=G.tipQ&&G.tipQ.length?G.tipQ.shift():null;}
+  if(G.t%30===0&&!G.den){for(const p of alive()){
+    if(G.props.some(o=>Math.abs(o.x-p.x)<70&&o.x>G.camX))tip('prop','Stand next to a can, crate or drum and tap LIFT, then THROW.','Stand next to a can, crate or drum and press J to lift it, then J again to throw.');
+    if(p.hp<p.maxHp*.35&&PARTY.med>0)tip('med','Low on health. Tap MED to use a medkit.','Low on health. Press H to use a medkit.');}}
   if(G.den)denTick();else waves();
   camera();
   if(G.shake>0)G.shake*=.85;if(G.shake<.3)G.shake=0;
@@ -1082,6 +1165,8 @@ function drawPanel(p,x){
   txt((p.eq.gun?'AMMO '+p.ammo:'NO GUN')+(p.idx===0&&!G.coop?'  ·  MED '+PARTY.med:''),x+104,30,12,'#ffe28a');
   txt(sp.name.toUpperCase()+' '+sp.cost+(p.spells.length>1?' ⇄':''),x+104,41,12,'#45d2ff');
 }
+function wrapTip(s,max){ctx.font='11px "Chakra Petch", sans-serif';const words=s.split(' '),out=[];let line='';
+  for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>max&&line){out.push(line);line=w;}else line=t;}if(line)out.push(line);return out;}
 function drawHud(){
   drawPanel(PL[0],10);
   if(G.coop&&PL[1])drawPanel(PL[1],W-180);
@@ -1096,12 +1181,15 @@ function drawHud(){
   if(G.banner>0){const a=Math.min(1,G.banner/30,(150-G.banner)/15);ctx.globalAlpha=a;ctx.fillStyle='rgba(11,8,18,.7)';ctx.fillRect(0,92,W,52);
     txt('DISTRICT '+(G.stage+1)+' — '+S.name.toUpperCase(),W/2,122,30,'#efe9ff','center');ctx.font='12px "Chakra Petch", sans-serif';ctx.fillStyle='#a79dc2';ctx.textAlign='center';ctx.fillText(S.sub,W/2,137);ctx.globalAlpha=1;}
   if(G.banner<0&&((-G.banner)>>3)%2)txt('WARNING — BOSS',W/2,110,30,'#ffc63d','center');
-  if(G.den){txt('THE DEN',W/2,G.coop?60:18,14,'#a79dc2','center');if(G.denPrompt){const n=G.denPrompt,sx=n.x-G.camX;txt('▼ '+n.name.toUpperCase(),sx,140,13,'#ffc63d','center');ctx.font='10px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';ctx.fillText('PUNCH to talk',sx,151);}}
+  if(G.tip){const lines=wrapTip(G.tip.s,300),a=Math.min(1,G.tip.life/20,(330-G.tip.life)/12),h=lines.length*13+10,y=G.coop?50:48;
+    ctx.globalAlpha=a*.92;ctx.fillStyle='#0b0812';ctx.fillRect(W/2-160,y,320,h);ctx.strokeStyle='#ffc63d';ctx.lineWidth=1;ctx.strokeRect(W/2-159.5,y+.5,319,h-1);
+    ctx.globalAlpha=a;ctx.font='11px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';lines.forEach((l,i)=>ctx.fillText(l,W/2,y+16+i*13));ctx.globalAlpha=1;}
+  if(G.den){txt('THE DEN',W/2,G.coop?60:18,14,'#a79dc2','center');if(G.denPrompt){const n=G.denPrompt,sx=n.x-G.camX;txt('▼ '+n.name.toUpperCase(),sx,140,13,'#ffc63d','center');ctx.font='10px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';ctx.fillText(isTouch()?'TALK':'J to talk',sx,151);}}
 }
 function render(){
   ctx.setTransform(SCALE,0,0,SCALE,0,0);
   if(!G.bg)G.bg=genBg(STAGES[0],1000);
-  let shx=0,shy=0;if(G.shake&&!RM){shx=rand(-G.shake,G.shake)*.6;shy=rand(-G.shake,G.shake)*.6;}
+  let shx=0,shy=0;if(G.shake&&!RM&&prefs.shake){shx=rand(-G.shake,G.shake)*.6;shy=rand(-G.shake,G.shake)*.6;}
   ctx.save();ctx.translate(shx,shy);
   drawBg();
   for(const k of G.picks)drawPick(k);
@@ -1160,6 +1248,26 @@ const keysHtml=`<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <b>Dodge</b><span>Right Shift</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch, A jump, B kick, Y spell, RB gun, LB dodge, Start pauses or adds Runner 2.</p></div></div>
 <p style="font-size:12.5px">Walk into a staggered enemy to grab: punch to knee, kick to throw. Punch beside a can, crate or drum to lift it, then punch to throw. Kicks break riot shields.</p>`;
+const touchHelp=`<div class="keys">
+<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
+<b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
+<b>DODGE</b><span>Roll through attacks</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
+<b>MED · SWAP · CHAR</b><span>Medkit, change spell, character sheet</span></div>
+<p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
+const helpHtml=()=>isTouch()?touchHelp:keysHtml;
+function seg(key,opts){return `<div class="seg" role="group">${opts.map(([v,l])=>`<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key])===String(v)}">${l}</button>`).join('')}</div>`;}
+function settingsHtml(){
+  const row=(n,d,ctl)=>`<div class="setrow"><div><div class="nm" style="font-weight:600">${n}</div>${d?`<div class="ds">${d}</div>`:''}</div>${ctl}</div>`;
+  const onoff=k=>seg(k,[[true,'On'],[false,'Off']]);
+  return `<div class="card"><p class="eyebrow">Settings</p><h2>Tune your rig</h2><div>
+  ${row('Sound effects','',onoff('sound'))}${row('Music','Chiptune tracks for each district',onoff('music'))}
+  ${row('Screen shake','',onoff('shake'))}${navigator.vibrate?row('Vibration','Buzz on hits and level-ups',onoff('haptics')):''}
+  ${row('Tips','One-time hints as you meet each mechanic',onoff('tips'))}
+  ${row('Touch controls size','',seg('size',[['s','S'],['m','M'],['l','L']]))}
+  ${row('Touch controls side','Where the buttons sit',seg('lefty',[[false,'Buttons right'],[true,'Buttons left']]))}
+  ${canFull()?row('Full screen','Best on phones, held sideways','<button class="btn sm ghost" data-a="full">Go full screen</button>'):''}
+  </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
+}
 const AN={bod:'BOD',str:'STR',agi:'AGI',mag:'MAG'};
 const SLOTN={weapon:'Melee weapon',gun:'Gun',armor:'Armor'};
 function bonusStr(b){return Object.keys(b||{}).map(k=>`${AN[k]} +${b[k]}`).join(' · ');}
@@ -1187,7 +1295,7 @@ function jobHtml(C){
   const def=CONTRACTS[C.idx];
   return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(C.title)}</b>${st}</div><span style="color:var(--muted);font-size:13px">${esc(C.goal)}. Reward: ${def.creds?'¥'+def.creds+', ':''}${def.karma} karma${def.prize?', plus a Prototype item':''}.</span></div>`;
 }
-function setMode(m){G.mode=m;ov.hidden=(m==='play'||m==='den');if(m!=='play'&&m!=='den')for(const s of INP)for(const k in s.held)s.held[k]=false;renderOv();}
+function setMode(m){wake(m==='play'||m==='den');G.mode=m;ov.hidden=(m==='play'||m==='den');if(m!=='play'&&m!=='den')for(const s of INP)for(const k in s.held)s.held[k]=false;renderOv();}
 function soundBtns(){return `<button class="btn ghost" data-a="mute">${prefs.sound?'Sound on':'Sound off'}</button><button class="btn ghost" data-a="music">${prefs.music?'Music on':'Music off'}</button>`;}
 function renderOv(){
   const m=G.mode;let h='';
@@ -1195,7 +1303,7 @@ function renderOv(){
     const sv=store.get('cs_save3');if(G.mode==='title')G.pendDiff=sv&&sv.diff!==undefined?sv.diff:1;
     h=`<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1>Chrome &amp; Sorcery</h1>
     <p>Two shadowrunners, a fixer with a grudge and four districts between you and Director Voss. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}${soundBtns()}</div>${keysHtml}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
   }
   if(m==='pick'){
     h=`<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>
@@ -1215,9 +1323,10 @@ function renderOv(){
   }
   if(m==='pause'){
     h=`<div class="card"><p class="eyebrow">Paused · ${G.den?'the Den':'district '+(G.stage+1)} · ${DIFF[G.diff].name}${G.ng?' NG+'+G.ng:''}</p><h2>Catch your breath</h2>${G.den?'':jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop?'<button class="btn ghost" data-a="drop2">Drop Runner 2</button>':'<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${soundBtns()}<button class="btn ghost" data-a="quit">Quit to title</button></div>${keysHtml}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop?'<button class="btn ghost" data-a="drop2">Drop Runner 2</button>':'<button class="btn ghost" data-a="join2">Add Runner 2</button>'}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">Quit to title</button></div>${helpHtml()}</div>`;
   }
   if(m==='npc')h=npcHtml(G.npc);
+  if(m==='settings')h=settingsHtml();
   if(m==='over'){
     h=`<div class="card"><p class="eyebrow">District ${G.stage+1} · ${esc(STAGES[G.stage].name)}</p><h2 style="color:var(--neon)">Flatlined</h2>
     <p>You keep levels, karma, gear and cyberware. The district restarts with full health, three lives each and half your creds. The contract resets.</p>
@@ -1232,7 +1341,7 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="ngplus">New Game+ ${G.ng+1}</button><button class="btn ghost" data-a="pick">Fresh run</button></div></div>`;
   }
   ov.innerHTML=h;
-  if(['title','pause','over','win','brief','pick'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
+  if(['title','pause','over','win','brief','pick','settings'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
 }
 function npcHtml(id){
   const n=NPCS.find(x=>x.id===id),stage=G.stage;
@@ -1282,6 +1391,12 @@ ov.addEventListener('click',e=>{
   const rerender=()=>{renderOv();if(G.mode==='npc'||G.ret==='den')saveGame('den');};
   switch(a){
     case 'pick':G.pendDiff=G.diff;setMode('pick');keep=false;break;
+    case 'settings':G.setRet=G.mode;setMode('settings');keep=false;break;
+    case 'setdone':setMode(G.setRet||'title');break;
+    case 'pref':{const k=arg,raw=parts[2];const v=raw==='true'?true:raw==='false'?false:raw;
+      if(k==='music')setMusic(v);else prefs[k]=v;savePrefs();applyPrefs();renderOv();break;}
+    case 'tipsreset':prefs.seen={};prefs.rotDismissed=false;prefs.tips=true;savePrefs();renderOv();break;
+    case 'full':goFull();break;
     case 'diff':G.pendDiff=+arg;renderOv();break;
     case 'back2title':setMode('title');break;
     case 'ngplus':G.ng++;for(const q of PL){q.hp=q.maxHp;q.mp=q.maxMp;q.ammo=Math.max(q.ammo,24);}PARTY.contract=null;G.debrief=null;briefing(0,false);keep=false;break;
@@ -1337,9 +1452,9 @@ function frame(now){
     if(ran)for(const s of INP)for(const k in s.pressed)s.pressed[k]=false;
     acc-=1000/60;
   }
-  render();requestAnimationFrame(frame);
+  render();if(tick%6===0)updateTouchUI();requestAnimationFrame(frame);
 }
-fit();attract();setMode('title');musicPlay('title');requestAnimationFrame(frame);
+applyPrefs();fit();attract();setMode('title');musicPlay('title');requestAnimationFrame(frame);
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
 setTimeout(fit,300);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.hostname)){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
