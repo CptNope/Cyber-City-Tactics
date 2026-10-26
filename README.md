@@ -1,6 +1,6 @@
-# Cyber-City-Tactics
+# Cyber City Tactics
 
-**Chrome & Sorcery** is a vector-drawn, River City Ransom–style brawler RPG for one or two players. It's set in a cyberpunk sprawl where magic is real: street samurai, combat mages, gunslingers and deckers fighting gangs, corps, spirits and ICE.
+**Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG for one or two players. It's set in a cyberpunk sprawl where magic is real: street samurai, combat mages, gunslingers, deckers, shamans and riggers fighting gangs, corps, spirits and ICE.
 
 It is one HTML file with no build step and no dependencies. It runs in any modern browser, installs as a PWA, and plays offline after the first load.
 
@@ -71,6 +71,11 @@ What they say changes after each job.
 - **Difficulty:** Street, Runner or Prime.
 - **New Game+:** after the final boss you can start again with your runners, levels, gear, skills, cyberware and spells. Enemies hit harder, elites are more common and loot is better. You can repeat it as often as you like.
 - **Boss rematches:** beaten bosses can come back mid-district, already enraged: Gutter King, chromed; Razor Mei, under contract; and Voss.exe.
+- **Mutators:** optional modifiers you switch on before a run. Each one adds 20% karma and counts toward the mutator feats.
+  - Glass Cannon: everyone hits 60% harder, you included
+  - Elite Streets: every regular enemy is an elite
+  - Bare Knuckles: guns are locked, and punches and kicks hit 40% harder
+  - One Life: each runner gets one life per district
 
 ### The Sprawl (open world)
 One long street with a safehouse and fourteen procedurally generated buildings. You hack your way in, fight through randomly built rooms, and loot the cache. Who you rob matters: hit gangs and corps and the street respects you; hit families and small businesses and the cops come for you. See [The Sprawl in depth](#the-sprawl-in-depth).
@@ -118,8 +123,17 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 | Combat Mage | Fireball and Manabolt | **Mana Storm:** lightning strikes up to six enemies | Focus |
 | Gunslinger | Heavy pistol, double ammo | **Bullet Time:** enemies slow to half speed, shots are free | Steady Hands |
 | Decker 🔒 | Smartgun, Hacking 5 | **Overload:** fries every machine, ICE and armored trooper on screen and stuns everyone for 4 s | Port Scanner |
+| Shaman 🔒 | Fireball and Heal | **Spirit Call:** two bound fire spirits fight beside you for 15 s | Focus |
+| Rigger 🔒 | Machine pistol, Hacking 3 | **Drone Swarm:** three combat drones join the fight for 12 s | Steady Hands |
 
-The Decker is locked at first. Crack 10 locks in the Sprawl to earn the *Decker* feat and unlock it for every mode.
+Three archetypes are locked at first. Each is unlocked for every mode by a feat:
+- **Decker:** crack 10 locks in the Sprawl.
+- **Shaman:** find 10 lore shards.
+- **Rigger:** down 3 Kagemori couriers.
+
+Summoned spirits and drones don't replace a companion you've hired from Kit; they fight alongside it.
+
+**Coats.** Pick a coat for each runner on the start screen. You start with your signature colors, and feats unlock seven more: Chrome, Neon Fang, Ember, Black ICE, Most Wanted, Prime Gold and Lantern-bearer.
 
 ### Attributes
 Each level gives **2 attribute points** and **1 skill point**.
@@ -304,12 +318,23 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
+**Block events.** From block 2 on, about half of all blocks have an event. A banner announces it, and it shows in the HUD and at the safehouse:
+
+| Event | What changes |
+|---|---|
+| Gang war | Gang patrols come twice as often, and hideouts pay double street cred |
+| Blackout | No cops can find you, locks are 30% easier to crack, and the street goes dark except around you |
+| Kagemori lockdown | Every black site is tier 3 with better legendary odds, and heat cools half as fast |
+| Night market | Lantern strings over the street, four extra vending machines, and shops 20% cheaper |
+
+**The Lantern Vault.** Find all 24 lore shards and Juno tells you the rest. From then on, every block has a lantern-lit door: the Lantern Vault. It's four rooms deep, and at the bottom waits the Avatar of Ssareth, the hardest fight in the game. Beating it earns the *Lights Out* feat and a unique legendary, The Lantern.
+
 ---
 
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 42 goals across every mode, for example:
+**Feats.** 50 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss
@@ -319,7 +344,7 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 
 **Legend rank.** Every feat is worth legend points. They raise your rank from *Nobody* through *Street rat*, *Known face*, *Runner*, *Pro* and *Prime runner* to *Legend*. Each rank adds ¥15 to the creds you start a campaign or the Sprawl with.
 
-**Legendaries.** Eight Black-market items, each unlocked as a possible drop by a feat. Once unlocked, they can drop from bosses, bounties, tier-3 caches and hidden doors, and ones you haven't found yet come up first.
+**Legendaries.** Nine Black-market items. Eight are unlocked as possible drops by feats, and the ninth comes from the Lantern Vault. Once unlocked, they can drop from bosses, bounties, tier-3 caches and hidden doors, and ones you haven't found yet come up first.
 
 | Legendary | Slot | Effect | Unlocked by |
 |---|---|---|---|
@@ -331,10 +356,13 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Ronin's Last Edge | Weapon | Every 6th melee hit crits | Reach +60 street cred |
 | Wyrmfang | Gun | Rail slugs burn, and half your shots are free | A hidden feat |
 | Dragonscale Duster | Armor | Damage you take restores mana | A hidden feat |
+| The Lantern | Gun | Every takedown heals the team 5% HP and restores 5 mana | Defeat the Avatar of Ssareth |
 
 **Bestiary.** Every kind of enemy starts as ??? and fills in with a field note and a running kill count once you take one down.
 
 **Lore.** 24 data shards drop from vending machines, crates, bosses and Sprawl caches, and every hidden door holds one. Each shard tells a piece of the world. Collect them in any order and a story comes together about who is really behind Kagemori and what Project LANTERN is.
+
+**Runs.** The Codex keeps your last 20 finished runs: mode, archetype, level, takedowns, best combo and how it ended.
 
 ---
 

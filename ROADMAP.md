@@ -1,6 +1,6 @@
 # Roadmap
 
-Where Chrome & Sorcery has been and where it could go next. Items are grouped by theme and roughly ordered by value within each group. Effort is a rough guess: **S** is an evening, **M** a few sessions, **L** a bigger project.
+Where Cyber City Tactics has been and where it could go next. Items are grouped by theme and roughly ordered by value within each group. Effort is a rough guess: **S** is an evening, **M** a few sessions, **L** a bigger project.
 
 The guiding rules:
 - Stay one HTML file with no build step.
@@ -23,6 +23,8 @@ The guiding rules:
 - [x] Training level and boss rematches
 - [x] **The Sprawl:** open world with procedural buildings, a hacking minigame, heat, cops and street cred
 - [x] **Skill trees:** Brawler, Gunslinger, Mage and Decker, six skills each with a capstone
+- [x] **Renamed to Cyber City Tactics**
+- [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
@@ -115,16 +117,19 @@ The guiding rules:
 
 ### Discovery and replayability
 These are the next ways to keep "one more run" alive:
-- [ ] **Lore that changes the game (M).** Collecting all 24 shards opens a secret final job: track down Ssareth's lantern vault, with a dragon-cult boss and the best legendary in the game.
-- [ ] **Rotating Sprawl events (M).** A block-wide event on some blocks, such as a gang war (two crews fight each other, so pick a side), a blackout (no cops but no lights), or a Kagemori lockdown (every black site is tier 3).
-- [ ] **Mutators for the campaign (M).** Opt-in modifiers on any run, like the weekly ones, each adding legend points: one life, no guns, double elites, enemies split on death.
-- [ ] **Unlockable archetypes (M each).** More locked runners behind feats:
-  - Shaman: spirit allies and curses, unlocked by finding 10 lore shards
-  - Rigger: two drones, unlocked by downing 10 couriers
-  - Street Doc: heals with every hit, unlocked by finishing a co-op campaign
-- [ ] **Cosmetics from feats (S).** Coat colors, visor colors and a title shown under your name, so feats show up on your runner.
+- [x] ~~**Lore that changes the game.**~~ Shipped as the Lantern Vault.
+- [ ] **Lantern Vault, part two (L).** A real dragon fight: Ssareth itself, with a flight phase and breath attacks across lanes, unlocked after beating the Avatar on Prime.
+- [x] ~~**Rotating Sprawl events.**~~ Shipped: gang war, blackout, lockdown and night market.
+- [ ] **More block events (S each).** Acid rain (slowly hurts everyone outside), a toxic spirit storm, a corp parade (cops everywhere, but huge payouts), a bounty-hunter manhunt that targets *you*.
+- [x] ~~**Mutators for the campaign.**~~ Shipped: Glass Cannon, Elite Streets, Bare Knuckles and One Life.
+- [ ] **More mutators (S each).** Turbo (everything 25% faster), Fog (enemies hidden until close), Split (every enemy splits like a Glitch), Pacifist bonus (karma for districts cleared without guns).
+- [x] ~~**Shaman and Rigger.**~~ Shipped and unlocked by feats.
+- [ ] **Street Doc archetype (M).** Heals with every hit; unlocked by finishing a co-op campaign.
+- [ ] **Adept archetype (M).** Magic-fuelled martial artist: no guns, chi-powered combos; unlocked by finishing a district with Bare Knuckles.
+- [x] ~~**Cosmetics from feats.**~~ Shipped as eight runner coats.
+- [ ] **More cosmetics (S).** Visor colors, hair, a title under your name, and a weapon trail.
 - [ ] **Achievement-only secrets (S).** Hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
-- [ ] **Run history (S).** A list of your last 20 runs in the Codex with mode, archetype, level, best combo and how it ended.
+- [x] ~~**Run history.**~~ Shipped in the Codex.
 - [ ] **Challenge seeds (S).** Type or share a seed to replay the exact same Sprawl block or Arena run as a friend.
 
 ---

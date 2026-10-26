@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Chrome &amp; Sorcery</title>
+<title>Cyber City Tactics</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0c0a14">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -107,6 +107,9 @@ button:focus-visible{outline:2px solid var(--mana);outline-offset:2px}
 @keyframes skpop{0%{transform:scale(.92)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.sk.can,.sk.pop{animation:none}}
 .r3{color:#ff8a3d}
+.swatch{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:linear-gradient(135deg,var(--c1) 55%,var(--c2) 55%);cursor:pointer;font-size:11px;padding:0;color:#fff}
+.swatch.on{outline:2px solid var(--gold);outline-offset:2px}.swatch:disabled{opacity:.35;cursor:default}
+@media (pointer:coarse){.swatch{width:32px;height:32px}}
 .job .st{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 
 #pad{display:none;justify-content:space-between;align-items:flex-end;gap:12px;padding-block:6px 2px}
@@ -165,7 +168,7 @@ body{margin:0}
 <body>
 <div id="app">
   <div id="stage">
-    <canvas id="game" aria-label="Chrome and Sorcery game screen"></canvas>
+    <canvas id="game" aria-label="Cyber City Tactics game screen"></canvas>
     <button id="pauseBtn" aria-label="Pause">II</button>
     <button id="rotHint" hidden>Turn your phone sideways for a bigger screen · ✕</button>
     <div id="ov"></div>
@@ -390,6 +393,18 @@ const PALS=[
   {skin:'#a8735a',coat:'#5a2f6e',coat2:'#432354',pants:'#2a2230',hair:'#ffd27a',acc:'#ffc63d',boot:'#120d16',cyber:'#ffe0a8'}
 ];
 const NAMES=['VEX','JINX'];
+const COATS={
+  sig:{name:'Signature'},
+  chrome:{name:'Chrome',feat:'k100',coat:'#56626e',coat2:'#424c56',acc:'#9fe9ff'},
+  neon:{name:'Neon Fang',feat:'c25',coat:'#3a1240',coat2:'#2a0e30',acc:'#ff3d8b'},
+  ember:{name:'Ember',feat:'b_saint',coat:'#5a1e12',coat2:'#44160d',acc:'#ff6a3d'},
+  ice:{name:'Black ICE',feat:'b_blackice',coat:'#0b1a26',coat2:'#07121a',acc:'#45d2ff'},
+  wanted:{name:'Most Wanted',feat:'wanted',coat:'#1d2f5a',coat2:'#16244a',acc:'#ff3d4a'},
+  gold:{name:'Prime Gold',feat:'win',coat:'#5a4a1a',coat2:'#46380f',acc:'#ffc63d'},
+  lantern:{name:'Lantern-bearer',feat:'loreall',coat:'#2a1a3a',coat2:'#1e1229',acc:'#b98cff'}};
+const pendCoat=i=>((typeof G!=='undefined'&&G.pendCoat)||(typeof LEG!=='undefined'&&LEG.pendCoat)||[])[i]||'sig';
+const coatOpen=k=>!COATS[k].feat||(typeof LEG!=='undefined'&&!!LEG.feats[COATS[k].feat]);
+function applyCoat(p){const c=COATS[p.coat]||COATS.sig;p.pal=Object.assign({},PALS[p.idx],c.coat?{coat:c.coat,coat2:c.coat2,acc:c.acc}:{});}
 const DEF={
   ganger:{name:'Ganger',hp:28,spd:.85,dmg:6,reach:22,cool:72,scale:1,creds:[6,14],karma:10,style:'mohawk',pal:{skin:'#c98a6b',coat:'#3d2f52',coat2:'#2c2240',pants:'#22324a',hair:'#ff3d8b',acc:'#ffc63d',boot:'#141018'}},
   orc:{name:'Orc bruiser',hp:56,spd:.7,dmg:10,reach:24,cool:86,scale:1.15,creds:[12,22],karma:18,style:'tusks',pal:{skin:'#7d9a5a',coat:'#5a3030',coat2:'#432222',pants:'#2b2b2b',hair:'#141414',acc:'#ece4c6',boot:'#141010'}},
@@ -409,6 +424,7 @@ const DEF={
   troll:{name:'Gutter King',hp:220,spd:.75,dmg:15,reach:30,cool:80,scale:1.45,boss:true,charge:3.2,creds:[90,120],karma:90,style:'horns',pal:{skin:'#8a7ea6',coat:'#5a3a2a',coat2:'#432a1e',pants:'#2a2420',hair:'#ece4c6',acc:'#ff6a3d',boot:'#16110e'}},
   blade:{name:'Razor Mei',hp:200,spd:1.15,dmg:13,reach:26,cool:55,scale:1.08,boss:true,charge:4.4,creds:[110,140],karma:120,style:'blade',pal:{skin:'#e3b896',coat:'#2a2a33',coat2:'#1c1c24',pants:'#15151b',hair:'#f2f2f7',acc:'#ff3d8b',boot:'#0b0b10'}},
   saint:{name:'The Hollow Saint',hp:240,spd:1,dmg:13,reach:24,cool:70,scale:1.3,boss:true,lunge:true,summon:true,creds:[120,160],karma:150,style:'ghoul',crown:true,pal:{skin:'#d8d0bc',coat:'#3b2f3f',coat2:'#2b2230',pants:'#221b26',hair:'#d8d0bc',acc:'#ff4a4a',boot:'#120e14'}},
+  avatar:{name:'Avatar of Ssareth',hp:560,spd:1.05,dmg:17,reach:28,cool:62,scale:1.55,boss:true,lunge:true,summon:true,creds:[300,420],karma:420,style:'ghoul',crown:true,pal:{skin:'#ffd27a',coat:'#3a1a4a',coat2:'#2a1236',pants:'#1e0f28',hair:'#ffc63d',acc:'#b98cff',boot:'#120a18'}},
   archmage:{name:'Director Voss',hp:270,spd:.8,dmg:13,reach:24,cool:100,scale:1.12,boss:true,ranged:'hex3',range:160,teleport:true,creds:[140,180],karma:160,style:'mage',pal:{skin:'#d9c2b0',coat:'#e9e4f2',coat2:'#bdb4d0',pants:'#2b2540',hair:'#4a3d6b',acc:'#ffc63d',boot:'#1a1426'}}
 };
 const STAGES=[
@@ -472,6 +488,8 @@ const ARCH={
   runner:{name:'Street Runner',short:'Runner',desc:'Balanced at everything.',spName:'Adrenaline',spDesc:'Heal 30% and hit 50% harder and move faster for five seconds.',attr:{bod:2,str:2,agi:2,mag:2}},
   samurai:{name:'Street Samurai',short:'Samurai',desc:'Chrome and steel. Starts with a katana and a cyberarm.',spName:'Blade Dance',spDesc:'Dash through everything in front of you, cutting each enemy once.',attr:{bod:3,str:4,agi:2,mag:1},cy:{arm:1},weapon:'katana'},
   mage:{name:'Combat Mage',short:'Mage',desc:'Fragile but devastating. Knows Fireball and Manabolt.',spName:'Mana Storm',spDesc:'Lightning strikes up to six enemies on screen.',attr:{bod:2,str:1,agi:2,mag:5},spells:['fire','bolt']},
+  shaman:{name:'Shaman',short:'Shaman',desc:'Talks to spirits. Knows Fireball and Heal.',spName:'Spirit Call',spDesc:'Two bound fire spirits fight beside you for 15 seconds.',attr:{bod:3,str:1,agi:2,mag:4,hak:1},spells:['fire','heal'],locked:'lore10'},
+  rigger:{name:'Rigger',short:'Rigger',desc:'Drones are family. Machine pistol and Hacking 3.',spName:'Drone Swarm',spDesc:'Three combat drones join the fight for 12 seconds.',attr:{bod:2,str:2,agi:3,mag:1,hak:3},gun:'smg',ammo:40,locked:'cour3'},
   decker:{name:'Decker',short:'Decker',desc:'A hacker who fights dirty. Hacking 5, a smartgun and Port Scanner.',spName:'Overload',spDesc:'Fries every enemy on screen: machines, ICE and armored troops take heavy damage, and everyone is stunned for four seconds.',attr:{bod:2,str:1,agi:3,mag:1,hak:5},gun:'smart',ammo:36,locked:'h10'},
   gunslinger:{name:'Gunslinger',short:'Gunslinger',desc:'Fast hands. Heavy pistol and double ammo.',spName:'Bullet Time',spDesc:'Enemies slow to half speed for four seconds, and your shots cost no ammo.',attr:{bod:2,str:2,agi:5,mag:1},gun:'heavy',ammo:48}
 };
@@ -483,13 +501,14 @@ function applyArch(p,key){
   if(A0.spells)p.spells=A0.spells.slice();
   if(A0.ammo)p.ammo=A0.ammo;
   p.sk=null;p.spts=undefined;initSkills(p);
+  p.coat=pendCoat(p.idx);if(!coatOpen(p.coat))p.coat='sig';applyCoat(p);
   refresh(p);p.hp=p.maxHp;p.mp=p.maxMp;
 }
 /* ---------- legend: feats, legendaries, codex ---------- */
 const LORE=[["Seattle, 2079", "The Awakening came back in '11. Magic first, then dragons, then corps big enough to buy the sky. Seattle stayed a city on paper. On the street it's the Sprawl, and the Sprawl has its own rules."], ["The dead monorail", "Rustline used to be the commuter spine. Kagemori bought the line, shut it down and never tore it out. Now the crews live under it, and the pylons hum on nights when nothing should be running."], ["The Gutter King", "Nobody knows his real name. He was a dock troll who broke a corp foreman's jaw and kept going. He takes a tithe from every stall on Rustline and pays it to someone he's never met."], ["Juno", "Juno has been fixing for twenty years and has never once said who her first client was. She pays fair, remembers everything, and keeps a burner deck that never leaves her coat."], ["Doc Kessler", "Lost his license over a liver he says he didn't sell. Now he patches runners in the back of a noodle bar. His hands shake until the moment the knife touches skin."], ["Old Wen", "Wen says she taught half the shamans in the Barrens and buried the other half. Her talismans are wrapped in Kagemori shipping tape. She won't say where she gets it."], ["Razor Mei", "Mei was Kagemori's best courier killer until they tried to retire her. She survived the retirement. Now she sells her blade to whoever's hunting the people who trained her."], ["Neon Market", "Ten thousand stalls, one rule: no corp scrip. The market runs on nuyen, favors and data chips. The chips that matter are stamped with a little paper lantern."], ["Project LANTERN", "A memo header on a burned chip: PROJECT LANTERN, PHASE 3, VESSEL ACQUISITION. The rest is corrupted, except a line about 'spirit retention in chromed hosts'."], ["Ghouls", "Infected, not dead, whatever the tabloids say. Most of the tunnel ghouls were ordinary people once. Kagemori trucks drop food at the tunnel mouths every month, and nobody asks why a corp is feeding ghouls."], ["The Hollow Saint", "They say she was a Kagemori test subject who walked out of a lab burning and never stopped. The Undercity worships her. She hears the spirits the corp put in the chrome, and she wants them freed."], ["Fire spirits", "Free spirits are rare. Bound ones are a commodity. The fire spirits in the tunnels were bound by someone, and the binding marks are corporate, stamped with a lantern."], ["Kagemori", "Number nine on the Corporate Court list and climbing. Officially they build cyberware and security drones. Unofficially every runner in Seattle has a story about a Kagemori job that went strange."], ["Director Voss", "Voss ran Kagemori Seattle for six years and was decorated twice. His own staff say he started hearing voices in the server rooms and smiling at them."], ["The Arcology", "Two hundred floors of corp housing, sealed air and private police. The top ten floors aren't on the building plans. The elevators to them only answer to one voiceprint, and it isn't Voss's."], ["Black ICE", "Intrusion countermeasures that can kill a decker through the jack. Kagemori's Black ICE is different: it learns, and logs show it pausing before it kills, as if it were listening to something."], ["Ratchet", "Ratchet will buy anything once and sell it twice. He's the only fence on Rustline the Gutter King never touches. People wonder who protects him."], ["Kit", "Kit rents muscle, drones and bound spirits by the job and never asks what the job is. Kit's spirits come with the same lantern binding marks, and Kit pretends not to notice."], ["Pixel", "Pixel is twelve, or says so. She knows every vent and crawlspace on the block and has hacked three Kagemori cameras just to watch the guards nap."], ["Street cred", "On the Sprawl, reputation is currency. Hit the crews and the people cheer. Hit a family and they remember your face. Either way, the street decides who you are."], ["Wyrm cults", "Some people worship dragons the way their grandparents worshipped saints. The cults meet behind unmarked doors, pay in old gold, and carry a lantern on every altar."], ["The Lantern-bearer", "Every chip, binding and altar points the same way. Project LANTERN wasn't Voss's idea. It belongs to something older that wants chrome bodies full of bound spirits, an army that never sleeps."], ["Ssareth", "A name scratched inside a vault door in old draconic script: SSARETH, WHO LIGHTS THE WAY. The great dragon bought Kagemori through shell companies. Voss was only ever the lamp."], ["The way out", "Juno's first client, twenty years ago, paid in gold coins stamped with a lantern. She's been working for Ssareth all along, and she's been hiring runners strong enough to stop it. She's hoping you're the ones."]];
-const BEST={"ganger": "Rustline crews. Cheap chrome, cheap knives, a lot of nerve.", "orc": "Big, tough and not as slow as they look. Knock them down before they knock you down.", "sec": "Kagemori security on a corp salary. They shoot first and file reports later.", "riot": "Shields stop punches from the front. Kick them, throw something, or get behind.", "shaman": "Street shamans throw spells from the back line. Close the distance fast.", "ghoul": "They lunge from far away. Roll through and punish the recovery.", "spirit": "Bound fire spirits. Bullets pass right through them; use fists, blades or magic.", "cop": "Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.", "glitch": "Corrupted code with a body. Kill one and it splits in two.", "ice": "ICE sentries teleport and fire laser spreads. Watch the windup.", "drone": "Rigger drones keep their distance and shoot. Jump-kick them out of the air.", "blackice": "Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents.", "troll": "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves.", "blade": "Razor Mei dashes through you, then chains three dashes when she's enraged.", "saint": "The Hollow Saint summons spirits and slams the floor. Keep moving.", "archmage": "Director Voss teleports and fires hexes, five at a time when enraged."};
-const LEGS={"ronin": {"slot": "weapon", "base": "katana", "name": "Ronin's Last Edge", "fx": "Every sixth melee hit is a guaranteed crit."}, "maul": {"slot": "weapon", "base": "hammer", "name": "Saint's Cinder Maul", "fx": "Heavy blows erupt in a fire blast."}, "silk": {"slot": "weapon", "base": "whip", "name": "Mei's Silk", "fx": "Melee hits have a 30% chance to lash a second enemy."}, "boomstick": {"slot": "gun", "base": "shot", "name": "King's Boomstick", "fx": "Fires five pellets that knock enemies down."}, "smartlink": {"slot": "gun", "base": "smart", "name": "Voss's Smartlink", "fx": "Half your hits arc lightning to another enemy."}, "wyrmfang": {"slot": "gun", "base": "rail", "name": "Wyrmfang", "fx": "Rail slugs set every target on fire, and half your shots cost no ammo."}, "iceshard": {"slot": "armor", "base": "cloak", "name": "Black ICE Shard", "fx": "Deflects one hit every eight seconds."}, "dragonscale": {"slot": "armor", "base": "robe", "name": "Dragonscale Duster", "fx": "Damage you take restores half as much mana."}};
-const FEATS=[{"id": "first", "name": "First Blood", "desc": "Take down your first enemy.", "lp": 5, "stat": "kills", "n": 1}, {"id": "k100", "name": "Street Sweeper", "desc": "Take down 100 enemies.", "lp": 10, "stat": "kills", "n": 100}, {"id": "k1000", "name": "Thousand-Yard Stare", "desc": "Take down 1,000 enemies.", "lp": 25, "stat": "kills", "n": 1000}, {"id": "el25", "name": "Elite Hunter", "desc": "Take down 25 elites.", "lp": 15, "stat": "elites", "n": 25}, {"id": "c25", "name": "Chain Reaction", "desc": "Land a 25-hit combo.", "lp": 10, "stat": "combo", "n": 25}, {"id": "c60", "name": "Perfect Rhythm", "desc": "Land a 60-hit combo.", "lp": 25, "stat": "combo", "n": 60, "hidden": 1}, {"id": "sp25", "name": "Specialist", "desc": "Use your special 25 times.", "lp": 10, "stat": "specials", "n": 25}, {"id": "lv20", "name": "Prime Runner", "desc": "Reach level 20.", "lp": 20, "stat": "lvl", "n": 20}, {"id": "b_troll", "name": "Dethroned", "desc": "Beat the Gutter King.", "lp": 15, "leg": "boomstick"}, {"id": "b_blade", "name": "Cut the Razor", "desc": "Beat Razor Mei.", "lp": 15, "leg": "silk"}, {"id": "b_saint", "name": "Ash to Ash", "desc": "Beat the Hollow Saint.", "lp": 15, "leg": "maul"}, {"id": "b_archmage", "name": "Hostile Takeover", "desc": "Beat Director Voss.", "lp": 15, "leg": "smartlink"}, {"id": "b_blackice", "name": "Defragmented", "desc": "Delete Black ICE.", "lp": 15, "leg": "iceshard"}, {"id": "win", "name": "Legend of the Sprawl", "desc": "Finish the campaign.", "lp": 30}, {"id": "prime", "name": "Prime Time", "desc": "Finish the campaign on Prime.", "lp": 40}, {"id": "ngp", "name": "Again, Harder", "desc": "Start New Game+.", "lp": 15}, {"id": "rematch", "name": "Bad Blood", "desc": "Beat a boss rematch.", "lp": 15, "hidden": 1}, {"id": "coop", "name": "Partners in Crime", "desc": "Clear a district in co-op.", "lp": 10}, {"id": "ghost", "name": "Not a Scratch", "desc": "Clear a district without losing a life.", "lp": 15}, {"id": "h1", "name": "Script Kiddie", "desc": "Crack your first lock in the Sprawl.", "lp": 5, "stat": "hacks", "n": 1}, {"id": "h10", "name": "Decker", "desc": "Crack 10 locks. Unlocks the Decker archetype.", "lp": 20, "stat": "hacks", "n": 10, "arch": "decker"}, {"id": "zero", "name": "Zero-Day", "desc": "Crack a tier-3 lock without a single miss.", "lp": 20, "hidden": 1}, {"id": "blk5", "name": "Deep in the Sprawl", "desc": "Reach block 5.", "lp": 20, "stat": "block", "n": 5}, {"id": "folk", "name": "Folk Hero", "desc": "Reach +60 street cred.", "lp": 20, "leg": "ronin"}, {"id": "villain", "name": "Public Enemy", "desc": "Fall to −60 street cred.", "lp": 10, "hidden": 1}, {"id": "wanted", "name": "Most Wanted", "desc": "Survive a full minute at five heat stars.", "lp": 20, "hidden": 1, "leg": "wyrmfang"}, {"id": "secret", "name": "Off the Map", "desc": "Find a hidden door.", "lp": 20, "hidden": 1, "leg": "dragonscale"}, {"id": "bounty", "name": "Bounty Hunter", "desc": "Collect one of Juno's bounties.", "lp": 15}, {"id": "courier", "name": "Highway Robbery", "desc": "Take down a Kagemori courier before it escapes.", "lp": 10}, {"id": "captain", "name": "Block Captain", "desc": "Clean out every hideout, black site and crooked home on a block.", "lp": 20}, {"id": "w10", "name": "Survivor", "desc": "Reach Arena wave 10.", "lp": 10, "stat": "wave", "n": 10}, {"id": "w25", "name": "Gladiator", "desc": "Reach Arena wave 25.", "lp": 25, "stat": "wave", "n": 25}, {"id": "daily", "name": "Daily Grind", "desc": "Play a daily challenge.", "lp": 5}, {"id": "streak", "name": "Habit Forming", "desc": "Play the daily challenge three days in a row.", "lp": 15}, {"id": "weekly", "name": "Seven-Day Itch", "desc": "Play a weekly challenge.", "lp": 5}, {"id": "lore5", "name": "Rumor Mill", "desc": "Find 5 lore shards.", "lp": 10, "stat": "shards", "n": 5}, {"id": "loreall", "name": "The Whole Truth", "desc": "Find every lore shard.", "lp": 40, "stat": "shards", "n": 24, "hidden": 1}, {"id": "leg1", "name": "Black Market", "desc": "Find a legendary.", "lp": 15, "stat": "legs", "n": 1}, {"id": "legall", "name": "Collector", "desc": "Find every legendary.", "lp": 40, "stat": "legs", "n": 8, "hidden": 1}, {"id": "best", "name": "Field Guide", "desc": "Take down every kind of enemy.", "lp": 25, "stat": "species", "n": 16}, {"id": "cap", "name": "Master of One", "desc": "Learn a capstone skill.", "lp": 10}, {"id": "jack", "name": "Jack of All Trades", "desc": "Have at least one skill in all four trees.", "lp": 10}];
+const BEST={"ganger": "Rustline crews. Cheap chrome, cheap knives, a lot of nerve.", "orc": "Big, tough and not as slow as they look. Knock them down before they knock you down.", "sec": "Kagemori security on a corp salary. They shoot first and file reports later.", "riot": "Shields stop punches from the front. Kick them, throw something, or get behind.", "shaman": "Street shamans throw spells from the back line. Close the distance fast.", "ghoul": "They lunge from far away. Roll through and punish the recovery.", "spirit": "Bound fire spirits. Bullets pass right through them; use fists, blades or magic.", "cop": "Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.", "glitch": "Corrupted code with a body. Kill one and it splits in two.", "ice": "ICE sentries teleport and fire laser spreads. Watch the windup.", "drone": "Rigger drones keep their distance and shoot. Jump-kick them out of the air.", "blackice": "Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents.", "troll": "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves.", "blade": "Razor Mei dashes through you, then chains three dashes when she's enraged.", "saint": "The Hollow Saint summons spirits and slams the floor. Keep moving.", "archmage": "Director Voss teleports and fires hexes, five at a time when enraged.", "avatar": "Ssareth's avatar: a vessel of chrome and bound fire. It summons spirits, lunges and slams. The great dragon is watching through its eyes."};
+const LEGS={"ronin": {"slot": "weapon", "base": "katana", "name": "Ronin's Last Edge", "fx": "Every sixth melee hit is a guaranteed crit."}, "maul": {"slot": "weapon", "base": "hammer", "name": "Saint's Cinder Maul", "fx": "Heavy blows erupt in a fire blast."}, "silk": {"slot": "weapon", "base": "whip", "name": "Mei's Silk", "fx": "Melee hits have a 30% chance to lash a second enemy."}, "boomstick": {"slot": "gun", "base": "shot", "name": "King's Boomstick", "fx": "Fires five pellets that knock enemies down."}, "smartlink": {"slot": "gun", "base": "smart", "name": "Voss's Smartlink", "fx": "Half your hits arc lightning to another enemy."}, "wyrmfang": {"slot": "gun", "base": "rail", "name": "Wyrmfang", "fx": "Rail slugs set every target on fire, and half your shots cost no ammo."}, "iceshard": {"slot": "armor", "base": "cloak", "name": "Black ICE Shard", "fx": "Deflects one hit every eight seconds."}, "dragonscale": {"slot": "armor", "base": "robe", "name": "Dragonscale Duster", "fx": "Damage you take restores half as much mana."}, "lantern": {"slot": "gun", "base": "launcher", "name": "The Lantern", "fx": "Every takedown heals 5% HP and restores 5 mana for the whole team."}};
+const FEATS=[{"id": "first", "name": "First Blood", "desc": "Take down your first enemy.", "lp": 5, "stat": "kills", "n": 1}, {"id": "k100", "name": "Street Sweeper", "desc": "Take down 100 enemies.", "lp": 10, "stat": "kills", "n": 100}, {"id": "k1000", "name": "Thousand-Yard Stare", "desc": "Take down 1,000 enemies.", "lp": 25, "stat": "kills", "n": 1000}, {"id": "el25", "name": "Elite Hunter", "desc": "Take down 25 elites.", "lp": 15, "stat": "elites", "n": 25}, {"id": "c25", "name": "Chain Reaction", "desc": "Land a 25-hit combo.", "lp": 10, "stat": "combo", "n": 25}, {"id": "c60", "name": "Perfect Rhythm", "desc": "Land a 60-hit combo.", "lp": 25, "stat": "combo", "n": 60, "hidden": 1}, {"id": "sp25", "name": "Specialist", "desc": "Use your special 25 times.", "lp": 10, "stat": "specials", "n": 25}, {"id": "lv20", "name": "Prime Runner", "desc": "Reach level 20.", "lp": 20, "stat": "lvl", "n": 20}, {"id": "b_troll", "name": "Dethroned", "desc": "Beat the Gutter King.", "lp": 15, "leg": "boomstick"}, {"id": "b_blade", "name": "Cut the Razor", "desc": "Beat Razor Mei.", "lp": 15, "leg": "silk"}, {"id": "b_saint", "name": "Ash to Ash", "desc": "Beat the Hollow Saint.", "lp": 15, "leg": "maul"}, {"id": "b_archmage", "name": "Hostile Takeover", "desc": "Beat Director Voss.", "lp": 15, "leg": "smartlink"}, {"id": "b_blackice", "name": "Defragmented", "desc": "Delete Black ICE.", "lp": 15, "leg": "iceshard"}, {"id": "win", "name": "Legend of the Sprawl", "desc": "Finish the campaign.", "lp": 30}, {"id": "prime", "name": "Prime Time", "desc": "Finish the campaign on Prime.", "lp": 40}, {"id": "ngp", "name": "Again, Harder", "desc": "Start New Game+.", "lp": 15}, {"id": "rematch", "name": "Bad Blood", "desc": "Beat a boss rematch.", "lp": 15, "hidden": 1}, {"id": "coop", "name": "Partners in Crime", "desc": "Clear a district in co-op.", "lp": 10}, {"id": "ghost", "name": "Not a Scratch", "desc": "Clear a district without losing a life.", "lp": 15}, {"id": "h1", "name": "Script Kiddie", "desc": "Crack your first lock in the Sprawl.", "lp": 5, "stat": "hacks", "n": 1}, {"id": "h10", "name": "Decker", "desc": "Crack 10 locks. Unlocks the Decker archetype.", "lp": 20, "stat": "hacks", "n": 10, "arch": "decker"}, {"id": "zero", "name": "Zero-Day", "desc": "Crack a tier-3 lock without a single miss.", "lp": 20, "hidden": 1}, {"id": "blk5", "name": "Deep in the Sprawl", "desc": "Reach block 5.", "lp": 20, "stat": "block", "n": 5}, {"id": "folk", "name": "Folk Hero", "desc": "Reach +60 street cred.", "lp": 20, "leg": "ronin"}, {"id": "villain", "name": "Public Enemy", "desc": "Fall to −60 street cred.", "lp": 10, "hidden": 1}, {"id": "wanted", "name": "Most Wanted", "desc": "Survive a full minute at five heat stars.", "lp": 20, "hidden": 1, "leg": "wyrmfang"}, {"id": "secret", "name": "Off the Map", "desc": "Find a hidden door.", "lp": 20, "hidden": 1, "leg": "dragonscale"}, {"id": "bounty", "name": "Bounty Hunter", "desc": "Collect one of Juno's bounties.", "lp": 15}, {"id": "courier", "name": "Highway Robbery", "desc": "Take down a Kagemori courier before it escapes.", "lp": 10}, {"id": "captain", "name": "Block Captain", "desc": "Clean out every hideout, black site and crooked home on a block.", "lp": 20}, {"id": "w10", "name": "Survivor", "desc": "Reach Arena wave 10.", "lp": 10, "stat": "wave", "n": 10}, {"id": "w25", "name": "Gladiator", "desc": "Reach Arena wave 25.", "lp": 25, "stat": "wave", "n": 25}, {"id": "daily", "name": "Daily Grind", "desc": "Play a daily challenge.", "lp": 5}, {"id": "streak", "name": "Habit Forming", "desc": "Play the daily challenge three days in a row.", "lp": 15}, {"id": "weekly", "name": "Seven-Day Itch", "desc": "Play a weekly challenge.", "lp": 5}, {"id": "lore5", "name": "Rumor Mill", "desc": "Find 5 lore shards.", "lp": 10, "stat": "shards", "n": 5}, {"id": "loreall", "name": "The Whole Truth", "desc": "Find every lore shard.", "lp": 40, "stat": "shards", "n": 24, "hidden": 1}, {"id": "leg1", "name": "Black Market", "desc": "Find a legendary.", "lp": 15, "stat": "legs", "n": 1}, {"id": "legall", "name": "Collector", "desc": "Find every legendary.", "lp": 40, "stat": "legs", "n": 8, "hidden": 1}, {"id": "best", "name": "Field Guide", "desc": "Take down every kind of enemy.", "lp": 25, "stat": "species", "n": 16}, {"id": "cap", "name": "Master of One", "desc": "Learn a capstone skill.", "lp": 10}, {"id": "jack", "name": "Jack of All Trades", "desc": "Have at least one skill in all four trees.", "lp": 10}, {"id": "lore10", "name": "Storyteller", "desc": "Find 10 lore shards. Unlocks the Shaman archetype.", "lp": 20, "stat": "shards", "n": 10, "arch": "shaman"}, {"id": "cour3", "name": "Drone Jockey", "desc": "Down 3 Kagemori couriers. Unlocks the Rigger archetype.", "lp": 20, "stat": "couriers", "n": 3, "arch": "rigger"}, {"id": "b_avatar", "name": "Lights Out", "desc": "Defeat the Avatar of Ssareth in the Lantern Vault.", "lp": 60, "hidden": 1, "leg": "lantern"}, {"id": "mut1", "name": "Living Dangerously", "desc": "Clear a district with at least one mutator on.", "lp": 15}, {"id": "mut3", "name": "Masochist", "desc": "Finish the campaign with three or more mutators on.", "lp": 50, "hidden": 1}, {"id": "events", "name": "Seen It All", "desc": "Live through all four Sprawl block events.", "lp": 20, "stat": "evseen", "n": 4}, {"id": "summon", "name": "Not Alone", "desc": "Have three summoned allies fighting at once.", "lp": 10, "hidden": 1}, {"id": "dressed", "name": "Dressed to Kill", "desc": "Unlock 4 runner coats.", "lp": 10, "stat": "coats", "n": 4}];
 const RANKS=[[0, "Nobody"], [25, "Street rat"], [75, "Known face"], [150, "Runner"], [250, "Pro"], [400, "Prime runner"], [600, "Legend"]];
 const FEATBY={};for(const f of FEATS)FEATBY[f.id]=f;
 const LEG=Object.assign({v:1,feats:{},kills:{},lore:[],legs:[],stats:{}},store.get('cs_legend')||{});
@@ -500,7 +519,9 @@ function rankOf(lp){let r=0;for(let i=0;i<RANKS.length;i++)if(lp>=RANKS[i][0])r=
 const legUnlocked=()=>Object.keys(LEGS).filter(k=>FEATS.some(f=>f.leg===k&&LEG.feats[f.id]));
 const archLocked=k=>!!(ARCH[k]&&ARCH[k].locked&&!LEG.feats[ARCH[k].locked]);
 function feat(id){
-  if(LEG.feats[id]||G.training)return;const F=FEATBY[id];if(!F)return;LEG.feats[id]=Date.now();saveLeg();
+  if(LEG.feats[id]||G.training)return;const F=FEATBY[id];if(!F)return;LEG.feats[id]=Date.now();
+  const nc=Object.keys(COATS).filter(k=>COATS[k].feat===id);if(nc.length){LEG.stats.coats=Object.keys(COATS).filter(k=>COATS[k].feat&&LEG.feats[COATS[k].feat]).length;}
+  saveLeg();if(nc.length)setTimeout0(()=>{featCheck('coats');(G.toasts=G.toasts||[]).push({s:'New coat: '+COATS[nc[0]].name,d:'Pick it when you start a run',life:200,lore:true});});
   const extra=F.leg?'Unlocks '+LEGS[F.leg].name+' as a drop':F.arch?'Unlocks the '+ARCH[F.arch].name+' archetype':'+'+F.lp+' legend';
   (G.toasts=G.toasts||[]).push({s:F.name,d:extra,life:260});sfx.level();buzz([20,30,20,30,40]);
 }
@@ -521,6 +542,10 @@ function gotShard(p){
   (G.toasts=G.toasts||[]).push({s:'Lore: '+LORE[i][0],d:'Read it in the Codex · '+LEG.lore.length+'/'+LORE.length,life:200,lore:true});sfx.loot();
 }
 function gotLegend(it){if(!it||!it.leg)return;if(!LEG.legs.includes(it.leg)){LEG.legs.push(it.leg);bump('legs');saveLeg();}}
+function logRun(mode,result,extra){
+  if(G.training||!PL.length)return;const p=PL[0];
+  LEG.runs=LEG.runs||[];LEG.runs.unshift({mode,result,arch:p.arch,coop:!!G.coop,lvl:p.lvl,combo:G.bestCombo||0,kills:(G.run||{}).kills||0,extra:extra||'',date:new Date().toISOString().slice(0,10)});
+  LEG.runs=LEG.runs.slice(0,20);saveLeg();}
 function onKill(t,ks){
   if(t.team!==1||(t.d&&t.d.passive)||G.training)return;
   bump('kills');if(t.elite)bump('elites');
@@ -531,6 +556,9 @@ function onKill(t,ks){
     legendDrop(t.x+20,t.y+6,G.dun?.12:.22);shardDrop(t.x-20,t.y+8,.5);
   }
   if(t.bounty)payBounty(t);
+  if(t.kind==='avatar'){feat('b_avatar');if(!LEG.legs.includes('lantern'))drop('gear',t.x,t.y+10,{item:mkLegend('lantern')});shardDrop(t.x+20,t.y,1);
+    (G.toasts=G.toasts||[]).push({s:'The lantern goes dark',d:'Juno: "Ssareth will feel that one. Go home, legend."',life:360,lore:true});}
+  if(ks&&PL.some(q=>!q.out&&legOf(q,'gun')==='lantern')){for(const q of alive()){q.hp=Math.min(q.maxHp,q.hp+Math.round(q.maxHp*.05));q.mp=Math.min(q.maxMp,q.mp+5);}}
   if(t.courier)featCourier(t);
 }
 /* ---------- skill trees ---------- */
@@ -565,7 +593,7 @@ const SKILLS={
   fence:{t:'decker',row:2,name:'Fence Contacts',desc:'Sell gear for 15% more and buy for 10% less.'},
   ghost:{t:'decker',row:3,name:'Ghost Protocol',desc:'Failed hacks never trip alarms, and break-ins add one less heat star.'}};
 const ROW_NEED=[0,1,2,4],ROW_LVL=[1,1,4,8];
-const ARCH_SKILL={runner:null,samurai:'iron',mage:'focus',gunslinger:'steady',decker:'probe'};
+const ARCH_SKILL={runner:null,samurai:'iron',mage:'focus',gunslinger:'steady',decker:'probe',shaman:'focus',rigger:'steady'};
 const has=(p,id)=>!!(p&&p.sk&&p.sk[id]);
 const anyHas=id=>active().some(p=>has(p,id));
 const treePts=(p,t)=>Object.keys(p.sk||{}).filter(k=>SKILLS[k]&&SKILLS[k].t===t).length;
@@ -641,7 +669,7 @@ const G={mode:'title',ret:'play',stage:0,camX:0,lock:null,wave:0,waveLive:false,
 const PARTY={creds:0,bag:[],med:2,contract:null,ally:null};
 let PL=[];
 
-const RUNNER_KEYS=['arch','lvl','karma','pts','attr','cy','eq','spells','spell','hp','mp','ammo','lives','sk','spts'];
+const RUNNER_KEYS=['arch','lvl','karma','pts','attr','cy','eq','spells','spell','hp','mp','ammo','lives','sk','spts','coat'];
 function newRunner(idx){const p={kind:'player',idx,name:NAMES[idx],team:0,pal:PALS[idx],x:60,y:220,z:0,vx:0,vz:0,face:1,state:'idle',t:0,walk:0,inv:0,flash:0,
   lvl:1,karma:0,pts:0,sk:{},spts:1,attr:{bod:2,str:2,agi:2,mag:2,hak:1},cy:{arm:0,wired:0,plate:0},
   eq:{weapon:null,gun:mkItem('gun','light',0),armor:mkItem('armor','coat',0)},spells:['fire'],spell:0,
@@ -659,20 +687,20 @@ function refresh(p){
   p.hp=Math.min(p.hp,p.maxHp);p.mp=Math.min(p.mp,p.maxMp);
 }
 function saveGame(phase){
-  const o={v:3,phase,stage:G.stage,coop:G.coop,diff:G.diff,ng:G.ng,party:PARTY,runners:PL.map(p=>{const r={};for(const k of RUNNER_KEYS)r[k]=p[k];return r;}),stock:G.stock,debrief:G.debrief,bestCombo:G.bestCombo};
+  const o={v:3,phase,stage:G.stage,coop:G.coop,diff:G.diff,ng:G.ng,muts:G.muts||[],party:PARTY,runners:PL.map(p=>{const r={};for(const k of RUNNER_KEYS)r[k]=p[k];return r;}),stock:G.stock,debrief:G.debrief,bestCombo:G.bestCombo};
   store.set('cs_save3',JSON.parse(JSON.stringify(o)));
 }
 function loadGame(s){
   G.coop=!!s.coop;Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null,ally:null},s.party||{});
-  PL=(s.runners||[]).map((r,i)=>{const p=newRunner(i);for(const k of RUNNER_KEYS)if(r[k]!==undefined)p[k]=r[k];if(r.sk===undefined){p.sk=null;p.spts=undefined;}if(!ARCH[p.arch])p.arch='runner';p.lives=Math.max(1,p.lives);refresh(p);return p;});
+  PL=(s.runners||[]).map((r,i)=>{const p=newRunner(i);for(const k of RUNNER_KEYS)if(r[k]!==undefined)p[k]=r[k];if(r.sk===undefined){p.sk=null;p.spts=undefined;}applyCoat(p);if(!ARCH[p.arch])p.arch='runner';p.lives=Math.max(1,p.lives);refresh(p);return p;});
   if(!PL.length)PL=[newRunner(0)];G.coop=PL.length>1;
-  G.stage=s.stage||0;G.diff=s.diff===undefined?1:s.diff;G.ng=s.ng||0;G.stock=s.stock||[];G.debrief=s.debrief||null;G.bestCombo=s.bestCombo||0;
+  G.muts=s.muts||[];G.stage=s.stage||0;G.diff=s.diff===undefined?1:s.diff;G.ng=s.ng||0;G.stock=s.stock||[];G.debrief=s.debrief||null;G.bestCombo=s.bestCombo||0;
 }
 const karmaNext=l=>50+l*45;
 const active=()=>PL.filter(p=>!p.out);
 const alive=()=>PL.filter(p=>!p.out&&p.state!=='dead');
 function gainKarma(n){
-  if(!n)return;if(G.coop)n=Math.max(1,Math.round(n*.75));
+  if(!n)return;if(G.coop)n=Math.max(1,Math.round(n*.75));if(mutN())n=Math.round(n*(1+.2*mutN()));
   for(const p of active()){p.karma+=n;
     while(p.karma>=karmaNext(p.lvl)){p.karma-=karmaNext(p.lvl);p.lvl++;p.pts+=2;p.spts=(p.spts||0)+1;refresh(p);p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.3));peak('lvl',p.lvl);
       say(p,'LEVEL '+p.lvl,'#ffc63d',88,80);sfx.level();buzz([20,40,20]);burst(p.x,p.y,30,'#ffc63d',16);
@@ -719,7 +747,7 @@ function briefing(si,fromDen){
   G.arena=false;
   const C=CONTRACTS[si];
   if(!PARTY.contract||PARTY.contract.idx!==si)PARTY.contract={idx:si,title:C.title,goal:C.goal,key:C.key,need:C.need,count:0,done:false,failed:false};
-  for(const p of PL){p.out=false;p.lives=3;}
+  for(const p of PL){p.out=false;p.lives=maxLives();}
   G.stage=si;G.briefFromDen=!!fromDen;saveGame('brief');
   if(!fromDen){G.den=false;resetWorld();G.bg=genBg(STAGES[si],1000+si*77);}
   setMode('brief');
@@ -770,7 +798,7 @@ function spawnEnemy(kind,side){
 function setS(e,s){e.state=s;e.t=0;e.didHit=false;}
 function fxSpark(x,y,z,col,big){G.fx.push({k:'star',x,y,z,c:col,life:big?12:8,max:big?12:8,r:big?14:9,rot:Math.random()*3});if(big)G.fx.push({k:'ring',x,y,z,c:col,life:14,max:14,r:22});}
 const LATER=[];function setTimeout0(f){LATER.push(f);}
-const legOf=(p,slot)=>p&&p.eq&&p.eq[slot]&&p.eq[slot].leg;
+const legOf0=0;const legOf=(p,slot)=>p&&p.eq&&p.eq[slot]&&p.eq[slot].leg;
 function roninCrit(o){const p=o.src;if(!o.melee||legOf(p,'weapon')!=='ronin')return false;p.roninN=(p.roninN||0)+1;return p.roninN%6===0;}
 function hurt(t,dmg,dir,o){
   o=o||{};
@@ -865,11 +893,17 @@ const FAC={
   secret:{pool:['shaman','ghoul','spirit','shaman'],t3:['glitch'],boss:[null,'saint','saint','archmage'],bossName:['','Lantern keeper','Lantern keeper','Wyrm priest'],theme:2}};
 const isGood=b=>b.type==='secret'||b.type==='hideout'||b.type==='blacksite'||(b.type==='home'&&b.dirty);
 const facOf=b=>b.type==='home'?(b.dirty?'dirty':'home'):b.type;
+const EVENTS={
+  gangwar:{name:'Gang war',desc:'The crews are fighting over the block. Patrols come twice as often and hideouts pay double street cred.',col:'#ff6a3d'},
+  blackout:{name:'Blackout',desc:'The grid is down. No cops can find you, locks are easier to crack, and it is very dark.',col:'#45d2ff'},
+  lockdown:{name:'Kagemori lockdown',desc:'Every black site is locked at tier 3 with better loot, and heat cools half as fast.',col:'#ffc63d'},
+  festival:{name:'Night market',desc:'Lantern festival on the block. Shops are 20% cheaper and vending machines line the street.',col:'#b98cff'}};
+const evOn=k=>!!(G.world&&G.wd&&G.wd.street&&G.wd.street.event===k);
 const BOUNTY_N=['"Knuckles" Okoro','Siobhan Vex-9','The Pale Dutchman','Marrow','Sgt. Hollis Crane','Two-Tongue Teo','Mother Static','Iron Juniper'];
-const roomsOf=b=>b.type==='home'&&!b.dirty?1:b.type==='secret'?(b.vault?3:2):b.tier+1;
+const roomsOf=b=>b.type==='home'&&!b.dirty?1:b.final?4:b.type==='secret'?(b.vault?3:2):b.tier+1;
 const heatFor=b=>b.type==='business'?b.tier+1:2;
 const credLoss=b=>b.type==='business'?5*b.tier:12;
-const buyMul=()=>(G.world&&G.wd&&G.wd.rep>=30?.85:1)*(anyHas('fence')?.9:1);
+const buyMul=()=>(G.world&&G.wd&&G.wd.rep>=30?.85:1)*(anyHas('fence')?.9:1)*(evOn('festival')?.8:1);
 const sellRate=()=>(G.world&&G.wd&&G.wd.rep<=-30?.6:.4)+(anyHas('fence')?.15:0);
 function genStreet(level,seed){
   const r=srng(seed),B=[];let x=40;
@@ -880,15 +914,22 @@ function genStreet(level,seed){
     const dirty=type==='home'&&r()<.38;
     const tier=clamp(1+Math.floor(r()*2)+Math.floor((level-1)/2),1,3);
     const pool=BNAMES[dirty?'dirty':type],own=OWNERS[dirty?'dirty':type];
-    B.push({id:i,type,dirty,tier,x:x+w/2,w,name:pool[Math.floor(r()*pool.length)],owner:own[Math.floor(r()*own.length)],seed:Math.floor(r()*1e9)});
+    let nm=pool[Math.floor(r()*pool.length)];for(let k=0;k<6&&B.some(o=>o.name===nm);k++)nm=pool[Math.floor(r()*pool.length)];
+    B.push({id:i,type,dirty,tier,x:x+w/2,w,name:nm,owner:own[Math.floor(r()*own.length)],seed:Math.floor(r()*1e9)});
     x+=w+16+Math.floor(r()*36);
   }
+  // a block event, rolled from the seed (never on block 1)
+  const er=r();const event=level<2?null:er<.14?'gangwar':er<.27?'blackout':er<.4?'lockdown':er<.52?'festival':null;
+  if(event==='lockdown')for(const b of B)if(b.type==='blacksite')b.tier=3;
   // Juno's bounty: a named target in one of the tougher good buildings
   const cand=B.filter(b=>b.id&&isGood(b)&&FAC[facOf(b)].boss[b.tier]);if(cand.length){const bb=cand[Math.floor(r()*cand.length)];bb.bounty={name:BOUNTY_N[Math.floor(r()*BOUNTY_N.length)],reward:120+level*60};}
   // a hidden door, wedged into a gap between two buildings
   if(r()<.4+level*.08){const i=1+Math.floor(r()*(B.length-2)),a=B[i],c=B[i+1],vault=level>=3&&r()<.5;
     B.push({id:99,type:'secret',vault,tier:vault?3:2,x:(a.x+a.w/2+c.x-c.w/2)/2,w:36,name:vault?'Unmarked vault':'Hidden shrine',owner:vault?'A wyrm cult keeps its tithes here, behind a door nobody remembers building.':'Lantern-bearers meet here in secret. The candles never go out.',seed:Math.floor(r()*1e9),hidden:true});}
-  return{len:x+120,buildings:B};
+  // the Lantern Vault, once you know the whole story
+  if(typeof LEG!=='undefined'&&LEG.lore.length>=LORE.length&&!LEG.feats.b_avatar){const i=2+Math.floor(r()*(B.length-4)),a=B[i],c=B[i+1];
+    B.push({id:98,type:'secret',vault:true,final:true,tier:3,x:(a.x+a.w/2+c.x-c.w/2)/2,w:36,name:'The Lantern Vault',owner:'Ssareth\'s vault. The door is warm, and a lantern burns above it.',seed:Math.floor(r()*1e9),hidden:false});}
+  return{len:x+120,buildings:B,event};
 }
 function newWorld(level){const seed=Math.floor(Math.random()*1e9);return{level,seed,heat:0,rep:0,looted:[],found:[],bountyDone:false,courT:ri(1500,2600),courDone:false,h5T:0,heatT:0,copT:600,patT:600,copKills:0,lastX:180,street:genStreet(level,seed)};}
 function startWorld(coop){
@@ -906,7 +947,7 @@ function saveWorld(){
 function loadWorld(s){
   G.challenge=null;G.rngW=G.rngP=null;G.diff=1;G.ng=0;newRunStats();
   Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null,ally:null,ice:0},s.party||{});
-  PL=(s.runners||[]).map((r,i)=>{const p=newRunner(i);for(const k of RUNNER_KEYS)if(r[k]!==undefined)p[k]=r[k];if(r.sk===undefined){p.sk=null;p.spts=undefined;}if(!ARCH[p.arch])p.arch='runner';p.lives=3;refresh(p);return p;});
+  PL=(s.runners||[]).map((r,i)=>{const p=newRunner(i);for(const k of RUNNER_KEYS)if(r[k]!==undefined)p[k]=r[k];if(r.sk===undefined){p.sk=null;p.spts=undefined;}applyCoat(p);if(!ARCH[p.arch])p.arch='runner';p.lives=3;refresh(p);return p;});
   if(!PL.length)PL=[newRunner(0)];G.coop=PL.length>1;G.bestCombo=s.bestCombo||0;
   G.wd=Object.assign({heatT:0,copT:600,patT:600,copKills:0,lastX:180,found:[],bountyDone:false,courT:2000,courDone:false,h5T:0},s.wd);G.wd.street=genStreet(G.wd.level,G.wd.seed);G.stock=s.stock||[];
 }
@@ -918,6 +959,10 @@ function enterStreet(x){
   placeRunners(x);PL.forEach((p,i)=>{p.out=false;p.lives=3;p.y=196+i*18;if(p.hp<=0)p.hp=p.maxHp;G.ents.push(p);});
   if(PARTY.ally)spawnAlly(PARTY.ally.type);
   G.camX=clamp(x-W/2,0,st.len-W);makeRain(true);musicPlay('den');G.fade=.8;w.lastX=x;
+  if(st.event){LEG.evseen=LEG.evseen||[];if(!LEG.evseen.includes(st.event)){LEG.evseen.push(st.event);LEG.stats.evseen=LEG.evseen.length;featCheck('evseen');legDirty=true;}
+    if(!w.evShown){w.evShown=true;(G.toasts=G.toasts||[]).push({s:'Block event: '+EVENTS[st.event].name,d:EVENTS[st.event].desc.split('.')[0],life:280,lore:true});}
+    if(st.event==='festival'&&!w.vends){w.vends=true;}
+    if(st.event==='festival')for(let i=0;i<4;i++)spawnPassive('vend',300+i*Math.floor((st.len-500)/4),FY0+14);}
   setMode('play');saveWorld();
   tip('world','Walk up to a door and tap ENTER. Green signs are fair game; red ones hurt ordinary people and bring cops.','Walk up to a door and press J. Green signs are fair game; red ones hurt ordinary people and bring cops.');
 }
@@ -936,11 +981,11 @@ function worldTick(){
   for(const e of G.ents)if(e.courier&&e.state!=='dead'){e.escapeT--;if(e.escapeT<=0){e.gone=true;G.texts.push({x:e.x,y:e.y,z:40,s:'COURIER ESCAPED',c:'#a79dc2',life:60});}}
   const cops=G.ents.filter(e=>e.kind==='cop'&&e.state!=='dead').length;
   if(w.heat>0){
-    if(!cops){w.heatT++;if(w.heatT>1500){w.heat--;w.heatT=0;const p=alive()[0];if(p)say(p,w.heat?'HEAT DROPPING':'HEAT IS OFF','#45d2ff',80,70);}}else w.heatT=0;
-    w.copT--;if(w.copT<=0){const n=1+Math.floor(w.heat/2);for(let i=0;i<n;i++)spawnEnemy(copKind(w.heat,i),i%2?-1:1);w.copT=Math.round(Math.max(360,1320-w.heat*180)*(anyHas('jam')?1.3:1));
+    if(!cops){w.heatT+=evOn('lockdown')?.5:1;if(w.heatT>1500){w.heat--;w.heatT=0;const p=alive()[0];if(p)say(p,w.heat?'HEAT DROPPING':'HEAT IS OFF','#45d2ff',80,70);}}else w.heatT=0;
+    if(!evOn('blackout'))w.copT--;if(w.copT<=0){const n=1+Math.floor(w.heat/2);for(let i=0;i<n;i++)spawnEnemy(copKind(w.heat,i),i%2?-1:1);w.copT=Math.round(Math.max(360,1320-w.heat*180)*(anyHas('jam')?1.3:1));
       tip('heat','Cops! Heat cools off if you lose them, or pay to lay low at the safehouse. Shooting cops makes it worse.');}
   }
-  w.patT--;if(w.patT<=0){w.patT=ri(1500,2400);if(G.ents.filter(e=>e.team===1&&e.state!=='dead'&&!e.d.passive).length<3){const k=['ganger','ganger','orc','shaman'];for(let i=0;i<2+(w.level>2?1:0);i++)spawnEnemy(pick(k),i%2?-1:1);}}
+  w.patT--;if(w.patT<=0){w.patT=Math.round(ri(1500,2400)*(evOn('gangwar')?.5:1));if(G.ents.filter(e=>e.team===1&&e.state!=='dead'&&!e.d.passive).length<3){const k=['ganger','ganger','orc','shaman'];for(let i=0;i<2+(w.level>2?1:0);i++)spawnEnemy(pick(k),i%2?-1:1);}}
 }
 /* ----- building interiors ----- */
 function enterBuilding(b){G.wd.lastX=b.x;G.dun={b,room:0,rooms:roomsOf(b),fac:FAC[facOf(b)],rng:srng(b.seed)};newRunStats();enterRoom(0);setMode('play');}
@@ -957,9 +1002,10 @@ function enterRoom(i){
   if(r()<.6)G.props.push({kind:['can','crate','drum'][Math.floor(r()*3)],x:150+r()*200,y:FY0+20+r()*70,z:0});
   G.banner=90;
   if(last){const bk=D0.fac.boss[b.tier];
-    if(bk){const e=spawnEnemy(bk,1);e.x=W-70;e.y=(FY0+FY1)/2;e.inv=40;e.name=D0.fac.bossName[b.tier];
+    if(b.final){const e=spawnEnemy('avatar',1);e.x=W-70;e.y=(FY0+FY1)/2;e.inv=60;G.banner=-160;musicPlay('boss');}
+    else if(bk){const e=spawnEnemy(bk,1);e.x=W-70;e.y=(FY0+FY1)/2;e.inv=40;e.name=D0.fac.bossName[b.tier];
       if(b.bounty&&!G.wd.bountyDone){e.bounty=true;e.name='☠ '+b.bounty.name;}
-      if(b.type==='secret'){e.pal=Object.assign({},e.pal,{acc:'#b98cff',coat:'#2a1a3a'});}
+      if(b.type==='secret'&&!b.final){e.pal=Object.assign({},e.pal,{acc:'#b98cff',coat:'#2a1a3a'});}
       if(!DEF[bk].boss){e.elite=e.bounty?'berserk':null;e.hp=e.maxHp=Math.round(e.maxHp*(1.6+b.tier*.3));e.dmg=Math.round(e.dmg*1.15);}else{e.hp=e.maxHp=Math.round(e.maxHp*(b.tier>=3?.8:.6));}
       G.banner=-120;musicPlay('boss');}
     spawnPassive('chest',W-44,FY0+22);}
@@ -976,26 +1022,26 @@ function dunTick(){
 }
 function payBounty(t){const w=G.wd;if(!w||w.bountyDone)return;w.bountyDone=true;const b=G.dun&&G.dun.b,rw=b&&b.bounty?b.bounty.reward:150;
   drop('cred',t.x,t.y+12,{v:rw});gainKarma(60);feat('bounty');legendDrop(t.x-20,t.y+10,.25);G.texts.push({x:t.x,y:t.y,z:90,s:'BOUNTY COLLECTED +¥'+rw,c:'#ffc63d',life:100,big:true});}
-function featCourier(t){feat('courier');drop('gear',t.x,t.y+10,{item:randItem(G.stage+G.ng+1,true)});drop('icebrk',t.x+14,t.y+12);drop('cred',t.x-14,t.y+12,{v:60+G.wd.level*30});}
+function featCourier(t){feat('courier');bump('couriers');drop('gear',t.x,t.y+10,{item:randItem(G.stage+G.ng+1,true)});drop('icebrk',t.x+14,t.y+12);drop('cred',t.x-14,t.y+12,{v:60+G.wd.level*30});}
 function lootChest(t){
   const b=G.dun.b,tier=b.tier,fam=b.type==='home'&&!b.dirty;
   const c=Math.round(ri(25,50)*tier*(b.type==='business'?2:fam?.6:1)*(1+G.wd.level*.15));drop('cred',t.x-10,t.y+10,{v:c});
-  if(b.type==='secret'){legendDrop(t.x+30,t.y+10,b.vault?.6:.3)||drop('gear',t.x+30,t.y+10,{item:randItem(G.stage+G.ng+1,true)});shardDrop(t.x-30,t.y+12,1);}
-  else{if(tier>=3)legendDrop(t.x+30,t.y+16,.08);shardDrop(t.x-30,t.y+12,.3);}
+  if(b.type==='secret'){if(b.final&&!LEG.legs.includes('lantern'))drop('gear',t.x+40,t.y+6,{item:mkLegend('lantern')});legendDrop(t.x+30,t.y+10,b.vault?.6:.3)||drop('gear',t.x+30,t.y+10,{item:randItem(G.stage+G.ng+1,true)});shardDrop(t.x-30,t.y+12,1);}
+  else{if(tier>=3)legendDrop(t.x+30,t.y+16,evOn('lockdown')&&b.type==='blacksite'?.18:.08);shardDrop(t.x-30,t.y+12,.3);}
   for(let k=0;k<(fam?0:tier);k++){const it=randItem(G.stage+G.ng,tier>=2);if(it.rar<tier-1)Object.assign(it,mkItem(it.slot,it.base,tier-1,it.mod||tier>=3));drop('gear',t.x-24+k*16,t.y+14+(k%2)*6,{item:it});}
   if(Math.random()<.35+tier*.1+(anyHas('icecraft')?.25:0))drop('icebrk',t.x+14,t.y+8);if(fam||Math.random()<.4)drop('med',t.x+20,t.y+14);
   if(!G.wd.looted.includes(b.id))G.wd.looted.push(b.id);
   if(G.wd.street.buildings.filter(x=>isGood(x)&&x.type!=='secret').every(x=>G.wd.looted.includes(x.id)))feat('captain');
-  if(isGood(b)){const cr=8*tier;G.wd.rep=Math.min(100,G.wd.rep+cr);gainKarma(25*tier);G.texts.push({x:t.x-40,y:t.y,z:70,s:'STREET CRED +'+cr,c:'#7dffb0',life:90,big:true});}
+  if(isGood(b)){const cr=8*tier*(evOn('gangwar')&&b.type==='hideout'?2:1);G.wd.rep=Math.min(100,G.wd.rep+cr);gainKarma(25*tier);G.texts.push({x:t.x-40,y:t.y,z:70,s:'STREET CRED +'+cr,c:'#7dffb0',life:90,big:true});}
   else G.texts.push({x:t.x-40,y:t.y,z:70,s:fam?'THEY HAD NEXT TO NOTHING':'CASH GRAB',c:'#ff3d8b',life:90});
   sfx.loot();
 }
 function exitBuilding(){const b=G.dun.b;G.dun=null;enterStreet(b.x);}
-function worldWipe(){const lost=Math.round(PARTY.creds*.3);PARTY.creds-=lost;G.wd.heat=0;G.wd.heatT=0;G.dun=null;G.wipeLost=lost;musicPlay(null);M.cur=null;setMode('wiped');}
+function worldWipe(){logRun('Sprawl','Flatlined','block '+G.wd.level+' · cred '+Math.round(G.wd.rep));const lost=Math.round(PARTY.creds*.3);PARTY.creds-=lost;G.wd.heat=0;G.wd.heatT=0;G.dun=null;G.wipeLost=lost;musicPlay(null);M.cur=null;setMode('wiped');}
 /* ----- hacking ----- */
 function startHack(b){
   const hak=Math.max(...active().map(p=>p.D.a.hak||1));
-  G.hack={b,pos:0,dir:1,speed:.42+.2*b.tier,need:b.tier+1,hits:0,miss:0,maxMiss:2+(anyHas('spare')?1:0),w:clamp(.1+hak*.03-b.tier*.02,.06,.32)*(anyHas('probe')?1.25:1),zone:.5,flash:0,flashCol:'',skip:false};
+  G.hack={b,pos:0,dir:1,speed:.42+.2*b.tier,need:b.tier+1,hits:0,miss:0,maxMiss:2+(anyHas('spare')?1:0),w:clamp(.1+hak*.03-b.tier*.02,.06,.32)*(anyHas('probe')?1.25:1)*(evOn('blackout')?1.3:1),zone:.5,flash:0,flashCol:'',skip:false};
   newZone();setMode('hack');
 }
 function newZone(){const h=G.hack;let z;do{z=h.w/2+Math.random()*(1-h.w);}while(Math.abs(z-h.pos)<.15);h.zone=z;}
@@ -1104,7 +1150,11 @@ function weekId(d){d=d||new Date();const t=new Date(Date.UTC(d.getFullYear(),d.g
 function dayId(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function thisDay(){const id=dayId(),ks=Object.keys(MODS),as=['runner','samurai','mage','gunslinger'];return{id:'D'+id,day:id,mod:ks[hstr(id+'m')%ks.length],arch:as[hstr(id+'a')%as.length],daily:true};}
 function thisWeek(){const id=weekId(),ks=Object.keys(MODS);return{id,mod:ks[hstr(id)%ks.length]};}
-const modOn=k=>!!(G.arena&&G.challenge&&G.challenge.mod===k);
+const modOn=k=>!!((G.arena&&G.challenge&&G.challenge.mod===k)||(!G.arena&&!G.training&&!G.world&&G.muts&&G.muts.includes(k)));
+const MUTS={glass:'Glass Cannon',elite:'Elite Streets',brawl:'Bare Knuckles',iron:'One Life'};
+const MUTD={glass:'Everyone hits 60% harder, you included.',elite:'Every regular enemy is an elite.',brawl:'Guns are locked; punches and kicks hit 40% harder.',iron:'Each runner gets one life per district.'};
+const mutN=()=>!G.arena&&!G.world&&!G.training&&G.muts?G.muts.length:0;
+const maxLives=()=>mutN()&&G.muts.includes('iron')?1:3;
 // Seeded streams so everyone gets the same waves and perk offers in a given week
 const wr=()=>G.rngW?G.rngW():Math.random(),pr=()=>G.rngP?G.rngP():Math.random();
 const wpick=a=>a[Math.floor(wr()*a.length)];
@@ -1114,8 +1164,8 @@ function statsHtml(){const r=G.run||{kills:0,elites:0,bosses:0,dealt:0,taken:0};
 function shareLine(){
   const who=G.coop?'co-op':'solo',d=DIFF[G.diff].name;
   if(G.mode==='arenaover'){const e=G.lastEntry||{score:0,wave:0};
-    return `Chrome & Sorcery Arena${G.challenge?` · ${G.challenge.daily?'daily '+G.challenge.day:'weekly '+G.challenge.id} "${MODS[G.challenge.mod].name}"`:''}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}`;}
-  return `Chrome & Sorcery: took down Director Voss on ${d}${G.ng?' NG+'+G.ng:''} (${who}), level ${PL[0].lvl}, best combo ${G.bestCombo}, ${(G.run||{}).kills||0} takedowns. Play: ${HOME}`;
+    return `Cyber City Tactics Arena${G.challenge?` · ${G.challenge.daily?'daily '+G.challenge.day:'weekly '+G.challenge.id} "${MODS[G.challenge.mod].name}"`:''}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}`;}
+  return `Cyber City Tactics: took down Director Voss on ${d}${G.ng?' NG+'+G.ng:''} (${who}), level ${PL[0].lvl}, best combo ${G.bestCombo}, ${(G.run||{}).kills||0} takedowns. Play: ${HOME}`;
 }
 function shareHtml(){const t=shareLine();
   return `<h3>Brag</h3><div class="sharebox" id="shareTxt">${esc(t)}</div><div class="row"><button class="btn sm" data-a="copyshare" id="copyBtn">Copy</button>${navigator.share?'<button class="btn sm ghost" data-a="nativeshare">Share…</button>':''}</div>`;}
@@ -1178,7 +1228,7 @@ function offerPerks(){
   const ok=PERKS.filter(p=>p.ok());const out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(pr()*ok.length),1)[0]);
   G.perks=out.map(p=>p.id);setMode('perk');
 }
-function arenaOver(){
+function arenaOver(){logRun(G.challenge?(G.challenge.daily?'Daily':'Weekly'):'Arena','Wave '+G.awave,(G.score||0).toLocaleString()+' pts');
   const entry={score:G.score,wave:G.awave,diff:G.diff,coop:G.coop,lvl:Math.max(...PL.map(p=>p.lvl)),combo:G.bestCombo,date:new Date().toISOString().slice(0,10),id:Date.now(),week:G.challenge?G.challenge.id:null,mod:G.challenge?G.challenge.mod:null};
   if(G.challenge&&G.challenge.daily){const dd=store.get('cs_day')||{};if(entry.score>(dd.score||0)){dd.score=entry.score;dd.wave=entry.wave;store.set('cs_day',dd);}}
   else if(G.challenge){const wb=store.get('cs_week')||{};if(wb.id!==G.challenge.id||entry.score>(wb.score||0))store.set('cs_week',{id:G.challenge.id,score:entry.score,wave:entry.wave});}
@@ -1280,6 +1330,8 @@ function doSpecial(p){
   else if(p.arch==='mage'){setS(p,'cast');p.t=10;const foes=G.ents.filter(e=>e.team===1&&e.state!=='dead'&&e.x>G.camX-8&&e.x<G.camX+W+8).sort(()=>Math.random()-.5).slice(0,6);
     foes.forEach((e,i)=>G.zaps.push({tg:e,delay:8+i*7,dmg:18+p.D.spell*1.7,src:p}));if(!foes.length)say(p,'NO TARGETS','#a79dc2',60,40,true);}
   else if(p.arch==='gunslinger'){G.slowFoes=240;p.freeAmmo=240;sfx.spell();}
+  else if(p.arch==='shaman'){setS(p,'cast');p.t=10;for(let i=0;i<2;i++)spawnSummon('ember',p,900,i?-1:1);}
+  else if(p.arch==='rigger'){sfx.zap();for(let i=0;i<3;i++)spawnSummon('drone',p,720,i-1);}
   else if(p.arch==='decker'){sfx.zap();G.flash=Math.max(G.flash,.35);const hk=p.D.a.hak||1;
     for(const e of G.ents){if(e.team!==1||e.state==='dead'||e.x<G.camX-8||e.x>G.camX+W+8||(e.d&&e.d.passive&&e.kind!=='node'))continue;
       G.fx.push({k:'zap',x:e.x,y:e.y,z:e.z+20,c:'#45d2ff',life:12,max:12,r:0});
@@ -1387,7 +1439,7 @@ function respawn(p){
   p.lives--;G.stageLost=(G.stageLost||0)+1;
   if(PARTY.contract&&PARTY.contract.key==='ghost'&&!PARTY.contract.done)PARTY.contract.failed=true;
   if(p.lives<0){p.lives=0;p.out=true;G.ents=G.ents.filter(e=>e!==p);
-    if(!active().length){if(G.arena){arenaOver();return;}if(G.world){worldWipe();return;}musicPlay(null);M.cur=null;setMode('over');}
+    if(!active().length){if(G.arena){arenaOver();return;}if(G.world){worldWipe();return;}logRun('Campaign','Flatlined','district '+(G.stage+1)+(G.muts&&G.muts.length?' · '+G.muts.map(k=>MUTS[k]).join(', '):''));musicPlay(null);M.cur=null;setMode('over');}
     else say(active()[0],p.name+' IS OUT','#ff3d8b',80,90);
     return;}
   p.hp=p.maxHp;p.mp=Math.max(p.mp,Math.round(p.maxMp/2));setS(p,'idle');p.dead=false;p.inv=120;p.z=30;p.vz=0;p.vx=0;
@@ -1431,13 +1483,21 @@ function spawnAlly(type){
   PARTY.ally.maxHp=Math.max(PARTY.ally.maxHp,mx);
   const e={kind:'ally',ally:type,name:A.name,team:0,d:Object.assign({},A.d),pal:A.pal||{},x:lead.x-24,y:clamp(lead.y+12,FY0+6,FY1),z:A.d.fly?26:0,vx:0,vz:0,face:1,state:'idle',t:0,walk:0,inv:60,flash:0,
     hp:PARTY.ally.hp,maxHp:PARTY.ally.maxHp,D:{armor:A.armor,crit:.06,melee:0},hits:0,lastHit:0,cool:30,combo:0,hover:0};
-  G.ents=G.ents.filter(x=>x.kind!=='ally');G.ents.push(e);return e;
+  G.ents=G.ents.filter(x=>x.kind!=='ally'||x.summon);G.ents.push(e);return e;
+}
+function spawnSummon(type,p,life,off){
+  const A=ALLIES[type],mx=Math.round(A.hp*.7*(1+(p.lvl-1)*.08));
+  const e={kind:'ally',ally:type,summon:true,life,owner:p,name:A.name,team:0,d:Object.assign({},A.d),pal:A.pal||{},x:p.x-p.face*20+off*14,y:clamp(p.y+off*14,FY0+6,FY1),z:A.d.fly?26:0,vx:0,vz:0,face:p.face,state:'idle',t:0,walk:0,inv:30,flash:0,
+    hp:mx,maxHp:mx,D:{armor:A.armor,crit:.06,melee:0},hits:0,lastHit:0,cool:20,combo:0,hover:Math.random()*6};
+  G.ents.push(e);burst(e.x,e.y,20,type==='ember'?'#ff6a3d':'#45d2ff',12);G.fx.push({k:'ring',x:e.x,y:e.y,z:20,c:type==='ember'?'#ff6a3d':'#45d2ff',life:16,max:16,r:20});
+  if(G.ents.filter(x=>x.summon&&x.state!=='dead').length>=3)feat('summon');return e;
 }
 function upAlly(e){
   e.t++;if(e.flash>0)e.flash--;if(e.inv>0)e.inv--;
   physics(e);
+  if(e.summon){e.life--;if(e.life<=0||e.state==='dead'){e.gone=true;burst(e.x,e.y,e.z+10,e.ally==='ember'?'#ff6a3d':'#45d2ff',10);return;}}
   if(e.state==='dead'){if(!e.reported){e.reported=true;PARTY.ally=null;const p=alive()[0];if(p)say(p,e.ally==='brick'?'BRICK IS DOWN':e.ally==='drone'?'DRONE SCRAPPED':'SPIRIT BANISHED','#ff3d8b',80,80);}if(e.t>60)e.gone=true;return;}
-  if(PARTY.ally)PARTY.ally.hp=Math.max(0,Math.round(e.hp));
+  if(PARTY.ally&&!e.summon)PARTY.ally.hp=Math.max(0,Math.round(e.hp));
   if(e.state==='down'){if(e.t>50&&e.z===0){setS(e,'idle');e.inv=40;}return;}
   if(e.state==='hurt'){if(e.t>12)setS(e,'idle');return;}
   const lead=alive()[0]||PL[0],lv=lead.lvl;
@@ -1461,7 +1521,7 @@ function upAlly(e){
   if(!e.d.fly){if(mx||my){if(e.state!=='walk')setS(e,'walk');e.walk+=1;}else if(e.state!=='idle')setS(e,'idle');}
 }
 function drawAllyBar(e){
-  if(e.state==='dead')return;const sx=e.x-G.camX,top=e.d.fly?e.y-e.z-18:e.y-e.z-60*(e.d.scale||1);
+  if(e.state==='dead')return;if(e.summon&&e.life<120&&(G.t>>2)%2)return;const sx=e.x-G.camX,top=e.d.fly?e.y-e.z-18:e.y-e.z-60*(e.d.scale||1);
   fillPoly([sx-3,top-8,sx+3,top-8,sx,top-4],'#7dffb0');
   if(e.hp<e.maxHp)bar(sx-12,top-2,24,2,e.hp,e.maxHp,'#7dffb0');
 }
@@ -1524,7 +1584,7 @@ function upEnemy(e){
     return;
   }
   if(d.summon){e.sumT--;if(e.sumT<=0&&G.ents.filter(x=>x.kind==='ghoul'&&x.state!=='dead').length<3){e.sumT=ri(e.enraged?260:360,e.enraged?340:480);setS(e,'summon');return;}}
-  if(e.enraged&&(e.kind==='troll'||e.kind==='saint')&&e.cool<=0&&ady<40&&adx<200&&Math.random()<.02){setS(e,'slam');sfx.spell();return;}
+  if(e.enraged&&(e.kind==='troll'||e.kind==='saint'||e.kind==='avatar')&&e.cool<=0&&ady<40&&adx<200&&Math.random()<.02){setS(e,'slam');sfx.spell();return;}
   let tx,ty=p.y;
   if(d.beam){
     if(e.anchor===undefined||Math.abs(e.anchor-e.x)<3&&Math.random()<.01)e.anchor=G.camX+60+Math.random()*(W-120);
@@ -1667,7 +1727,7 @@ function explode(pr,o){o=o||{};const big=!o.gun&&pr.src&&has(pr.src,'over')?1.6:
 }
 function stageClear(){
   const C=PARTY.contract,def=CONTRACTS[G.stage];
-  if(G.coop)feat('coop');if(!G.stageLost)feat('ghost');
+  if(G.coop)feat('coop');if(!G.stageLost)feat('ghost');if(mutN())feat('mut1');
   const deb={stage:G.stage,title:C?C.title:'the job',done:!!(C&&C.done),creds:0,karma:0,prize:null,levels:0};
   if(deb.done){deb.creds=def.creds;deb.karma=def.karma;PARTY.creds+=def.creds;if(def.prize){deb.prize=randItem(3,true);}}
   PARTY.contract=null;
@@ -1678,7 +1738,7 @@ function stageClear(){
   G.texts.push({x:G.camX+W/2,y:150,z:0,s:'DISTRICT CLEAR',c:'#ffc63d',life:90,big:true});
   G.outro=90;
   G.afterOutro=()=>{
-    if(G.stage>=STAGES.length-1){feat('win');if(G.diff===2)feat('prime');store.del('cs_save3');musicPlay('title');setMode('win');return;}
+    if(G.stage>=STAGES.length-1){feat('win');if(G.diff===2)feat('prime');if(mutN()>=3)feat('mut3');logRun('Campaign','Won');store.del('cs_save3');musicPlay('title');setMode('win');return;}
     for(const p of PL){p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.4));p.mp=p.maxMp;}
     G.stock=[randItem(G.stage+1,false),randItem(G.stage+1,false),randItem(G.stage+1,true),randItem(G.stage,false),randItem(G.stage+1,false)];
     enterDen();
@@ -1840,7 +1900,7 @@ function drawFig(e){
     if((st==='shoot'&&(t<4||(big&&e.eq.gun.fire==='burst'&&t%4<2)))||(st==='aim'&&t>=20&&t<25))fillPoly([fh[0]+(big?13:9),fh[1]-3,fh[0]+(big?20:16),fh[1]-1,fh[0]+(big?13:9),fh[1]+1],'#ffe28a');}
   if(style==='blade'){ctx.strokeStyle=fl?'#fff':'#e9f6ff';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(fh[0],fh[1]);ctx.lineTo(fh[0]+12,fh[1]-(st==='windup'&&t<14?8:-2));ctx.stroke();}
   if(staff){ctx.strokeStyle='#8a5a3a';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(fh[0]-3,fh[1]+14);ctx.lineTo(fh[0]+2,fh[1]-12);ctx.stroke();}
-  if(glow>0){let gc=e.team?'69,210,255':'255,106,61';if(e.kind==='saint')gc='255,74,74';if(isP){const id=e.spells[e.spell];gc=id==='bolt'||id==='chain'?'185,140,255':id==='heal'?'125,255,176':id==='barrier'?'69,210,255':gc;}
+  if(glow>0){let gc=e.team?'69,210,255':'255,106,61';if(e.kind==='saint')gc='255,74,74';if(e.kind==='avatar')gc='185,140,255';if(isP){const id=e.spells[e.spell];gc=id==='bolt'||id==='chain'?'185,140,255':id==='heal'?'125,255,176':id==='barrier'?'69,210,255':gc;}
     const r=3+glow*5+Math.sin(G.t*.6);ctx.fillStyle=`rgba(${gc},${.25*glow})`;ctx.beginPath();ctx.arc(fh[0]+4,fh[1],r*1.8,0,7);ctx.fill();ctx.fillStyle=`rgba(${gc},${.9*glow})`;ctx.beginPath();ctx.arc(fh[0]+4,fh[1],r*.7,0,7);ctx.fill();}
   ctx.restore();
   if(isP&&e.shield>0&&e.state!=='dead'){ctx.strokeStyle=`rgba(69,210,255,${.35+.2*Math.sin(G.t*.3)})`;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(sx,sy-22,14,26,0,0,7);ctx.stroke();}
@@ -1902,7 +1962,9 @@ function drawBg(){
   if(G.dun)drawInterior(base);
   ctx.fillStyle=S.wall;ctx.fillRect(0,base,W,14);
   ctx.fillStyle='rgba(255,255,255,.06)';ctx.fillRect(0,base,W,1);
-  if(G.den)drawStorefronts(base);else if(G.world&&!G.dun&&G.wd)drawBuildings(base);
+  if(G.den)drawStorefronts(base);else if(G.world&&!G.dun&&G.wd){drawBuildings(base);
+    if(evOn('festival')){const yy=lx=>base-84+Math.sin((lx+G.camX)*.045)*7;ctx.strokeStyle='rgba(20,14,30,.9)';ctx.lineWidth=1;ctx.beginPath();for(let lx=0;lx<=W;lx+=6)ctx.lineTo(lx,yy(lx));ctx.stroke();for(let lx=-((G.camX)%14);lx<W;lx+=14){const k=Math.floor((lx+G.camX)/14);ctx.fillStyle=['#ff3d8b','#ffc63d','#b98cff','#45d2ff'][((k%4)+4)%4];ctx.globalAlpha=.75+.25*Math.sin(G.t*.08+k);ctx.beginPath();ctx.arc(lx,yy(lx)+3,2.8,0,7);ctx.fill();ctx.globalAlpha=.15;ctx.beginPath();ctx.arc(lx,yy(lx)+3,7,0,7);ctx.fill();}ctx.globalAlpha=1;}
+    if(evOn('gangwar')&&G.t%40===0)G.parts.push({x:G.camX+Math.random()*W,y:FY0+4,z:60+Math.random()*30,vx:0,vy:0,vz:.4,life:40,c:'#ff6a3d',sz:2});}
   g=ctx.createLinearGradient(0,FY0,0,H);g.addColorStop(0,S.ground[0]);g.addColorStop(1,S.ground[1]);ctx.fillStyle=g;ctx.fillRect(0,FY0,W,H-FY0);
   ctx.strokeStyle=S.line;ctx.lineWidth=1;
   const step=64,off=-(cx%step);
@@ -1969,7 +2031,7 @@ function drawHudTop(){
   drawPanel(PL[0],10);
   if(G.coop&&PL[1])drawPanel(PL[1],HW-180);
   const S=curS(),C=PARTY.contract;
-  const line1=G.world&&G.wd?(G.dun?G.dun.b.name.toUpperCase()+' · '+(G.dun.room+1)+'/'+G.dun.rooms:'BLOCK '+G.wd.level):G.arena?'WAVE '+G.awave:G.training?'TRAINING':G.den?'THE DEN':S.name.toUpperCase();
+  const line1=G.world&&G.wd?(G.dun?G.dun.b.name.toUpperCase()+' · '+(G.dun.room+1)+'/'+G.dun.rooms:'BLOCK '+G.wd.level+(G.wd.street.event?' · '+EVENTS[G.wd.street.event].name.toUpperCase():'')):G.arena?'WAVE '+G.awave:G.training?'TRAINING':G.den?'THE DEN':S.name.toUpperCase();
   let line2=null,col2='#efe9ff';
   if(G.arena){line2='SCORE '+G.score.toLocaleString();col2='#ffc63d';}
   else if(G.training){line2=ARCH[PL[0].arch].name.toUpperCase();col2='#a79dc2';}
@@ -1982,6 +2044,8 @@ function drawHudTop(){
   ctx.restore();
   if(G.coop&&!inBand){const s=(G.arena?'WAVE '+G.awave+' · ':G.den?'THE DEN':'')+(line2||'');if(s)txt(s,W/2,VH-6,12,line2?col2:'#a79dc2','center');}
 }
+function drawDark(){if(!evOn('blackout')||G.dun)return;ctx.fillStyle='rgba(2,2,8,.5)';ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='lighter';for(const p of alive()){const g=ctx.createRadialGradient(p.x-G.camX,p.y-30,4,p.x-G.camX,p.y-30,90);g.addColorStop(0,'rgba(255,230,180,.16)');g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(p.x-G.camX-90,p.y-120,180,180);}ctx.globalCompositeOperation='source-over';}
 function drawToasts(){const q=G.toasts;if(!q||!q.length)return;const t=q[0];t.life--;if(t.life<=0){q.shift();return;}
   const a=Math.min(1,t.life/20,(260-t.life)/12+.0),y=H-(G.world&&!G.dun?60:50);ctx.globalAlpha=Math.max(0,Math.min(1,a));ctx.fillStyle='rgba(11,8,18,.88)';ctx.fillRect(W/2-150,y,300,38);
   ctx.strokeStyle=t.lore?'#45d2ff':'#ffc63d';ctx.lineWidth=1.5;ctx.strokeRect(W/2-149.5,y+.5,299,37);
@@ -2022,7 +2086,7 @@ function render(){
   for(const t of G.texts){ctx.globalAlpha=Math.min(1,t.life/12);txt(t.s,t.x-G.camX,t.y-t.z,t.big?22:t.sm?12:16,t.c,'center');}ctx.globalAlpha=1;
   drawRain();
   ctx.restore();
-  if(G.mode!=='title'){ctx.save();ctx.translate(0,BAND);drawHud();drawToasts();ctx.restore();drawHudTop();}
+  if(G.mode!=='title'){ctx.save();ctx.translate(0,BAND);drawDark();drawHud();drawToasts();ctx.restore();drawHudTop();}
   if(legDirty&&G.t%900===0)saveLeg();
   if(G.training&&G.mode==='play'){ctx.save();ctx.translate(0,BAND);drawTraining();ctx.restore();}
   if(G.slowFoes>0){ctx.fillStyle=`rgba(69,210,255,${Math.min(.12,G.slowFoes/600)})`;ctx.fillRect(0,0,W,VH);}
@@ -2083,13 +2147,15 @@ function seg(key,opts){return `<div class="seg" role="group">${opts.map(([v,l])=
 function archHtml(n){n=n||2;
   const row=i=>`<div class="job"><div class="row" style="justify-content:space-between"><b>${i?'Runner 2 (co-op)':'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
     <div class="row">${Object.keys(ARCH).map(k=>archLocked(k)?`<button class="btn sm ghost" disabled title="Unlock with the ${esc(FEATBY[ARCH[k].locked].name)} feat">🔒 ${ARCH[k].short}</button>`:`<button class="btn sm${G.pendArch[i]===k?'':' ghost'}" data-a="arch:${i}:${k}" aria-pressed="${G.pendArch[i]===k}">${ARCH[k].short}</button>`).join('')}</div>
+    <div class="row" style="gap:5px;align-items:center"><span style="color:var(--muted);font-size:12px;margin-right:4px">Coat</span>${Object.keys(COATS).map(k=>{const c=COATS[k],o=coatOpen(k),sel=pendCoat(i)===k,col=c.acc||PALS[i].acc;
+      return `<button class="swatch${sel?' on':''}" ${o?`data-a="coat:${i}:${k}"`:'disabled'} title="${esc(c.name)}${o?'':' (locked: '+esc(FEATBY[c.feat].hidden&&!LEG.feats[c.feat]?'a hidden feat':FEATBY[c.feat].name)+')'}" aria-label="${esc(c.name)} coat${o?'':', locked'}" style="--c1:${c.coat||PALS[i].coat};--c2:${col}">${o?'':'🔒'}</button>`;}).join('')}</div>
     ${Object.keys(ARCH).some(archLocked)?`<span style="color:var(--muted);font-size:12px">🔒 ${Object.keys(ARCH).filter(archLocked).map(k=>`${ARCH[k].name}: ${esc(FEATBY[ARCH[k].locked].desc)}`).join(' ')}</span>`:''}
     <span style="color:var(--muted);font-size:12.5px">${esc(ARCH[G.pendArch[i]].desc)} Special: ${esc(ARCH[G.pendArch[i]].spDesc)}</span></div>`;
   return `<h3>Choose your runner</h3>${row(0)}${n>1?row(1):''}`;
 }
 function codexHtml(){
   const tab=G.cxTab||'feats',lp=legLP(),ri0=rankOf(lp),nx=RANKS[ri0+1];
-  const tabs=[['feats','Feats'],['legs','Legendaries'],['best','Bestiary'],['lore','Lore']];
+  const tabs=[['feats','Feats'],['legs','Legendaries'],['best','Bestiary'],['lore','Lore'],['runs','Runs']];
   const bar=`<div class="tabs" role="tablist">${tabs.map(([k,n])=>`<button class="tab" role="tab" aria-selected="${tab===k}" data-a="cx:${k}">${n}</button>`).join('')}</div>`;
   const head=`<div class="row" style="justify-content:space-between;align-items:baseline"><h2>${RANKS[ri0][1]}</h2><span style="color:var(--gold);font-variant-numeric:tabular-nums">${lp} legend${nx?' · next: '+nx[1]+' at '+nx[0]:''}</span></div>
   ${nx?`<div class="meter"><i style="width:${Math.round((lp-RANKS[ri0][0])/(nx[0]-RANKS[ri0][0])*100)}%"></i></div>`:''}
@@ -2107,11 +2173,14 @@ function codexHtml(){
     body=`<p>${seen} of ${ks.length} identified.</p><div class="list">${ks.map(k=>{const n=LEG.kills[k]||0;return `<div class="item"><div><div class="nm">${n?esc(DEF[k].name):'???'}</div><div class="ds">${n?esc(BEST[k]):'Take one down to learn more.'}</div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums">${n?n.toLocaleString()+' down':''}</span></div></div>`;}).join('')}</div>`;}
   if(tab==='lore'){
     body=`<p>${LEG.lore.length} of ${LORE.length} shards. Shards drop from vending machines, crates, bosses and Sprawl caches, and every hidden door holds one. Read them in order and a story comes together.</p><div class="list">${LORE.map((L,i)=>LEG.lore.includes(i)?`<div class="item" style="grid-template-columns:1fr"><div><div class="nm" style="color:var(--mana)">${i+1}. ${esc(L[0])}</div><div class="ds" style="font-size:13px;line-height:1.45">${esc(L[1])}</div></div></div>`:`<div class="item" style="grid-template-columns:1fr;opacity:.5"><div><div class="nm">${i+1}. ???</div></div></div>`).join('')}</div>`;}
+  if(tab==='runs'){const rs=LEG.runs||[];
+    body=rs.length?`<p>Your last ${rs.length} run${rs.length>1?'s':''}.</p><div class="list">${rs.map(r=>`<div class="item"><div><div class="nm">${esc(r.mode)} · ${esc(r.result)}</div><div class="ds">${esc((ARCH[r.arch]||ARCH.runner).name)}${r.coop?' + partner':''} · level ${r.lvl} · ${r.kills} takedowns · best combo ${r.combo}${r.extra?' · '+esc(r.extra):''}</div></div><div class="acts"><span style="color:var(--muted);font-size:12px">${r.date}</span></div></div>`).join('')}</div>`:'<p>No finished runs yet. Campaign endings, Arena runs and Sprawl flatlines show up here.</p>';}
+  if(tab==='lore'&&LEG.lore.length>=LORE.length)body=`<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Juno</b>You know everything now. Ssareth's Lantern Vault is hidden somewhere in the Sprawl. Walk every block until you find a door with a lantern over it.</p>`+body;
   return `<div class="card"><p class="eyebrow">Codex · your legend across every run</p>${head}${bar}${body}<div class="row"><button class="btn" data-a="back2title">Back</button></div></div>`;
 }
 function bcardHtml(b){
   const good=isGood(b),lo=G.wd.looted.includes(b.id),lock=b.lockUntil&&b.lockUntil>Date.now();
-  const kind={home:b.dirty?'Residence · dirty money':'Residence',business:'Business',hideout:'Gang hideout',blacksite:'Corporate black site',secret:'Hidden door'}[b.type];
+  const kind=b.final?'The final job':{home:b.dirty?'Residence · dirty money':'Residence',business:'Business',hideout:'Gang hideout',blacksite:'Corporate black site',secret:'Hidden door'}[b.type];
   const hak=Math.max(...active().map(p=>p.D.a.hak||1)),rooms=roomsOf(b),f=FAC[facOf(b)];
   const loot=b.type==='secret'?'lore, rare gear and maybe a legendary':b.type==='home'&&!b.dirty?'a little cash and a medkit':`${b.tier} item${b.tier>1?'s':''} (${RAR[Math.max(0,b.tier-1)].n} or better), creds and maybe an icebreaker`;
   const moral=good?`<p class="say" style="border-color:var(--ok)"><b style="color:var(--ok)">Pixel's intel</b>${esc(b.owner)}. Cleaning this place out helps the street: cred +${8*b.tier} and bonus karma.</p>`
@@ -2133,8 +2202,9 @@ function safeHtml(){
   const tabs=[['doc','Doc'],['kit','Kit'],['wen','Old Wen'],['ratchet','Ratchet'],['lay','Lay low']];
   const bar=`<div class="tabs" role="tablist">${tabs.map(([k,n])=>`<button class="tab" role="tab" aria-selected="${G.safeTab===k}" data-a="safetab:${k}">${n}</button>`).join('')}</div>`;
   if(G.safeTab!=='lay')return npcHtml(G.safeTab).replace('<p class="eyebrow">The Den ·','<p class="eyebrow">Safehouse ·').replace('<p class="say">',bar+'<p class="say">');
-  const w=G.wd,lc=60*w.heat*w.level,rp=Math.round(w.rep),done=w.looted.length,total=w.street.buildings.length-1;
-  return `<div class="card"><p class="eyebrow">Safehouse · block ${w.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Lay low</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}
+  const w=G.wd,lc=60*w.heat*w.level,rp=Math.round(w.rep),done=w.looted.length,total=w.street.buildings.filter(b=>b.type!=='safe'&&!b.hidden).length;
+  const evb=w.street.event?`<div class="job" style="border-color:${EVENTS[w.street.event].col}"><b style="color:${EVENTS[w.street.event].col}">Block event: ${EVENTS[w.street.event].name}</b><span style="color:var(--muted);font-size:13px">${EVENTS[w.street.event].desc}</span></div>`:'';
+  return `<div class="card"><p class="eyebrow">Safehouse · block ${w.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Lay low</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}${evb}
   <div class="job"><div class="row" style="justify-content:space-between"><b>Heat ${'★'.repeat(w.heat)}${'☆'.repeat(5-w.heat)}</b><span class="st" style="color:${w.heat?'var(--neon)':'var(--ok)'}">${w.heat?'Wanted':'Clean'}</span></div>
     <span style="color:var(--muted);font-size:13px">Heat cools by a star for every 25 seconds with no cops around. Or pay someone to make the paperwork disappear.</span>
     <div class="row"><button class="btn sm${w.heat&&PARTY.creds>=lc?'':' ghost'}" data-a="laylow" ${w.heat&&PARTY.creds>=lc?'':'disabled'}>${w.heat?'Lay low · ¥'+lc:'Nothing to clear'}</button></div></div>
@@ -2207,7 +2277,7 @@ function renderOv(){
   const m=G.mode;let h='';
   if(m==='title'){
     const sv=store.get('cs_save3');if(G.mode==='title')G.pendDiff=sv&&sv.diff!==undefined?sv.diff:1;
-    h=`<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1>Chrome &amp; Sorcery</h1>
+    h=`<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1>Cyber City Tactics</h1>
     <p>Two shadowrunners, a fixer with a grudge and five districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
     <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
   }
@@ -2215,6 +2285,9 @@ function renderOv(){
     h=`<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained?'':'<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
     <div class="list">${DIFF.map((d,i)=>`<div class="item"><div><div class="nm">${d.name}</div><div class="ds">${d.desc}</div></div><div class="acts"><button class="btn sm${G.pendDiff===i?'':' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff===i}">${G.pendDiff===i?'Selected':'Choose'}</button></div></div>`).join('')}</div>
     ${archHtml()}
+    <h3>Mutators <small style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">optional · +20% karma each</small></h3>
+    <div class="row">${Object.keys(MUTS).map(k=>{const on=(G.pendMuts||[]).includes(k);return `<button class="btn sm${on?'':' ghost'}" data-a="mut:${k}" aria-pressed="${on}" title="${esc(MUTD[k])}">${on?'✓ ':''}${MUTS[k]}</button>`;}).join('')}</div>
+    <span style="color:var(--muted);font-size:12.5px">${(G.pendMuts||[]).length?(G.pendMuts||[]).map(k=>MUTD[k]).join(' '):'Make the campaign harder for more karma and feats.'}</span>
     <p style="font-size:12.5px">Elites have a colored aura and a name tag: ${Object.values(ELITES).map(x=>`<b style="color:${x.col}">${x.name}</b> ${x.hint}`).join(', ')}. They drop better gear.</p>
     <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
@@ -2348,6 +2421,7 @@ function togglePause(){
   else if(G.mode==='bcard'||G.mode==='safe')setMode('play');
 }
 function newRun(coop){
+  G.muts=(G.pendMuts||[]).slice();
   G.diff=G.pendDiff;G.ng=0;G.challenge=null;G.rngW=G.rngP=null;newRunStats();
   PL=[newRunner(0)];if(coop)PL.push(newRunner(1));G.coop=!!coop;
   PL.forEach((p,i)=>applyArch(p,G.pendArch[i]));
@@ -2377,7 +2451,7 @@ ov.addEventListener('click',e=>{
     case 'copyshare':{const t=shareLine(),btn=document.getElementById('copyBtn');
       const done=ok=>{if(btn)btn.textContent=ok?'Copied':'Select the text above to copy';};
       try{navigator.clipboard.writeText(t).then(()=>done(true),()=>{selectShare();done(false);});}catch(err){selectShare();done(false);}break;}
-    case 'nativeshare':{try{navigator.share({title:'Chrome & Sorcery',text:shareLine()}).catch(()=>{});}catch(err){}break;}
+    case 'nativeshare':{try{navigator.share({title:'Cyber City Tactics',text:shareLine()}).catch(()=>{});}catch(err){}break;}
     case 'perk':{const pk=PERKS.find(x=>x.id===arg);if(pk&&G.mode==='perk'){pk.go();sfx.level();setMode('play');nextArenaWave();}keep=false;break;}
     case 'settings':G.setRet=G.mode;setMode('settings');keep=false;break;
     case 'setdone':setMode(G.setRet||'title');break;
@@ -2386,6 +2460,8 @@ ov.addEventListener('click',e=>{
     case 'tipsreset':prefs.seen={};prefs.rotDismissed=false;prefs.tips=true;savePrefs();renderOv();break;
     case 'full':goFull();break;
     case 'diff':G.pendDiff=+arg;renderOv();break;
+    case 'mut':{G.pendMuts=G.pendMuts||[];const i=G.pendMuts.indexOf(arg);if(i>=0)G.pendMuts.splice(i,1);else G.pendMuts.push(arg);renderOv();break;}
+    case 'coat':if(coatOpen(parts[2])){G.pendCoat=G.pendCoat||(LEG.pendCoat||['sig','sig']).slice();G.pendCoat[+arg]=parts[2];LEG.pendCoat=G.pendCoat;saveLeg();}renderOv();break;
     case 'arch':if(!archLocked(parts[2]))G.pendArch[+arg]=parts[2];renderOv();break;
     case 'back2title':setMode('title');break;
     case 'ngplus':feat('ngp');G.ng++;newRunStats();for(const q of PL){q.hp=q.maxHp;q.mp=q.maxMp;q.ammo=Math.max(q.ammo,24);}PARTY.contract=null;G.debrief=null;briefing(0,false);keep=false;break;
@@ -2421,7 +2497,7 @@ ov.addEventListener('click',e=>{
     case 'join2':joinRunner2();renderOv();break;
     case 'drop2':dropRunner2();G.sheetIdx=0;renderOv();break;
     case 'quit':if(G.world)saveWorld();musicPlay('title');attract();setMode('title');break;
-    case 'retry':for(const q of PL){q.lives=3;q.ammo=Math.max(q.ammo,12);refresh(q);q.hp=q.maxHp;q.mp=q.maxMp;}PARTY.creds=Math.floor(PARTY.creds/2);PARTY.contract=null;briefing(G.stage,false);break;
+    case 'retry':for(const q of PL){q.lives=maxLives();q.ammo=Math.max(q.ammo,12);refresh(q);q.hp=q.maxHp;q.mp=q.maxMp;}PARTY.creds=Math.floor(PARTY.creds/2);PARTY.contract=null;briefing(G.stage,false);break;
     case 'stab':G.sheetTab=arg;renderOv();keep=false;break;
     case 'tree':G.tree=arg;renderOv();break;
     case 'skill':if(canLearn(p,arg)){p.sk[arg]=1;p.spts--;refresh(p);if(SKILLS[arg].row===3)feat('cap');if(Object.keys(TREES).every(t=>treePts(p,t)>0))feat('jack');sfx.level();buzz([15,30,15]);G.justLearned=arg;rerender();setTimeout(()=>{G.justLearned=null;},700);}else sfx.click();break;
