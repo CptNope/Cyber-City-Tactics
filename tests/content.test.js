@@ -69,7 +69,7 @@ const fresh = (arch, coop) => {
   return P;
 };
 click('quit');
-ok(/<h1>Cyber City Tactics<\/h1>/.test(els.ov._h), 'title says Cyber City Tactics');
+ok(/aria-label="Cyber City Tactics"><span class="wm-city">Cyber City<\/span><span class="wm-bar">Tactics<\/span><\/h1>/.test(els.ov._h), 'title says Cyber City Tactics');
 // shaman/rigger locked
 click('pick');
 ok(/🔒 Shaman/.test(els.ov._h) && /🔒 Rigger/.test(els.ov._h), 'Shaman and Rigger start locked');

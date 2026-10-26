@@ -6,6 +6,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 
 - **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
 - **What's next:** see [ROADMAP.md](ROADMAP.md)
+- **Brand and design:** the [Brand Book](https://claude.ai/artifact/SJeAWr27Fua7MpdYEhZqS7) (story, voice, logo, color, type) and the [Design System](https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q) (tokens, components, icons). The live values are in `src/css/game.css`.
 
 ---
 
@@ -22,6 +23,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - [Your legend: feats, legendaries and the Codex](#your-legend-feats-legendaries-and-the-codex)
 - [Controls](#controls)
 - [On phones](#on-phones)
+- [Controllers](#controllers)
 - [Install it as an app](#install-it-as-an-app)
 - [Saves](#saves)
 - [Development](#development)
@@ -382,7 +384,8 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Medkit | H | [ | LT |
 | Character sheet and skills | C or Tab | | Select |
 | Pause | P or Esc | | Start |
-| Hack (in the minigame) | Space or J | , | X or A |
+| Hack (in the minigame) | Space or J | , | A or X (Y uses an icebreaker, B backs off) |
+| Menus | Mouse, touch or Tab | | D-pad/stick, A select, B back, LB/RB tabs |
 
 ## On phones
 - **Sideways:** the stick sits to the left of the screen and the buttons to the right, so your thumbs never cover the fight.
@@ -391,6 +394,13 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 - The big buttons change their label to say what they'll do: LIFT, THROW, KNEE, TALK, ENTER. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
 - **Settings:** control size (S/M/L), left-handed layout, screen shake, vibration, tips, sound, music and full screen.
 - First-time tips explain each mechanic when you first meet it, worded for touch or keyboard.
+
+## Controllers
+Any standard controller works everywhere, menus included: Xbox, PlayStation, Switch Pro and most others.
+- **In menus:** D-pad or left stick moves, **A** selects, **B** goes back, **LB / RB** switch tabs, **Menu** confirms.
+- **In play:** the Controls table below. Plug in a second controller and press **Menu** on it to add Runner 2.
+- The on-screen touch pad hides while a controller is in use, and tips and prompts switch to controller buttons ("Press X").
+- Hits rumble the controller (turn it off with *Vibration* in Settings). Unplugging a controller mid-fight pauses the game.
 
 ## Install it as an app
 Cyber City Tactics is a Progressive Web App.

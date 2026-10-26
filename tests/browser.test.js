@@ -58,7 +58,7 @@ const { pathToFileURL } = require('url');
       const errs = watch(page);
       await boot(page, base);
       ok(
-        (await page.textContent('#ov h1')) === 'Cyber City Tactics',
+        (await page.getAttribute('#ov h1', 'aria-label')) === 'Cyber City Tactics',
         'modular page boots to the title screen'
       );
       await startRun(page);
@@ -75,7 +75,7 @@ const { pathToFileURL } = require('url');
       const errs = watch(page);
       await page.goto(base + 'dist/cyber-city-tactics.html');
       await page.waitForSelector('#ov h1');
-      ok((await page.textContent('#ov h1')) === 'Cyber City Tactics', 'bundle boots to the title screen');
+      ok((await page.getAttribute('#ov h1', 'aria-label')) === 'Cyber City Tactics', 'bundle boots to the title screen');
       ok(await page.evaluate(() => typeof G === 'undefined'), 'bundle keeps game globals private');
       await startRun(page);
       ok(errs.length === 0, 'no errors in the bundle' + (errs.length ? ': ' + errs.join(' | ') : ''));
@@ -129,7 +129,7 @@ const { pathToFileURL } = require('url');
       await ctx.setOffline(true);
       await page.reload();
       await page.waitForSelector('#ov h1', { timeout: 10000 });
-      ok((await page.textContent('#ov h1')) === 'Cyber City Tactics', 'the game loads with the network off');
+      ok((await page.getAttribute('#ov h1', 'aria-label')) === 'Cyber City Tactics', 'the game loads with the network off');
       await startRun(page);
       ok((await page.evaluate(() => G.mode)) !== 'title', 'and a run starts offline');
       ok(errs.length === 0, 'no errors offline' + (errs.length ? ': ' + errs.join(' | ') : ''));
