@@ -6,7 +6,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 
 - **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
 - **What's next:** see [ROADMAP.md](ROADMAP.md)
-- **Brand and design:** the [Brand Book](https://claude.ai/artifact/SJeAWr27Fua7MpdYEhZqS7) (story, voice, logo, color, type) and the [Design System](https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q) (tokens, components, icons). The live values are in `src/css/game.css`.
+- **Brand and design:** the [Brand Book](https://claude.ai/artifact/SJeAWr27Fua7MpdYEhZqS7) (story, voice, logo, color, type) and the [Design System](https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q) (tokens, components, icons), plus the [Design Panels](https://claude.ai/artifact/QRGJ2rzUJLrJbqcxjpcKoc) (key art, store and social art, annotated screens). Copies of all three live in [`docs/design/`](docs/design/); the live values are in `src/css/game.css`.
 
 ---
 

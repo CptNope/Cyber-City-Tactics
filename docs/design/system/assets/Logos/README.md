@@ -1,0 +1,1 @@
+App icons, copied from the game's `icons/` folder. `icon-512.png` is the standard icon; `icon-maskable-512.png` keeps the art inside the center 80% on an `ink` ground for Android's shaped icons; `apple-touch-icon.png` is the 180px iOS home-screen icon. None contain text. Use the Wordmark component, not these, wherever the name must appear.

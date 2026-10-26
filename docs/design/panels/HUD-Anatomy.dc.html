@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HUD anatomy</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+<link rel="stylesheet" href="../system/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0c0a14}
+.mk{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#ff3d8b;color:#0c0a14;border:2px solid #0c0a14;box-sizing:border-box;font:600 17px/24px 'Teko',Impact,sans-serif;text-align:center;box-shadow:0 0 8px #ff3d8b}
+.mk.b{background:#45d2ff;box-shadow:0 0 8px #45d2ff}
+.lg{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.lg b{display:block;font-size:15px;font-weight:600;color:#efe9ff}
+.lg span.d{display:block;font-size:13px;line-height:1.4;color:#a79dc2}
+.lg .n{width:24px;height:24px;border-radius:50%;background:#ff3d8b;color:#0c0a14;font:600 17px/25px 'Teko',Impact,sans-serif;text-align:center}
+.lg .n.b{background:#45d2ff}
+.zoom{background-image:url('shots/fight.png');background-size:1920px 1080px;background-position:0 -22.5px}
+</style>
+</helmet>
+<div style="width: 1280px; height: 800px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; color: #efe9ff;">
+  <div style="position: absolute; left: 40px; top: 36px; display: flex; align-items: baseline; gap: 18px;">
+    <h2 style="margin: 0; font-family: 'Teko', Impact, sans-serif; font-weight: 600; font-size: 56px; line-height: 1; text-transform: uppercase;">HUD anatomy</h2>
+    <span style="font-size: 14px; color: #a79dc2;">Landscape, two-player co-op, Neon Market. Logical canvas 480×270, scaled to fit.</span>
+  </div>
+
+  <img src="shots/fight.png" alt="In-game fight with both runners' HUD panels across the top" style="position: absolute; left: 40px; top: 130px; width: 760px; height: 427.5px; border: 1px solid #30283f; box-sizing: border-box;">
+  <div style="position: absolute; left: 40px; top: 139px; width: 309px; height: 71px; border: 2px dashed #45d2ff; border-radius: 3px; box-sizing: border-box;"></div>
+  <span style="position: absolute; left: 356px; top: 196px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #45d2ff; background: rgba(12,10,20,0.85); padding: 2px 6px;">Zoomed below</span>
+  <span class="mk" style="left: 723px; top: 222px;">7</span>
+  <span class="mk" style="left: 551px; top: 351px;">8</span>
+  <span class="mk" style="left: 400px; top: 373px;">9</span>
+  <span class="mk" style="left: 500px; top: 480px;">10</span>
+  <span class="mk" style="left: 758px; top: 162px;">11</span>
+
+  <div class="zoom" role="img" aria-label="Zoomed view of player one's HUD panel" style="position: absolute; left: 40px; top: 590px; width: 780px; height: 180px; border: 2px solid #45d2ff; border-radius: 6px; box-sizing: border-box;"></div>
+  <span class="mk b" style="left: 380px; top: 630px;">1</span>
+  <span class="mk b" style="left: 70px; top: 677px;">2</span>
+  <span class="mk b" style="left: 70px; top: 708px;">3</span>
+  <span class="mk b" style="left: 70px; top: 731px;">4</span>
+  <span class="mk b" style="left: 70px; top: 755px;">5</span>
+  <span class="mk b" style="left: 792px; top: 614px;">6</span>
+
+  <div style="position: absolute; left: 860px; top: 130px; width: 380px; display: flex; flex-direction: column; gap: 14px;">
+    <div class="lg"><span class="n b">1</span><div><b>Name, level, lives</b><span class="d">Gold name for player two. Diamonds are lives; +PTS blinks when points are unspent.</span></div></div>
+    <div class="lg"><span class="n b">2</span><div><b>Health</b><span class="d">Neon pink, 6px. Zero with no lives left means the runner is out until the next district.</span></div></div>
+    <div class="lg"><span class="n b">3</span><div><b>Mana</b><span class="d">Cyan. Width grows with max mana, so a mage's bar is visibly longer.</span></div></div>
+    <div class="lg"><span class="n b">4</span><div><b>Karma to next level</b><span class="d">Thin violet line. Karma is XP; morality is tracked separately as cred.</span></div></div>
+    <div class="lg"><span class="n b">5</span><div><b>Special meter</b><span class="d">Gold, flashes spark white when full and the special is ready.</span></div></div>
+    <div class="lg"><span class="n b">6</span><div><b>Creds, ammo, spell</b><span class="d">Gold creds, butter ammo, cyan spell and cost. ⇄ marks a swappable spell.</span></div></div>
+    <div class="lg"><span class="n">7</span><div><b>Player two panel</b><span class="d">Mirrors the first. Shows the party's shared medkits instead of creds.</span></div></div>
+    <div class="lg"><span class="n">8</span><div><b>Enemy affix</b><span class="d">Tag over elites in the affix colour: armored, berserk, warded or vampiric.</span></div></div>
+    <div class="lg"><span class="n">9</span><div><b>Damage numbers</b><span class="d">White (or the spell's colour) for hits, pink on runners, gold for crits.</span></div></div>
+    <div class="lg"><span class="n">10</span><div><b>Throwables</b><span class="d">Cans, crates and drums: pick up, throw, sometimes find a shard inside.</span></div></div>
+    <div class="lg"><span class="n">11</span><div><b>Pause</b><span class="d">Touch only. Start or Esc on keyboard and controller.</span></div></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

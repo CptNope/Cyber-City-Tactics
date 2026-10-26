@@ -1,0 +1,45 @@
+<!-- @dsCard group="Canvas" height=200 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HUD</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Teko:wght@500;600&display=swap">
+<style>html, body { margin: 0; background: var(--ink); }</style>
+</head>
+<body>
+<div class="cct-preview">
+<canvas id="hud" width="480" height="120" style="width:100%;max-width:720px;display:block;image-rendering:auto"></canvas>
+</div>
+<script>
+(function () {
+  var c = document.getElementById('hud'), x = c.getContext('2d');
+  function v(n) { return getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim(); }
+  function txt(s, px, py, size, col, align) {
+    x.font = '600 ' + size + 'px Teko, Impact, sans-serif'; x.textAlign = align || 'left';
+    x.lineWidth = 3; x.strokeStyle = v('track'); x.strokeText(s, px, py); x.fillStyle = col; x.fillText(s, px, py);
+  }
+  function bar(px, py, w, h, f, col) {
+    x.fillStyle = v('track'); x.fillRect(px - 1, py - 1, w + 2, h + 2);
+    x.fillStyle = v('meter-bg'); x.fillRect(px, py, w, h);
+    x.fillStyle = col; x.fillRect(px, py, w * f, h);
+    x.fillStyle = 'rgba(255,255,255,.18)'; x.fillRect(px, py, w * f, 1);
+  }
+  function draw() {
+    x.fillStyle = v('ink'); x.fillRect(0, 0, 480, 120);
+    txt('VEX LV 7', 10, 18, 15, v('text'));
+    bar(10, 22, 96, 6, 0.82, v('neon')); bar(10, 31, 70, 4, 0.6, v('mana')); bar(10, 38, 96, 2, 0.58, v('karma')); bar(10, 43, 96, 3, 0.35, v('gold'));
+    txt('¥1,240', 114, 19, 15, v('gold')); txt('AMMO 24  ·  MED 2', 114, 30, 12, v('ammo')); txt('FIREBALL 20', 114, 41, 12, v('mana'));
+    txt('BLOCK 3', 432, 18, 14, v('muted'), 'right'); txt('CRED +24', 432, 30, 12, v('ok'), 'right');
+    for (var i = 0; i < 5; i++) txt('★', 384 + i * 12, 46, 11, i < 2 ? v('siren') : '#3a3150', 'right');
+    [['Red Hex chop shop', 110, v('ok')], ['Pawn shop', 250, v('neon')], ['Corner flat', 380, v('dim')]].forEach(function (s) {
+      x.font = '600 11px Teko, Impact, sans-serif'; var w = x.measureText(s[0]).width + 10;
+      x.fillStyle = '#0b0812'; x.fillRect(s[1] - w / 2, 80, w, 13); x.fillStyle = s[2]; x.textAlign = 'center'; x.fillText(s[0], s[1], 90);
+    });
+  }
+  draw();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
+</body>
+</html>

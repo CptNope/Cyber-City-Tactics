@@ -1,0 +1,1 @@
+96px app-shortcut icons (long-press the app icon): Daily challenge (`gold` calendar), The Sprawl (buildings in `mana`, `neon`, `karma`), Arena (`gold` star) and Codex (`karma` book). Flat strokes on `ink`, no text.

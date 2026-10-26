@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sprawl building card</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+<link rel="stylesheet" href="../system/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0c0a14}
+.door{position:absolute;top:150px;width:540px;display:flex;flex-direction:column;gap:10px}
+.door .tag{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.door .card{max-width:none;background:rgba(23,18,31,.97);border:1px solid #30283f;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.5);animation:none;overflow:visible}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.5; color: #efe9ff;">
+  <img src="../../../screenshots/wide-sprawl.png" alt="" style="position: absolute; left: 0; top: 0; width: 1280px; height: 720px; object-fit: cover; opacity: 0.28; filter: saturate(0.7);">
+  <div style="position: absolute; left: 64px; top: 40px; right: 64px; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #a79dc2;">The Sprawl · walk up to a door</p>
+      <h2 style="margin: 0; font-family: 'Teko', Impact, sans-serif; font-weight: 600; font-size: 56px; line-height: 1; text-transform: uppercase;">Building card</h2>
+    </div>
+    <p style="margin: 0; max-width: 470px; font-size: 14px; color: #a79dc2; text-align: right;">Same card, two consciences. Pixel's intel border turns green when the job helps the street and stays pink when it hurts someone who did nothing to you.</p>
+  </div>
+
+  <div class="door" style="left: 64px;">
+    <span class="tag" style="color: #7dffb0;">Green door · helps the block</span>
+    <div class="card">
+      <p class="eyebrow">Gang hideout · tier 2 · block 3</p>
+      <h2>Red Hex chop shop</h2>
+      <p class="say" style="border-color: var(--ok);"><b style="color: var(--ok);">Pixel's intel</b>Gangers who run chop shops and protection rackets. Cleaning this place out helps the street: cred +16 and bonus karma.</p>
+      <p class="say" style="border-color: var(--gold);"><b style="color: var(--gold);">Juno's bounty</b>Mother Static is holed up in here. Bring them down for ¥300, karma and a shot at something rare.</p>
+      <div class="job"><span style="color: var(--muted); font-size: 13px;">3 rooms, guarded by a crew boss. Loot: 2 items (Tuned or better), creds and maybe an icebreaker.<br>Lock strength 2: 3 clean hits to crack. Your best Hacking is 3. Icebreakers: 1.</span></div>
+      <div class="row"><button class="btn" type="button">Hack the door</button><button class="btn ghost" type="button">Walk away</button></div>
+    </div>
+  </div>
+
+  <div class="door" style="left: 676px;">
+    <span class="tag" style="color: #ff3d8b;">Red door · hurts the block</span>
+    <div class="card">
+      <p class="eyebrow">Residence · tier 1 · block 3</p>
+      <h2>Walk-up 3F</h2>
+      <p class="say"><b>Pixel's intel</b>Two nurses on the night shift. Breaking in here hurts people who did nothing to you. Heat +2 (cops will come), cred −12.</p>
+      <div class="job"><span style="color: var(--muted); font-size: 13px;">1 room. Loot: a little cash and a medkit.<br>Lock strength 1: 2 clean hits to crack. Your best Hacking is 3. Icebreakers: 1.</span></div>
+      <div class="row"><button class="btn" type="button">Hack the door</button><button class="btn ghost" type="button">Walk away</button></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

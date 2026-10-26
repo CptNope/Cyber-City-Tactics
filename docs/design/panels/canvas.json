@@ -1,0 +1,47 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-26T05:50:00Z" },
+  "title": "Cyber City Tactics Design Panels",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 720, "title": "Key art · title screen" },
+    "Store-Feature.dc.html": { "x": 1360, "y": 0, "w": 1024, "h": 500, "title": "Store feature graphic" },
+    "Social-Post.dc.html": { "x": 2464, "y": 0, "w": 1080, "h": 1080, "title": "Social post · choose who you hurt" },
+    "HUD-Anatomy.dc.html": { "x": 0, "y": 1440, "w": 1280, "h": 800, "title": "HUD anatomy" },
+    "Building-Card.dc.html": { "x": 1360, "y": 1440, "w": 1280, "h": 720, "title": "Sprawl · building card" },
+    "Hacking.dc.html": { "x": 2720, "y": 1440, "w": 1280, "h": 720, "title": "Sprawl · hacking", "is_interactive": true },
+    "Skill-Tree.dc.html": { "x": 4080, "y": 1440, "w": 1280, "h": 860, "title": "Character · skill tree" },
+    "Phone-Play.dc.html": { "x": 0, "y": 2660, "w": 390, "h": 844, "title": "Phone · portrait fight" },
+    "Phone-Codex.dc.html": { "x": 470, "y": 2660, "w": 390, "h": 844, "title": "Phone · Codex" },
+    "Factions.dc.html": { "x": 940, "y": 2660, "w": 1280, "h": 720, "title": "Characters and factions" },
+    "Controller-Map.dc.html": { "x": 2300, "y": 2660, "w": 1280, "h": 720, "title": "Controller map" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Store-Feature.dc.html",
+    "Social-Post.dc.html",
+    "HUD-Anatomy.dc.html",
+    "Building-Card.dc.html",
+    "Hacking.dc.html",
+    "Skill-Tree.dc.html",
+    "Phone-Play.dc.html",
+    "Phone-Codex.dc.html",
+    "Factions.dc.html",
+    "Controller-Map.dc.html"
+  ],
+  "notes": {
+    "row1": { "x": 0, "y": -260, "text": "Key art and store", "kind": "title1", "maxW": 3544 },
+    "row2": { "x": 0, "y": 1180, "text": "Screens", "kind": "title1", "maxW": 5360 },
+    "row3": { "x": 0, "y": 2400, "text": "Phone, characters and controls", "kind": "title1", "maxW": 3580 }
+  },
+  "designSystems": [
+    {
+      "title": "Cyber City Tactics",
+      "namespace": "cybercitytactics",
+      "artifact": "https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q",
+      "version": "1792993173-f20d",
+      "copiedAt": "2026-10-26T05:50:00Z"
+    }
+  ]
+}

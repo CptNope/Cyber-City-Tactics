@@ -1,0 +1,124 @@
+{
+  "v": 3,
+  "layout": "files",
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-26T05:39:20Z"
+  },
+  "title": "Cyber City Tactics",
+  "namespace": "CyberCityTactics",
+  "libraries": [],
+  "sections": {},
+  "groups": [
+    "Logos",
+    "Shortcuts",
+    "Screenshots"
+  ],
+  "assetGroups": {
+    "Logos": {
+      "name": "Logos",
+      "tile": "m",
+      "order": [
+        "icon-512.png",
+        "icon-maskable-512.png",
+        "apple-touch-icon.png"
+      ],
+      "files": {
+        "icon-512.png": {
+          "name": "icon-512.png",
+          "blob": "ffbc175ffd155a4d3970300952ee2434",
+          "size": 16192,
+          "type": "image/png"
+        },
+        "icon-maskable-512.png": {
+          "name": "icon-maskable-512.png",
+          "blob": "fc395e00ec9bd4e2ac45a97c946b444e",
+          "size": 18266,
+          "type": "image/png"
+        },
+        "apple-touch-icon.png": {
+          "name": "apple-touch-icon.png",
+          "blob": "06cfe96a64152de5ba9c5ff0e261fdc1",
+          "size": 6092,
+          "type": "image/png"
+        }
+      }
+    },
+    "Shortcuts": {
+      "name": "Shortcuts",
+      "tile": "s",
+      "order": [
+        "shortcut-daily.png",
+        "shortcut-sprawl.png",
+        "shortcut-arena.png",
+        "shortcut-codex.png"
+      ],
+      "files": {
+        "shortcut-daily.png": {
+          "name": "shortcut-daily.png",
+          "blob": "a685da5875b1b1aa6a392ee4fa812b60",
+          "size": 508,
+          "type": "image/png"
+        },
+        "shortcut-sprawl.png": {
+          "name": "shortcut-sprawl.png",
+          "blob": "5ffd5c14784b56f2282dfa8ccab27383",
+          "size": 430,
+          "type": "image/png"
+        },
+        "shortcut-arena.png": {
+          "name": "shortcut-arena.png",
+          "blob": "67b898f843c8a7f9be8f8a884ebc2287",
+          "size": 807,
+          "type": "image/png"
+        },
+        "shortcut-codex.png": {
+          "name": "shortcut-codex.png",
+          "blob": "e77c659a4c3c8acfa97bf45b731031dc",
+          "size": 544,
+          "type": "image/png"
+        }
+      }
+    },
+    "Screenshots": {
+      "name": "Screenshots",
+      "tile": "l",
+      "order": [
+        "wide-sprawl.png",
+        "narrow-codex.png",
+        "narrow-play.png"
+      ],
+      "files": {
+        "wide-sprawl.png": {
+          "name": "wide-sprawl.png",
+          "blob": "bae2246e5e7a5518d17569680f9f06a6",
+          "size": 191119,
+          "type": "image/png"
+        },
+        "narrow-codex.png": {
+          "name": "narrow-codex.png",
+          "blob": "3cad5ccb89021c3673f95c4c5329a4cb",
+          "size": 259016,
+          "type": "image/png"
+        },
+        "narrow-play.png": {
+          "name": "narrow-play.png",
+          "blob": "732bc91c6b574be3307f21b7f3050d50",
+          "size": 187210,
+          "type": "image/png"
+        }
+      }
+    }
+  },
+  "blobs": {},
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "lastChange": {
+    "by": "Jeremy Anderson",
+    "at": "2026-10-26T05:39:20Z",
+    "via": "GitHub \u00b7 CptNope/Cyber-City-Tactics@0b6d777",
+    "note": "First system, from the game's CSS and canvas code"
+  }
+}

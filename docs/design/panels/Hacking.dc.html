@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sprawl hacking minigame</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+<link rel="stylesheet" href="../system/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0c0a14}
+.hk .card{max-width:none;background:rgba(23,18,31,.97);border:1px solid #30283f;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.5);animation:none;overflow:visible}
+.pip{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid #7dffb0;box-sizing:border-box}
+.pip.on{background:#7dffb0}
+.dia{display:inline-block;width:12px;height:12px;transform:rotate(45deg);background:#ff3d8b}
+.dia.off{background:transparent;border:2px solid #6b6280;box-sizing:border-box}
+</style>
+</helmet>
+<div class="hk" style="width: 1280px; height: 720px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.5; color: #efe9ff;">
+  <img src="../../../screenshots/wide-sprawl.png" alt="" style="position: absolute; left: 0; top: 0; width: 1280px; height: 720px; object-fit: cover; opacity: 0.22; filter: saturate(0.6);">
+  <div style="position: absolute; left: 64px; top: 40px; right: 64px; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+      <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #a79dc2;">The Sprawl · press Play to try it</p>
+      <h2 style="margin: 0; font-family: 'Teko', Impact, sans-serif; font-weight: 600; font-size: 56px; line-height: 1; text-transform: uppercase;">Hacking</h2>
+    </div>
+    <p style="margin: 0; max-width: 470px; font-size: 14px; color: #a79dc2; text-align: right;">Lock 2 against Hacking 3. The window narrows with lock tier, widens with skill, and the cursor speeds up 12% on every clean hit.</p>
+  </div>
+
+  <div style="position: absolute; left: 320px; top: 170px; width: 640px;">
+    <div class="card">
+      <p class="eyebrow">Hacking · Red Hex chop shop · lock 2</p>
+      <h2>Crack the lock</h2>
+      <p>Press Hack while the cursor is inside the green window. 3 clean hits open the door. Miss 3 times and you're locked out.</p>
+      <div class="trk" data-f="{{flash}}">
+        <div class="zone" style="{{zoneStyle}}"></div>
+        <div class="cur" style="{{curStyle}}"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 18px; font-size: 14px; color: #a79dc2;">
+        <span style="display: flex; align-items: center; gap: 6px;">Nodes
+          <sc-for list="{{nodes}}" as="n" hint-placeholder-count="3"><span class="{{n.cls}}"></span></sc-for>
+        </span>
+        <span style="display: flex; align-items: center; gap: 8px;">Misses left
+          <sc-for list="{{lives}}" as="l" hint-placeholder-count="3"><span class="{{l.cls}}"></span></sc-for>
+        </span>
+        <span style="margin-left: auto; color: {{statusCol}}; font-weight: 600;">{{status}}</span>
+      </div>
+      <div class="row">
+        <button class="btn big" type="button" onClick="{{press}}">{{pressLabel}}</button>
+        <button class="btn ghost" type="button" onClick="{{ice}}" disabled="{{iceOff}}">Icebreaker · {{iceLeft}}</button>
+        <button class="btn ghost" type="button" onClick="{{reset}}">Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = this.fresh();
+  }
+  fresh() {
+    return { pos: 0, dir: 1, speed: 0.82, w: 0.15, zone: 0.62, hits: 0, miss: 0, need: 3, maxMiss: 2, ice: 1, flash: '', over: '' };
+  }
+  componentDidMount() {
+    this.last = Date.now();
+    this.timer = setInterval(() => {
+      const now = Date.now();
+      const dt = Math.min(0.05, (now - this.last) / 1000);
+      this.last = now;
+      const s = this.state;
+      if (s.over) return;
+      let pos = s.pos + s.dir * s.speed * dt;
+      let dir = s.dir;
+      if (pos >= 1) { pos = 1; dir = -1; }
+      if (pos <= 0) { pos = 0; dir = 1; }
+      this.setState({ pos, dir });
+    }, 16);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+    clearTimeout(this.flashT);
+  }
+  newZone(pos, w) {
+    let z;
+    do { z = w / 2 + Math.random() * (1 - w); } while (Math.abs(z - pos) < 0.15);
+    return z;
+  }
+  flash(f) {
+    clearTimeout(this.flashT);
+    this.flashT = setTimeout(() => this.setState({ flash: '' }), 230);
+    return f;
+  }
+  hit() {
+    const s = this.state;
+    const hits = s.hits + 1;
+    if (hits >= s.need) return this.setState({ hits, over: 'open', flash: this.flash('ok') });
+    this.setState({ hits, speed: s.speed * 1.12, zone: this.newZone(s.pos, s.w), flash: this.flash('ok') });
+  }
+  renderVals() {
+    const s = this.state;
+    const left = Math.max(0, s.zone - s.w / 2) * 100;
+    const nodes = [];
+    for (let i = 0; i < s.need; i++) nodes.push({ cls: i < s.hits ? 'pip on' : 'pip' });
+    const lives = [];
+    for (let i = 0; i <= s.maxMiss; i++) lives.push({ cls: i < s.maxMiss + 1 - s.miss ? 'dia' : 'dia off' });
+    return {
+      zoneStyle: 'left: ' + left.toFixed(2) + '%; width: ' + (s.w * 100).toFixed(2) + '%;',
+      curStyle: 'left: ' + (s.pos * 100).toFixed(2) + '%;',
+      flash: s.flash,
+      nodes,
+      lives,
+      iceLeft: s.ice,
+      iceOff: s.ice < 1 || !!s.over,
+      status: s.over === 'open' ? 'Door open' : s.over === 'locked' ? 'Locked out' : '',
+      statusCol: s.over === 'open' ? '#7dffb0' : '#ff3d8b',
+      pressLabel: s.over ? 'Again' : 'Hack',
+      press: () => {
+        const st = this.state;
+        if (st.over) return this.setState(this.fresh());
+        if (Math.abs(st.pos - st.zone) <= st.w / 2) return this.hit();
+        const miss = st.miss + 1;
+        this.setState({ miss, over: miss > st.maxMiss ? 'locked' : '', flash: this.flash('bad') });
+      },
+      ice: () => {
+        if (this.state.ice < 1 || this.state.over) return;
+        this.setState({ ice: this.state.ice - 1 });
+        this.hit();
+      },
+      reset: () => this.setState(this.fresh())
+    };
+  }
+}
+</script>
+</body>
+</html>

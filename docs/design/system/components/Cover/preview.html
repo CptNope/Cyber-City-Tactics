@@ -1,0 +1,60 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cyber City Tactics</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Teko:wght@500;600&display=swap">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--ink); color: var(--text); font-family: var(--font-body); overflow: hidden; }
+  .cover { position: relative; height: 288px; overflow: hidden; }
+  .art { position: absolute; top: 0; left: 480px; width: 480px; height: 288px; overflow: hidden; }
+  .art svg { display: block; width: 480px; height: 288px; }
+  .neon { fill: var(--neon); }
+  .mana { fill: var(--mana); }
+  .gold { fill: var(--gold); }
+  .karma { fill: var(--karma); }
+  .deep { fill: var(--panel2); }
+  .ground { fill: var(--ink); }
+  .track { fill: var(--meter-bg); }
+  .blk { rx: var(--radius-sm); }
+  .bar { rx: var(--radius-xs); }
+  .words { position: absolute; left: 18px; bottom: 18px; max-width: 440px; }
+  .name { margin: 0; font: 600 72px/0.95 var(--font-display); letter-spacing: 0.01em; color: var(--text); }
+  .tag { margin: 8px 0 0 2px; font-size: 14px; line-height: 20px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 288" width="480" height="288">
+<!--
+  blocks      neon 128×232 bled off the top (the brand, largest) · panel2 160×208 bleeding off the right · mana 96×112 · gold 48×64 · karma 32×24 — about a third of 960×288
+  arrangement one tall Neon Pink slab with satellites, bottoms on one line space-16 above the edge, space-16 gutters
+  pattern     HUD meter bars, from "every HUD word sits on a track; bars on meter-bg": six 6px meters at a 24px pitch (space-12 ×2) in the panel2 block, filled neon/mana/karma/gold; three ground-colored bars cut into the slab echo the TACTICS bar
+  scales      sides in space-8 / space-16 multiples; pitch 2 × space-12; corners radius-sm, bars radius-xs
+-->
+<rect class="neon blk" x="16" y="-16" width="128" height="256" rx="6"/>
+<rect class="ground bar" x="32" y="152" width="96" height="6" rx="3"/>
+<rect class="ground bar" x="32" y="176" width="72" height="6" rx="3"/>
+<rect class="ground bar" x="32" y="200" width="48" height="6" rx="3"/>
+<rect class="karma blk" x="160" y="104" width="32" height="24" rx="6"/>
+<rect class="mana blk" x="160" y="128" width="96" height="112" rx="6"/>
+<rect class="gold blk" x="272" y="176" width="48" height="64" rx="6"/>
+<rect class="deep blk" x="336" y="32" width="160" height="208" rx="6"/>
+<rect class="track bar" x="352" y="56" width="112" height="6" rx="3"/><rect class="neon bar" x="352" y="56" width="92" height="6" rx="3"/>
+<rect class="track bar" x="352" y="80" width="112" height="6" rx="3"/><rect class="mana bar" x="352" y="80" width="64" height="6" rx="3"/>
+<rect class="track bar" x="352" y="104" width="112" height="6" rx="3"/><rect class="karma bar" x="352" y="104" width="40" height="6" rx="3"/>
+<rect class="track bar" x="352" y="128" width="112" height="6" rx="3"/><rect class="gold bar" x="352" y="128" width="112" height="6" rx="3"/>
+<rect class="track bar" x="352" y="152" width="112" height="6" rx="3"/><rect class="neon bar" x="352" y="152" width="24" height="6" rx="3"/>
+<rect class="track bar" x="352" y="176" width="112" height="6" rx="3"/><rect class="mana bar" x="352" y="176" width="80" height="6" rx="3"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Cyber City<br>Tactics</h1>
+<p class="tag">A neon brawler RPG for one or two. Choose who you hurt.</p>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+/* Cyber City Tactics tokens as CSS variables (values from the design system's tokens.json). */
+:root {
+  --ink: #0c0a14;
+  --panel: #17121f;
+  --panel2: #1f1830;
+  --line: #30283f;
+  --text: #efe9ff;
+  --muted: #a79dc2;
+  --neon: #ff3d8b;
+  --on-neon: #16040c;
+  --mana: #45d2ff;
+  --gold: #ffc63d;
+  --ok: #7dffb0;
+  --karma: #b98cff;
+  --fire: #ff6a3d;
+  --siren: #ff3d4a;
+  --legendary: #ff8a3d;
+  --rarity-street: #e6e1f2;
+  --ammo: #ffe28a;
+  --spark: #fff3c4;
+  --dim: #6b6280;
+  --track: #0b0812;
+  --meter-bg: #2a2238;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --shadow-float: 0 6px 24px rgba(0, 0, 0, 0.5);
+  --shadow-cursor: 0 0 8px #ff3d8b;
+  --font-display: 'Teko', Impact, 'Arial Narrow', sans-serif;
+  --font-body: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+}

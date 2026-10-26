@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skill tree</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+<link rel="stylesheet" href="../system/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0c0a14}
+.st .card{max-width:none;background:#17121f;border:1px solid #30283f;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.5);animation:none;overflow:visible}
+.st .sk{--tc:#ff3d8b}
+.st .sk-link{--tc:#ff3d8b}
+.key{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center}
+.key p{margin:0;font-size:14px;line-height:1.45;color:#a79dc2}
+.key p b{color:#efe9ff}
+</style>
+</helmet>
+<div class="st" style="width: 1280px; height: 860px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.5; color: #efe9ff;">
+  <div style="position: absolute; left: 64px; top: 40px;">
+    <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #a79dc2;">Character sheet · Skills tab</p>
+    <h2 style="margin: 0; font-family: 'Teko', Impact, sans-serif; font-weight: 600; font-size: 56px; line-height: 1; text-transform: uppercase;">Skill tree</h2>
+  </div>
+
+  <div style="position: absolute; left: 64px; top: 140px; width: 700px;">
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items: baseline;">
+        <p class="eyebrow" style="margin: 0;">Vex · level 5</p>
+        <b style="color: var(--gold); font-variant-numeric: tabular-nums;">1 skill point</b>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" type="button" style="color: #ff3d8b;">Brawler <small style="opacity: 0.7;">2</small></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Gunslinger <small style="opacity: 0.7;">0</small></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Mage <small style="opacity: 0.7;">0</small></button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Decker <small style="opacity: 0.7;">0</small></button>
+      </div>
+      <p style="color: var(--muted); margin: 0; font-size: 13px;">Fists, blades and bad decisions. You earn a skill point every level. Each row needs points spent higher up the tree; the capstone also needs level 8. Decker skills help the whole team.</p>
+      <div class="sk-tree">
+        <div class="sk-row">
+          <button class="sk own" type="button"><span class="sk-n">✓ Iron Fists</span><span class="sk-d">+20% melee damage.</span></button>
+        </div>
+        <div class="sk-link"></div>
+        <div class="sk-row">
+          <button class="sk can" type="button"><span class="sk-n">Guard Breaker</span><span class="sk-d">Punches and uppercuts break riot shields, like kicks do.</span></button>
+          <button class="sk own" type="button"><span class="sk-n">✓ Brute</span><span class="sk-d">Knees and throws deal 50% more damage.</span></button>
+        </div>
+        <div class="sk-link"></div>
+        <div class="sk-row">
+          <button class="sk can" type="button"><span class="sk-n">Bloodlust</span><span class="sk-d">Melee hits heal you for 2 HP, or 4 HP on a crit.</span></button>
+          <button class="sk can" type="button"><span class="sk-n">Whirlwind</span><span class="sk-d">Heavy blows hit enemies behind you too.</span></button>
+        </div>
+        <div class="sk-link"></div>
+        <div class="sk-row">
+          <button class="sk lock" type="button" aria-disabled="true"><span class="sk-n">Berserker</span><span class="sk-d">Below 40% HP you deal 40% more damage and take 20% less.</span><span class="sk-l">Needs 4 points in Brawler</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 820px; top: 140px; width: 396px; display: flex; flex-direction: column; gap: 22px;">
+    <div class="key">
+      <button class="sk own" type="button" style="pointer-events: none;"><span class="sk-n">✓ Owned</span></button>
+      <p><b>Owned.</b> Filled in the tree colour. Archetypes start with one: Samurai owns Iron Fists.</p>
+    </div>
+    <div class="key">
+      <button class="sk can" type="button" style="pointer-events: none;"><span class="sk-n">Can learn</span></button>
+      <p><b>Can learn.</b> Outlined in the tree colour; one tap or A spends the point.</p>
+    </div>
+    <div class="key">
+      <button class="sk lock" type="button" aria-disabled="true" style="pointer-events: none;"><span class="sk-n">Locked</span></button>
+      <p><b>Locked.</b> Dimmed, with the missing requirement in plain words.</p>
+    </div>
+    <div style="border-top: 1px solid #30283f; padding-top: 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-family: 'Teko', Impact, sans-serif; font-size: 34px; line-height: 1;">Row 1</span><span style="font-size: 12px; color: #a79dc2;">Open from level 1</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-family: 'Teko', Impact, sans-serif; font-size: 34px; line-height: 1;">Row 2</span><span style="font-size: 12px; color: #a79dc2;">1 point in tree</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-family: 'Teko', Impact, sans-serif; font-size: 34px; line-height: 1;">Row 3</span><span style="font-size: 12px; color: #a79dc2;">2 points, level 4</span></div>
+      <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-family: 'Teko', Impact, sans-serif; font-size: 34px; line-height: 1; color: #ff3d8b;">Row 4</span><span style="font-size: 12px; color: #a79dc2;">4 points, level 8</span></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #a79dc2;">Tree colours</span>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;">
+        <div style="height: 44px; border-radius: 6px; background: #ff3d8b; color: #16040c; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;">Brawler</div>
+        <div style="height: 44px; border-radius: 6px; background: #ffc63d; color: #0c0a14; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;">Gunslinger</div>
+        <div style="height: 44px; border-radius: 6px; background: #b98cff; color: #0c0a14; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;">Mage</div>
+        <div style="height: 44px; border-radius: 6px; background: #45d2ff; color: #0c0a14; font-weight: 600; font-size: 13px; display: flex; align-items: center; justify-content: center;">Decker</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

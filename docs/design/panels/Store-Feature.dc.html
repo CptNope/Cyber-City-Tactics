@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Store feature graphic</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+<link rel="stylesheet" href="../system/components/bundle.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>body{margin:0;background:#0c0a14}</style>
+</helmet>
+<div style="width: 1024px; height: 500px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; color: #efe9ff;">
+  <img src="../../../screenshots/wide-sprawl.png" alt="The Sprawl open world at night, with neon storefronts and a runner on the street" style="position: absolute; left: 0; top: 0; width: 1024px; height: 500px; object-fit: cover; object-position: 60% 50%;">
+  <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(12,10,20,0.96) 0%, rgba(12,10,20,0.88) 38%, rgba(12,10,20,0.15) 72%, rgba(12,10,20,0) 100%);"></div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, #ff3d8b, #45d2ff);"></div>
+  <div style="position: absolute; left: 64px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-family: 'Teko', Impact, 'Arial Narrow', sans-serif; font-weight: 600; text-transform: uppercase;">
+      <span style="font-size: 96px; line-height: 0.82; letter-spacing: 0.01em; text-shadow: -3px 0 #ff3d8b, 3px 0 #45d2ff;">Cyber City</span>
+      <span style="font-size: 52px; line-height: 1; letter-spacing: 0.14em; background: #ff3d8b; color: #0c0a14; padding: 5px 14px 0;">Tactics</span>
+    </div>
+    <p style="margin: 0; font-size: 20px; line-height: 1.4; color: #efe9ff;">Street-level brawler RPG. Five districts, one open Sprawl, and every job a choice.</p>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid #45d2ff; color: #45d2ff; padding: 5px 10px; border-radius: 3px;">Two-player co-op</span>
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid #ffc63d; color: #ffc63d; padding: 5px 10px; border-radius: 3px;">Plays offline</span>
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; border: 1px solid #7dffb0; color: #7dffb0; padding: 5px 10px; border-radius: 3px;">Controller ready</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1024,"height":500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

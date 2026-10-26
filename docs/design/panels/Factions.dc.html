@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Characters and factions</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="cct-tokens.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&amp;family=Teko:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0c0a14}
+.col{display:flex;flex-direction:column;gap:10px}
+.colh{font-family:'Teko',Impact,sans-serif;font-weight:600;font-size:34px;line-height:1;text-transform:uppercase;margin:0}
+.cap{margin:0 0 6px;font-size:13px;color:#a79dc2}
+.ent{display:grid;grid-template-columns:10px minmax(0,1fr);gap:12px;background:#17121f;border:1px solid #30283f;border-radius:8px;padding:10px 12px 10px 0;overflow:hidden}
+.ent .sw{border-radius:0 3px 3px 0}
+.ent b{display:block;font-size:15px;font-weight:600;color:#efe9ff}
+.ent span{display:block;font-size:13px;line-height:1.4;color:#a79dc2}
+.lk{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#ffc63d}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; position: relative; overflow: hidden; background: #0c0a14; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; color: #efe9ff; box-sizing: border-box; padding: 40px 64px; display: flex; flex-direction: column; gap: 26px;">
+  <div>
+    <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: #a79dc2;">Who's who in the sprawl</p>
+    <h2 style="margin: 0; font-family: 'Teko', Impact, sans-serif; font-weight: 600; font-size: 56px; line-height: 1; text-transform: uppercase;">Characters and factions</h2>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px;">
+    <div class="col">
+      <h3 class="colh" style="color: #ff3d8b;">Runners</h3>
+      <p class="cap">Who you play. Four from the start, three earned.</p>
+      <div class="ent"><i class="sw" style="background: #ff3d8b;"></i><div><b>Street Runner</b><span>Even spread, no starting skill. The blank slate.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #ff3d8b;"></i><div><b>Street Samurai</b><span>Strength and chrome. Starts with Iron Fists.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #b98cff;"></i><div><b>Combat Mage</b><span>Magic 5. Starts with Focus.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #ffc63d;"></i><div><b>Gunslinger</b><span>Agility 5, heavy pistol, double ammo. Starts with Steady Hands.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #6b6280;"></i><div><b>Shaman · Rigger · Decker</b><span class="lk">Unlocked through feats</span></div></div>
+    </div>
+    <div class="col">
+      <h3 class="colh" style="color: #45d2ff;">The Den</h3>
+      <p class="cap">Contacts between districts and in Sprawl safehouses.</p>
+      <div class="ent"><i class="sw" style="background: #ffc63d;"></i><div><b>Juno · fixer</b><span>Contracts and bounties.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #7dffb0;"></i><div><b>Doc Kessler · street doc</b><span>Medkits, ammo and cyberware.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #b98cff;"></i><div><b>Old Wen · talismonger</b><span>Spells and talismans.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #ff8a3d;"></i><div><b>Ratchet · fence</b><span>Buys your loot, sells hot gear.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #45d2ff;"></i><div><b>Kit, Sal and Pixel</b><span>Companion broker, bartender, street kid with intel.</span></div></div>
+    </div>
+    <div class="col">
+      <h3 class="colh" style="color: #ff3d4a;">The opposition</h3>
+      <p class="cap">Who you fight, and who you choose to hurt.</p>
+      <div class="ent"><i class="sw" style="background: #ff6a3d;"></i><div><b>Street crews</b><span>Rustline, Neon Fangs, Red Hex, Iron Saints. Gangers, orcs, trolls.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #45d2ff;"></i><div><b>Kagemori Corp</b><span>Security, riot squads, drones and black ICE.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #ff3d4a;"></i><div><b>Cops</b><span>Arrive with heat. Riot units and drones at high stars.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #b98cff;"></i><div><b>The Undercity</b><span>Ghouls, spirits and the Lantern keepers below the streets.</span></div></div>
+      <div class="ent"><i class="sw" style="background: #efe9ff;"></i><div><b>Ordinary people</b><span>Families, nurses, shopkeepers. Not enemies unless you make them.</span></div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
