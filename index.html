@@ -189,7 +189,8 @@ const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){retu
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const prefs=Object.assign({sound:true,music:true,shake:true,haptics:true,tips:true,seen:{},size:'m',lefty:false,rotDismissed:false},store.get('cs_prefs')||{});
 function applyPrefs(){const c=document.body.classList;if(!c.toggle)return;c.toggle('size-s',prefs.size==='s');c.toggle('size-l',prefs.size==='l');c.toggle('lefty',!!prefs.lefty);setTimeout(fit,30);}
-function buzz(p){if(!prefs.haptics||!navigator.vibrate)return;try{navigator.vibrate(p);}catch(e){}}
+let userActed=false;addEventListener('pointerdown',()=>{userActed=true;},{capture:true,passive:true});addEventListener('keydown',()=>{userActed=true;},{capture:true});
+function buzz(p){if(!prefs.haptics||!navigator.vibrate||!userActed)return;try{navigator.vibrate(p);}catch(e){}}
 let wakeLock=null;
 async function wake(on){try{if(on&&!wakeLock&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null;});}else if(!on&&wakeLock){const w=wakeLock;wakeLock=null;await w.release();}}catch(e){}}
 const canFull=()=>!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
