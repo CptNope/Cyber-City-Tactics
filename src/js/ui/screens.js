@@ -18,7 +18,13 @@ const touchHelp = `<div class="keys">
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
 <p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
-const helpHtml = () => (isTouch() ? touchHelp : keysHtml);
+const padHelp = () => `<div class="keys">
+<b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, grab, talk, enter · hold to charge a heavy blow</span>
+<b>B</b><span>Kick, throw · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
+<b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
+<b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
+<p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>`;
+const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keysHtml);
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
 }
@@ -171,7 +177,7 @@ function hackHtml() {
   const h = G.hack,
     b = h.b;
   return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · lock ${b.tier}</p><h2>Crack the lock</h2>
-  <p>${isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
+  <p>${PAD.active ? 'Press A or X' : isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
   <div class="trk" id="hkTrk"><div class="zone" id="hkZone"></div><div class="cur" id="hkCur"></div></div>
   <p id="hkProg"></p>
   <div class="row"><button class="btn big" data-a="hackpress" id="hkBtn">Hack</button><button class="btn ghost" data-a="useice" id="hkIce">Icebreaker</button><button class="btn ghost" data-a="hackquit">Back off</button></div></div>`;
@@ -218,7 +224,7 @@ function settingsHtml() {
     ]);
   return `<div class="card"><p class="eyebrow">Settings</p><h2>Tune your rig</h2><div>
   ${row('Sound effects', '', onoff('sound'))}${row('Music', 'Chiptune tracks for each district', onoff('music'))}
-  ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate ? row('Vibration', 'Buzz on hits and level-ups', onoff('haptics')) : ''}
+  ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(
     'Touch controls size',
@@ -238,6 +244,7 @@ function settingsHtml() {
     ])
   )}
   ${canFull() ? row('Full screen', 'Best on phones, held sideways', '<button class="btn sm ghost" data-a="full">Go full screen</button>') : ''}
+  ${row('Controller', PAD.active ? `${esc(padName(PAD.name))}. In menus: D-pad or stick to move, A to select, B to go back, LB and RB for tabs.` : 'Plug in or pair any standard controller. It works in every menu and in play; a second one adds Runner 2.', `<span class="ds">${PAD.active ? '✓ Connected' : 'None yet'}</span>`)}
   ${pwaSettingsRows(row)}
   </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
 }
@@ -364,7 +371,7 @@ function charHtml() {
   <h3>Equipped</h3><div class="list">${eq}</div>
   <h3>Party bag · ${PARTY.bag.length}/12</h3><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
-  <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
+  <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
 function jobHtml(C) {
   if (!C) return '';

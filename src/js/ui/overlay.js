@@ -175,6 +175,7 @@ function renderOv() {
     const f = ov.querySelector('.btn');
     if (f) f.focus({ preventScroll: true });
   }
+  padRestoreFocus();
 }
 function npcHtml(id) {
   const n = NPCS.find(x => x.id === id),

@@ -5,6 +5,7 @@
  *  - app shortcuts (?go=codex) open the right screen
  *  - the service worker precaches every file and the game loads with the network switched off
  *  - the phone layout boots too
+ *  - controllers: a simulated Xbox pad drives menus, play, pausing, tabs, hacking, rumble and hot-unplugging
  *  - updates: after a new build, the "update ready" bar appears and switching reloads into the new version
  */
 'use strict';
@@ -151,7 +152,131 @@ const { pathToFileURL } = require('url');
       );
       await ctx.close();
     }
-    // 6. Update flow, on a throwaway copy of the repo so the real files aren't touched
+    // 6. Controllers, with a simulated standard-mapping pad
+    {
+      const page = await browser.newPage({ viewport: { width: 960, height: 640 } });
+      const errs = watch(page);
+      await page.addInitScript(() => {
+        const mk = () => ({ pressed: false, value: 0 });
+        window.__pad = {
+          id: 'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)',
+          index: 0,
+          connected: true,
+          mapping: 'standard',
+          axes: [0, 0, 0, 0],
+          buttons: Array.from({ length: 17 }, mk),
+          vibrationActuator: {
+            playEffect: () => ((window.__rumbles = (window.__rumbles || 0) + 1), Promise.resolve('complete'))
+          }
+        };
+        window.__pads = [window.__pad];
+        Object.defineProperty(navigator, 'getGamepads', {
+          value: () => [...window.__pads, null, null, null].slice(0, 4)
+        });
+      });
+      await boot(page, base);
+      const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, Menu: 9, Up: 12, Down: 13, Left: 14, Right: 15 };
+      const press = async (name, hold = 90) => {
+        await page.evaluate(i => (window.__pad.buttons[i].pressed = true), B[name]);
+        await page.waitForTimeout(hold);
+        await page.evaluate(i => (window.__pad.buttons[i].pressed = false), B[name]);
+        await page.waitForTimeout(90);
+      };
+      const mode = () => page.evaluate(() => G.mode);
+      const focused = () =>
+        page.evaluate(
+          () => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.a
+        );
+      await press('A');
+      ok((await mode()) === 'pick', 'A on the title screen starts a new run');
+      ok(
+        await page.evaluate(
+          () =>
+            document.body.classList.contains('gamepad') &&
+            getComputedStyle(document.getElementById('pad')).display === 'none'
+        ),
+        'the on-screen pad hides when a controller is in use'
+      );
+      let f0 = await focused();
+      await press('Down');
+      ok((await focused()) !== f0, 'D-pad moves menu focus');
+      await press('B');
+      ok((await mode()) === 'title', 'B goes back');
+      ok(
+        /Left stick or D-pad/.test(await page.textContent('#ov')),
+        'title help switches to controller buttons'
+      );
+      await press('A');
+      for (let i = 0; i < 40 && (await focused()) !== 'new'; i++) await press('Down');
+      ok((await focused()) === 'new', 'D-pad reaches Start solo');
+      await press('A');
+      if ((await mode()) === 'brief') await press('A');
+      await page.waitForTimeout(1600);
+      ok((await mode()) === 'play', 'A starts the district');
+      const x0 = await page.evaluate(() => PL[0].x);
+      await page.evaluate(() => (window.__pad.axes[0] = 1));
+      await page.waitForTimeout(500);
+      await page.evaluate(() => (window.__pad.axes[0] = 0));
+      ok((await page.evaluate(() => PL[0].x)) > x0 + 20, 'the left stick moves the runner');
+      await press('X', 40);
+      ok(
+        ['punch', 'idle', 'upper'].includes(await page.evaluate(() => PL[0].state)) &&
+          (await page.evaluate(() => PL[0].lastPunch)) > 0,
+        'X punches'
+      );
+      await page.evaluate(() => {
+        PL[0].inv = 0;
+        hurt(PL[0], 5, 1, {});
+      });
+      await page.waitForTimeout(100);
+      ok((await page.evaluate(() => window.__rumbles || 0)) > 0, 'taking a hit rumbles the controller');
+      await press('Menu');
+      ok((await mode()) === 'pause', 'Menu pauses');
+      await press('B');
+      ok((await mode()) === 'play', 'B resumes');
+      await page.evaluate(() => {
+        LEG.feats.first = 1;
+        setMode('codex');
+      });
+      await page.waitForTimeout(150);
+      await press('RB');
+      ok((await page.evaluate(() => G.cxTab)) === 'legs', 'RB switches Codex tabs');
+      await press('B');
+      await page.evaluate(() => {
+        startWorld(false);
+        const b = G.wd.street.buildings.find(x => x.type !== 'safe' && x.type !== 'secret');
+        startHack(b);
+        G.hack.pos = G.hack.zone;
+        G.hack.speed = 0;
+      });
+      await press('A');
+      ok(
+        (await page.evaluate(() => G.hack && G.hack.hits)) === 1 || (await mode()) === 'play',
+        'A cracks a node in the hacking minigame'
+      );
+      if ((await mode()) === 'hack') {
+        await press('B');
+        ok((await mode()) === 'play', 'B backs off the lock');
+      }
+      await page.evaluate(() => {
+        window.__pads = [];
+        dispatchEvent(new Event('gamepaddisconnected'));
+      });
+      await page.waitForTimeout(100);
+      ok(
+        (await mode()) === 'pause' &&
+          !(await page.evaluate(() => document.body.classList.contains('gamepad'))),
+        'unplugging mid-fight pauses and brings back touch controls'
+      );
+      ok(
+        (await page.evaluate(() => padText('Tap PUNCH three times. Hold SPELL to swap spells.'))) ===
+          'Press X three times. Press RT to swap spells.',
+        'tips switch to controller wording'
+      );
+      ok(errs.length === 0, 'no errors with a controller' + (errs.length ? ': ' + errs.join(' | ') : ''));
+      await page.close();
+    }
+    // 7. Update flow, on a throwaway copy of the repo so the real files aren't touched
     {
       const fs = require('fs'),
         os = require('os'),

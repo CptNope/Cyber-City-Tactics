@@ -257,7 +257,7 @@ function tip(id, touchTxt, keyTxt) {
   if (G.training || !prefs.tips || prefs.seen[id]) return;
   prefs.seen[id] = 1;
   savePrefs();
-  const t = { s: isTouch() ? touchTxt : keyTxt || touchTxt, life: 330 };
+  const t = { s: ctl(touchTxt, keyTxt), life: 330 };
   if (G.tip && G.tip.life > 0) (G.tipQ = G.tipQ || []).push(t);
   else G.tip = t;
 }

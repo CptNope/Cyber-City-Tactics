@@ -102,9 +102,29 @@ addEventListener(
   { capture: true }
 );
 function buzz(p) {
-  if (!prefs.haptics || !navigator.vibrate || !userActed) return;
+  if (!prefs.haptics) return;
+  if (typeof PAD !== 'undefined' && PAD.active) rumble(p);
+  if (!navigator.vibrate || !userActed) return;
   try {
     navigator.vibrate(p);
+  } catch (e) {}
+}
+/** Controller rumble for the same moments that vibrate a phone. p is ms or a vibrate() pattern. */
+function rumble(p) {
+  const ms = Array.isArray(p) ? p.filter((_, i) => i % 2 === 0).reduce((a, b) => a + b, 0) : +p || 0;
+  if (!ms || !navigator.getGamepads) return;
+  try {
+    for (const gp of navigator.getGamepads()) {
+      const act = gp && gp.vibrationActuator;
+      if (act && act.playEffect)
+        act
+          .playEffect('dual-rumble', {
+            duration: Math.min(400, ms),
+            strongMagnitude: ms >= 50 ? 0.7 : 0.3,
+            weakMagnitude: ms >= 50 ? 0.9 : 0.5
+          })
+          .catch(() => {});
+    }
   } catch (e) {}
 }
 let wakeLock = null;

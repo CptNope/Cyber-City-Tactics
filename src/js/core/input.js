@@ -291,8 +291,184 @@ if (typeof ResizeObserver !== 'undefined') {
   } catch (e) {}
 }
 
-// Gamepads (standard mapping). Solo: pad 1 is runner 1. Co-op: two pads map 1:1; one pad goes to runner 2 so runner 1 can stay on keyboard.
+/* ---------- gamepads ----------
+ * Standard mapping, Xbox names: A 0 · B 1 · X 2 · Y 3 · LB 4 · RB 5 · LT 6 · RT 7 · View 8 · Menu 9 · L3 10 · R3 11 ·
+ * D-pad 12–15. PlayStation and Switch pads report the same positions (Cross = A, Circle = B, and so on).
+ * In play: solo, pad 1 is runner 1. Co-op: two pads map 1:1; one pad goes to runner 2 so runner 1 can stay on keyboard.
+ * In menus: any pad moves focus with the D-pad or left stick, A selects, B goes back, LB/RB switch tabs. */
 const padPrev = {};
+const PAD = { active: false, name: '', nav: {}, lastA: null };
+const PAD_BTN = {
+  punch: 'X',
+  kick: 'B',
+  jump: 'A',
+  spell: 'Y',
+  dodge: 'LB',
+  gun: 'RB',
+  item: 'LT',
+  swap: 'RT',
+  sheet: 'View',
+  start: 'Menu',
+  special: 'L3/R3'
+};
+function padSeen(gp) {
+  document.body.classList.add('pad-nav');
+  PAD.name = gp.id || 'Controller';
+  if (PAD.active) return;
+  PAD.active = true;
+  document.body.classList.add('gamepad');
+  fit();
+  if (!ACTIVE()) renderOv();
+}
+// Touching or clicking hands focus rings back to the pointer.
+addEventListener('pointerdown', () => document.body.classList.remove('pad-nav'));
+addEventListener('gamepadconnected', e => {
+  (G.toasts = G.toasts || []).push({
+    s: 'Controller connected',
+    d: padName(e.gamepad.id),
+    life: 180,
+    lore: true
+  });
+});
+addEventListener('gamepaddisconnected', () => {
+  let left = [];
+  try {
+    left = [...navigator.getGamepads()].filter(Boolean);
+  } catch (e) {}
+  if (!left.length) {
+    PAD.active = false;
+    document.body.classList.remove('gamepad', 'pad-nav');
+    fit();
+  }
+  // Losing a controller mid-fight should never cost a life.
+  if (ACTIVE()) togglePause();
+});
+function padName(id) {
+  const s = String(id || '');
+  if (/xbox|xinput|045e/i.test(s)) return 'Xbox controller';
+  if (/dualsense|dualshock|playstation|054c/i.test(s)) return 'PlayStation controller';
+  if (/switch|joy-con|057e/i.test(s)) return 'Switch controller';
+  return (
+    s
+      .replace(/\(.*?\)/g, '')
+      .trim()
+      .slice(0, 40) || 'Controller'
+  );
+}
+/** Turns touch wording ("Tap PUNCH") into controller wording ("Press X"). */
+function padText(t) {
+  return String(t)
+    .replace(/Drag anywhere on the left( side)?/g, 'Use the left stick')
+    .replace(/Hold SPELL to swap spells/g, 'Press RT to swap spells')
+    .replace(/\b[Tt]ap ★/g, m => (m[0] === 'T' ? 'Press' : 'press') + ' L3 or R3')
+    .replace(/\bTap\b/g, 'Press')
+    .replace(/\btap\b/g, 'press')
+    .replace(/\b(PUNCH|LIFT|THROW|KNEE|TALK|ENTER)\b/g, 'X')
+    .replace(/\bKICK\b/g, 'B')
+    .replace(/\b(JUMP|HACK)\b/g, 'A')
+    .replace(/\bDODGE\b/g, 'LB')
+    .replace(/\bGUN\b/g, 'RB')
+    .replace(/\bSPELL\b/g, 'Y')
+    .replace(/\bMED\b/g, 'LT')
+    .replace(/\bCHAR\b/g, 'View');
+}
+/** Picks the right wording for whatever the player is holding: a controller, a touch screen or a keyboard. */
+const ctl = (touchTxt, keyTxt) =>
+  PAD.active ? padText(touchTxt) : isTouch() ? touchTxt : keyTxt || touchTxt;
+
+/* Menu navigation with a pad */
+function padFocusables() {
+  return [...ov.querySelectorAll('button:not([disabled]), [data-a]:not(button), input, select')].filter(
+    el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    }
+  );
+}
+function padFocus(el) {
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  try {
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  } catch (e) {}
+}
+function padMove(dir) {
+  const items = padFocusables();
+  const cur =
+    ov.contains(document.activeElement) && items.includes(document.activeElement)
+      ? document.activeElement
+      : null;
+  if (!cur) return padFocus(ov.querySelector('.btn:not([disabled])') || items[0]);
+  const r = cur.getBoundingClientRect(),
+    cx = r.left + r.width / 2,
+    cy = r.top + r.height / 2;
+  let best = null,
+    bestScore = Infinity;
+  for (const el of items) {
+    if (el === cur) continue;
+    const q = el.getBoundingClientRect(),
+      dx = q.left + q.width / 2 - cx,
+      dy = q.top + q.height / 2 - cy;
+    const along = dir === 'down' ? dy : dir === 'up' ? -dy : dir === 'right' ? dx : -dx;
+    const across = dir === 'down' || dir === 'up' ? Math.abs(dx) : Math.abs(dy);
+    if (along <= 4) continue; // only things that are actually that way
+    const score = along + across * 2.2;
+    if (score < bestScore) {
+      bestScore = score;
+      best = el;
+    }
+  }
+  if (best) {
+    padFocus(best);
+    sfx.click();
+  }
+}
+function padActivate() {
+  const el = ov.contains(document.activeElement)
+    ? document.activeElement
+    : ov.querySelector('.btn:not([disabled])');
+  if (!el || el.disabled) return;
+  PAD.lastA = el.dataset && el.dataset.a;
+  A.unlock();
+  el.click();
+}
+/** Put focus back where it was after a menu redraws (the old buttons are replaced). */
+function padRestoreFocus() {
+  if (!document.body.classList.contains('pad-nav')) return;
+  const items = padFocusables();
+  const same = PAD.lastA && items.find(el => el.dataset && el.dataset.a === PAD.lastA);
+  padFocus(same || ov.querySelector('.btn:not([disabled])') || items[0]);
+}
+const PAD_BACK = ['hackquit', 'importno', 'setdone', 'close', 'leave', 'resume', 'back2title'];
+function padBack() {
+  if (G.mode === 'hack') {
+    G.hack = null;
+    setMode('play');
+    return;
+  }
+  for (const a of PAD_BACK) {
+    const b = ov.querySelector(`[data-a="${a}"]:not([disabled])`);
+    if (b) {
+      PAD.lastA = null;
+      b.click();
+      return;
+    }
+  }
+  if (['npc', 'bcard', 'safe', 'sheet', 'pause'].includes(G.mode)) togglePause();
+}
+function padTabs(step) {
+  const groups = [...ov.querySelectorAll('.tabs')];
+  if (!groups.length) return;
+  const g = groups.find(x => x.contains(document.activeElement)) || groups[groups.length - 1];
+  const tabs = [...g.querySelectorAll('.tab')];
+  const i = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+  const next = tabs[(i + step + tabs.length) % tabs.length];
+  if (next) {
+    PAD.lastA = next.dataset.a;
+    next.click();
+  }
+}
+
 function pollPads() {
   if (!navigator.getGamepads) return;
   let list;
@@ -301,6 +477,7 @@ function pollPads() {
   } catch (e) {
     return;
   }
+  const now = performance.now();
   list.forEach((gp, n) => {
     if (n > 1) return;
     let who = G.coop ? (list.length >= 2 ? n : 1) : n === 0 ? 0 : -1;
@@ -325,18 +502,47 @@ function pollPads() {
       special: b(10) || b(11)
     };
     const prev = padPrev[gp.index] || {};
+    const pressed = k => st[k] && !prev[k];
+    if (Object.keys(st).some(pressed)) {
+      userActed = true;
+      padSeen(gp);
+    }
+    // Menus: navigate with the D-pad or stick (held directions repeat), A to pick, B to go back.
+    if (!ACTIVE() && G.mode !== 'hack') {
+      const dir = ['up', 'down', 'left', 'right'].find(d => st[d]);
+      const nav = PAD.nav[gp.index] || (PAD.nav[gp.index] = { dir: null, next: 0 });
+      if (!dir) nav.dir = null;
+      else if (dir !== nav.dir) {
+        nav.dir = dir;
+        nav.next = now + 340;
+        padMove(dir);
+      } else if (now >= nav.next) {
+        nav.next = now + 110;
+        padMove(dir);
+      }
+      if (pressed('jump') || pressed('start')) padActivate();
+      else if (pressed('kick')) padBack();
+      else if (pressed('dodge')) padTabs(-1);
+      else if (pressed('gun')) padTabs(1);
+      else if (pressed('sheet') && G.mode === 'sheet') globalAct('sheet', who >= 0 ? who : 0);
+      padPrev[gp.index] = st;
+      return;
+    }
+    if (G.mode === 'hack') {
+      if (pressed('punch') || pressed('jump')) hackPress();
+      else if (pressed('spell')) useIce();
+      else if (pressed('kick')) padBack();
+      padPrev[gp.index] = st;
+      return;
+    }
     for (const k in st) {
       const on = st[k],
         was = !!prev[k];
       if (k === 'start') {
         if (on && !was) {
           A.unlock();
-          if (ACTIVE() && !G.coop && n === 1) joinRunner2();
-          else if (ACTIVE()) togglePause();
-          else {
-            const f = ov.querySelector('.btn:not([disabled])');
-            if (f) f.click();
-          }
+          if (!G.coop && n === 1) joinRunner2();
+          else togglePause();
         }
         continue;
       }
@@ -344,11 +550,7 @@ function pollPads() {
         if (on && !was && who >= 0) globalAct('sheet', who);
         continue;
       }
-      if (G.mode === 'hack' && (k === 'punch' || k === 'jump')) {
-        if (on && !was) hackPress();
-        continue;
-      }
-      if (who < 0 || !ACTIVE()) continue;
+      if (who < 0) continue;
       if (on && !was) kp(who, k, true);
       else if (!on && was) kp(who, k, false);
     }

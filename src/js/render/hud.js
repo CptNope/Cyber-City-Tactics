@@ -290,7 +290,7 @@ function drawHud() {
       ctx.font = '10px "Chakra Petch", sans-serif';
       ctx.fillStyle = '#efe9ff';
       ctx.textAlign = 'center';
-      ctx.fillText(lo ? 'CLEANED OUT' : isTouch() ? 'ENTER' : 'J to enter', sx, 151);
+      ctx.fillText(lo ? 'CLEANED OUT' : ctl('ENTER', 'J to enter').replace(/^X$/, 'X to enter'), sx, 151);
     }
   }
   if (G.den) {
@@ -301,7 +301,7 @@ function drawHud() {
       ctx.font = '10px "Chakra Petch", sans-serif';
       ctx.fillStyle = '#efe9ff';
       ctx.textAlign = 'center';
-      ctx.fillText(isTouch() ? 'TALK' : 'J to talk', sx, 151);
+      ctx.fillText(ctl('TALK', 'J to talk').replace(/^X$/, 'X to talk'), sx, 151);
     }
   }
 }

@@ -905,3 +905,15 @@ body {
   color: var(--muted);
   border-color: var(--line);
 }
+
+/* ---------- Controllers (src/js/core/input.js) ---------- */
+/* A connected controller replaces the on-screen pad. */
+body.gamepad #pad {
+  display: none !important;
+}
+/* Focus ring for menu navigation with a controller: bold, gold, impossible to lose. */
+body.pad-nav #ov :focus {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 198, 61, 0.18);
+}

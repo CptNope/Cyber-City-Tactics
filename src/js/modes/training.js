@@ -201,7 +201,7 @@ function drawTraining() {
     fillPoly([sx - 5, G.marker.y - 30, sx + 5, G.marker.y - 30, sx, G.marker.y - 20], '#7dffb0');
   }
   const st = TRAIN[Math.min(G.tstep, TRAIN.length - 1)],
-    lines = wrapTip(isTouch() ? st.t : st.k, 330),
+    lines = wrapTip(ctl(st.t, st.k), 330),
     h = lines.length * 13 + 24,
     y = 48;
   ctx.globalAlpha = 0.94;
