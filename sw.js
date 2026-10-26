@@ -1,7 +1,7 @@
 // Chrome & Sorcery offline cache. Bump VERSION when you ship changes.
 // The page itself is network-first (so updates show up on the next load), with the cache as the offline fallback.
 // Icons, manifest and fonts are cache-first.
-const VERSION = 'cs-v13';
+const VERSION = 'cs-v14';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

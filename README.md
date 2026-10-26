@@ -14,8 +14,9 @@
 - **Difficulty:** Street, Runner or Prime, chosen at the start of a run. After the final boss, **New Game+** keeps your runners, levels, gear, cyberware and spells, and makes enemies tougher, elites more common and loot better. You can repeat it.
 - **Elite enemies:** Armored (halves bullet damage), Berserk (faster, hits harder), Warded (can't be knocked down, resists magic) and Vampiric (heals when it hits you). Each has a colored aura and a name tag, and drops better gear.
 - **Boss rage phases:** at half health each boss enrages. The Gutter King and the Hollow Saint slam the ground and send shockwaves you have to jump. Razor Mei chains three dashes. The Hollow Saint summons fire spirits too. Director Voss fires five-way hexes and teleports more often.
-- **Five districts:** Rustline Barrens, Neon Market, Undercity Tunnels, Kagemori Arcology and the Kagemori Host (inside the Matrix). Each has a boss: Gutter King, Razor Mei, the Hollow Saint, Director Voss and Black ICE, whose lane-wide beams you dodge by changing lanes or with a well-timed roll.
+- **Five districts:** Rustline Barrens, Neon Market, Undercity Tunnels, Kagemori Arcology and the Kagemori Host (inside the Matrix). Each has a boss: Gutter King, Razor Mei, the Hollow Saint, Director Voss and Black ICE, whose lane-wide beams you dodge by changing lanes or with a well-timed roll. After each beam it vents and its core takes extra damage.
 - **Runner archetypes:** Street Runner (Adrenaline), Street Samurai (Blade Dance), Combat Mage (Mana Storm) or Gunslinger (Bullet Time). Each has its own starting stats, gear and a special move charged by a meter that fills as you deal and take damage.
+- **Companions:** Kit in the Den rents one at a time. The Rigger drone snipes enemies in its lane. Brick, a troll merc, brawls and pulls enemies off you. A bound fire spirit burns what it touches and ignores bullets. Companions carry between districts and get patched up in the Den, but if one goes down on a job it's gone. In Arena, the Hired help perk brings one in.
 - **Heavy blows:** hold punch to charge, release for a guard-breaking knockdown.
 - **Breakables:** vending machines spill medkits, ammo and mana. Data nodes in the Matrix are the final contract.
 - **Enemies:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split in two when they die) and ICE sentries (teleport and fire laser spreads).
@@ -30,7 +31,7 @@
   - loot in three rarities, plus cyberware that costs max mana
   - spells: Fireball, Manabolt and Heal (Heal also heals a nearby partner)
   - a side contract from the fixer in every district
-- **The Den:** a walkable street hub between districts. Talk to Juno (fixer), Sal, Doc Kessler (street doc), Old Wen (talismonger), Ratchet (fence) and Pixel. Their story lines change after each job.
+- **The Den:** a walkable street hub between districts. Talk to Juno (fixer), Sal, Doc Kessler (street doc), Kit (companions), Old Wen (talismonger: Manabolt, Heal, Barrier, Chain Lightning), Ratchet (fence) and Pixel. Their story lines change after each job.
 - **Co-op:** a second runner with their own level, stats and gear. Creds, medkits and the bag are shared. Start a co-op run from the title screen, or add Runner 2 from the pause menu or by pressing Start on a second gamepad.
 - **Audio:** chiptune tracks for the title, the Den, each district and boss fights, all made with Web Audio. Sound and music toggle separately.
 - **Saves:** progress saves to the browser at each briefing, district start and Den visit.
