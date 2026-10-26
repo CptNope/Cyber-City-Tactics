@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Chrome &amp; Sorcery</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#0c0a14">
@@ -115,7 +120,13 @@ body.lefty #btns{align-items:flex-start}
 }
 @media (orientation:portrait) and (max-width:380px){body.touch:not(.size-l){--b:52px;--b2:44px;--s:118px}}
 </style>
-
+<style>
+/* Static-hosting reset (the artifact viewer normally provides this) */
+body{margin:0}
+#app{padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+</style>
+</head>
+<body>
 <div id="app">
   <div id="stage">
     <canvas id="game" aria-label="Chrome and Sorcery game screen"></canvas>
@@ -1460,3 +1471,5 @@ setTimeout(fit,300);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.hostname)){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
 })();
 </script>
+</body>
+</html>
