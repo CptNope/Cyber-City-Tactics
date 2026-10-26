@@ -54,10 +54,20 @@ const fresh = arch => {
   G.ents = G.ents.filter(e => e.team !== 1);
   return P;
 };
+// spawn with the elite roll forced off, so elite HP and resistances never make a check flaky
+const noElite = f => {
+  const r = Math.random;
+  Math.random = () => 0.99;
+  try {
+    return f();
+  } finally {
+    Math.random = r;
+  }
+};
 const foes = (k, n, dx) => {
   const out = [];
   for (let i = 0; i < n; i++) {
-    const e = __api.spawnEnemy(k, 1);
+    const e = noElite(() => __api.spawnEnemy(k, 1));
     e.x = __PL()[0].x + dx + i * 14;
     e.y = __PL()[0].y;
     e.cool = 9999;

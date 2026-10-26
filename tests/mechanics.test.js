@@ -135,7 +135,10 @@ console.log('riot vs kick: hp ->', r.hp, 'state', r.state);
 // ---- spirit immune to bullets
 G.ents = G.ents.filter(e => e.team !== 1);
 P.state = 'idle';
+const rnd = Math.random;
+Math.random = () => 0.99; // no elite roll: an armored spirit would start with more HP
 const s = __api.spawnEnemy('spirit', 1);
+Math.random = rnd;
 s.x = P.x + 80;
 s.y = P.y;
 s.cool = 999;
