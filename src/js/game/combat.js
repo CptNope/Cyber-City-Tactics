@@ -495,7 +495,7 @@ function hitbox(t) {
   return [t.z + 2, t.z + 46 * sc];
 }
 function burst(x, y, z, col, n) {
-  if (RM) n = Math.ceil(n / 2);
+  if (RM || lowFx()) n = Math.ceil(n / 2);
   for (let i = 0; i < n; i++)
     G.parts.push({
       x,

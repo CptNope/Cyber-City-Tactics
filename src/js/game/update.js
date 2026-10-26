@@ -234,6 +234,8 @@ function update() {
     q.life--;
   }
   G.parts = G.parts.filter(q => q.life > 0);
+  const cap = lowFx() ? 90 : 240; // a hard cap so a huge fight can't bog down a slow device
+  if (G.parts.length > cap) G.parts.splice(0, G.parts.length - cap);
   for (const f of G.fx) f.life--;
   G.fx = G.fx.filter(f => f.life > 0);
   for (const tx of G.texts) {

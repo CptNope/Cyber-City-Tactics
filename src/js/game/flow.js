@@ -51,7 +51,9 @@ function resetWorld() {
 }
 function makeRain(on) {
   G.rain = [];
-  if (on && !RM) for (let i = 0; i < 70; i++) G.rain.push({ x: rand(0, W), y: rand(0, H), s: rand(5, 8) });
+  if (on && !RM)
+    for (let i = 0; i < (lowFx() ? 35 : 70); i++)
+      G.rain.push({ x: rand(0, W), y: rand(0, H), s: rand(5, 8) });
 }
 function startStage(si) {
   G.stage = si;

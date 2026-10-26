@@ -426,7 +426,8 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 - **Upright:** the view grows taller, the HUD moves into the sky at the top, and the controls sit under the screen.
 - The stick appears wherever your thumb lands on the left side.
 - The big buttons change their label to say what they'll do: LIFT, THROW, KNEE, TALK, ENTER. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
-- **Settings:** control size (S/M/L), left-handed layout, screen shake, vibration, tips, sound, music and full screen.
+- **Settings:** control size (S/M/L), left-handed layout, graphics quality, screen shake, vibration, tips, sound, music and full screen.
+- **Runs the same everywhere:** the game logic steps at a fixed 60 per second on any screen, from a 30 Hz phone to a 240 Hz monitor, and motion is interpolated so high-refresh screens stay smooth. On a slow device, *Graphics: Auto* switches to a lighter mode (sharper pixels off, fewer particles) after a few seconds. You can force *High* or *Low* in Settings.
 - First-time tips explain each mechanic when you first meet it, worded for touch or keyboard.
 
 ## Controllers

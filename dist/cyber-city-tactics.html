@@ -987,7 +987,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+416f4eb';
+const APP_VERSION = '2.0.0+95c365c';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1003,6 +1003,67 @@ const cvs = document.getElementById('game'),
 const ov = document.getElementById('ov');
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = () => !!(document.body.classList.contains && document.body.classList.contains('touch'));
+/* ---------- interpolation and adaptive quality ---------- */
+// Remember where everything was before each logic step...
+function snapPrev() {
+  if (typeof G === 'undefined') return;
+  G.pcamX = G.camX;
+  for (const e of G.ents) {
+    e.px = e.x;
+    e.py = e.y;
+    e.pz = e.z;
+  }
+  for (const q of G.projs) {
+    q.px = q.x;
+    q.py = q.y;
+    q.pz = q.z;
+  }
+}
+// ...then draw blended between that and now. Big jumps (respawns, doors, scene changes) snap instead.
+function lerpRender(a) {
+  const live =
+    (G.mode === 'play' || G.mode === 'den' || G.mode === 'title') && a > 0 && a < 1 && !prefs.noLerp;
+  if (!live) return render();
+  const saved = [],
+    mix = o => {
+      if (o.px === undefined || Math.abs(o.x - o.px) > 40 || Math.abs(o.y - o.py) > 40) return;
+      saved.push(o, o.x, o.y, o.z);
+      o.x = o.px + (o.x - o.px) * a;
+      o.y = o.py + (o.y - o.py) * a;
+      if (o.pz !== undefined && o.z !== undefined) o.z = o.pz + (o.z - o.pz) * a;
+    };
+  for (const e of G.ents) mix(e);
+  for (const q of G.projs) mix(q);
+  const cam = G.camX;
+  if (G.pcamX !== undefined && Math.abs(cam - G.pcamX) < 40) G.camX = G.pcamX + (cam - G.pcamX) * a;
+  try {
+    render();
+  } finally {
+    G.camX = cam;
+    for (let i = 0; i < saved.length; i += 4) {
+      saved[i].x = saved[i + 1];
+      saved[i].y = saved[i + 2];
+      saved[i].z = saved[i + 3];
+    }
+  }
+}
+// Adaptive quality: if the device can't hold ~45 fps for a few seconds, drop to a lighter mode (canvas at
+// 1x pixel density, half the particles and rain). Settings › Graphics can force High or Low instead.
+const PERF = { ema: 16.7, slowT: 0, low: false };
+const lowFx = () =>
+  (typeof prefs !== 'undefined' && prefs.gfx === 'low') || (prefs.gfx !== 'high' && PERF.low);
+function perfSample(dt) {
+  if (dt <= 0 || dt > 250 || document.hidden) return;
+  PERF.ema += (dt - PERF.ema) * 0.05;
+  if (PERF.low || prefs.gfx !== 'auto') return;
+  // time-based, so a very slow device (few frames) switches as quickly as a borderline one
+  PERF.slowT = PERF.ema > 22 ? PERF.slowT + dt : Math.max(0, PERF.slowT - dt * 2);
+  if (PERF.slowT > 2500) {
+    PERF.low = true;
+    fit();
+    if (typeof G !== 'undefined' && G.rain && G.rain.length > 35) G.rain.length = 35;
+  }
+}
 let SCALE = 1,
   VH = H,
   BAND = 0;
@@ -1025,12 +1086,14 @@ function fit() {
   h = Math.max(68, Math.floor(h));
   cvs.style.width = w + 'px';
   cvs.style.height = h + 'px';
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = lowFx() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   cvs.width = Math.round(w * dpr);
   cvs.height = Math.round(h * dpr);
   SCALE = cvs.width / W;
 }
 addEventListener('resize', fit);
+addEventListener('orientationchange', () => setTimeout(fit, 120));
+if (window.visualViewport && visualViewport.addEventListener) visualViewport.addEventListener('resize', fit);
 
 /* ===== src/js/core/utils.js ===== */
 /* Cyber City Tactics · src/js/core/utils.js
@@ -1108,6 +1171,7 @@ const prefs = Object.assign(
     seen: {},
     size: 'm',
     lefty: false,
+    gfx: 'auto',
     rotDismissed: false
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
@@ -4375,7 +4439,9 @@ function resetWorld() {
 }
 function makeRain(on) {
   G.rain = [];
-  if (on && !RM) for (let i = 0; i < 70; i++) G.rain.push({ x: rand(0, W), y: rand(0, H), s: rand(5, 8) });
+  if (on && !RM)
+    for (let i = 0; i < (lowFx() ? 35 : 70); i++)
+      G.rain.push({ x: rand(0, W), y: rand(0, H), s: rand(5, 8) });
 }
 function startStage(si) {
   G.stage = si;
@@ -5100,7 +5166,7 @@ function hitbox(t) {
   return [t.z + 2, t.z + 46 * sc];
 }
 function burst(x, y, z, col, n) {
-  if (RM) n = Math.ceil(n / 2);
+  if (RM || lowFx()) n = Math.ceil(n / 2);
   for (let i = 0; i < n; i++)
     G.parts.push({
       x,
@@ -6912,6 +6978,8 @@ function update() {
     q.life--;
   }
   G.parts = G.parts.filter(q => q.life > 0);
+  const cap = lowFx() ? 90 : 240; // a hard cap so a huge fight can't bog down a slow device
+  if (G.parts.length > cap) G.parts.splice(0, G.parts.length - cap);
   for (const f of G.fx) f.life--;
   G.fx = G.fx.filter(f => f.life > 0);
   for (const tx of G.texts) {
@@ -11200,6 +11268,19 @@ function settingsHtml() {
     ]);
   return `<div class="card"><p class="eyebrow">Settings</p><h2>Tune your rig</h2><div>
   ${row('Sound effects', '', onoff('sound'))}${row('Music', 'Chiptune tracks for each district', onoff('music'))}
+  ${row(
+    'Graphics',
+    prefs.gfx === 'auto'
+      ? `Auto picks for your device${PERF.low ? ': running light' : ''}`
+      : prefs.gfx === 'low'
+        ? 'Lighter effects and sharpness, for older phones'
+        : 'Full effects and sharpness',
+    seg('gfx', [
+      ['auto', 'Auto'],
+      ['high', 'High'],
+      ['low', 'Low']
+    ])
+  )}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(
@@ -12596,44 +12677,78 @@ function pwaShortcut() {
 /* Cyber City Tactics · src/js/main.js
  * The fixed-timestep game loop and boot.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
-/* ================= loop ================= */
+/* ================= loop =================
+ * Fixed timestep with interpolated rendering:
+ *  - the game logic always steps at exactly 60 Hz (STEP), however fast or slow the screen refreshes, so
+ *    speed, physics and timings are identical on a 30 Hz phone and a 144 Hz monitor;
+ *  - frames between two logic steps draw positions blended between the last two steps (lerpRender), so
+ *    motion stays smooth on 90/120/144 Hz screens instead of repeating frames;
+ *  - after a stall (a background tab, a GC pause, a slow phone) at most MAX_STEPS steps catch up, and the
+ *    rest of the backlog is dropped, so the game never fast-forwards or spirals;
+ *  - an error in one frame is reported once and the loop keeps running.
+ */
+const STEP = 1000 / 60,
+  MAX_STEPS = 8; // up to 133 ms of catch-up per frame: full speed down to about 8 fps
 let last = performance.now(),
   acc = 0,
-  tick = 0;
-function frame(now) {
-  acc += Math.min(100, now - last);
-  last = now;
-  pollPads();
-  while (acc >= 1000 / 60) {
-    tick++;
-    let ran = true;
-    if (G.mode === 'play' || G.mode === 'den') {
-      if (G.stop > 0) {
-        G.stop--;
-        ran = false;
-      } else if (G.slow > 0) {
-        G.slow--;
-        if (tick % 3 === 0) update();
-        else ran = false;
-      } else {
-        update();
-        if (tick % 4 === 0 && modOn('turbo') && G.mode === 'play') update();
-      }
-    } else if (G.mode === 'title') attractStep();
-    else if (G.mode === 'hack') hackStep();
-    // keep presses made during hit-stop or slow-mo frames until a frame actually processes them
-    if (ran) for (const s of INP) for (const k in s.pressed) s.pressed[k] = false;
-    acc -= 1000 / 60;
-  }
-  render();
-  if (tick % 6 === 0) updateTouchUI();
-  requestAnimationFrame(frame);
+  tick = 0,
+  loopErr = false;
+function stepOnce() {
+  tick++;
+  snapPrev();
+  let ran = true;
+  if (G.mode === 'play' || G.mode === 'den') {
+    if (G.stop > 0) {
+      G.stop--;
+      ran = false;
+    } else if (G.slow > 0) {
+      G.slow--;
+      if (tick % 3 === 0) update();
+      else ran = false;
+    } else {
+      update();
+      if (tick % 4 === 0 && modOn('turbo') && G.mode === 'play') update();
+    }
+  } else if (G.mode === 'title') attractStep();
+  else if (G.mode === 'hack') hackStep();
+  // keep presses made during hit-stop or slow-mo frames until a frame actually processes them
+  if (ran) for (const s of INP) for (const k in s.pressed) s.pressed[k] = false;
 }
+function frame(now) {
+  requestAnimationFrame(frame); // first, so one bad frame can never stop the game
+  try {
+    const dt = Math.max(0, now - last);
+    last = now;
+    perfSample(dt);
+    acc += Math.min(dt, 250);
+    pollPads();
+    let n = 0;
+    while (acc >= STEP && n < MAX_STEPS) {
+      stepOnce();
+      acc -= STEP;
+      n++;
+    }
+    if (acc >= STEP) acc = acc % STEP; // drop the backlog instead of fast-forwarding
+    lerpRender(acc / STEP);
+    if (tick % 6 === 0) updateTouchUI();
+  } catch (err) {
+    if (!loopErr) {
+      loopErr = true;
+      console.error('Cyber City Tactics frame error', err);
+    }
+  }
+}
+// Coming back to the tab: start timing fresh so there's no catch-up burst.
+document.addEventListener('visibilitychange', () => {
+  last = performance.now();
+  acc = 0;
+});
 applyPrefs();
 fit();
 attract();
 setMode('title');
 musicPlay('title');
+last = performance.now();
 requestAnimationFrame(frame);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 setTimeout(fit, 300);

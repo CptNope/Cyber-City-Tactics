@@ -74,6 +74,7 @@ const prefs = Object.assign(
     seen: {},
     size: 'm',
     lefty: false,
+    gfx: 'auto',
     rotDismissed: false
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}

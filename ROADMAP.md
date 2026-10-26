@@ -118,6 +118,7 @@ The guiding rules:
 - [ ] **ES modules (M).** Move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses. The current split makes this a mechanical change, file by file.
 - [ ] **Type checking (S).** JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
 - [ ] **Cloud save (M).** Optional sync of the save backup through a file the player picks (File System Access API) or a share code.
+- [x] ~~**Frame timing.**~~ Fixed-timestep logic with interpolated rendering, stall recovery, a crash-proof loop and adaptive graphics quality.
 - [ ] **Performance pass (S).** Cache static background layers to an offscreen canvas for low-end phones.
 
 ### Discovery and replayability

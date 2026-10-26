@@ -52,19 +52,29 @@ If you add a file, add its `<script>` tag in the right place, then run `npm run 
 
 ## How a frame works
 
-`main.js` runs a fixed 60-steps-per-second loop:
+`main.js` runs a fixed-timestep loop: the game logic always advances in steps of exactly 1/60 s, however fast or slow the screen refreshes. That keeps speed, physics, hit timing and seeded runs identical on a 30 Hz phone and a 240 Hz monitor.
 
 ```
-frame(now)
+frame(now)                        requestAnimationFrame, any refresh rate
+  requestAnimationFrame(frame)    queued first, so an error in this frame can't stop the loop
+  perfSample(dt)                  adaptive quality (below)
+  acc += dt (capped at 250 ms)    time owed to the simulation
   pollPads()                      read gamepads into INP[0], INP[1]
-  while time is owed:
+  while acc >= 1/60 s, up to 8 steps:
+    snapPrev()                    remember positions before the step
     if playing: update()          game/update.js: one simulation step
     if title:   attractStep()
     if hacking: hackStep()
     clear one-frame "pressed" inputs
-  render()                        render/hud.js: draws the world, then the HUD
+  drop any backlog past 8 steps   a stall slows the game a moment instead of fast-forwarding it
+  lerpRender(acc / step)          draw positions blended between the last two steps
   updateTouchUI()                 relabel touch buttons (LIFT, THROW, TALK, ENTER...)
 ```
+
+- **Interpolation.** `lerpRender()` (core/canvas.js) temporarily moves every entity, projectile and the camera to a point between its position before and after the last step, calls `render()`, then puts the real values back. On a 120 Hz or 144 Hz screen this gives smooth motion instead of each step being shown twice. Moves over 40 px in one step (respawns, doors, scene changes) snap instead of sliding. Rendering never changes game state.
+- **Stalls.** Coming back to a background tab resets the clock. A long pause (GC, a slow phone) catches up at most 8 steps (133 ms), so the game stays at full speed down to about 8 fps.
+- **Adaptive quality.** `perfSample()` keeps a smoothed frame time. If it stays above 22 ms (under ~45 fps) for 2.5 seconds, `PERF.low` turns on and `lowFx()` returns true: the canvas drops from 2× to 1× pixel density, bursts use half the particles, rain is halved and particles are capped at 90 (240 normally). Settings › Graphics can force High or Low.
+- **Tests.** `tests/timing.test.js` drives the real loop at 30–240 Hz and checks the step count, stall handling, interpolation, error recovery and quality switching.
 
 Hit-stop (`G.stop`) and slow motion (`G.slow`) skip update steps without dropping button presses.
 

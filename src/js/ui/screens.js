@@ -224,6 +224,19 @@ function settingsHtml() {
     ]);
   return `<div class="card"><p class="eyebrow">Settings</p><h2>Tune your rig</h2><div>
   ${row('Sound effects', '', onoff('sound'))}${row('Music', 'Chiptune tracks for each district', onoff('music'))}
+  ${row(
+    'Graphics',
+    prefs.gfx === 'auto'
+      ? `Auto picks for your device${PERF.low ? ': running light' : ''}`
+      : prefs.gfx === 'low'
+        ? 'Lighter effects and sharpness, for older phones'
+        : 'Full effects and sharpness',
+    seg('gfx', [
+      ['auto', 'Auto'],
+      ['high', 'High'],
+      ['low', 'Low']
+    ])
+  )}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(
