@@ -1,50 +1,303 @@
 # Cyber-City-Tactics
 
-**Chrome & Sorcery**: a vector-drawn, River City Ransom–style brawler RPG for one or two players, set in a cyberpunk sprawl where magic is real. It's one HTML file with no build step, and it installs as a PWA.
+**Chrome & Sorcery** is a vector-drawn, River City Ransom–style brawler RPG for one or two players. It's set in a cyberpunk sprawl where magic is real: street samurai, combat mages, gunslingers and deckers fighting gangs, corps, spirits and ICE.
 
-## Play
-- GitHub Pages: `https://cptnope.github.io/Cyber-City-Tactics/`
-- Locally: `npx serve .` (or `python3 -m http.server`) and open the URL it prints.
-- Install on a phone with "Add to Home Screen" / "Install app". It works offline after the first load. Bump `VERSION` in `sw.js` when you ship changes.
+It is one HTML file with no build step and no dependencies. It runs in any modern browser, installs as a PWA, and plays offline after the first load.
 
-## What's in it
-- **The Sprawl (open world):** a long street with a safehouse and fourteen doors. Hack a door to get in. Each building is a randomly built run of rooms with its own guards, a lieutenant or boss in the last room, and a loot cache whose tier (1 to 3) sets item rarity. Gang hideouts, corp black sites and the homes of crooked execs and gang bosses earn street cred and karma. Breaking into businesses and ordinary family homes costs cred and raises heat (0 to 5 stars), which brings cops to the street. Heat cools when no cops are around, or you can pay to lay low at the safehouse. At +30 cred, Doc and Kit give 15% off; at −30, Ratchet pays more for stolen goods. Move to a new block for tougher locks and better loot. The world saves automatically.
-- **Hacking:** a timing minigame. Hit the green window a set number of times before you run out of misses. The new Hacking attribute widens the window, and icebreakers (found in caches or bought from Ratchet) crack one node instantly. A failed hack locks the door for a while, and on a business or home it trips the alarm.
-- **Training:** ten short drills in Juno's back alley with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose, and any step can be skipped from the pause menu. Start it from the title screen.
-- **Boss rematches:** beaten bosses come back mid-district, already enraged: Gutter King, chromed (Undercity), Razor Mei, under contract (Arcology) and Voss.exe (inside the host).
-- **Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week, on Runner, with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept.
-- **Sharing:** end screens show run stats (takedowns, elites, bosses, damage dealt and taken, best combo) and a Copy / Share button with a ready-to-paste brag line and the game's link.
-- **Arena mode:** endless waves on one street, for one or two players. Waves grow, the street changes every five waves, a boss arrives every fifth wave, and every third wave you pick one of three perks. You start at level 3. Scores, waves and best combos go on a high-score table saved on the device.
-- **Difficulty:** Street, Runner or Prime, chosen at the start of a run. After the final boss, **New Game+** keeps your runners, levels, gear, cyberware and spells, and makes enemies tougher, elites more common and loot better. You can repeat it.
-- **Elite enemies:** Armored (halves bullet damage), Berserk (faster, hits harder), Warded (can't be knocked down, resists magic) and Vampiric (heals when it hits you). Each has a colored aura and a name tag, and drops better gear.
-- **Boss rage phases:** at half health each boss enrages. The Gutter King and the Hollow Saint slam the ground and send shockwaves you have to jump. Razor Mei chains three dashes. The Hollow Saint summons fire spirits too. Director Voss fires five-way hexes and teleports more often.
-- **Five districts:** Rustline Barrens, Neon Market, Undercity Tunnels, Kagemori Arcology and the Kagemori Host (inside the Matrix). Each has a boss: Gutter King, Razor Mei, the Hollow Saint, Director Voss and Black ICE, whose lane-wide beams you dodge by changing lanes or with a well-timed roll. After each beam it vents and its core takes extra damage.
-- **Runner archetypes:** Street Runner (Adrenaline), Street Samurai (Blade Dance), Combat Mage (Mana Storm) or Gunslinger (Bullet Time). Each has its own starting stats, gear and a special move charged by a meter that fills as you deal and take damage.
-- **Companions:** Kit in the Den rents one at a time. The Rigger drone snipes enemies in its lane. Brick, a troll merc, brawls and pulls enemies off you. A bound fire spirit burns what it touches and ignores bullets. Companions carry between districts and get patched up in the Den, but if one goes down on a job it's gone. In Arena, the Hired help perk brings one in.
-- **Heavy blows:** hold punch to charge, release for a guard-breaking knockdown.
-- **Breakables:** vending machines spill medkits, ammo and mana. Data nodes in the Matrix are the final contract.
-- **Enemies:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split in two when they die) and ICE sentries (teleport and fire laser spreads).
-- **Combat:**
-  - punch combos ending in an uppercut, kicks and flying kicks
-  - a dodge roll with invincibility frames
-  - grabs: walk into a staggered enemy, punch to knee, kick to throw them into others
-  - throwable trash cans, crates and explosive drums
-  - a combo meter that boosts karma and creds
-- **RPG:**
-  - karma levels with 2 attribute points each (Body, Strength, Agility, Magic)
-  - loot in three rarities, plus cyberware that costs max mana
-  - spells: Fireball, Manabolt and Heal (Heal also heals a nearby partner)
-  - a side contract from the fixer in every district
-- **The Den:** a walkable street hub between districts. Talk to Juno (fixer), Sal, Doc Kessler (street doc), Kit (companions), Old Wen (talismonger: Manabolt, Heal, Barrier, Chain Lightning), Ratchet (fence) and Pixel. Their story lines change after each job.
-- **Co-op:** a second runner with their own level, stats and gear. Creds, medkits and the bag are shared. Start a co-op run from the title screen, or add Runner 2 from the pause menu or by pressing Start on a second gamepad.
-- **Audio:** chiptune tracks for the title, the Den, each district and boss fights, all made with Web Audio. Sound and music toggle separately.
-- **Saves:** progress saves to the browser at each briefing, district start and Den visit.
+- **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
+- **What's next:** see [ROADMAP.md](ROADMAP.md)
+
+---
+
+## Contents
+- [Quick start](#quick-start)
+- [Game modes](#game-modes)
+- [Your runner](#your-runner)
+- [Skill trees](#skill-trees)
+- [Gear](#gear)
+- [Magic, cyberware and companions](#magic-cyberware-and-companions)
+- [Combat](#combat)
+- [Enemies and bosses](#enemies-and-bosses)
+- [The Sprawl in depth](#the-sprawl-in-depth)
+- [Controls](#controls)
+- [On phones](#on-phones)
+- [Saves](#saves)
+- [Development](#development)
+- [Project layout](#project-layout)
+
+---
+
+## Quick start
+1. Open the game and pick **Training** if you're new. It's ten short drills you can't fail.
+2. Pick a mode:
+   - **Start a run** for the story campaign.
+   - **The Sprawl** for the open world.
+   - **Arena** for endless waves and high scores.
+3. Pick an archetype and a difficulty, solo or co-op, and go.
+
+To play locally, run `npx serve .` (or `python3 -m http.server`) in the repo and open the URL it prints. Opening `index.html` straight from disk also works, but the offline service worker only installs over http(s).
+
+---
+
+## Game modes
+
+### Campaign
+Five districts, each with waves of enemies, a side contract from the fixer, and a boss:
+
+| # | District | Boss |
+|---|---|---|
+| 1 | Rustline Barrens | The Gutter King |
+| 2 | Neon Market | Razor Mei |
+| 3 | Undercity Tunnels | The Hollow Saint |
+| 4 | Kagemori Arcology | Director Voss |
+| 5 | Kagemori Host (inside the Matrix) | Black ICE |
+
+Between districts you walk **the Den**, a street hub where you talk to the locals:
+
+| Who | What they do |
+|---|---|
+| Juno | Fixer: gives you contracts |
+| Sal | Bartender: rumors about the next job |
+| Doc Kessler | Street doc: medkits, ammo and cyberware |
+| Kit | Rents companions |
+| Old Wen | Talismonger: teaches spells |
+| Ratchet | Fence: buys and sells gear |
+| Pixel | Street kid: what's happening on the block |
+
+What they say changes after each job.
+
+- **Difficulty:** Street, Runner or Prime.
+- **New Game+:** after the final boss you can start again with your runners, levels, gear, skills, cyberware and spells. Enemies hit harder, elites are more common and loot is better. You can repeat it as often as you like.
+- **Boss rematches:** beaten bosses can come back mid-district, already enraged: Gutter King, chromed; Razor Mei, under contract; and Voss.exe.
+
+### The Sprawl (open world)
+One long street with a safehouse and fourteen procedurally generated buildings. You hack your way in, fight through randomly built rooms, and loot the cache. Who you rob matters: hit gangs and corps and the street respects you; hit families and small businesses and the cops come for you. See [The Sprawl in depth](#the-sprawl-in-depth).
+
+### Arena
+Endless waves on one street, solo or co-op, starting at level 3:
+- The street changes every five waves, and a boss arrives every fifth wave.
+- Every third wave you choose one of three perks: Street smarts, Patch up, Supply crate, Ammo drop, Second wind, Hired help or Back-alley chrome.
+- Scores, waves and best combos are saved to a high-score table on the device.
+
+**Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week. You play on Runner with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept, and the end screen has a Copy / Share button with a brag line and the game's link.
+
+### Training
+Ten drills in Juno's back alley with harmless sparring partners:
+1. Moving
+2. Combos
+3. Guard breaks
+4. Air attacks
+5. Dodging
+6. Grabs
+7. Throwing a drum
+8. Heavy blows
+9. Guns and spells
+10. Your special
+
+Any step can be skipped from the pause menu.
+
+### Co-op
+A second runner joins with their own archetype, level, stats, skills and gear. Creds, medkits, icebreakers and the bag are shared. To play co-op:
+- start a co-op run from any mode's start screen,
+- add Runner 2 from the pause menu, or
+- press Start on a second gamepad.
+
+---
+
+## Your runner
+
+### Archetypes
+| Archetype | Start | Special (fills as you deal and take damage) | Free skill |
+|---|---|---|---|
+| Street Runner | Balanced stats | **Adrenaline:** heal 30%, then hit harder and move faster for 5 s | An extra skill point instead |
+| Street Samurai | Katana and a cyberarm | **Blade Dance:** dash through everything in front of you | Iron Fists |
+| Combat Mage | Fireball and Manabolt | **Mana Storm:** lightning strikes up to six enemies | Focus |
+| Gunslinger | Heavy pistol, double ammo | **Bullet Time:** enemies slow to half speed, shots are free | Steady Hands |
+
+### Attributes
+Each level gives **2 attribute points** and **1 skill point**.
+
+| Attribute | Effect |
+|---|---|
+| Body | Max HP and armor |
+| Strength | Punch, kick, grab and throw damage |
+| Agility | Speed, gun damage, crits |
+| Magic | Mana, spell power, mana regen |
+| Hacking | Wider windows when cracking locks in the Sprawl |
+
+---
+
+## Skill trees
+Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills** tab. There are four trees of six skills each, and you can mix trees freely:
+- Rows unlock as you spend points in that tree: 0, 1, 2, then 4 points.
+- The third row needs level 4, and the capstone needs level 8.
+- Decker skills help the whole team.
+
+| Row | Brawler | Gunslinger | Mage | Decker |
+|---|---|---|---|---|
+| 1 | **Iron Fists:** +20% melee damage | **Steady Hands:** +20% gun damage | **Focus:** +20% spell damage, healing and barriers | **Port Scanner:** hacking windows 25% wider |
+| 2 | **Guard Breaker:** punches break riot shields | **Scavenger:** kills can drop 4 rounds into your gun | **Mana Flow:** mana regenerates 40% faster | **Spare Cycles:** one extra miss on every hack |
+| 2 | **Brute:** knees and throws +50% | **Quickdraw:** guns fire 30% faster | **Thrift:** spells cost 25% less | **Icecraft:** icebreakers sometimes aren't used up; more drop |
+| 3 | **Bloodlust:** melee hits heal you | **Armor Piercing:** bullets pass through and ignore armored elites | **Overcharge:** Fireball blasts 60% wider | **Jammer:** double damage to drones and ICE; fewer cops |
+| 3 | **Whirlwind:** heavy blows hit behind you too | **Ricochet:** critical bullets bounce to a second enemy | **Siphon:** every kill restores 4 mana | **Fence Contacts:** sell for 15% more, buy for 10% less |
+| Capstone | **Berserker:** below 40% HP, +40% damage and −20% damage taken | **Deadeye:** +15% gun crit, gun crits deal 2.5× | **Archon:** every 4th spell is free and hits twice as hard | **Ghost Protocol:** failed hacks never trip alarms; break-ins add one less heat star |
+
+Old saves pick up skill points for the levels they already earned.
+
+---
+
+## Gear
+Your runner has three slots: melee weapon, gun and armor.
+
+Rarity sets the stat multiplier and the number of bonus attributes:
+
+| Rarity | Multiplier | Bonus attributes |
+|---|---|---|
+| Street | ×1.0 | none |
+| Tuned | ×1.25 | one |
+| Prototype | ×1.55 | two |
+
+Better gear shows up as you go deeper into the campaign, the Arena or the Sprawl.
+
+### Melee weapons
+| Weapon | Notes |
+|---|---|
+| Lead pipe | Starter |
+| Spur knuckles | +8% crit, no reach |
+| Shock baton | |
+| Katana | Long reach |
+| Fire axe | Every hit breaks guards |
+| Monowhip | Longest reach |
+| Gravity hammer | Breaks guards; heavy blows knock down everything in front of you |
+
+### Guns
+| Gun | Fire mode |
+|---|---|
+| Streetline pistol | Single shot |
+| Heavy pistol | Single shot, hits hard |
+| Machine pistol | 3-round burst |
+| Sawed-off shotgun | Close-range spread |
+| Assault rifle | 4-round auto |
+| Smartgun | Smart rounds that track targets across lanes |
+| Railgun | A slug that pierces every target in the lane |
+| Grenade launcher | An arcing grenade that explodes on impact |
+
+### Armor
+| Armor | Notes |
+|---|---|
+| Lined coat | Starter |
+| Warded duster | Light; +2 Magic |
+| Armor jacket | |
+| Form-fit weave | +1 Agility |
+| Thermoptic cloak | +2 Agility, +1 Hacking |
+| Riot vest | Heavy |
+| Exo-frame | Heaviest; +2 Strength, −1 Agility |
+
+### Affixes
+Tuned and Prototype items can roll an affix, which shows in the item's name (for example, *Tuned Incendiary Railgun*).
+
+| Affix | Slots | Effect |
+|---|---|---|
+| Shock | Weapon, gun | 25% chance to stun, delaying the target's next attack |
+| Incendiary | Weapon, gun | Sets targets on fire for 2 s |
+| Leeching | Weapon, gun | Heals you for 15% of damage dealt |
+| Keen | Weapon, gun | +8% crit |
+| Spiked | Armor | Melee attackers take 6 damage |
+| Padded | Armor | +25 max HP |
+
+---
+
+## Magic, cyberware and companions
+
+**Spells** (Old Wen teaches them; Magic requirements apply):
+
+| Spell | Effect |
+|---|---|
+| Fireball | Explodes and knocks down everything nearby |
+| Manabolt | Cheap, fast, one target |
+| Heal | Heals you and anyone close |
+| Barrier | A mana shield for 6 s |
+| Chain Lightning | Arcs through up to three enemies |
+
+**Cyberware** (from Doc, up to three levels each, and each piece lowers max mana):
+- Cyberarm tune-up: +melee
+- Wired reflexes: speed and crit
+- Dermal plating: armor
+
+**Companions** (rented from Kit, one at a time):
+- **Rigger drone:** snipes enemies in its lane.
+- **Brick, troll merc:** brawls and pulls aggro.
+- **Bound fire spirit:** burns what it touches and ignores bullets.
+
+Companions carry between districts and get patched up in the Den, but if one falls on a job it's gone.
+
+---
+
+## Combat
+- **Strikes:** punch combos end in an uppercut. You also have kicks and flying kicks.
+- **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
+- **Dodge roll:** has invincibility frames.
+- **Grabs:** walk into a staggered enemy. Punch to knee them, or kick to throw them into others.
+- **Throwables:** trash cans, crates and explosive drums.
+- **Breakables:** vending machines spill medkits, ammo and mana.
+- **Combo meter:** long combos boost karma and creds.
+- **Hit-stop, screen shake and slow-mo on big hits.** You can turn shake and vibration off in Settings.
+
+## Enemies and bosses
+- **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
+- **Elites:** each has a colored aura and a name tag, and drops better gear.
+  - Armored: halves bullet damage
+  - Berserk: faster and hits harder
+  - Warded: can't be knocked down, resists magic
+  - Vampiric: heals when it hits you
+- **Boss rage phases:** at half health each boss enrages.
+  - The Gutter King and the Hollow Saint slam shockwaves you have to jump.
+  - Razor Mei chains dashes.
+  - The Hollow Saint also summons spirits.
+  - Voss fires five-way hexes.
+  - Black ICE fires lane-wide beams. Dodge them by changing lanes or with a well-timed roll; after each beam its core vents and takes extra damage.
+
+---
+
+## The Sprawl in depth
+
+**Buildings.** Each block has a safehouse and fourteen buildings, randomly generated from a seed. A building's sign tells you whether it's fair game (green) or not (red), and small bars show its tier (1–3). Walk to a door and press **J** (or tap **ENTER**) to see who's inside, what the loot looks like, and what breaking in will cost you.
+
+| Building | Moral | Inside |
+|---|---|---|
+| Gang hideout | Good: +cred, bonus karma | Gangers, orcs, shamans; a crew lieutenant or boss |
+| Corp black site | Good | Security, riot troopers, drones, ICE; a site chief or vault ICE |
+| Crooked exec's or gang boss's home | Good | Bodyguards |
+| Business | Bad: −cred, +heat | Security and a head of security; more creds |
+| Family home | Bad: −cred, +heat | Nobody to fight, and almost nothing worth taking |
+
+**Hacking.** To get in, you play a timing minigame: press **Space/J** (or tap **HACK**) while the cursor is inside the green window.
+- Higher tiers need more clean hits, and the cursor speeds up after each one.
+- The Hacking attribute and Port Scanner widen the window.
+- Icebreakers crack a node instantly.
+- Run out of misses and the door locks for 12 s. On a bad building, that also trips the alarm.
+
+**Dungeons.** A building has one to four single-screen rooms that match the place: graffiti and orange light in hideouts, server racks in black sites, shelves in shops. Clear a room and the exit on the right turns green. The last room has the lieutenant or boss and the **loot cache**. Its tier sets the item count, rarity and affix chance, and it can also drop icebreakers and medkits. If cops are hunting you, they can follow you inside.
+
+**Heat (0–5 stars).** Bad break-ins and killing cops raise heat. Cops patrol the street more often the hotter you are; drones join at 3 stars and riot cops at 4. Heat drops a star after 25 seconds with no cops around, or you can pay to lay low at the safehouse.
+
+**Street cred.** Good targets and street gangs raise it; bad targets and cop kills lower it.
+- At **+30**, Doc and Kit give 15% off.
+- At **−30**, Ratchet pays 60% for stolen goods, because nobody else will deal with you.
+
+**Safehouse.** Doc, Kit, Old Wen and Ratchet (who also sells icebreakers), plus:
+- **Lay low:** pay to clear heat.
+- **Move to a new block:** a fresh street with tougher locks and better loot.
+
+**Getting flatlined** in the Sprawl costs 30% of your creds and clears your heat. You wake at the safehouse.
+
+---
 
 ## Controls
 | Action | Runner 1 | Runner 2 | Gamepad |
 |---|---|---|---|
 | Move | WASD (and arrows when solo) | Arrows | D-pad / left stick |
-| Punch, grab, talk | J | , or Numpad 1 | X |
+| Punch, grab, talk, enter | J | , or Numpad 1 | X |
 | Kick | K | . or Numpad 2 | B |
 | Jump | Space | / or Numpad 3 | A |
 | Dodge | O or Left Shift | Right Shift | LB |
@@ -54,13 +307,79 @@
 | Spell | I | ' | Y |
 | Swap spell | Q | ] | RT |
 | Medkit | H | [ | LT |
-| Character sheet | C or Tab | | Select |
+| Character sheet and skills | C or Tab | | Select |
 | Pause | P or Esc | | Start |
+| Hack (in the minigame) | Space or J | , | X or A |
 
 ## On phones
-- Upright, the game view grows taller and the HUD moves into the extra sky at the top, larger and easier to read.
-- Hold the phone sideways. The stick sits left of the screen and the buttons right, so your thumbs never cover the fight. Upright works too, with the controls under the screen.
+- **Sideways:** the stick sits to the left of the screen and the buttons to the right, so your thumbs never cover the fight.
+- **Upright:** the view grows taller, the HUD moves into the sky at the top, and the controls sit under the screen.
 - The stick appears wherever your thumb lands on the left side.
-- The big buttons change their label to say what they'll do right now: LIFT, THROW, KNEE, TALK. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them.
-- Settings: control size (S/M/L), buttons on the left for left-handed play, screen shake, vibration, tips, sound, music and full screen.
-- First-time tips explain each mechanic the moment you meet it, worded for touch or keyboard.
+- The big buttons change their label to say what they'll do: LIFT, THROW, KNEE, TALK, ENTER. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
+- **Settings:** control size (S/M/L), left-handed layout, screen shake, vibration, tips, sound, music and full screen.
+- First-time tips explain each mechanic when you first meet it, worded for touch or keyboard.
+
+## Saves
+Everything is stored in the browser's `localStorage` on the device. Nothing is sent anywhere.
+
+| Key | What |
+|---|---|
+| `cs_save3` | Campaign (saved at briefings, district starts and Den visits) |
+| `cs_world` | The Sprawl (saved on every street visit and shop action) |
+| `cs_arena` | Arena high scores |
+| `cs_week` | Weekly challenge bests |
+| `cs_prefs` | Settings and which tips you've seen |
+
+Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned.
+
+---
+
+## Development
+
+### How it's built
+- **One file.** The whole game (HTML, CSS and JavaScript) lives in `index.html`. Drawing is Canvas 2D with vector shapes; there are no image assets for the game itself.
+- **Fixed 60 fps simulation.** Hit-stop and slow-mo skip update frames without dropping inputs.
+- **Audio.** Sound effects and a small chiptune sequencer are built with the Web Audio API.
+- **PWA.** `manifest.webmanifest` and `sw.js` handle install and offline play. The service worker fetches the game page network-first, so updates show up on the next load, and caches icons and fonts.
+
+### Shipping a change
+1. Edit the game source, which is written as a page body fragment. `tools/wrap_for_pages.py` wraps it into the full document (doctype, viewport, reset) that GitHub Pages serves:
+   ```sh
+   python3 tools/wrap_for_pages.py path/to/source.html index.html
+   ```
+   If you edit `index.html` directly, skip this step.
+2. Bump `VERSION` in `sw.js` (for example `cs-v17` → `cs-v18`), so installed copies drop their old cache.
+3. Commit and push to `main`. GitHub Pages deploys from the branch.
+
+### Testing
+Changes are checked with headless Node scripts that stub the DOM and canvas, load the game script, and drive it with real key events and overlay clicks:
+- full bot playthroughs of the campaign (solo and co-op), the Arena and the weekly challenge
+- targeted mechanic tests (riot shields, rolls, elites, specials, companions, training, the Sprawl, skills and gear)
+
+Layout is checked with Playwright screenshots at phone and desktop sizes. These scripts aren't in the repo yet; adding them is on the roadmap.
+
+### Code map (inside `index.html`)
+| Area | Look for |
+|---|---|
+| Input (keys, touch, gamepads) | `KA`, `KB`, `pollPads`, `INP` |
+| Runner stats | `ATTRS`, `ARCH`, `refresh`, `eff` |
+| Skill trees | `TREES`, `SKILLS`, `canLearn`, `skillsHtml` |
+| Gear | `BASES`, `RAR`, `AFFIX`, `mkItem`, `randItem` |
+| Combat | `strike`, `hurt`, `kill`, `fireBullet`, `castSpell`, `explode` |
+| Enemies | `DEF`, `ELITES`, `spawnEnemy`, `upEnemy` |
+| Campaign | `STAGES`, `CONTRACTS`, `NPCS`, `startStage`, `enterDen` |
+| Arena | `startArena`, `PERKS`, `MODS` (weekly) |
+| The Sprawl | `genStreet`, `worldTick`, `enterBuilding`, `enterRoom`, `lootChest`, `startHack` |
+| Rendering | `render`, `drawBg`, `drawFig`, `drawHud` |
+| Menus | `renderOv` and the `ov` click handler |
+
+## Project layout
+```
+index.html              the whole game
+manifest.webmanifest    PWA manifest
+sw.js                   offline cache (bump VERSION on each ship)
+icon-192.png, icon-512.png
+tools/wrap_for_pages.py wraps the game fragment into a full page for Pages
+README.md               this file
+ROADMAP.md              what's done and what's next
+```
