@@ -952,7 +952,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+fe5a305';
+const APP_VERSION = '2.0.0+111166b';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -11505,6 +11505,8 @@ function pwaSettingsRows(row) {
     : G.importErr
       ? `<p class="say"><b>Import failed</b>${esc(G.importErr)}</p>`
       : '';
+  // The claude.ai preview can't download or pick files, so backups are only offered on the real site.
+  if (/claude\.ai|claudeusercontent/.test(location.hostname)) return install;
   return (
     install +
     row(

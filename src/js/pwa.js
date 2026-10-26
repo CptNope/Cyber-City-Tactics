@@ -82,6 +82,8 @@ function pwaSettingsRows(row) {
     : G.importErr
       ? `<p class="say"><b>Import failed</b>${esc(G.importErr)}</p>`
       : '';
+  // The claude.ai preview can't download or pick files, so backups are only offered on the real site.
+  if (/claude\.ai|claudeusercontent/.test(location.hostname)) return install;
   return (
     install +
     row(
