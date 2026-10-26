@@ -337,7 +337,7 @@ function drawRain() {
     }
     return;
   }
-  ctx.strokeStyle = 'rgba(170,190,255,.22)';
+  ctx.strokeStyle = evOn('acidrain') && !G.dun ? 'rgba(170,255,120,.38)' : 'rgba(170,190,255,.22)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (const r of G.rain) {

@@ -28,7 +28,13 @@ function txt(s, x, y, size, col, align, stroke) {
 function drawPanel(p, x) {
   if (p.out) {
     txt(p.name + ' · OUT', x, 18, 15, '#6b6280');
-    txt('Back next district', x, 30, 12, '#6b6280');
+    txt(
+      p.outX != null ? 'Stand by the marker to revive' : 'Back next district',
+      x,
+      30,
+      12,
+      p.outX != null ? '#7dffb0' : '#6b6280'
+    );
     return;
   }
   txt(p.name + ' LV ' + p.lvl, x, 18, 15, p.idx ? '#ffd27a' : '#efe9ff');
@@ -72,6 +78,36 @@ function wrapTip(s, max) {
   }
   if (line) out.push(line);
   return out;
+}
+// Revive marker where a co-op partner fell, with a progress ring
+function drawRevive() {
+  for (const q of PL) {
+    if (!q.out || q.outX == null) continue;
+    const x = q.outX - G.camX,
+      y = q.outY - 6,
+      pulse = 0.6 + 0.4 * Math.sin(G.t * 0.12);
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#7dffb0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 6, 14, 5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (q.revT > 0) {
+      ctx.beginPath();
+      ctx.arc(x, y - 30, 9, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * q.revT) / REVIVE_T);
+      ctx.stroke();
+    }
+    txt(q.name + ' DOWN', x, y - 14, 11, '#7dffb0', 'center');
+  }
+  ctx.lineWidth = 1;
+}
+// Fog mutator: enemies fade in between 140 and 100 px from the nearest runner
+function fogAlpha(e) {
+  if (e.team !== 1 || !modOn('fog') || (e.d && e.d.boss)) return 1;
+  let dmin = 1e9;
+  for (const p of alive()) dmin = Math.min(dmin, Math.hypot(p.x - e.x, (p.y - e.y) * 2));
+  return clamp((140 - dmin) / 40, 0, 1);
 }
 function drawHudTop() {
   // k scales the HUD up when the portrait sky band has room for it; HW is the HUD's own width
@@ -338,14 +374,23 @@ function render() {
       drawProp(o.prop.kind, o.prop.x - G.camX, o.prop.y);
     } else if (o.npc) drawNPC(o.npc);
     else {
+      const fa = fogAlpha(o.e);
+      if (fa <= 0) continue;
+      ctx.globalAlpha = fa;
       if (o.e.elite && o.e.state !== 'dead') drawAura(o.e);
       drawFig(o.e);
       if (o.e.team === 1) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
+      ctx.globalAlpha = 1;
     }
+  }
+  if (modOn('fog')) {
+    ctx.fillStyle = 'rgba(167,157,194,0.07)';
+    ctx.fillRect(0, 0, W, VH);
   }
   drawBeams();
   drawFx();
+  drawRevive();
   for (const q of G.parts) {
     ctx.fillStyle = q.c;
     ctx.globalAlpha = Math.min(1, q.life / 10);

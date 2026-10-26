@@ -489,6 +489,15 @@ ov.addEventListener('click', e => {
           sfx.buy();
         }
       }
+      if (arg === 'reset') {
+        const c = respecCost(p);
+        if (respecRefund(p) > 0 && PARTY.creds >= c) {
+          PARTY.creds -= c;
+          respec(p);
+          feat('respec');
+          sfx.buy();
+        }
+      }
       if (arg === 'ammo') {
         const c = Math.round(30 * (G.coop ? 2 : 1) * buyMul());
         if (PARTY.creds >= c) {

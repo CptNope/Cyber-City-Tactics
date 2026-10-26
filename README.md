@@ -78,6 +78,10 @@ What they say changes after each job.
   - Elite Streets: every regular enemy is an elite
   - Bare Knuckles: guns are locked, and punches and kicks hit 40% harder
   - One Life: each runner gets one life per district
+  - Turbo: everything runs 25% faster, you included
+  - Fog: enemies stay hidden until they're close (bosses always show)
+  - Split: regular enemies split into two half-strength minis when they go down
+  - Pacifist: finish a district's contract without firing a gun for double contract karma
 
 ### The Sprawl (open world)
 One long street with a safehouse and fourteen procedurally generated buildings. You hack your way in, fight through randomly built rooms, and loot the cache. Who you rob matters: hit gangs and corps and the street respects you; hit families and small businesses and the cops come for you. See [The Sprawl in depth](#the-sprawl-in-depth).
@@ -112,6 +116,8 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 - start a co-op run from any mode's start screen,
 - add Runner 2 from the pause menu, or
 - press Start on a second gamepad.
+
+**Revive.** When a runner loses their last life, they leave a green marker where they fell. Their partner stands next to it for about two and a half seconds, without getting knocked around, to bring them back with 40% health and no spare lives. The marker goes away when you leave the scene, and then they're back next district as before.
 
 ---
 
@@ -166,6 +172,8 @@ Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills
 | Capstone | **Berserker:** below 40% HP, +40% damage and −20% damage taken | **Deadeye:** +15% gun crit, gun crits deal 2.5× | **Archon:** every 4th spell is free and hits twice as hard | **Ghost Protocol:** failed hacks never trip alarms; break-ins add one less heat star |
 
 Old saves pick up skill points for the levels they already earned.
+
+**Neural reset.** Changed your mind? Doc Kessler sells a reset that refunds every skill point except your archetype's starting skill, for ¥60 per level.
 
 ---
 
@@ -320,7 +328,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
-**Block events.** From block 2 on, about half of all blocks have an event. A banner announces it, and it shows in the HUD and at the safehouse:
+**Block events.** From block 2 on, about two blocks in three have an event. A banner announces it, and it shows in the HUD and at the safehouse:
 
 | Event | What changes |
 |---|---|
@@ -328,6 +336,9 @@ Companions carry between districts and get patched up in the Den, but if one fal
 | Blackout | No cops can find you, locks are 30% easier to crack, and the street goes dark except around you |
 | Kagemori lockdown | Every black site is tier 3 with better legendary odds, and heat cools half as fast |
 | Night market | Lantern strings over the street, four extra vending machines, and shops 20% cheaper |
+| Acid rain | Green rain eats at everyone outside, gangers included: 1 HP every two seconds, never below 1. Indoors is dry |
+| Corp parade | Patrol cops walk the block even with no heat, and every takedown pays 50% more creds |
+| Manhunt | Bounty hunters come for you now and then: tough berserk elites that each drop ¥80 plus ¥40 per block |
 
 **The Lantern Vault.** Find all 24 lore shards and Juno tells you the rest. From then on, every block has a lantern-lit door: the Lantern Vault. It's four rooms deep, and at the bottom waits the Avatar of Ssareth, the hardest fight in the game. Beating it earns the *Lights Out* feat and a unique legendary, The Lantern.
 
@@ -336,7 +347,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 50 goals across every mode, for example:
+**Feats.** 55 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

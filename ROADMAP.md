@@ -27,6 +27,8 @@ The guiding rules:
 - [x] **Renamed to Cyber City Tactics**
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
+- [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 3:** Turbo, Fog, Split and Pacifist mutators; acid rain, corp parade and manhunt block events; co-op revive; Doc's neural reset; five new feats; GitHub Actions CI
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
 ---
@@ -47,7 +49,7 @@ The guiding rules:
 - [ ] **Sets (L).** Two- and three-piece bonuses for matching gear, such as Kagemori Security: armored riot vest + smartgun + shock baton.
 
 ### Skills and progression
-- [ ] **Skill respec (S).** Pay Doc for a neural reset that refunds all skill points.
+- [x] ~~**Skill respec.**~~ Shipped as Doc's neural reset.
 - [ ] **Active skills (M).** One per tree, mapped to the special button as an alternative to the archetype special:
   - Brawler: *Ground Slam*
   - Gunslinger: *Fan the Hammer*
@@ -65,7 +67,7 @@ The guiding rules:
   - cop precincts, the hardest "good" target if your cred is high enough
 - [ ] **Room variety (M).** Hazard rooms (electrified floors, collapsing ceilings), hostage rooms (free them for cred), and vault rooms with a second, harder hack.
 - [ ] **Faction reputation (L).** Separate standing with each gang and with Kagemori. Hitting one crew makes its rivals friendlier, and they'll sell to you or send backup.
-- [ ] **Bounties (S).** Juno posts a named target in a random building each block, for a big payout.
+- [x] ~~**Bounties.**~~ Shipped: Juno posts a named target each block.
 - [ ] **Day and night (M).** At night there are fewer cops, more gangs and better loot. In the day, shops are open and break-ins are riskier.
 - [ ] **A block map (S).** A full-screen view of the street with every building's type, tier and looted state.
 - [ ] **Persistent consequences (M).** Rob a family and their window stays boarded. Clear a hideout and the shops next to it lower their prices.
@@ -98,7 +100,7 @@ The guiding rules:
 
 ### Co-op and online
 - [ ] **Team attacks (M).** When both runners hit the same enemy within half a second, they do a combined finisher.
-- [ ] **Revive (S).** Hold near a downed partner to bring them back instead of waiting for the next district.
+- [x] ~~**Revive.**~~ Shipped: stand by your partner's marker.
 - [ ] **Online co-op (L).** WebRTC peer-to-peer with a share code, keeping the single-file rule by using a tiny public signaling option or manual offer/answer codes.
 - [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.
 - [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
@@ -114,7 +116,8 @@ The guiding rules:
 - [x] ~~**Split the source.**~~ 35 files by system, documented in docs/ARCHITECTURE.md, with a build that also makes a single-file copy.
 - [x] ~~**Save export and import.**~~ In Settings → Save backup.
 - [x] ~~**Robust PWA.**~~ App-shell service worker with versioned precache, an update-ready bar, install button, shortcuts, maskable icons, screenshots, persistent storage and save validation.
-- [ ] **GitHub Actions (S).** Run `npm run check`, `npm test` and the browser tests on every push and pull request, and deploy Pages only when they pass.
+- [x] ~~**GitHub Actions.**~~ `.github/workflows/ci.yml` runs the build check, formatting, `npm test` and the browser tests on every push and pull request.
+- [ ] **Deploy gate (S).** Deploy Pages from a workflow that only runs after CI passes.
 - [ ] **ES modules (M).** Move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses. The current split makes this a mechanical change, file by file.
 - [ ] **Type checking (S).** JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
 - [ ] **Cloud save (M).** Optional sync of the save backup through a file the player picks (File System Access API) or a share code.
@@ -125,9 +128,10 @@ These are the next ways to keep "one more run" alive:
 - [x] ~~**Lore that changes the game.**~~ Shipped as the Lantern Vault.
 - [ ] **Lantern Vault, part two (L).** A real dragon fight: Ssareth itself, with a flight phase and breath attacks across lanes, unlocked after beating the Avatar on Prime.
 - [x] ~~**Rotating Sprawl events.**~~ Shipped: gang war, blackout, lockdown and night market.
-- [ ] **More block events (S each).** Acid rain (slowly hurts everyone outside), a toxic spirit storm, a corp parade (cops everywhere, but huge payouts), a bounty-hunter manhunt that targets *you*.
+- [x] ~~**More block events.**~~ Shipped: acid rain, corp parade and manhunt.
+- [ ] **Spirit storm (S).** A toxic spirit storm event: wild spirits roam the block and spells cost half.
 - [x] ~~**Mutators for the campaign.**~~ Shipped: Glass Cannon, Elite Streets, Bare Knuckles and One Life.
-- [ ] **More mutators (S each).** Turbo (everything 25% faster), Fog (enemies hidden until close), Split (every enemy splits like a Glitch), Pacifist bonus (karma for districts cleared without guns).
+- [x] ~~**More mutators.**~~ Shipped: Turbo, Fog, Split and Pacifist.
 - [x] ~~**Shaman and Rigger.**~~ Shipped and unlocked by feats.
 - [ ] **Street Doc archetype (M).** Heals with every hit; unlocked by finishing a co-op campaign.
 - [ ] **Adept archetype (M).** Magic-fuelled martial artist: no guns, chi-powered combos; unlocked by finishing a district with Bare Knuckles.

@@ -442,6 +442,7 @@ function upRunner(p) {
         sfx.click();
         say(p, 'NO GUN', '#ffc63d', 56, 40, true);
       } else if (p.ammo > 0 || p.freeAmmo > 0) {
+        G.gunUsed = true;
         setS(p, 'shoot');
       } else {
         sfx.click();
@@ -477,6 +478,43 @@ function upRunner(p) {
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
 }
+// Co-op revive: stand next to where your partner fell for 2.5 seconds without getting hit
+const REVIVE_T = 150;
+function reviveTick() {
+  for (const q of PL) {
+    if (!q.out || q.outX == null) continue;
+    const h = alive().find(p => Math.abs(p.x - q.outX) < 26 && Math.abs(p.y - q.outY) < 14);
+    if (!h || h.state === 'hurt' || h.state === 'down') {
+      q.revT = Math.max(0, (q.revT || 0) - 2);
+      continue;
+    }
+    q.revT = (q.revT || 0) + 1;
+    if (q.revT === 1) tip('revive', 'Stay next to your partner to bring them back.');
+    if (q.revT >= REVIVE_T) revive(q, h);
+  }
+}
+function revive(q, h) {
+  q.out = false;
+  q.dead = false;
+  q.lives = 0;
+  q.hp = Math.round(q.maxHp * 0.4);
+  q.mp = Math.max(q.mp, Math.round(q.maxMp / 3));
+  q.x = q.outX;
+  q.y = q.outY;
+  q.z = 0;
+  q.vx = q.vz = 0;
+  q.inv = 120;
+  q.outX = null;
+  q.revT = 0;
+  setS(q, 'idle');
+  G.ents.push(q);
+  feat('revive');
+  sfx.level();
+  buzz(30);
+  G.fx.push({ k: 'ring', x: q.x, y: q.y, z: 20, c: '#7dffb0', life: 24, max: 24, r: 40 });
+  say(q, 'BACK IN IT', '#7dffb0', 80, 70);
+  if (h) say(h, 'GOT YOU', '#7dffb0', 60, 50, true);
+}
 function clampX(p) {
   if (G.den || (G.world && !G.dun)) p.x = clamp(p.x, G.camX + 10, Math.min(curS().len - 10, G.camX + W - 10));
   else p.x = clamp(p.x, G.camX + 10, G.camX + W - 10);
@@ -495,6 +533,11 @@ function respawn(p) {
   if (p.lives < 0) {
     p.lives = 0;
     p.out = true;
+    if (!G.training && active().length) {
+      p.outX = p.x;
+      p.outY = p.y;
+      p.revT = 0;
+    }
     G.ents = G.ents.filter(e => e !== p);
     if (!active().length) {
       if (G.arena) {

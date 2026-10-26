@@ -307,11 +307,30 @@ const FEATS = [
   {
     id: 'events',
     name: 'Seen It All',
-    desc: 'Live through all four Sprawl block events.',
+    desc: 'Live through four different Sprawl block events.',
     lp: 20,
     stat: 'evseen',
     n: 4
   },
+  {
+    id: 'events7',
+    name: 'Local Weather',
+    desc: 'Live through all seven Sprawl block events.',
+    lp: 30,
+    stat: 'evseen',
+    n: 7
+  },
+  {
+    id: 'hunters',
+    name: 'Hunt the Hunters',
+    desc: 'Take down three bounty hunters during a Manhunt.',
+    lp: 15,
+    stat: 'hunters',
+    n: 3
+  },
+  { id: 'pacifist', name: 'Hands Only', desc: 'Finish a contract on Pacifist without firing a gun.', lp: 15 },
+  { id: 'revive', name: 'Not Today', desc: 'Get your co-op partner back on their feet.', lp: 10 },
+  { id: 'respec', name: 'Second Opinion', desc: 'Buy a neural reset from Doc.', lp: 5, hidden: 1 },
   {
     id: 'summon',
     name: 'Not Alone',

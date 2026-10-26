@@ -61,12 +61,25 @@ const modOn = k =>
     (G.arena && G.challenge && G.challenge.mod === k) ||
     (!G.arena && !G.training && !G.world && G.muts && G.muts.includes(k))
   );
-const MUTS = { glass: 'Glass Cannon', elite: 'Elite Streets', brawl: 'Bare Knuckles', iron: 'One Life' };
+const MUTS = {
+  glass: 'Glass Cannon',
+  elite: 'Elite Streets',
+  brawl: 'Bare Knuckles',
+  iron: 'One Life',
+  turbo: 'Turbo',
+  fog: 'Fog',
+  split: 'Split',
+  pacifist: 'Pacifist'
+};
 const MUTD = {
   glass: 'Everyone hits 60% harder, you included.',
   elite: 'Every regular enemy is an elite.',
   brawl: 'Guns are locked; punches and kicks hit 40% harder.',
-  iron: 'Each runner gets one life per district.'
+  iron: 'Each runner gets one life per district.',
+  turbo: 'Everything runs 25% faster, you included.',
+  fog: 'Enemies stay hidden until they are close.',
+  split: 'Regular enemies split in two when they go down.',
+  pacifist: 'Clear a district without firing a gun for double contract karma.'
 };
 const mutN = () => (!G.arena && !G.world && !G.training && G.muts ? G.muts.length : 0);
 const maxLives = () => (mutN() && G.muts.includes('iron') ? 1 : 3);

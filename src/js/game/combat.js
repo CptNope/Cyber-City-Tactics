@@ -370,6 +370,24 @@ function kill(t, dir, o) {
       shardDrop(t.x, t.y + 20, 0.15);
     }
   }
+  if (modOn('split') && !d.split && !d.boss && !d.passive && !t.mini && !t.courier && t.kind !== 'cop') {
+    for (const s of [-1, 1]) {
+      const c = spawnEnemy(t.kind, 1);
+      c.mini = true;
+      c.x = t.x + s * 10;
+      c.y = clamp(t.y + s * 6, FY0 + 6, FY1);
+      c.hp = c.maxHp = Math.max(6, Math.round(t.maxHp * 0.4));
+      c.inv = 12;
+      c.elite = null;
+    }
+    G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
+  }
+  if (t.hunter && G.wd) {
+    const v = 80 + G.wd.level * 40;
+    drop('cred', t.x + 8, t.y + 6, { v });
+    bump('hunters');
+    G.texts.push({ x: t.x, y: t.y, z: 80, s: 'HUNTER DOWN ¥' + v, c: '#ffc63d', life: 70 });
+  }
   if (d.split && !t.mini) {
     for (const s of [-1, 1]) {
       const c = spawnEnemy('glitch', 1);
@@ -400,7 +418,12 @@ function kill(t, dir, o) {
   }
   contractTick(t.kind);
   const c = Math.round(
-    ri(d.creds[0], d.creds[1]) * em * (1 + G.ng * 0.25) * (1 + Math.min(G.combo, 30) * 0.02)
+    ri(d.creds[0], d.creds[1]) *
+      em *
+      (1 + G.ng * 0.25) *
+      (1 + Math.min(G.combo, 30) * 0.02) *
+      (evOn('parade') ? 1.5 : 1) *
+      (t.mini ? 0.5 : 1)
   );
   if (c > 0) drop('cred', t.x, t.y, { v: c });
   if (t.elite) {

@@ -69,7 +69,12 @@ const fresh = (arch, coop) => {
   return P;
 };
 click('quit');
-ok(/aria-label="Cyber City Tactics"><span class="wm-city">Cyber City<\/span><span class="wm-bar">Tactics<\/span><\/h1>/.test(els.ov._h), 'title says Cyber City Tactics');
+ok(
+  /aria-label="Cyber City Tactics"><span class="wm-city">Cyber City<\/span><span class="wm-bar">Tactics<\/span><\/h1>/.test(
+    els.ov._h
+  ),
+  'title says Cyber City Tactics'
+);
 // shaman/rigger locked
 click('pick');
 ok(/🔒 Shaman/.test(els.ov._h) && /🔒 Rigger/.test(els.ov._h), 'Shaman and Rigger start locked');
@@ -188,10 +193,7 @@ for (let i = 0; i < 200; i++) {
   const st = A.genStreet(3, i * 31337);
   evc[st.event || 'none'] = (evc[st.event || 'none'] || 0) + 1;
 }
-ok(
-  evc.gangwar && evc.blackout && evc.lockdown && evc.festival && evc.none > 80,
-  'event spread ' + JSON.stringify(evc)
-);
+ok(Object.keys(A.EVENTS).every(k => evc[k] > 5) && evc.none > 50, 'event spread ' + JSON.stringify(evc));
 ok(!A.genStreet(1, 5).event, 'no events on block 1');
 const withEvent = ev => {
   click('quit');

@@ -115,4 +115,16 @@ function initSkills(p) {
   if (a) p.sk[a] = 1;
   p.spts = Math.max(0, (p.lvl || 1) - 1) + (a ? 0 : 1);
 }
+// Doc's neural reset: refunds every skill except the archetype's starting one
+const respecRefund = p => Object.keys(p.sk || {}).filter(k => SKILLS[k] && k !== ARCH_SKILL[p.arch]).length;
+const respecCost = p => Math.round(60 * (p.lvl || 1) * buyMul());
+function respec(p) {
+  const n = respecRefund(p),
+    a = ARCH_SKILL[p.arch];
+  p.sk = {};
+  if (a) p.sk[a] = 1;
+  p.spts = (p.spts || 0) + n;
+  refresh(p);
+  return n;
+}
 const spellCost = (p, sp) => Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1)));

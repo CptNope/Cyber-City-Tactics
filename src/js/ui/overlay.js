@@ -188,7 +188,7 @@ function npcHtml(id) {
       ? `${d.title}: done. Here's your cut. When you're ready, the next job starts at the end of the street.`
       : `You didn't finish ${d.title}. No bonus this time, but you're still breathing. The next job starts at the end of the street.`;
     body = `<div class="job"><div class="row" style="justify-content:space-between"><b>Debrief</b><span class="st ${d.done ? 'up' : 'down'}">${d.done ? 'Paid' : 'No bonus'}</span></div>
-    <span style="color:var(--muted);font-size:13px">${d.done ? `+¥${d.creds} · +${d.karma} karma each${d.levels ? ` · <span class="up">level up ×${d.levels}</span>` : ''}${d.prize ? ` · ${esc(d.prize.name)} added to the bag` : ''}` : 'Contract rewards withheld.'}</span></div>
+    <span style="color:var(--muted);font-size:13px">${d.done ? `+¥${d.creds} · +${d.karma} karma each${d.pacifist ? ' · <span class="up">Pacifist ×2</span>' : ''}${d.levels ? ` · <span class="up">level up ×${d.levels}</span>` : ''}${d.prize ? ` · ${esc(d.prize.name)} added to the bag` : ''}` : 'Contract rewards withheld.'}</span></div>
     <p>Next: <b style="color:var(--text)">${esc(STAGES[stage + 1].name)}</b>. ${esc(STAGES[stage + 1].sub)}.</p>`;
   } else if (n.lines) {
     sayTxt = n.lines[Math.min(stage, n.lines.length - 1)];
@@ -208,7 +208,18 @@ function npcHtml(id) {
         ds: `+16 rounds for each runner.`,
         c: Math.round(30 * (G.coop ? 2 : 1) * buyMul()),
         ok: true
-      }
+      },
+      (() => {
+        const rp = PL[G.sheetIdx] || PL[0],
+          n = respecRefund(rp);
+        return {
+          k: 'reset',
+          n: 'Neural reset',
+          ds: `${rp.name}: forget ${n} skill${n === 1 ? '' : 's'} and get the point${n === 1 ? '' : 's'} back to spend again. Your archetype skill stays.`,
+          c: respecCost(rp),
+          ok: n > 0
+        };
+      })()
     ];
     body = `${whoTabs()}<div class="list">${cons
       .map(c => {

@@ -21,7 +21,10 @@ function frame(now) {
         G.slow--;
         if (tick % 3 === 0) update();
         else ran = false;
-      } else update();
+      } else {
+        update();
+        if (tick % 4 === 0 && modOn('turbo') && G.mode === 'play') update();
+      }
     } else if (G.mode === 'title') attractStep();
     else if (G.mode === 'hack') hackStep();
     // keep presses made during hit-stop or slow-mo frames until a frame actually processes them

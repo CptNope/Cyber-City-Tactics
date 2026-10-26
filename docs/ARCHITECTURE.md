@@ -105,7 +105,9 @@ Everything is in `localStorage` under `cs_*` keys (listed in the README). `store
 
 **A new skill.** Add it to `SKILLS` in systems/skills.js (tree and row), then check `has(p, 'id')` (one runner) or `anyHas('id')` (team-wide) where it should matter.
 
-**A new Sprawl block event.** Add it to `EVENTS` in modes/sprawl.js, give it a slice of the roll in `genStreet()`, and check `evOn('id')` where it changes things.
+**A new Sprawl block event.** Add it to `EVENTS` in modes/sprawl.js, give it a slice of the roll in `genStreet()`, and check `evOn('id')` where it changes things. Anything that runs every tick on the street goes in `blockEventTick()`.
+
+**A new campaign mutator.** Add a name to `MUTS` and a one-line rule to `MUTD` in modes/arena.js (the new-run screen lists them automatically), then check `modOn('id')` where it changes things. Each mutator adds 20% karma through `mutN()`.
 
 **A new archetype.** Add it to `ARCH` in data/gear.js (with `locked: 'featId'` if it should be unlocked), its free skill to `ARCH_SKILL` in systems/skills.js, and its special in `doSpecial()` (game/runners.js).
 

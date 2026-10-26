@@ -13,6 +13,7 @@ function update() {
   G.comboT++;
   if (G.comboT > 110) G.combo = 0;
   for (const p of PL) if (!p.out) upRunner(p);
+  reviveTick();
   for (const e of G.ents) if (e.kind === 'ally') upAlly(e);
   if (G.mode !== 'play' && G.mode !== 'den') return;
   // melee slots per target
@@ -438,6 +439,11 @@ function stageClear() {
   if (deb.done) {
     deb.creds = def.creds;
     deb.karma = def.karma;
+    if (modOn('pacifist') && !G.gunUsed) {
+      deb.karma *= 2;
+      deb.pacifist = true;
+      feat('pacifist');
+    }
     PARTY.creds += def.creds;
     if (def.prize) {
       deb.prize = randItem(3, true);

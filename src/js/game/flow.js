@@ -25,6 +25,8 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  // a downed partner's revive marker belongs to the scene they fell in
+  for (const p of PL) p.outX = null;
   G.zaps = [];
   G.slowFoes = 0;
   G.camX = 0;
@@ -60,6 +62,7 @@ function startStage(si) {
   G.dun = null;
   resetWorld();
   G.stageLost = 0;
+  G.gunUsed = false;
   G.banner = 150;
   G.fade = 1;
   const S = STAGES[si];

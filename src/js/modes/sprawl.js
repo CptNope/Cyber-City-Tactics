@@ -121,6 +121,21 @@ const EVENTS = {
     name: 'Night market',
     desc: 'Lantern festival on the block. Shops are 20% cheaper and vending machines line the street.',
     col: '#b98cff'
+  },
+  acidrain: {
+    name: 'Acid rain',
+    desc: 'Toxic rain eats at everyone out on the street, gangers included: 1 HP every two seconds. Indoors is dry.',
+    col: '#7dffb0'
+  },
+  parade: {
+    name: 'Corp parade',
+    desc: 'Kagemori is celebrating. Patrols walk the block even with no heat, but every takedown pays 50% more creds.',
+    col: '#45d2ff'
+  },
+  manhunt: {
+    name: 'Manhunt',
+    desc: 'Someone put a price on your head. Bounty hunters come for you now and then, and each one carries a fat payout.',
+    col: '#ff3d4a'
   }
 };
 const evOn = k => !!(G.world && G.wd && G.wd.street && G.wd.street.event === k);
@@ -175,15 +190,21 @@ function genStreet(level, seed) {
   const event =
     level < 2
       ? null
-      : er < 0.14
+      : er < 0.11
         ? 'gangwar'
-        : er < 0.27
+        : er < 0.21
           ? 'blackout'
-          : er < 0.4
+          : er < 0.31
             ? 'lockdown'
-            : er < 0.52
+            : er < 0.41
               ? 'festival'
-              : null;
+              : er < 0.49
+                ? 'acidrain'
+                : er < 0.57
+                  ? 'parade'
+                  : er < 0.65
+                    ? 'manhunt'
+                    : null;
   if (event === 'lockdown') for (const b of B) if (b.type === 'blacksite') b.tier = 3;
   // Juno's bounty: a named target in one of the tougher good buildings
   const cand = B.filter(b => b.id && isGood(b) && FAC[facOf(b)].boss[b.tier]);
@@ -436,6 +457,43 @@ function openDoor(b) {
     setMode('bcard');
   }
 }
+// Acid rain, corp parade and manhunt run here each tick, out on the street only
+function blockEventTick(w) {
+  if (evOn('acidrain') && G.t % 120 === 0)
+    for (const e of G.ents) {
+      if (e.state === 'dead' || e.out || (e.d && (e.d.passive || e.d.spirit || e.d.fly))) continue;
+      if (e.team === 0 && e.kind === 'player') {
+        if (e.hp > 1) e.hp--;
+      } else if (e.team === 1 && e.hp > 1) e.hp--;
+    }
+  if (evOn('parade') && !w.heat) {
+    w.parT = (w.parT === undefined ? 900 : w.parT) - 1;
+    if (w.parT <= 0) {
+      w.parT = ri(1400, 2000);
+      if (G.ents.filter(e => e.kind === 'cop' && e.state !== 'dead').length < 2) {
+        spawnEnemy('cop', 1);
+        tip(
+          'parade',
+          'Parade patrols ignore your heat. Leave them be, or take them down for the bigger payout.'
+        );
+      }
+    }
+  }
+  if (evOn('manhunt')) {
+    w.huntT = (w.huntT === undefined ? 1200 : w.huntT) - 1;
+    if (w.huntT <= 0 && !G.ents.some(e => e.hunter && e.state !== 'dead')) {
+      w.huntT = ri(1800, 2600);
+      const e = spawnEnemy(w.level >= 3 ? 'riot' : 'sec', Math.random() < 0.5 ? -1 : 1);
+      e.hunter = true;
+      e.name = 'Bounty hunter';
+      e.elite = 'berserk';
+      e.hp = e.maxHp = Math.round(e.maxHp * 2.2);
+      const p = alive()[0];
+      if (p) say(p, 'BOUNTY HUNTER INCOMING', '#ff3d4a', 90, 100);
+      tip('manhunt', 'Bounty hunters are tough, but each one drops a big creds payout.');
+    }
+  }
+}
 const copKind = (h, i) => (h >= 4 && i === 0 ? 'riot' : h >= 3 && i === 1 ? 'drone' : 'cop');
 function worldTick() {
   const w = G.wd;
@@ -509,6 +567,7 @@ function worldTick() {
       );
     }
   }
+  blockEventTick(w);
   w.patT--;
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
