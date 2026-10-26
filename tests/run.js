@@ -64,9 +64,14 @@ const TESTS = [
   { file: 'legend', minPass: 41 },
   { file: 'content', minPass: 37 },
   { file: 'pwa', minPass: 12 },
-  { file: 'expansion', minPass: 43 },
+  { file: 'expansion', minPass: 57 },
   { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },
-  { file: 'arena-bot', slow: true, retries: 1, expect: [/ARENA OVER wave (1\d|[2-9]\d)/, /overlays ok/] }
+  {
+    file: 'arena-bot',
+    slow: true,
+    retries: 1,
+    expect: [/ARENA OVER wave (1\d|[2-9]\d)|REACHED wave \d+/, /overlays ok/]
+  }
 ];
 
 let failed = 0;

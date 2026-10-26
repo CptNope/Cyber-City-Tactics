@@ -109,6 +109,10 @@ const BEST = {
   shaman: 'Street shamans throw spells from the back line. Close the distance fast.',
   ghoul: 'They lunge from far away. Roll through and punish the recovery.',
   spirit: 'Bound fire spirits. Bullets pass right through them; use fists, blades or magic.',
+  ninja:
+    'Kagemori shadows fade out of sight and only show themselves to strike. Hit one and the cloak drops for a few seconds.',
+  hound:
+    'Hellhounds hunt in packs, and every hound still standing makes the pack faster. Thin them out early.',
   cop: 'Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.',
   glitch: 'Corrupted code with a body. Kill one and it splits in two.',
   ice: 'ICE sentries teleport and fire laser spreads. Watch the windup.',
@@ -319,6 +323,22 @@ const FEATS = [
     lp: 30,
     stat: 'evseen',
     n: 8
+  },
+  {
+    id: 'craft1',
+    name: 'Back-Alley Engineer',
+    desc: "Rework a piece of gear at Ratchet's workbench.",
+    lp: 5,
+    stat: 'crafted',
+    n: 1
+  },
+  {
+    id: 'scrap10',
+    name: 'Scrapper',
+    desc: 'Scrap ten pieces of gear for parts.',
+    lp: 10,
+    stat: 'scrapped',
+    n: 10
   },
   {
     id: 'gmod1',

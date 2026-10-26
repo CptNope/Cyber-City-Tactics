@@ -71,6 +71,10 @@ function hurt(t, dmg, dir, o) {
     if (t.hp <= 0) kill(t, dir);
     return true;
   }
+  if (t.d && t.d.stealth) {
+    t.cloaked = false;
+    t.recloakT = 150;
+  }
   if (t.elite === 'warded') {
     o.kd = false;
     if (o.magic) dmg *= 0.4;

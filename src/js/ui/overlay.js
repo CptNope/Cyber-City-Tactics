@@ -177,6 +177,22 @@ function renderOv() {
   }
   padRestoreFocus();
 }
+// Ratchet's workbench: spend parts on the current runner's equipped gear
+function workbenchHtml() {
+  const p = PL[G.sheetIdx] || PL[0],
+    parts = PARTY.parts || 0;
+  const rows = ['weapon', 'gun', 'armor']
+    .filter(s => p.eq[s])
+    .map(s => {
+      const it = p.eq[s],
+        uc = upgradeCost(it),
+        okR = canReroll(it) && parts >= REROLL.parts && PARTY.creds >= REROLL.creds,
+        okU = canUpgrade(it) && parts >= uc.parts && PARTY.creds >= uc.creds;
+      return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm${okR ? '' : ' ghost'}" data-a="reroll:${s}" ${okR ? '' : 'disabled'}>${it.leg ? 'Legendary' : `${it.mod ? 'Reroll' : 'Add'} affix · ${REROLL.parts}p ¥${REROLL.creds}`}</button><button class="btn sm${okU ? '' : ' ghost'}" data-a="upgrade:${s}" ${okU ? '' : 'disabled'}>${canUpgrade(it) ? `${RAR[it.rar + 1].n} · ${uc.parts}p ¥${uc.creds}` : 'Max rarity'}</button></div></div>`;
+    })
+    .join('');
+  return `<h3>Workbench <small style="color:var(--gold);font-weight:400;text-transform:none;letter-spacing:0">${parts} part${parts === 1 ? '' : 's'}</small></h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">Scrap gear from the bag for parts, then rework what ${esc(p.name)} has equipped: reroll the affix, or raise rarity up to Prototype. Legendaries can't be scrapped or reworked.</p><div class="list">${rows || '<p>Nothing equipped.</p>'}</div>`;
+}
 // Ratchet's gun bench: fit one mod to the current runner's gun
 function gunBenchHtml() {
   const p = PL[G.sheetIdx] || PL[0],
@@ -266,7 +282,8 @@ function npcHtml(id) {
             .join('')
         : '<p>Sold out.</p>'
     }</div>
-    <h3>Party bag</h3><div class="list">${PARTY.bag.length ? PARTY.bag.map(it => `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}">Sell ¥${Math.round(it.price * sellRate())}</button></div></div>`).join('') : '<p>Nothing to sell.</p>'}</div>`;
+    <h3>Party bag</h3><div class="list">${PARTY.bag.length ? PARTY.bag.map(it => `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}">Sell ¥${Math.round(it.price * sellRate())}</button>${salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}</div></div>`).join('') : '<p>Nothing to sell.</p>'}</div>
+    ${workbenchHtml()}`;
   } else if (id === 'kit') {
     sayTxt =
       'Need backup? I rent muscle, metal and the odd spirit. One at a time, and no refunds if they get scrapped. I patch up whatever you bring back.';

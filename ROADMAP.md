@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 5:** hellhound packs, cloaked Kagemori shadows, and salvage and crafting at Ratchet's workbench
 - [x] **Expansion 4:** a heavy blow for every melee weapon, four gun mods at Ratchet's bench, the spirit storm event, and a gear comparison card
 - [x] **Expansion 3:** Turbo, Fog, Split and Pacifist mutators; acid rain, corp parade and manhunt block events; co-op revive; Doc's neural reset; five new feats; GitHub Actions CI
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
@@ -42,7 +43,7 @@ The guiding rules:
 - [x] ~~**Weapon-specific moves.**~~ Shipped: dash slash, flurry, yank, shock stun, cleave and ground pound.
 - [x] ~~**Gun mods.**~~ Shipped: extended mag, laser sight, suppressor and underbarrel launcher at Ratchet's bench.
 - [x] ~~**Item comparison.**~~ Shipped as a floating card over gear on the floor.
-- [ ] **Salvage and crafting (M).** Break unwanted gear into parts at Ratchet's, then spend parts to reroll an affix or upgrade rarity.
+- [x] ~~**Salvage and crafting.**~~ Shipped: scrap gear for parts, reroll affixes and upgrade rarity at Ratchet's.
 - [ ] **Sets (L).** Two- and three-piece bonuses for matching gear, such as Kagemori Security: armored riot vest + smartgun + shock baton.
 
 ### Skills and progression
@@ -86,9 +87,8 @@ The guiding rules:
 - [ ] **Endings (S).** A different epilogue depending on street cred, choices and how many bosses you spared.
 
 ### Combat and enemies
-- [ ] **New enemies (M):**
-  - corp ninjas (go invisible, then strike)
-  - hellhounds (fast, in packs)
+- [x] ~~**Corp ninjas and hellhounds.**~~ Shipped as Kagemori shadows and hellhound packs.
+- [ ] **More new enemies (M):**
   - mech walkers (big, weak spot on the back)
   - feral spirits (copy your last spell)
 - [ ] **A parry (M).** Tap block just before a hit to stagger the attacker.

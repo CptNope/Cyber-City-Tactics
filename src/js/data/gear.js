@@ -285,6 +285,35 @@ function mkItem(slot, base, rar, mod) {
   it.price = Math.round(b.price * (1 + rar * 0.7) * (mod ? 1.3 : 1));
   return it;
 }
+/* Salvage and crafting at Ratchet's: scrap gear into parts, then spend parts to reroll an affix or raise rarity. */
+const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2 + (it.mod ? 1 : 0));
+const REROLL = { parts: 3, creds: 40 };
+const upgradeCost = it => ({ parts: 4 * (it.rar + 1), creds: 80 * (it.rar + 1) });
+const canUpgrade = it => !!it && !it.leg && it.rar < 2;
+const canReroll = it => !!it && !it.leg;
+function renameItem(it) {
+  const b = BASES[it.slot][it.base];
+  it.name = (it.rar ? RAR[it.rar].n + ' ' : '') + (it.mod ? AFFIX[it.mod].n + ' ' : '') + b.name;
+  it.price = Math.round(b.price * (1 + it.rar * 0.7) * (it.mod ? 1.3 : 1));
+}
+function rerollItem(it) {
+  if (!canReroll(it)) return false;
+  const ms = Object.keys(AFFIX).filter(k => AFFIX[k].slots.includes(it.slot) && k !== it.mod);
+  it.mod = pick(ms);
+  renameItem(it);
+  return true;
+}
+function upgradeItem(it) {
+  if (!canUpgrade(it)) return false;
+  const b = BASES[it.slot][it.base];
+  it.rar++;
+  if (b.dmg) it.dmg = Math.round(b.dmg * RAR[it.rar].m);
+  if (b.arm) it.arm = Math.round(b.arm * RAR[it.rar].m);
+  const k = pick(Object.keys(ATTRS));
+  it.bonus[k] = (it.bonus[k] || 0) + 1;
+  renameItem(it);
+  return true;
+}
 function randItem(stage, boost) {
   const slot = pick(['weapon', 'gun', 'armor', 'weapon', 'gun']);
   const bases = Object.keys(BASES[slot]);

@@ -508,6 +508,37 @@ ov.addEventListener('click', e => {
       }
       rerender();
       break;
+    case 'salvage': {
+      const i = findBag(arg);
+      if (i >= 0 && salvageParts(PARTY.bag[i])) {
+        const n = salvageParts(PARTY.bag[i]);
+        PARTY.parts = (PARTY.parts || 0) + n;
+        PARTY.bag.splice(i, 1);
+        bump('scrapped');
+        sfx.clank();
+      }
+      rerender();
+      break;
+    }
+    case 'reroll':
+    case 'upgrade': {
+      const it = p.eq[arg],
+        c = a === 'reroll' ? REROLL : it && upgradeCost(it);
+      if (
+        it &&
+        (PARTY.parts || 0) >= c.parts &&
+        PARTY.creds >= c.creds &&
+        (a === 'reroll' ? rerollItem(it) : upgradeItem(it))
+      ) {
+        PARTY.parts -= c.parts;
+        PARTY.creds -= c.creds;
+        refresh(p);
+        bump('crafted');
+        sfx.buy();
+      }
+      rerender();
+      break;
+    }
     case 'gmod': {
       const g = p.eq.gun,
         c = Math.round(GMODS[arg].price * buyMul());

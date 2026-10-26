@@ -15,6 +15,7 @@ const clearFoes = () => (G.ents = G.ents.filter(e => e.team !== 1));
 const start = (muts, coop) => {
   click('pick');
   click('diff:1');
+  G.pendMuts = [];
   for (const m of muts) click('mut:' + m);
   click(coop ? 'new2' : 'new');
   click('go');
@@ -287,3 +288,86 @@ try {
   err = e;
 }
 ok(!err && A.cmpVal(it) > A.cmpVal(P.eq.armor), 'compare card draws, exo-frame beats the starting armor');
+
+// ---- corp ninjas and hellhounds
+ok(A.DEF.ninja && A.DEF.hound && A.BEST.ninja && A.BEST.hound, 'two new enemies with bestiary notes');
+click('quit');
+P = start([]);
+P.inv = 999;
+const nj = A.spawnEnemy('ninja', 1);
+nj.x = P.x + 120;
+nj.y = P.y;
+nj.elite = null;
+step(3);
+ok(nj.cloaked, 'shadow is cloaked while it closes in');
+let sawStrike = false;
+for (let i = 0; i < 400 && !sawStrike; i++) {
+  step(1);
+  if (nj.state === 'windup') sawStrike = !nj.cloaked;
+}
+ok(sawStrike, 'shadow drops the cloak to strike');
+nj.state = 'idle';
+nj.recloakT = 0;
+step(2);
+nj.inv = 0;
+A.hurt(nj, 1, 1, { src: P });
+ok(!nj.cloaked && nj.recloakT > 100, 'getting hit drops the cloak');
+clearFoes();
+const pack = [0, 1, 2].map(i => {
+  const h = A.spawnEnemy('hound', 1);
+  h.x = P.x + 200 + i * 10;
+  h.elite = null;
+  return h;
+});
+step(2);
+const fast = pack[0].spdMul;
+A.hurt(pack[1], 999, 1, { src: P });
+A.hurt(pack[2], 999, 1, { src: P });
+step(2);
+ok(
+  fast > pack[0].spdMul && fast > 1.2,
+  'hounds are faster in a pack (' + fast.toFixed(2) + ' → ' + pack[0].spdMul.toFixed(2) + ')'
+);
+ok(
+  A.STAGES[2].waves.some(w => w.spawn.includes('hound')) &&
+    A.STAGES[3].waves.some(w => w.spawn.includes('ninja')),
+  'hounds in the Undercity, shadows in the Arcology'
+);
+let drawErr = null;
+try {
+  A.render();
+} catch (e) {
+  drawErr = e;
+}
+ok(!drawErr, 'hound and cloaked shadow render without errors');
+
+// ---- salvage and crafting
+clearFoes();
+__PARTY.creds = 5000;
+__PARTY.parts = 0;
+__PARTY.bag = [A.mkItem('weapon', 'pipe', 2, 'keen'), A.mkItem('gun', 'light', 0)];
+const scrap = A.salvageParts(__PARTY.bag[0]);
+click('salvage:' + __PARTY.bag[0].uid);
+ok(
+  scrap === 6 && __PARTY.parts === 6 && __PARTY.bag.length === 1,
+  'scrapping a Prototype Keen pipe gives 6 parts'
+);
+ok(A.salvageParts(A.mkLegend('ronin')) === 0, "legendaries can't be scrapped");
+P.eq.weapon = A.mkItem('weapon', 'katana', 0);
+A.refresh(P);
+const dm0 = P.eq.weapon.dmg;
+click('upgrade:weapon');
+ok(
+  P.eq.weapon.rar === 1 && P.eq.weapon.dmg > dm0 && /^Tuned Katana/.test(P.eq.weapon.name),
+  'upgrade: Street katana → ' + P.eq.weapon.name
+);
+ok(__PARTY.parts === 2 && __PARTY.creds === 5000 - 80, 'upgrade cost 4 parts and ¥80');
+click('reroll:weapon');
+ok(!P.eq.weapon.mod && __PARTY.parts === 2, 'not enough parts: reroll refused');
+__PARTY.parts = 3;
+click('reroll:weapon');
+ok(
+  P.eq.weapon.mod && __PARTY.parts === 0 && A.LEG.feats.craft1,
+  'reroll adds an affix (' + P.eq.weapon.name + '), Back-Alley Engineer'
+);
+ok(/Workbench/.test(A.npcHtml('ratchet')), 'workbench listed at Ratchet');

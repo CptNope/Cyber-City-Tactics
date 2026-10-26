@@ -65,7 +65,7 @@ Between districts you walk **the Den**, a street hub where you talk to the local
 | Doc Kessler | Street doc: medkits, ammo and cyberware |
 | Kit | Rents companions |
 | Old Wen | Talismonger: teaches spells |
-| Ratchet | Fence: buys and sells gear, and fits gun mods |
+| Ratchet | Fence: buys and sells gear, fits gun mods, scraps gear for parts and reworks it |
 | Pixel | Street kid: what's happening on the block |
 
 What they say changes after each job.
@@ -225,6 +225,13 @@ Every weapon has its own heavy blow (hold punch, then release).
 | Suppressor | ¥180 | Cops you shoot down in the Sprawl add no heat |
 | Underbarrel launcher | ¥300 | Every 20 seconds, a shot also lobs a free grenade |
 
+**Salvage and crafting.** At Ratchet's (the Den and Sprawl safehouses), scrap gear from the bag for parts: 1 part, plus 2 per rarity tier, plus 1 for an affix. Legendaries can't be scrapped. Then spend parts at the workbench on what the current runner has equipped:
+
+| Job | Cost | Result |
+|---|---|---|
+| Reroll affix | 3 parts + ¥40 | A new random affix (or a first one if it had none) |
+| Upgrade rarity | 4 parts + ¥80 per tier | Street → Tuned → Prototype: more damage or armor, plus one attribute point |
+
 **Comparing gear.** Walk near gear on the floor and a small card shows its name and how its damage or armor compares to what you're wearing (▲ better, ▼ worse).
 
 ### Armor
@@ -290,6 +297,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
+- **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
+- **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit. Land any hit and the cloak drops for a few seconds.
 - **Elites:** each has a colored aura and a name tag, and drops better gear.
   - Armored: halves bullet damage
   - Berserk: faster and hits harder
@@ -361,7 +370,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 56 goals across every mode, for example:
+**Feats.** 58 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

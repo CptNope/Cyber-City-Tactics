@@ -63,14 +63,14 @@ const OWNERS = {
 const FAC = {
   hideout: {
     pool: ['ganger', 'ganger', 'orc', 'shaman'],
-    t3: ['ghoul', 'riot'],
+    t3: ['ghoul', 'riot', 'hound'],
     boss: [null, 'orc', 'troll', 'blade'],
     bossName: ['', 'Crew lieutenant', 'Crew boss', 'Crew warlord'],
     theme: 0
   },
   blacksite: {
     pool: ['sec', 'riot', 'drone', 'sec'],
-    t3: ['ice', 'glitch'],
+    t3: ['ice', 'glitch', 'ninja'],
     boss: [null, 'riot', 'archmage', 'blackice'],
     bossName: ['', 'Site chief', 'Research director', 'Vault ICE'],
     theme: 3

@@ -69,6 +69,71 @@ function drawDrone(e) {
   ctx.fillRect(2, 6, 9, 2);
   ctx.restore();
 }
+// Hellhound: a low, four-legged figure with a burning mane and tail
+function drawHound(e) {
+  const sc = e.mini ? 0.75 : 1,
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    st = e.state,
+    lying = st === 'down' || st === 'dead';
+  shadow(sx, e.y, 13 * sc);
+  if (e.inv > 0 && !lying && (G.t >> 2) % 2) return;
+  if (st === 'dead' && e.t > 40 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  if (lying) {
+    ctx.translate(0, -2);
+    ctx.rotate(e.z > 0 ? -0.6 : Math.PI * 0.08);
+  }
+  const fl = e.flash > 0 && e.flash % 2,
+    body = fl ? '#ffffff' : '#2a1a1e',
+    body2 = fl ? '#e8e8e8' : '#3d2328',
+    run = st === 'walk' || st === 'lunge',
+    ph = e.walk * 0.35,
+    leap = st === 'lunge' && e.z > 0;
+  // legs: two pairs, swinging opposite each other
+  ctx.strokeStyle = body;
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = 'round';
+  const leg = (hx, a) => {
+    const sw = leap ? (hx > 0 ? 6 : -6) : run ? Math.sin(ph + a) * 5 : 0;
+    ctx.beginPath();
+    ctx.moveTo(hx, -11);
+    ctx.lineTo(hx + sw * 0.5, -5);
+    ctx.lineTo(hx + sw, 0);
+    ctx.stroke();
+  };
+  leg(-9, 0);
+  leg(8, Math.PI);
+  ctx.strokeStyle = body2;
+  leg(-6, Math.PI);
+  leg(11, 0);
+  // tail of fire
+  const tw = Math.sin(G.t * 0.4 + e.x) * 2;
+  fillPoly([-12, -15, -22, -20 + tw, -19, -14, -24, -12 - tw, -12, -11], fl ? '#fff' : '#ff6a3d');
+  // body and chest
+  fillPoly([-13, -16, 6, -18, 13, -15, 12, -9, -11, -9], body);
+  fillPoly([-6, -18, 6, -18, 10, -16, -4, -15], body2);
+  // head and snout
+  const hb = run ? Math.sin(ph * 2) * 0.8 : 0;
+  fillPoly([10, -21 + hb, 17, -20 + hb, 21, -17 + hb, 20, -14 + hb, 12, -13 + hb, 9, -16 + hb], body);
+  fillPoly([11, -21 + hb, 13, -26 + hb, 15, -21 + hb], body2);
+  // burning mane and eye
+  if (!fl)
+    for (let i = 0; i < 4; i++) {
+      const fx = 3 + i * 2.5,
+        fh = 4 + Math.sin(G.t * 0.5 + i * 1.7) * 2;
+      fillPoly([fx - 2, -18, fx, -18 - fh, fx + 2, -18], i % 2 ? '#ffc63d' : '#ff6a3d');
+    }
+  ctx.fillStyle = st === 'windup' || st === 'lunge' ? '#fff3c4' : '#ffc63d';
+  ctx.fillRect(16, -19 + hb, 2, 1.6);
+  if (st === 'windup' || leap) {
+    ctx.fillStyle = '#e9f6ff';
+    ctx.fillRect(18, -15 + hb, 3, 1.2);
+  }
+  ctx.restore();
+}
 function drawSpirit(e) {
   const sx = e.x - G.camX,
     sy = e.y - e.z;
@@ -260,6 +325,7 @@ function drawFig(e) {
   if (e.d && e.d.ice) return drawIce(e);
   if (e.d && e.d.spirit) return drawSpirit(e);
   if (e.d && e.d.fly) return drawDrone(e);
+  if (e.d && e.d.quad) return drawHound(e);
   const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),

@@ -68,6 +68,15 @@ function upEnemy(e) {
   if (e.inv > 0) e.inv--;
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.stealth) {
+    // shadows cloak whenever they aren't attacking, and drop the cloak for a while when hit
+    if (e.recloakT > 0) e.recloakT--;
+    e.cloaked = !(e.recloakT > 0) && e.state !== 'windup';
+  }
+  if (d.pack) {
+    const n = G.ents.filter(x => x.kind === e.kind && x.state !== 'dead').length;
+    e.spdMul = (e.enraged ? 1.3 : 1) * (1 + 0.12 * Math.min(4, n - 1));
+  }
   e.tgt = pickTarget(e);
   const p = e.tgt;
   if (d.fly && e.state !== 'vent') {
@@ -355,6 +364,12 @@ function upEnemy(e) {
     }
     if (adx < d.reach + 2 && ady < 7 && e.cool <= 0) {
       setS(e, 'windup');
+      if (d.stealth) {
+        e.cloaked = false;
+        e.recloakT = 90;
+        e.t = 8; // a shadow's strike comes fast
+        G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 26, c: '#ff3d4a', life: 10, max: 10, r: 18 });
+      }
       return;
     }
     const near = (e.slot || 0) < 2 || d.boss;

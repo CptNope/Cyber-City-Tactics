@@ -192,6 +192,42 @@ const DEF = {
     creds: [0, 6],
     karma: 20
   },
+  ninja: {
+    name: 'Kagemori shadow',
+    hp: 30,
+    spd: 1.1,
+    dmg: 12,
+    reach: 24,
+    cool: 80,
+    scale: 1,
+    stealth: true,
+    creds: [16, 28],
+    karma: 24,
+    style: 'blade',
+    pal: {
+      skin: '#c9a184',
+      coat: '#16141f',
+      coat2: '#0e0c15',
+      pants: '#121019',
+      hair: '#1f1c2b',
+      acc: '#ff3d4a',
+      boot: '#08070c'
+    }
+  },
+  hound: {
+    name: 'Hellhound',
+    hp: 18,
+    spd: 1.45,
+    dmg: 6,
+    reach: 18,
+    cool: 50,
+    scale: 1,
+    lunge: true,
+    pack: true,
+    quad: true,
+    creds: [2, 8],
+    karma: 9
+  },
   cop: {
     name: 'Patrol officer',
     hp: 38,
@@ -511,7 +547,7 @@ const STAGES = [
     ],
     waves: [
       { at: 120, spawn: ['ghoul', 'ghoul', 'ghoul'] },
-      { at: 420, spawn: ['spirit', 'ghoul', 'shaman'] },
+      { at: 420, spawn: ['spirit', 'hound', 'hound', 'hound'] },
       { at: 740, spawn: ['troll!', 'spirit', 'ghoul'] },
       { at: 1000, spawn: ['spirit', 'spirit', 'shaman', 'ghoul'] },
       { at: 1220, boss: true, spawn: ['saint', 'ghoul'] }
@@ -551,7 +587,7 @@ const STAGES = [
       { at: 120, spawn: ['sec', 'riot', 'drone'] },
       { at: 430, spawn: ['shaman', 'sec', 'riot'] },
       { at: 760, spawn: ['blade!', 'drone', 'sec'] },
-      { at: 1040, spawn: ['riot', 'riot', 'shaman'] },
+      { at: 1040, spawn: ['ninja', 'ninja', 'riot'] },
       { at: 1320, boss: true, spawn: ['archmage', 'riot'] }
     ]
   },

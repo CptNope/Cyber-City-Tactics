@@ -399,12 +399,13 @@ function render() {
       drawProp(o.prop.kind, o.prop.x - G.camX, o.prop.y);
     } else if (o.npc) drawNPC(o.npc);
     else {
-      const fa = fogAlpha(o.e);
+      const fa = fogAlpha(o.e),
+        cl = o.e.cloaked && o.e.state !== 'dead';
       if (fa <= 0) continue;
-      ctx.globalAlpha = fa;
-      if (o.e.elite && o.e.state !== 'dead') drawAura(o.e);
+      ctx.globalAlpha = cl ? fa * (0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
+      if (o.e.elite && o.e.state !== 'dead' && !cl) drawAura(o.e);
       drawFig(o.e);
-      if (o.e.team === 1) drawFoeBar(o.e);
+      if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
       ctx.globalAlpha = 1;
     }
