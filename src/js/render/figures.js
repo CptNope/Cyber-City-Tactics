@@ -1,0 +1,1085 @@
+/* Cyber City Tactics · src/js/render/figures.js
+ * Drawing every character, drone, spirit, prop, projectile, pickup and effect. All vector, no sprites.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+'use strict';
+/* ================= drawing ================= */
+function fillPoly(pts, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(pts[0], pts[1]);
+  for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+  ctx.closePath();
+  ctx.fill();
+}
+function limb(a, b, c, col, w) {
+  ctx.strokeStyle = col;
+  ctx.lineWidth = w;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(a[0], a[1]);
+  ctx.lineTo(b[0], b[1]);
+  ctx.lineTo(c[0], c[1]);
+  ctx.stroke();
+}
+function joint(a, c, bend) {
+  const mx = (a[0] + c[0]) / 2,
+    my = (a[1] + c[1]) / 2;
+  const dx = c[0] - a[0],
+    dy = c[1] - a[1];
+  const L = Math.hypot(dx, dy) || 1;
+  return [mx - (dy / L) * bend, my + (dx / L) * bend];
+}
+function shadow(x, y, w) {
+  ctx.fillStyle = 'rgba(0,0,0,.33)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, w, w * 0.3, 0, 0, 7);
+  ctx.fill();
+}
+function drawDrone(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z;
+  shadow(sx, e.y, 10);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face, 1);
+  if (e.state === 'dead') ctx.rotate(e.t * 0.2);
+  const blink = e.flash > 0 && e.flash % 2;
+  ctx.strokeStyle = '#5d6680';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-12, -6);
+  ctx.lineTo(12, -6);
+  ctx.stroke();
+  const rw = 8 + Math.sin(G.t * 1.3) * 6;
+  ctx.strokeStyle = 'rgba(200,220,255,.55)';
+  ctx.beginPath();
+  ctx.moveTo(-12 - rw / 2, -8);
+  ctx.lineTo(-12 + rw / 2, -8);
+  ctx.moveTo(12 - rw / 2, -8);
+  ctx.lineTo(12 + rw / 2, -8);
+  ctx.stroke();
+  fillPoly([-10, -4, 10, -4, 13, 2, 6, 7, -8, 7, -11, 2], blink ? '#ffffff' : '#39405a');
+  fillPoly([-10, -4, 10, -4, 8, -1, -8, -1], '#5d6680');
+  ctx.fillStyle = e.state === 'aim' && e.t % 6 < 3 ? '#ffffff' : '#ff3d4a';
+  ctx.beginPath();
+  ctx.arc(7, 2, 2.2, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = '#22263a';
+  ctx.fillRect(2, 6, 9, 2);
+  ctx.restore();
+}
+function drawSpirit(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z;
+  ctx.fillStyle = 'rgba(255,106,61,.18)';
+  ctx.beginPath();
+  ctx.ellipse(sx, e.y, 12, 3.5, 0, 0, 7);
+  ctx.fill();
+  const fl = e.flash > 0 && e.flash % 2,
+    a = e.state === 'dead' ? Math.max(0, 1 - e.t / 20) : 1;
+  ctx.globalAlpha = a;
+  for (let i = 0; i < 5; i++) {
+    const ph = G.t * 0.25 + i * 1.3,
+      r = 9 - i * 1.4,
+      ox = Math.sin(ph) * 2,
+      oy = -i * 4 - Math.abs(Math.cos(ph)) * 2;
+    ctx.fillStyle = fl ? '#fff' : ['#ff3d1a', '#ff6a3d', '#ff9a3d', '#ffc63d', '#fff1b0'][i];
+    ctx.beginPath();
+    ctx.arc(sx + ox, sy + oy, Math.max(1.5, r), 0, 7);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#2a0a04';
+  ctx.fillRect(sx - 4 + e.face * 2, sy - 8, 2, 2.4);
+  ctx.fillRect(sx + 1 + e.face * 2, sy - 8, 2, 2.4);
+  ctx.globalAlpha = 1;
+}
+function drawProp(kind, sx, sy) {
+  if (kind === 'can') {
+    ctx.fillStyle = '#5d6680';
+    ctx.fillRect(sx - 6, sy - 14, 12, 14);
+    ctx.fillStyle = '#8a93a6';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy - 14, 6, 2, 0, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fillRect(sx - 6, sy - 9, 12, 1);
+    ctx.fillRect(sx - 6, sy - 5, 12, 1);
+  }
+  if (kind === 'crate') {
+    ctx.fillStyle = '#7a5a34';
+    ctx.fillRect(sx - 8, sy - 14, 16, 14);
+    ctx.strokeStyle = '#a07a4a';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(sx - 7.5, sy - 13.5, 15, 13);
+    ctx.beginPath();
+    ctx.moveTo(sx - 7, sy - 13);
+    ctx.lineTo(sx + 7, sy - 1);
+    ctx.stroke();
+  }
+  if (kind === 'drum') {
+    ctx.fillStyle = '#b8322e';
+    ctx.fillRect(sx - 6, sy - 16, 12, 16);
+    ctx.fillStyle = '#ffc63d';
+    ctx.fillRect(sx - 6, sy - 10, 12, 3);
+    ctx.fillStyle = '#e05a4a';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy - 16, 6, 2, 0, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = '#1a0a0a';
+    ctx.font = '600 7px Teko, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', sx, sy - 7.5);
+  }
+}
+function drawPassive(e) {
+  const sx = e.x - G.camX,
+    sy = e.y,
+    fl = e.flash > 0 && e.flash % 2;
+  if (e.state === 'dead') {
+    ctx.globalAlpha = Math.max(0, 1 - e.t / 40);
+  }
+  shadow(sx, e.y, 13);
+  if (e.kind === 'vend') {
+    ctx.fillStyle = fl ? '#fff' : '#2b2440';
+    ctx.fillRect(sx - 11, sy - 40, 22, 40);
+    ctx.fillStyle = fl ? '#fff' : '#45d2ff';
+    ctx.globalAlpha *= 0.8;
+    ctx.fillRect(sx - 8, sy - 36, 12, 20);
+    ctx.globalAlpha = e.state === 'dead' ? Math.max(0, 1 - e.t / 40) : 1;
+    ctx.fillStyle = '#ff3d8b';
+    for (let i = 0; i < 3; i++) ctx.fillRect(sx + 6, sy - 34 + i * 6, 3, 3);
+    ctx.fillStyle = '#0b0812';
+    ctx.fillRect(sx - 8, sy - 12, 16, 6);
+    ctx.strokeStyle = '#ffc63d';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - 10.5, sy - 39.5, 21, 39);
+  }
+  if (e.kind === 'chest') {
+    const tc = G.dun ? ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][G.dun.b.tier] : '#ffc63d';
+    ctx.fillStyle = fl ? '#fff' : '#2a2238';
+    ctx.fillRect(sx - 12, sy - 16, 24, 16);
+    ctx.fillStyle = fl ? '#fff' : '#3a3050';
+    ctx.fillRect(sx - 13, sy - 20, 26, 6);
+    ctx.strokeStyle = tc;
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(sx - 12.5, sy - 19.5, 25, 19);
+    ctx.fillStyle = tc;
+    ctx.fillRect(sx - 2, sy - 14, 4, 5);
+    ctx.globalAlpha = (0.2 + 0.15 * Math.sin(G.t * 0.15)) * (e.state === 'dead' ? 0 : 1);
+    ctx.beginPath();
+    ctx.arc(sx, sy - 10, 18, 0, 7);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  if (e.kind === 'node') {
+    const h = 34 + Math.sin(G.t * 0.1 + e.x) * 2;
+    fillPoly(
+      [sx, sy - h, sx + 9, sy - h * 0.55, sx + 6, sy, sx - 6, sy, sx - 9, sy - h * 0.55],
+      fl ? '#fff' : '#0b2a3a'
+    );
+    ctx.strokeStyle = '#45d2ff';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - h);
+    ctx.lineTo(sx + 9, sy - h * 0.55);
+    ctx.lineTo(sx + 6, sy);
+    ctx.lineTo(sx - 6, sy);
+    ctx.lineTo(sx - 9, sy - h * 0.55);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fillStyle = `rgba(69,210,255,${0.4 + 0.3 * Math.sin(G.t * 0.2 + e.x)})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy - h * 0.55, 4, 0, 7);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+function drawIce(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z,
+    s = (e.d.scale || 1) * (e.kind === 'blackice' ? 11 : 7),
+    fl = e.flash > 0 && e.flash % 2,
+    rot = G.t * 0.05 + e.x * 0.01;
+  shadow(sx, e.y, s * 1.2);
+  if (e.state === 'dead') {
+    ctx.globalAlpha = Math.max(0, 1 - e.t / 30);
+  }
+  const pts = [];
+  for (let i = 0; i < 4; i++) {
+    const a = rot + (i * Math.PI) / 2;
+    pts.push(sx + Math.cos(a) * s, sy + Math.sin(a) * s * 0.55 - s * 0.2);
+  }
+  fillPoly(
+    [sx, sy - s * 1.4, ...pts.slice(0, 4), sx, sy + s * 0.9, ...pts.slice(4)],
+    fl ? '#fff' : e.kind === 'blackice' ? '#05070c' : '#082233'
+  );
+  ctx.strokeStyle = e.enraged ? '#ff3d8b' : '#45d2ff';
+  ctx.lineWidth = e.kind === 'blackice' ? 1.6 : 1.1;
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const px = pts[i * 2],
+      py = pts[i * 2 + 1];
+    ctx.moveTo(sx, sy - s * 1.4);
+    ctx.lineTo(px, py);
+    ctx.lineTo(sx, sy + s * 0.9);
+  }
+  ctx.stroke();
+  ctx.fillStyle = e.kind === 'blackice' ? '#ff3d4a' : e.state === 'aim' && e.t % 6 < 3 ? '#fff' : '#45d2ff';
+  ctx.beginPath();
+  ctx.arc(sx, sy - s * 0.2, e.kind === 'blackice' ? 4 : 2.2, 0, 7);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawBeams() {
+  for (const e of G.ents) {
+    if (e.kind !== 'blackice' || e.state !== 'beam') continue;
+    for (const by of e.beamYs) {
+      const y = by - 22,
+        firing = e.t >= 45 && e.t < 57;
+      if (!firing) {
+        ctx.strokeStyle = `rgba(255,61,74,${0.35 + 0.35 * ((e.t >> 2) % 2)})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        ctx.fillStyle = 'rgba(69,210,255,.25)';
+        ctx.fillRect(0, y - 7, W, 14);
+        ctx.fillStyle = '#e6fbff';
+        ctx.fillRect(0, y - 2, W, 4);
+      }
+    }
+  }
+}
+function drawFig(e) {
+  if (e.d && e.d.passive) return drawPassive(e);
+  if (e.d && e.d.ice) return drawIce(e);
+  if (e.d && e.d.spirit) return drawSpirit(e);
+  if (e.d && e.d.fly) return drawDrone(e);
+  const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
+    pal = e.pal,
+    sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
+    sy = e.y - e.z;
+  shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
+  if (e.inv > 0 && e.state !== 'down' && e.state !== 'roll' && (G.t >> 2) % 2) return;
+  if (e.state === 'dead' && e.t > 40 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  const st = e.state,
+    t = e.t,
+    lying = st === 'down' || st === 'dead';
+  if (lying) {
+    if (e.z > 0) ctx.rotate(-Math.min(1.5, t * 0.12));
+    else {
+      ctx.translate(-6, -4);
+      ctx.rotate(-Math.PI / 2);
+    }
+  }
+  if (st === 'roll') {
+    ctx.translate(0, -12);
+    ctx.rotate((t / 22) * Math.PI * 2);
+    ctx.translate(0, 12);
+  }
+  if (st === 'grabbed') {
+    ctx.rotate(0.15);
+  }
+  const fl = e.flash > 0 && e.flash % 2;
+  const skin = fl ? '#ffffff' : pal.skin,
+    coat = fl ? '#ffffff' : pal.coat,
+    coat2 = fl ? '#e8e8e8' : pal.coat2,
+    pants = fl ? '#ffffff' : pal.pants;
+  const ws = Math.sin(e.walk * 0.2),
+    wc = Math.cos(e.walk * 0.2);
+  let hip = [0, -20],
+    sh = [0, -35],
+    lean = 0;
+  let ff = [3, 0],
+    bf = [-3, 0],
+    fh = [7, -25],
+    bh = [-5, -24],
+    fkb = 4,
+    bkb = 4,
+    gun = false,
+    glow = 0,
+    staff = false,
+    swing = false;
+  const breath = Math.sin(G.t * 0.07 + e.x) * 0.6;
+  const style = e.kind === 'player' ? 'runner' : e.d ? e.d.style : e.style;
+  if (style === 'ghoul') lean = 4;
+  if (st === 'heavy') {
+    const a = t >= 8 && t <= 14;
+    fh = a ? [24, -30] : [-10, -40];
+    bh = a ? [14, -28] : [-12, -34];
+    lean = a ? 6 : -5;
+    ff = [9, 0];
+    bf = [-8, 0];
+    swing = a;
+  }
+  if (st === 'dance') {
+    fh = [22, -28];
+    bh = [-12, -30];
+    lean = 7;
+    ff = [12, -2];
+    bf = [-12, -4];
+    swing = true;
+  }
+  if (st === 'slam') {
+    const a = e.t >= 22;
+    fh = a ? [16, -6] : [4, -52];
+    bh = a ? [10, -4] : [-4, -52];
+    lean = a ? 8 : -4;
+    ff = [8, 0];
+    bf = [-7, 0];
+  }
+  if (st === 'idle' || st === 'blink' || st === 'summon') {
+    sh = [0, -35 + breath];
+    fh = [8, -27 + breath];
+    bh = [-4, -25 + breath];
+    ff = [5, 0];
+    bf = [-4, 0];
+    if (st === 'summon') {
+      fh = [6, -48];
+      bh = [-6, -48];
+      glow = Math.min(1, t / 16);
+    }
+  }
+  if (st === 'walk' || st === 'charge') {
+    const k = st === 'charge' ? 1.5 : 1;
+    ff = [ws * 7 * k, -Math.max(0, wc) * 3];
+    bf = [-ws * 7 * k, -Math.max(0, -wc) * 3];
+    fh = [-ws * 6 + 4, -24];
+    bh = [ws * 6 - 2, -24];
+    if (st === 'charge') {
+      lean = 5;
+      fh = [14, -30];
+    }
+  }
+  if (st === 'punch') {
+    const a = t >= 3 && t <= 8;
+    fh = a ? [19, -33] : [6, -31];
+    bh = [2, -28];
+    lean = a ? 3 : 0;
+    ff = [7, 0];
+    bf = [-6, 0];
+    swing = a;
+  }
+  if (st === 'upper') {
+    const a = t >= 5 && t <= 11;
+    fh = a ? [13, -49] : [4, -26];
+    lean = a ? 2 : -1;
+    ff = [6, 0];
+    bf = [-6, 0];
+    hip = [0, -19];
+    swing = a;
+  }
+  if (st === 'kick') {
+    const a = t >= 6 && t <= 12;
+    ff = a ? [23, -22] : [8, -10];
+    fkb = a ? -3 : 6;
+    lean = a ? -4 : -1;
+    bf = [-3, 0];
+    fh = [3, -30];
+    bh = [-9, -29];
+  }
+  if (st === 'jump' || st === 'roll' || st === 'lunge') {
+    ff = [7, -8];
+    bf = [-5, -10];
+    fkb = 6;
+    bkb = 6;
+    fh = [8, -36];
+    bh = [-8, -34];
+    if (st === 'lunge') {
+      fh = [18, -30];
+      bh = [14, -34];
+      lean = 6;
+    }
+  }
+  if (st === 'jkick') {
+    ff = [21, -12];
+    bf = [-6, -12];
+    fkb = 0;
+    bkb = 7;
+    fh = [2, -31];
+    bh = [-9, -36];
+    lean = -3;
+  }
+  if (st === 'shoot') {
+    fh = [19, -32];
+    bh = [10, -30];
+    gun = true;
+    ff = [6, 0];
+    bf = [-6, 0];
+    lean = t < 5 ? -2 : 0;
+  }
+  if (st === 'cast') {
+    fh = [16, -31];
+    bh = [12, -27];
+    glow = Math.min(1, t / 10);
+    ff = [6, 0];
+    bf = [-6, 0];
+    lean = -1;
+  }
+  if (st === 'hurt' || st === 'grabbed') {
+    lean = -6;
+    fh = [2, -38];
+    bh = [-10, -36];
+  }
+  if (st === 'grab') {
+    fh = [13, -30];
+    bh = [11, -33];
+    ff = [6, 0];
+    bf = [-6, 0];
+    if (e.kneeT > 0) {
+      ff = [10, -18];
+      fkb = -4;
+    }
+  }
+  if (st === 'lift' || e.holding) {
+    fh = [3, -47];
+    bh = [-3, -47];
+  }
+  if (st === 'throw') {
+    const a = t >= 3;
+    fh = a ? [16, -38] : [-4, -46];
+    bh = a ? [12, -36] : [-8, -44];
+    lean = a ? 4 : -3;
+    ff = [7, 0];
+    bf = [-6, 0];
+  }
+  if (st === 'windup') {
+    const a = t >= 14;
+    fh = a ? [20, -31] : [-7, -38];
+    lean = a ? 4 : -3;
+    ff = [7, 0];
+    bf = [-6, 0];
+    if (e.kind === 'blade') {
+      fh = a ? [24, -28] : [-6, -42];
+    }
+  }
+  if (st === 'aim') {
+    if (e.d.ranged === 'bullet') {
+      fh = [19, -32];
+      bh = [10, -30];
+      gun = true;
+    } else {
+      fh = [16, -33];
+      bh = [12, -28];
+      glow = Math.min(1, t / 14);
+      staff = true;
+    }
+    ff = [6, 0];
+    bf = [-6, 0];
+  }
+  sh = [sh[0] + lean, sh[1]];
+  const shF = [sh[0] + 2, sh[1] + 1],
+    shB = [sh[0] - 2, sh[1] + 1];
+  const isP = e.kind === 'player';
+  limb(shB, joint(shB, bh, -3), bh, coat2, 4);
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(bh[0], bh[1], 2, 0, 7);
+  ctx.fill();
+  limb([hip[0] - 2, hip[1]], joint([hip[0] - 2, hip[1]], bf, bkb), bf, pants, 4.6);
+  ctx.fillStyle = pal.boot;
+  ctx.fillRect(bf[0] - 3, bf[1] - 2.5, 7, 3);
+  const armorCol =
+    isP && e.eq.armor && e.eq.armor.rar
+      ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18'][e.eq.armor.rar]
+      : null;
+  const cTop = fl ? '#fff' : armorCol || coat;
+  if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard') {
+    const sw = (st === 'walk' ? ws * 2 : 0) - lean * 0.5;
+    fillPoly(
+      [
+        sh[0] - 6,
+        sh[1],
+        sh[0] + 6,
+        sh[1],
+        hip[0] + 7,
+        hip[1] + 2,
+        hip[0] + 5 + sw,
+        hip[1] + 13,
+        hip[0] - 9 + sw,
+        hip[1] + 12
+      ],
+      coat2
+    );
+  }
+  fillPoly(
+    [sh[0] - 6.5, sh[1] - 1, sh[0] + 6.5, sh[1] - 1, hip[0] + 6, hip[1] + 2, hip[0] - 6, hip[1] + 2],
+    cTop
+  );
+  if (style === 'runner') {
+    ctx.strokeStyle = pal.acc;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sh[0] + 3, sh[1]);
+    ctx.lineTo(hip[0] + 2, hip[1] + 2);
+    ctx.stroke();
+    if (e.eq.armor && e.eq.armor.arm >= 6) {
+      ctx.fillStyle = 'rgba(255,255,255,.15)';
+      ctx.fillRect(sh[0] - 5, sh[1] + 2, 10, 8);
+    }
+  }
+  if (style === 'helmet' || style === 'riot') {
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(sh[0] - 5, sh[1] + 4, 10, 2);
+  }
+  if (style === 'blade') {
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(sh[0] - 6, sh[1] + 8, 12, 1.5);
+  }
+  if (style === 'apron') {
+    ctx.fillStyle = fl ? '#fff' : '#3a2f2a';
+    ctx.fillRect(sh[0] - 5, sh[1] + 6, 10, 16);
+  }
+  if (style === 'ghoul') {
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sh[0] - 5, sh[1] + 4);
+    ctx.lineTo(sh[0] + 4, sh[1] + 9);
+    ctx.moveTo(sh[0] - 4, sh[1] + 9);
+    ctx.lineTo(sh[0] + 5, sh[1] + 13);
+    ctx.stroke();
+  }
+  limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, fkb), ff, pants, 4.6);
+  ctx.fillStyle = pal.boot;
+  ctx.fillRect(ff[0] - 3, ff[1] - 2.5, 7.5, 3);
+  const hd = [sh[0] + 1, sh[1] - 7.5];
+  ctx.fillStyle = skin;
+  ctx.beginPath();
+  ctx.arc(hd[0], hd[1], 5.6, 0, 7);
+  ctx.fill();
+  ctx.fillStyle = fl ? '#fff' : pal.hair;
+  const eye = c => {
+    ctx.fillStyle = c || '#1b1520';
+    ctx.fillRect(hd[0] + 2.5, hd[1] - 1.5, 2, 1.6);
+  };
+  if (style === 'runner') {
+    if (e.idx === 1) {
+      fillPoly(
+        [
+          hd[0] - 6,
+          hd[1] + 2,
+          hd[0] - 5,
+          hd[1] - 6,
+          hd[0] + 3,
+          hd[1] - 7,
+          hd[0] + 6,
+          hd[1] - 3,
+          hd[0] + 1,
+          hd[1] - 4,
+          hd[0] - 3,
+          hd[1] - 2,
+          hd[0] - 9,
+          hd[1] + 6
+        ],
+        fl ? '#fff' : pal.hair
+      );
+    } else
+      fillPoly(
+        [
+          hd[0] - 6,
+          hd[1] - 1,
+          hd[0] - 4,
+          hd[1] - 7,
+          hd[0] + 1,
+          hd[1] - 6.5,
+          hd[0] + 5,
+          hd[1] - 5,
+          hd[0] + 3,
+          hd[1] - 3,
+          hd[0] - 2,
+          hd[1] - 3,
+          hd[0] - 5,
+          hd[1] + 3
+        ],
+        fl ? '#fff' : pal.hair
+      );
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(hd[0] - 1, hd[1] - 1.5, 7, 2.4);
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(hd[0] + 5, hd[1] - 1.5, 4, 2.4);
+    ctx.globalAlpha = 1;
+  } else if (style === 'mohawk') {
+    fillPoly([hd[0] - 5, hd[1] - 3, hd[0] - 1, hd[1] - 12, hd[0] + 3, hd[1] - 5], pal.hair);
+    eye();
+  } else if (style === 'tusks') {
+    ctx.beginPath();
+    ctx.arc(hd[0] - 1, hd[1] - 2, 5.4, Math.PI, 0);
+    ctx.fill();
+    fillPoly([hd[0] + 3, hd[1] + 3, hd[0] + 5, hd[1] - 0.5, hd[0] + 5.5, hd[1] + 3.5], pal.acc);
+    eye();
+  }
+  if (style === 'helmet' || style === 'riot') {
+    ctx.fillStyle = fl ? '#fff' : coat;
+    ctx.beginPath();
+    ctx.arc(hd[0], hd[1] - 0.5, 6.4, Math.PI * 0.95, Math.PI * 2.05);
+    ctx.fill();
+    ctx.fillStyle = e.kind === 'cop' ? ((G.t >> 3) % 2 ? '#ff3d4a' : '#45d2ff') : pal.acc;
+    ctx.fillRect(hd[0] + 0.5, hd[1] - 1.8, 6.5, 2.6);
+  } else if (style === 'feathers') {
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(hd[0] - 6, hd[1] - 3.5, 12, 1.6);
+    fillPoly([hd[0] - 5, hd[1] - 3, hd[0] - 9, hd[1] - 11, hd[0] - 6, hd[1] - 3.5], '#ece4c6');
+    fillPoly([hd[0] - 3, hd[1] - 3, hd[0] - 5, hd[1] - 12, hd[0] - 2, hd[1] - 3.5], '#ff6a3d');
+    eye();
+  } else if (style === 'horns') {
+    ctx.strokeStyle = pal.hair;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(hd[0] - 2, hd[1] - 4);
+    ctx.quadraticCurveTo(hd[0] - 8, hd[1] - 9, hd[0] - 4, hd[1] - 13);
+    ctx.moveTo(hd[0] + 2, hd[1] - 4);
+    ctx.quadraticCurveTo(hd[0] + 7, hd[1] - 8, hd[0] + 5, hd[1] - 12);
+    ctx.stroke();
+    eye(pal.acc);
+  } else if (style === 'blade') {
+    fillPoly(
+      [
+        hd[0] - 6,
+        hd[1],
+        hd[0] - 4,
+        hd[1] - 6.5,
+        hd[0] + 5,
+        hd[1] - 6,
+        hd[0] + 5,
+        hd[1] - 3,
+        hd[0] - 1,
+        hd[1] - 3,
+        hd[0] - 8,
+        hd[1] + 8
+      ],
+      pal.hair
+    );
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(hd[0] + 2, hd[1] - 1.4, 4, 1.6);
+  } else if (style === 'mage') {
+    ctx.beginPath();
+    ctx.arc(hd[0] - 1, hd[1] - 1.5, 5.8, Math.PI * 0.9, Math.PI * 2);
+    ctx.fill();
+    eye(pal.acc);
+  } else if (style === 'ghoul') {
+    eye('#ff4a4a');
+    ctx.fillRect(hd[0] - 0.5, hd[1] - 1.5, 2, 1.6);
+    if (e.d && e.d.crown) {
+      fillPoly(
+        [
+          hd[0] - 5,
+          hd[1] - 5,
+          hd[0] - 4,
+          hd[1] - 11,
+          hd[0] - 1,
+          hd[1] - 6,
+          hd[0] + 1,
+          hd[1] - 12,
+          hd[0] + 3,
+          hd[1] - 6,
+          hd[0] + 5,
+          hd[1] - 11,
+          hd[0] + 5,
+          hd[1] - 5
+        ],
+        '#c9a24a'
+      );
+    }
+  } else if (style === 'bob') {
+    fillPoly(
+      [
+        hd[0] - 7,
+        hd[1] + 4,
+        hd[0] - 6,
+        hd[1] - 5,
+        hd[0] - 1,
+        hd[1] - 7.5,
+        hd[0] + 5,
+        hd[1] - 5,
+        hd[0] + 6,
+        hd[1] - 2,
+        hd[0] + 1,
+        hd[1] - 3,
+        hd[0] - 2,
+        hd[1] + 4
+      ],
+      pal.hair
+    );
+    ctx.fillStyle = pal.acc;
+    ctx.fillRect(hd[0] - 6, hd[1] - 2, 1.6, 6);
+    eye();
+  } else if (style === 'doc') {
+    ctx.beginPath();
+    ctx.arc(hd[0] - 1, hd[1] - 2, 5.4, Math.PI, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#1b1520';
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(hd[0] + 1.5, hd[1] - 2.2, 3.5, 2.6);
+  } else if (style === 'beard') {
+    fillPoly([hd[0] - 2, hd[1] + 1, hd[0] + 5, hd[1] + 1, hd[0] + 1, hd[1] + 9], pal.hair);
+    eye();
+  } else if (style === 'cap') {
+    ctx.fillStyle = pal.hair;
+    ctx.beginPath();
+    ctx.arc(hd[0], hd[1] - 2, 5.8, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(hd[0], hd[1] - 3, 8, 1.8);
+    eye();
+  } else if (style === 'apron') {
+    eye();
+  } else if (style === 'glitch') {
+    ctx.strokeStyle = '#45d2ff';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(hd[0], hd[1], 5.8, 0, 7);
+    ctx.stroke();
+    ctx.fillStyle = '#45d2ff';
+    ctx.fillRect(hd[0] + 1, hd[1] - 1.5, 5, 1.4);
+  }
+  const cyb = isP && e.cy.arm > 0;
+  const armCol =
+    style === 'runner' ? (fl ? '#fff' : cyb ? pal.cyber : cTop) : style === 'blade' ? '#c9d2e6' : coat;
+  limb(shF, joint(shF, fh, -3), fh, armCol, 4.2);
+  ctx.fillStyle = cyb ? '#c9f4ff' : skin;
+  ctx.beginPath();
+  ctx.arc(fh[0], fh[1], 2.3, 0, 7);
+  ctx.fill();
+  if (style === 'riot' && st !== 'grabbed') {
+    ctx.fillStyle = fl ? '#fff' : 'rgba(159,180,216,.55)';
+    ctx.fillRect(fh[0] + 1, sh[1] - 2, 4, 30);
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.fillRect(fh[0] + 2, sh[1], 1, 26);
+  }
+  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll') {
+    const w = e.eq.weapon,
+      L = { pipe: 9, baton: 9, blade: 15, whip: 18, knucks: 2, axe: 11, hammer: 11 }[w.look] || 9,
+      ang = swing ? -0.15 : -1.1;
+    ctx.strokeStyle =
+      w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0
+        ? AFX_COL[w.mod]
+        : {
+            pipe: '#8a8f9c',
+            baton: '#45d2ff',
+            blade: '#e9f6ff',
+            whip: '#ff3d8b',
+            knucks: '#ffc63d',
+            axe: '#8a6a52',
+            hammer: '#6b6280'
+          }[w.look] || '#8a8f9c';
+    ctx.lineWidth = w.look === 'whip' ? 0.8 : 1.6;
+    ctx.beginPath();
+    ctx.moveTo(fh[0], fh[1]);
+    ctx.lineTo(fh[0] + Math.cos(ang) * L, fh[1] + Math.sin(ang) * L);
+    ctx.stroke();
+    const tx = fh[0] + Math.cos(ang) * L,
+      ty = fh[1] + Math.sin(ang) * L;
+    if (w.look === 'hammer') {
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(ang);
+      ctx.fillStyle = '#3a3150';
+      ctx.fillRect(-2, -4.5, 6, 9);
+      ctx.fillStyle = '#b98cff';
+      ctx.globalAlpha *= 0.8;
+      ctx.fillRect(3, -4.5, 1.4, 9);
+      ctx.restore();
+    }
+    if (w.look === 'axe') {
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(ang);
+      fillPoly([-3, 0, 1, -1, 3, 6, -3, 4], '#d6dbe6');
+      ctx.restore();
+    }
+    if (w.look === 'knucks') {
+      ctx.fillStyle = '#ffc63d';
+      ctx.fillRect(fh[0] - 1, fh[1] - 2.5, 3.5, 5);
+    }
+  }
+  if (gun) {
+    const big = isP && e.eq.gun && e.eq.gun.fire !== 'single';
+    ctx.fillStyle = '#14121a';
+    ctx.fillRect(fh[0], fh[1] - 2.5, big ? 13 : 9, 3.2);
+    ctx.fillRect(fh[0] + 1, fh[1], 2.4, 3.5);
+    if (
+      (st === 'shoot' && (t < 4 || (big && e.eq.gun.fire === 'burst' && t % 4 < 2))) ||
+      (st === 'aim' && t >= 20 && t < 25)
+    )
+      fillPoly(
+        [
+          fh[0] + (big ? 13 : 9),
+          fh[1] - 3,
+          fh[0] + (big ? 20 : 16),
+          fh[1] - 1,
+          fh[0] + (big ? 13 : 9),
+          fh[1] + 1
+        ],
+        '#ffe28a'
+      );
+  }
+  if (style === 'blade') {
+    ctx.strokeStyle = fl ? '#fff' : '#e9f6ff';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(fh[0], fh[1]);
+    ctx.lineTo(fh[0] + 12, fh[1] - (st === 'windup' && t < 14 ? 8 : -2));
+    ctx.stroke();
+  }
+  if (staff) {
+    ctx.strokeStyle = '#8a5a3a';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(fh[0] - 3, fh[1] + 14);
+    ctx.lineTo(fh[0] + 2, fh[1] - 12);
+    ctx.stroke();
+  }
+  if (glow > 0) {
+    let gc = e.team ? '69,210,255' : '255,106,61';
+    if (e.kind === 'saint') gc = '255,74,74';
+    if (e.kind === 'avatar') gc = '185,140,255';
+    if (isP) {
+      const id = e.spells[e.spell];
+      gc =
+        id === 'bolt' || id === 'chain'
+          ? '185,140,255'
+          : id === 'heal'
+            ? '125,255,176'
+            : id === 'barrier'
+              ? '69,210,255'
+              : gc;
+    }
+    const r = 3 + glow * 5 + Math.sin(G.t * 0.6);
+    ctx.fillStyle = `rgba(${gc},${0.25 * glow})`;
+    ctx.beginPath();
+    ctx.arc(fh[0] + 4, fh[1], r * 1.8, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = `rgba(${gc},${0.9 * glow})`;
+    ctx.beginPath();
+    ctx.arc(fh[0] + 4, fh[1], r * 0.7, 0, 7);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (isP && e.shield > 0 && e.state !== 'dead') {
+    ctx.strokeStyle = `rgba(69,210,255,${0.35 + 0.2 * Math.sin(G.t * 0.3)})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy - 22, 14, 26, 0, 0, 7);
+    ctx.stroke();
+  }
+  if (isP && (e.chargeT || 0) > 12 && e.state !== 'dead') {
+    const k = Math.min(1, (e.chargeT - 12) / 20);
+    ctx.strokeStyle = e.chargeT >= 32 ? '#ff3d8b' : 'rgba(255,61,139,.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(sx, e.y, 8 + k * 8, 3 + k * 3, 0, 0, 7);
+    ctx.stroke();
+  }
+  if (isP && (e.sp || 0) >= 100 && e.state !== 'dead' && (G.t >> 3) % 2) {
+    ctx.fillStyle = '#ffc63d';
+    ctx.font = '600 10px Teko, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★', sx, sy - 64 * sc);
+  }
+  if (e.holding) drawProp(e.holding.kind, sx, sy - 48 * sc + (st === 'lift' ? Math.max(0, 10 - t) * 3 : 0));
+  if (isP && G.coop && e.state !== 'dead') {
+    ctx.fillStyle = e.pal.acc;
+    fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+  }
+}
+function drawProj(pr) {
+  const sx = pr.x - G.camX,
+    sy = pr.y - pr.z;
+  shadow(sx, pr.y, pr.k === 'bullet' ? 3 : 6);
+  if (pr.k === 'laser') {
+    ctx.strokeStyle = '#45d2ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - Math.sign(pr.vx) * 14, sy);
+    ctx.stroke();
+    return;
+  }
+  if (pr.k === 'nade') {
+    ctx.fillStyle = '#2a2e1a';
+    ctx.beginPath();
+    ctx.arc(sx, sy, 3.2, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = (G.t >> 2) % 2 ? '#ff3d4a' : '#ffc63d';
+    ctx.fillRect(sx - 1, sy - 4, 2, 2);
+    return;
+  }
+  if (pr.k === 'bullet') {
+    ctx.strokeStyle = pr.rail ? '#45d2ff' : pr.seek ? '#7dffb0' : '#ffe28a';
+    ctx.lineWidth = pr.rail ? 2.4 : 1.6;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - Math.sign(pr.vx) * (pr.rail ? 22 : 9), sy);
+    ctx.stroke();
+  } else if (pr.k === 'wave') {
+    ctx.fillStyle = 'rgba(255,106,61,.25)';
+    ctx.beginPath();
+    ctx.ellipse(sx, pr.y, 14, 24, 0, 0, 7);
+    ctx.fill();
+    for (let i = -3; i <= 3; i++) {
+      const h = 8 + Math.sin(G.t * 0.8 + i) * 3 - Math.abs(i);
+      fillPoly(
+        [sx - 4, pr.y + i * 7, sx, pr.y + i * 7 - h, sx + 4, pr.y + i * 7],
+        i % 2 ? '#ff6a3d' : '#ffc63d'
+      );
+    }
+  } else if (pr.k === 'prop') {
+    ctx.save();
+    ctx.translate(sx, sy + 7);
+    ctx.rotate(G.t * 0.4 * Math.sign(pr.vx));
+    drawProp(pr.kind, 0, 7);
+    ctx.restore();
+  } else {
+    const c =
+      pr.k === 'fire'
+        ? ['255,106,61', '#ffe7a8']
+        : pr.k === 'bolt'
+          ? ['185,140,255', '#f2e9ff']
+          : ['69,210,255', '#e6fbff'];
+    const r = pr.r + Math.sin(G.t * 0.5);
+    ctx.fillStyle = `rgba(${c[0]},.25)`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r * 2, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = `rgba(${c[0]},.85)`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, 7);
+    ctx.fill();
+    ctx.fillStyle = c[1];
+    ctx.beginPath();
+    ctx.arc(sx + Math.sign(pr.vx) * 1.5, sy, r * 0.45, 0, 7);
+    ctx.fill();
+  }
+}
+function drawPick(k) {
+  const sx = k.x - G.camX,
+    bob = Math.sin((G.t + k.x) * 0.12) * 1.5,
+    sy = k.y - 6 + bob;
+  if (k.t > 1000 && k.k !== 'gear' && k.k !== 'chip' && (G.t >> 2) % 2) return;
+  shadow(sx, k.y, 5);
+  if (k.k === 'cred') {
+    fillPoly([sx - 6, sy - 2, sx + 6, sy - 4, sx + 6, sy, sx - 6, sy + 2], '#ffc63d');
+    ctx.fillStyle = '#7a5a10';
+    ctx.fillRect(sx + 2, sy - 3, 2, 3);
+  }
+  if (k.k === 'med') {
+    ctx.fillStyle = '#efe9ff';
+    ctx.fillRect(sx - 5, sy - 5, 10, 8);
+    ctx.fillStyle = '#ff3d8b';
+    ctx.fillRect(sx - 1, sy - 4, 2, 6);
+    ctx.fillRect(sx - 3.5, sy - 2, 7, 2);
+  }
+  if (k.k === 'ammo') {
+    ctx.fillStyle = '#3a3344';
+    ctx.fillRect(sx - 4, sy - 6, 8, 9);
+    ctx.fillStyle = '#ffe28a';
+    ctx.fillRect(sx - 2.5, sy - 8, 1.6, 3);
+    ctx.fillRect(sx + 0.8, sy - 8, 1.6, 3);
+  }
+  if (k.k === 'mana') {
+    ctx.fillStyle = 'rgba(69,210,255,.3)';
+    ctx.beginPath();
+    ctx.arc(sx, sy - 1, 6, 0, 7);
+    ctx.fill();
+    fillPoly([sx, sy - 7, sx + 4, sy - 1, sx, sy + 4, sx - 4, sy - 1], '#45d2ff');
+  }
+  if (k.k === 'icebrk') {
+    ctx.fillStyle = '#082233';
+    ctx.fillRect(sx - 5, sy - 6, 10, 8);
+    ctx.strokeStyle = '#45d2ff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - 4.5, sy - 5.5, 9, 7);
+    ctx.fillStyle = '#45d2ff';
+    ctx.fillRect(sx - 3, sy - 4, 2, 4);
+    ctx.fillRect(sx + 1, sy - 4, 2, 4);
+  }
+  if (k.k === 'chip') {
+    ctx.fillStyle = '#0f2a1c';
+    ctx.fillRect(sx - 5, sy - 6, 10, 8);
+    ctx.strokeStyle = '#7dffb0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(sx - 4.5, sy - 5.5, 9, 7);
+    ctx.fillStyle = '#7dffb0';
+    ctx.fillRect(sx - 2, sy - 3, 4, 3);
+  }
+  if (k.k === 'shard') {
+    const b = Math.sin(G.t * 0.12) * 2;
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#45d2ff';
+    ctx.beginPath();
+    ctx.arc(sx, sy - 4 + b, 9, 0, 7);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    fillPoly([sx, sy - 11 + b, sx + 4, sy - 4 + b, sx, sy + 3 + b, sx - 4, sy - 4 + b], '#9fe9ff');
+  }
+  if (k.k === 'gear') {
+    const c = RCOL[k.item.rar];
+    ctx.globalAlpha = 0.25 + 0.15 * Math.sin(G.t * 0.15);
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(sx, sy - 2, 10, 0, 7);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#2a2238';
+    ctx.fillRect(sx - 6, sy - 7, 12, 9);
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(sx - 5.5, sy - 6.5, 11, 8);
+    ctx.fillStyle = c;
+    ctx.fillRect(sx - 1, sy - 6, 2, 7);
+  }
+}
+function drawFx() {
+  for (const f of G.fx) {
+    const sx = f.x - G.camX,
+      sy = f.y - f.z,
+      k = f.life / f.max;
+    ctx.strokeStyle = f.c;
+    if (f.k === 'star') {
+      ctx.globalAlpha = k;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      const r = f.r * (1.2 - k * 0.6);
+      for (let i = 0; i < 6; i++) {
+        const a = f.rot + (i * Math.PI) / 3;
+        ctx.moveTo(sx + Math.cos(a) * r * 0.35, sy + Math.sin(a) * r * 0.35);
+        ctx.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r);
+      }
+      ctx.stroke();
+    }
+    if (f.k === 'zap') {
+      ctx.globalAlpha = k;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      let zx = sx,
+        zy = -10;
+      ctx.moveTo(zx, zy);
+      while (zy < sy) {
+        zy += 12;
+        zx = sx + rand(-6, 6);
+        ctx.lineTo(zx, Math.min(zy, sy));
+      }
+      ctx.stroke();
+      ctx.fillStyle = f.c;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6 * k + 2, 0, 7);
+      ctx.fill();
+    }
+    if (f.k === 'ring') {
+      ctx.globalAlpha = k * 0.9;
+      ctx.lineWidth = 2 * k + 0.5;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, f.r * (1 - k * 0.7), f.r * (1 - k * 0.7) * 0.45, 0, 0, 7);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}

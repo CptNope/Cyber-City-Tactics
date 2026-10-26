@@ -1,0 +1,22 @@
+{
+  "name": "cyber-city-tactics",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A vector brawler RPG PWA: campaign, open-world Sprawl, Arena, skill trees, legendaries and secrets.",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "build": "node tools/build.mjs",
+    "check": "node tools/build.mjs --check",
+    "test": "node tests/run.js",
+    "test:quick": "node tests/run.js --quick",
+    "test:browser": "node tests/browser.test.js",
+    "format": "prettier --write \"src/**/*.{js,css}\" \"tests/**/*.js\" \"tools/**/*.mjs\" sw.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

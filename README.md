@@ -2,7 +2,7 @@
 
 **Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG for one or two players. It's set in a cyberpunk sprawl where magic is real: street samurai, combat mages, gunslingers, deckers, shamans and riggers fighting gangs, corps, spirits and ICE.
 
-It is one HTML file with no build step and no dependencies. It runs in any modern browser, installs as a PWA, and plays offline after the first load.
+It's plain JavaScript with no framework and no runtime dependencies, split into small files by system. It runs in any modern browser and installs as an app (PWA) that plays fully offline.
 
 - **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
 - **What's next:** see [ROADMAP.md](ROADMAP.md)
@@ -22,9 +22,9 @@ It is one HTML file with no build step and no dependencies. It runs in any moder
 - [Your legend: feats, legendaries and the Codex](#your-legend-feats-legendaries-and-the-codex)
 - [Controls](#controls)
 - [On phones](#on-phones)
+- [Install it as an app](#install-it-as-an-app)
 - [Saves](#saves)
 - [Development](#development)
-- [Project layout](#project-layout)
 
 ---
 
@@ -37,7 +37,7 @@ It is one HTML file with no build step and no dependencies. It runs in any moder
 3. Pick an archetype and a difficulty, solo or co-op, and go.
 4. Check the **Codex** on the title screen now and then. It tracks feats, legendaries, enemies and lore across every run, and most of it starts hidden.
 
-To play locally, run `npx serve .` (or `python3 -m http.server`) in the repo and open the URL it prints. Opening `index.html` straight from disk also works, but the offline service worker only installs over http(s).
+To play locally, run `npm start` (no install needed) and open the URL it prints. There's also a single-file copy of the whole game at `dist/cyber-city-tactics.html` that you can open straight from disk or send to someone.
 
 ---
 
@@ -392,6 +392,15 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 - **Settings:** control size (S/M/L), left-handed layout, screen shake, vibration, tips, sound, music and full screen.
 - First-time tips explain each mechanic when you first meet it, worded for touch or keyboard.
 
+## Install it as an app
+Cyber City Tactics is a Progressive Web App.
+- **Install:** Settings → *Install the app* (or *Install app* on the title screen) in Chrome, Edge and Android browsers. On iPhone and iPad, open it in Safari, tap **Share**, then **Add to Home Screen**.
+- **Offline:** after the first visit everything is stored on the device, so it plays on a plane, in a tunnel, or with the network off.
+- **Updates:** new versions download in the background. Between fights, an *A new version is ready* bar appears; tap **Update now** when it suits you. You're never pulled out of a fight.
+- **Shortcuts:** long-press the app icon for *Daily challenge*, *The Sprawl*, *Arena* and *Codex*.
+- **Your saves are safe:** the game asks the browser for persistent storage so saves aren't cleared to free space. Settings → *Save backup* → **Export** downloads every save as a file; **Import** loads it on another device.
+- The screen stays awake while you play, and the game pauses itself when you switch away.
+
 ## Saves
 Everything is stored in the browser's `localStorage` on the device. Nothing is sent anywhere.
 
@@ -405,57 +414,48 @@ Everything is stored in the browser's `localStorage` on the device. Nothing is s
 | `cs_legend` | Your legend: feats, stats, legendaries found, bestiary and lore |
 | `cs_prefs` | Settings and which tips you've seen |
 
-Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned.
+Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned. A save that's damaged or from an unknown format is ignored rather than allowed to crash the game. Settings → *Save backup* exports and imports all of them as one file.
 
 ---
 
 ## Development
+The code is split into small files by system and documented in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the folder layout, the load order, how a frame works, where state lives, and recipes for adding enemies, gear, feats, skills, Sprawl events and archetypes.
 
-### How it's built
-- **One file.** The whole game (HTML, CSS and JavaScript) lives in `index.html`. Drawing is Canvas 2D with vector shapes; there are no image assets for the game itself.
-- **Fixed 60 fps simulation.** Hit-stop and slow-mo skip update frames without dropping inputs.
-- **Audio.** Sound effects and a small chiptune sequencer are built with the Web Audio API.
-- **PWA.** `manifest.webmanifest` and `sw.js` handle install and offline play. The service worker fetches the game page network-first, so updates show up on the next load, and caches icons and fonts.
+You need Node 18 or newer. Nothing has to be installed to run, build or test the game; Playwright and Prettier are optional extras for the browser tests and formatting.
+
+| Command | What it does |
+|---|---|
+| `npm start` | Serves the game at http://localhost:8080 (the service worker is off on localhost so edits show on reload; add `?sw=1` to test it) |
+| `npm run build` | Stamps the version, refreshes the service worker's file list, writes `dist/cyber-city-tactics.html`. **Run before every commit.** |
+| `npm run check` | Fails if the build is out of date (handy in CI) |
+| `npm test` | Every headless test, including two bot playthroughs (about 20 s) |
+| `npm run test:quick` | The same without the bot playthroughs |
+| `npm run test:browser` | Real-Chromium checks: both builds boot, manifest, shortcuts, offline play, the update flow (needs `npm i -D playwright`) |
+| `npm run format` | Prettier over the source (needs `npm i -D prettier`) |
 
 ### Shipping a change
-1. Edit the game source, which is written as a page body fragment. `tools/wrap_for_pages.py` wraps it into the full document (doctype, viewport, reset) that GitHub Pages serves:
-   ```sh
-   python3 tools/wrap_for_pages.py path/to/source.html index.html
-   ```
-   If you edit `index.html` directly, skip this step.
-2. Bump `VERSION` in `sw.js` (for example `cs-v17` → `cs-v18`), so installed copies drop their old cache.
-3. Commit and push to `main`. GitHub Pages deploys from the branch.
+1. Edit files in `src/`.
+2. `npm test`, then `npm run build`.
+3. Commit everything, including the generated `src/js/version.js`, `sw.js` and `dist/`, and push to `main`. GitHub Pages serves the repo root. Installed copies see the new version and offer the update.
 
-### Testing
-Changes are checked with headless Node scripts that stub the DOM and canvas, load the game script, and drive it with real key events and overlay clicks:
-- full bot playthroughs of the campaign (solo and co-op), the Arena and the weekly challenge
-- targeted mechanic tests (riot shields, rolls, elites, specials, companions, training, the Sprawl, skills and gear)
-
-Layout is checked with Playwright screenshots at phone and desktop sizes. These scripts aren't in the repo yet; adding them is on the roadmap.
-
-### Code map (inside `index.html`)
-| Area | Look for |
-|---|---|
-| Input (keys, touch, gamepads) | `KA`, `KB`, `pollPads`, `INP` |
-| Runner stats | `ATTRS`, `ARCH`, `refresh`, `eff` |
-| Skill trees | `TREES`, `SKILLS`, `canLearn`, `skillsHtml` |
-| Gear | `BASES`, `RAR`, `AFFIX`, `mkItem`, `randItem` |
-| Combat | `strike`, `hurt`, `kill`, `fireBullet`, `castSpell`, `explode` |
-| Enemies | `DEF`, `ELITES`, `spawnEnemy`, `upEnemy` |
-| Campaign | `STAGES`, `CONTRACTS`, `NPCS`, `startStage`, `enterDen` |
-| Arena | `startArena`, `PERKS`, `MODS`, `thisWeek`, `thisDay` |
-| Legend and Codex | `FEATS`, `LEGS`, `LORE`, `BEST`, `feat`, `bump`, `legendDrop`, `codexHtml` |
-| The Sprawl | `genStreet`, `worldTick`, `enterBuilding`, `enterRoom`, `lootChest`, `startHack`, `payBounty` |
-| Rendering | `render`, `drawBg`, `drawFig`, `drawHud` |
-| Menus | `renderOv` and the `ov` click handler |
-
-## Project layout
+### Project layout
 ```
-index.html              the whole game
-manifest.webmanifest    PWA manifest
-sw.js                   offline cache (bump VERSION on each ship)
-icon-192.png, icon-512.png
-tools/wrap_for_pages.py wraps the game fragment into a full page for Pages
-README.md               this file
-ROADMAP.md              what's done and what's next
+index.html             the page and the ordered list of scripts
+manifest.webmanifest   PWA manifest
+sw.js                  service worker
+src/css/game.css       all styles
+src/js/core/           canvas, utils and storage, audio, music, input
+src/js/data/           tables: enemies, districts, gear, contracts, lore, feats
+src/js/systems/        legend (feats, legendaries, Codex) and skill trees
+src/js/game/           simulation: state, flow, combat, runners, enemies, allies, update
+src/js/modes/          the Sprawl, dungeons, hacking, training, Arena
+src/js/render/         drawing and the HUD
+src/js/ui/             menus and buttons
+src/js/pwa.js          install, updates, backups, shortcuts
+src/js/main.js         game loop and boot
+icons/, screenshots/   app icons and install-dialog screenshots
+dist/                  generated single-file build
+tools/                 build, local server, screenshot generator
+tests/                 headless tests and browser tests
+docs/                  architecture guide
 ```

@@ -3,7 +3,7 @@
 Where Cyber City Tactics has been and where it could go next. Items are grouped by theme and roughly ordered by value within each group. Effort is a rough guess: **S** is an evening, **M** a few sessions, **L** a bigger project.
 
 The guiding rules:
-- Stay one HTML file with no build step.
+- No framework and no runtime dependencies: plain JavaScript files that any static host can serve, plus a small build that also produces a single-file copy.
 - Every feature has to work on a phone with touch controls.
 - Every system should make a choice more interesting rather than just add a number.
 
@@ -23,6 +23,7 @@ The guiding rules:
 - [x] Training level and boss rematches
 - [x] **The Sprawl:** open world with procedural buildings, a hacking minigame, heat, cops and street cred
 - [x] **Skill trees:** Brawler, Gunslinger, Mage and Decker, six skills each with a capstone
+- [x] **Modular source and a robust PWA:** the code split by system with an architecture guide, a build script, checked-in tests, offline app-shell caching, in-game updates, install and backup
 - [x] **Renamed to Cyber City Tactics**
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
@@ -109,10 +110,14 @@ The guiding rules:
 - [ ] **Localization scaffolding (M).** Move all text into one table so the game can be translated.
 
 ### Engineering
-- [ ] **Check in the test bots (S).** Move the headless Node playthroughs and mechanic tests into `tests/`, with one command to run them all.
-- [ ] **GitHub Actions (S).** Run the tests and a Playwright screenshot pass on every push, then deploy Pages only when they pass.
-- [ ] **Split the source (M).** Keep one shipped HTML file, but write the source as modules and inline them with a tiny build script. That makes the game easier to work on without changing how it's played.
-- [ ] **Save export and import (S).** Copy your save as text to move it to another device.
+- [x] ~~**Check in the test bots.**~~ `tests/` with `npm test`, plus Playwright browser checks.
+- [x] ~~**Split the source.**~~ 35 files by system, documented in docs/ARCHITECTURE.md, with a build that also makes a single-file copy.
+- [x] ~~**Save export and import.**~~ In Settings → Save backup.
+- [x] ~~**Robust PWA.**~~ App-shell service worker with versioned precache, an update-ready bar, install button, shortcuts, maskable icons, screenshots, persistent storage and save validation.
+- [ ] **GitHub Actions (S).** Run `npm run check`, `npm test` and the browser tests on every push and pull request, and deploy Pages only when they pass.
+- [ ] **ES modules (M).** Move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses. The current split makes this a mechanical change, file by file.
+- [ ] **Type checking (S).** JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
+- [ ] **Cloud save (M).** Optional sync of the save backup through a file the player picks (File System Access API) or a share code.
 - [ ] **Performance pass (S).** Cache static background layers to an offscreen canvas for low-end phones.
 
 ### Discovery and replayability

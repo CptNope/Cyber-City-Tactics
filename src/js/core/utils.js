@@ -1,0 +1,144 @@
+/* Cyber City Tactics · src/js/core/utils.js
+ * Small helpers (random, clamp, seeded RNG, HTML escaping), localStorage access, player preferences,
+ * vibration, screen wake lock and full screen.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+'use strict';
+/* ================= utils ================= */
+const rand = (a, b) => a + Math.random() * (b - a);
+const ri = (a, b) => Math.floor(rand(a, b + 1));
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function srng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+const store = {
+  get(k) {
+    try {
+      return JSON.parse(localStorage.getItem(k));
+    } catch (e) {
+      return null;
+    }
+  },
+  set(k, v) {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {}
+  },
+  del(k) {
+    try {
+      localStorage.removeItem(k);
+    } catch (e) {}
+  }
+};
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+}
+// Saves can come from older versions or a hand-edited backup. Anything that doesn't have the expected shape
+// is ignored rather than allowed to crash a menu.
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const SAVE_SHAPES = {
+  cs_save3: s =>
+    isObj(s) &&
+    Array.isArray(s.runners) &&
+    s.runners.length > 0 &&
+    Number.isInteger(s.stage) &&
+    s.stage >= 0 &&
+    s.stage < 5,
+  cs_world: s =>
+    isObj(s) &&
+    isObj(s.wd) &&
+    Number.isInteger(s.wd.level) &&
+    s.wd.level > 0 &&
+    Array.isArray(s.runners) &&
+    s.runners.length > 0,
+  cs_arena: s => Array.isArray(s) && s.every(isObj),
+  cs_week: isObj,
+  cs_day: isObj
+};
+/** Read a save slot, or null if it's missing or malformed. */
+store.load = k => {
+  const v = store.get(k);
+  return v !== null && (!SAVE_SHAPES[k] || SAVE_SHAPES[k](v)) ? v : null;
+};
+const prefs = Object.assign(
+  {
+    sound: true,
+    music: true,
+    shake: true,
+    haptics: true,
+    tips: true,
+    seen: {},
+    size: 'm',
+    lefty: false,
+    rotDismissed: false
+  },
+  isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
+);
+function applyPrefs() {
+  const c = document.body.classList;
+  if (!c.toggle) return;
+  c.toggle('size-s', prefs.size === 's');
+  c.toggle('size-l', prefs.size === 'l');
+  c.toggle('lefty', !!prefs.lefty);
+  setTimeout(fit, 30);
+}
+let userActed = false;
+addEventListener(
+  'pointerdown',
+  () => {
+    userActed = true;
+  },
+  { capture: true, passive: true }
+);
+addEventListener(
+  'keydown',
+  () => {
+    userActed = true;
+  },
+  { capture: true }
+);
+function buzz(p) {
+  if (!prefs.haptics || !navigator.vibrate || !userActed) return;
+  try {
+    navigator.vibrate(p);
+  } catch (e) {}
+}
+let wakeLock = null;
+async function wake(on) {
+  try {
+    if (on && !wakeLock && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    } else if (!on && wakeLock) {
+      const w = wakeLock;
+      wakeLock = null;
+      await w.release();
+    }
+  } catch (e) {}
+}
+const canFull = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function goFull() {
+  const el = document.documentElement,
+    r = el && (el.requestFullscreen || el.webkitRequestFullscreen);
+  if (!r) return;
+  try {
+    Promise.resolve(r.call(el))
+      .then(() => {
+        try {
+          if (screen.orientation && screen.orientation.lock)
+            screen.orientation.lock('landscape').catch(() => {});
+        } catch (e) {}
+        setTimeout(fit, 200);
+      })
+      .catch(() => {});
+  } catch (e) {}
+}
+function savePrefs() {
+  store.set('cs_prefs', prefs);
+}

@@ -1,42 +1,158 @@
-// Cyber City Tactics offline cache. Bump VERSION when you ship changes.
-// The page itself is network-first (so updates show up on the next load), with the cache as the offline fallback.
-// Icons, manifest and fonts are cache-first.
-const VERSION = 'cs-v19';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+/* Cyber City Tactics service worker.
+ *
+ * App-shell model: every file the game needs is precached together under one versioned cache, and the page
+ * is always served from that cache. That way the HTML, CSS and scripts can never come from two different
+ * versions. When a new version is deployed, the browser downloads it in the background; the game then shows
+ * an "update ready" bar (src/js/pwa.js) and the new version takes over only when the player says so.
+ *
+ * The BUILD block below is rewritten by tools/build.mjs: VERSION is a hash of every precached file, so it
+ * changes whenever any of them does. Run `npm run build` before you commit.
+ */
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
-});
+/* BUILD:MANIFEST */
+const VERSION = 'fe5a30515a06';
+const PRECACHE = [
+  './',
+  'index.html',
+  'manifest.webmanifest',
+  'src/css/game.css',
+  'src/js/version.js',
+  'src/js/core/canvas.js',
+  'src/js/core/utils.js',
+  'src/js/core/audio.js',
+  'src/js/core/music.js',
+  'src/js/core/input.js',
+  'src/js/data/content.js',
+  'src/js/data/gear.js',
+  'src/js/data/world.js',
+  'src/js/data/legend-data.js',
+  'src/js/systems/legend.js',
+  'src/js/systems/skills.js',
+  'src/js/game/state.js',
+  'src/js/game/flow.js',
+  'src/js/game/combat.js',
+  'src/js/game/props.js',
+  'src/js/game/runners.js',
+  'src/js/game/allies.js',
+  'src/js/game/enemies.js',
+  'src/js/game/update.js',
+  'src/js/modes/sprawl.js',
+  'src/js/modes/dungeons.js',
+  'src/js/modes/hacking.js',
+  'src/js/modes/training.js',
+  'src/js/modes/arena.js',
+  'src/js/render/figures.js',
+  'src/js/render/world.js',
+  'src/js/render/sprawl.js',
+  'src/js/render/hud.js',
+  'src/js/ui/attract.js',
+  'src/js/ui/screens.js',
+  'src/js/ui/overlay.js',
+  'src/js/ui/actions.js',
+  'src/js/pwa.js',
+  'src/js/main.js',
+  'icons/apple-touch-icon.png',
+  'icons/favicon-32.png',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'icons/icon-maskable-512.png',
+  'icons/shortcut-daily.png',
+  'icons/shortcut-sprawl.png',
+  'icons/shortcut-arena.png',
+  'icons/shortcut-codex.png'
+];
+/* /BUILD:MANIFEST */
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
+const SHELL = 'cct-shell-' + VERSION;
+const RUNTIME = 'cct-runtime'; // fonts and anything else fetched later
+const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com$/;
+
+self.addEventListener('install', event => {
+  // cache: 'reload' skips the HTTP cache so a deploy never precaches a stale file.
+  event.waitUntil(
+    caches.open(SHELL).then(cache => cache.addAll(PRECACHE.map(url => new Request(url, { cache: 'reload' }))))
+  );
+  // Normally no skipWaiting(): the player decides when to switch (see the message handler). The exception is
+  // coming from the old single-file version, which has no update bar; it's safe to take over at once.
+  event.waitUntil(
+    caches.keys().then(keys => {
+      if (keys.some(k => /^cs-v\d+$/.test(k))) return self.skipWaiting();
+    })
   );
 });
 
-function put(req, res) {
-  if (res && res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); }
-  return res;
-}
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter(k => k.startsWith('cct-shell-') && k !== SHELL).map(k => caches.delete(k))
+      );
+      // Caches from the old single-file version of the game.
+      await Promise.all(keys.filter(k => /^cs-v\d+$/.test(k)).map(k => caches.delete(k)));
+      await self.clients.claim();
+    })()
+  );
+});
 
-self.addEventListener('fetch', e => {
-  const req = e.request;
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  const isPage = req.mode === 'navigate' || (url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname));
 
-  if (isPage) {
-    e.respondWith(
-      fetch(req, { cache: 'no-store' })
-        .then(res => put(req, res))
-        .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match('./index.html')))
+  // The page itself: always the precached shell (works offline, never mixes versions).
+  if (req.mode === 'navigate' && url.origin === location.origin) {
+    event.respondWith(
+      (async () => {
+        const shell = await caches.open(SHELL);
+        const hit = (await shell.match('index.html')) || (await shell.match('./'));
+        if (hit) return hit;
+        try {
+          return await fetch(req);
+        } catch (err) {
+          return new Response('<h1>Offline</h1><p>Cyber City Tactics has not finished downloading yet.</p>', {
+            headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            status: 503
+          });
+        }
+      })()
     );
     return;
   }
 
-  const cacheable = url.origin === location.origin || /fonts\.(googleapis|gstatic)\.com/.test(url.host);
-  if (!cacheable) return;
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => put(req, res))));
+  // Game files: cache first from the shell, network as a fallback.
+  if (url.origin === location.origin) {
+    event.respondWith(
+      (async () => {
+        const hit = await caches.match(req, { ignoreSearch: true });
+        if (hit) return hit;
+        const res = await fetch(req);
+        if (res.ok) (await caches.open(RUNTIME)).put(req, res.clone());
+        return res;
+      })()
+    );
+    return;
+  }
+
+  // Google Fonts: serve the cached copy at once and refresh it in the background.
+  if (FONT_HOSTS.test(url.origin)) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(RUNTIME);
+        const hit = await cache.match(req);
+        const fresh = fetch(req)
+          .then(res => {
+            if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
+            return res;
+          })
+          // Offline with nothing cached yet: an empty stylesheet lets the game fall back to system fonts quietly.
+          .catch(() => hit || new Response('', { headers: { 'Content-Type': 'text/css' } }));
+        return hit || fresh;
+      })()
+    );
+  }
 });
