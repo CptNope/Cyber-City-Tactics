@@ -402,18 +402,19 @@ const STAGES=[
   {name:'Undercity Tunnels',sub:'The old transit lines. Something down here is hungry.',len:1700,sky:['#070d0b','#13221c'],moon:'#7dffb0',far:'#0e1a15',near:'#16261f',win:'#7dffb0',wall:'#101a15',ground:['#1a2620','#0c1410'],line:'#24352c',rain:false,tunnel:true,
     signs:[['NO EXIT','#ff4a4a'],['KEEP OUT','#ffc63d'],['LINE 4','#7dffb0'],['FEED','#ff4a4a']],
     props:[['drum',300,215],['crate',700,235],['can',950,210],['drum',1100,225]],
-    waves:[{at:120,spawn:['ghoul','ghoul','ghoul']},{at:420,spawn:['spirit','ghoul','shaman']},{at:740,spawn:['ghoul','ghoul','spirit','ghoul']},{at:1000,spawn:['spirit','spirit','shaman','ghoul']},{at:1220,boss:true,spawn:['saint','ghoul']}]},
+    waves:[{at:120,spawn:['ghoul','ghoul','ghoul']},{at:420,spawn:['spirit','ghoul','shaman']},{at:740,spawn:['troll!','spirit','ghoul']},{at:1000,spawn:['spirit','spirit','shaman','ghoul']},{at:1220,boss:true,spawn:['saint','ghoul']}]},
   {name:'Kagemori Arcology',sub:'Top floor. The Director is waiting.',len:1800,sky:['#120e1c','#2a2440'],moon:'#ffc63d',far:'#1b1730',near:'#262040',win:'#ffe2a0',wall:'#1a1626',ground:['#2a2536','#14111d'],line:'#3a3350',rain:false,grid:true,
     signs:[['KAGEMORI','#ffc63d'],['SECURE','#45d2ff'],['LAB 7','#ff3d8b'],['AUTHORIZED','#ffc63d']],
     props:[['crate',330,225],['drum',650,210],['can',900,240],['drum',1350,220]],
     passives:[['vend',560,182],['vend',1150,182]],
-    waves:[{at:120,spawn:['sec','riot','drone']},{at:430,spawn:['shaman','sec','riot']},{at:760,spawn:['drone','drone','sec','spirit']},{at:1040,spawn:['riot','riot','shaman']},{at:1320,boss:true,spawn:['archmage','riot']}]},
+    waves:[{at:120,spawn:['sec','riot','drone']},{at:430,spawn:['shaman','sec','riot']},{at:760,spawn:['blade!','drone','sec']},{at:1040,spawn:['riot','riot','shaman']},{at:1320,boss:true,spawn:['archmage','riot']}]},
   {name:'Kagemori Host',sub:'Jacked in. Voss uploaded herself into the corporate host.',len:1800,sky:['#020610','#06182a'],moon:'#45d2ff',far:'#04121f',near:'#071a2c',win:'#45d2ff',wall:'#041018',ground:['#04101a','#02080e'],line:'#0e4a66',rain:true,matrix:true,
     signs:[['ICE','#45d2ff'],['ROOT','#7dffb0'],['SYS://','#45d2ff'],['VOSS','#ff3d8b']],
     props:[['crate',400,230],['drum',900,215]],
     passives:[['node',300,200],['node',560,245],['node',820,205],['node',1080,240],['node',1300,210],['node',1500,235]],
-    waves:[{at:120,spawn:['glitch','glitch','ice']},{at:430,spawn:['ice','glitch','sec']},{at:760,spawn:['glitch','glitch','glitch','ice']},{at:1040,spawn:['ice','ice','riot','glitch']},{at:1320,boss:true,spawn:['blackice','glitch']}]}
+    waves:[{at:120,spawn:['glitch','glitch','ice']},{at:430,spawn:['ice','glitch','sec']},{at:760,spawn:['archmage!','glitch','glitch']},{at:1040,spawn:['ice','ice','riot','glitch']},{at:1320,boss:true,spawn:['blackice','glitch']}]}
 ];
+const TRAIN_STAGE={name:"Juno's back alley",sub:'Training',len:480,sky:['#1a0f2a','#3a1a3a'],moon:'#ff9f6b',far:'#24183a',near:'#2c2044',win:'#ffb36b',wall:'#1c1528',ground:['#2c2236','#18121f'],line:'#3a2d48',rain:true,signs:[['DOJO','#ff3d8b'],['NOODLE','#ffc63d']],waves:[]};
 const DEN={name:'The Den',sub:'Home turf',len:960,sky:['#1a0f2a','#5a2440'],moon:'#ffb36b',far:'#24183a',near:'#2c2044',win:'#ffb36b',wall:'#1c1528',ground:['#2c2236','#18121f'],line:'#3a2d48',rain:true,signs:[]};
 
 /* ================= RPG data ================= */
@@ -554,7 +555,7 @@ function gainKarma(n){
   const p0=active()[0];if(p0)G.texts.push({x:p0.x,y:p0.y,z:74,s:'+'+n+' KARMA',c:'#b98cff',life:40,sm:true});
 }
 function tip(id,touchTxt,keyTxt){
-  if(!prefs.tips||prefs.seen[id])return;prefs.seen[id]=1;savePrefs();
+  if(G.training||!prefs.tips||prefs.seen[id])return;prefs.seen[id]=1;savePrefs();
   const t={s:isTouch()?touchTxt:(keyTxt||touchTxt),life:330};
   if(G.tip&&G.tip.life>0)(G.tipQ=G.tipQ||[]).push(t);else G.tip=t;
 }
@@ -569,14 +570,14 @@ function genBg(S,seed){
     const b={x,w,h,wins};if(S.signs.length&&r()<.7){const sg=S.signs[si2++%S.signs.length];b.sign={t:sg[0],c:sg[1],vert:r()<.35,dx:6+r()*(w-50),dy:12+r()*(h*.4)};}near.push(b);x+=w+10+r()*30;}
   return{far,near};
 }
-const curS=()=>G.den?DEN:G.arena?STAGES[G.theme]:STAGES[G.stage];
+const curS=()=>G.den?DEN:G.arena?STAGES[G.theme]:G.training?TRAIN_STAGE:STAGES[G.stage];
 
 /* ================= flow ================= */
 function placeRunners(x0){PL.forEach((p,i)=>{p.x=x0+i*14;p.y=212+i*20;p.z=0;p.vz=0;p.vx=0;p.state='idle';p.t=0;p.inv=60;p.dead=false;p.face=1;p.holding=null;p.grab=null;p.buffT=0;p.freeAmmo=0;p.chargeT=0;refresh(p);});}
 function resetWorld(){G.zaps=[];G.slowFoes=0;G.camX=0;G.lock=null;G.wave=0;G.waveLive=false;G.ents=[];G.projs=[];G.parts=[];G.texts=[];G.picks=[];G.props=[];G.fx=[];G.exitOpen=false;G.goT=0;G.combo=0;G.comboT=999;G.outro=0;G.afterOutro=null;G.slow=0;G.flash=0;}
 function makeRain(on){G.rain=[];if(on&&!RM)for(let i=0;i<70;i++)G.rain.push({x:rand(0,W),y:rand(0,H),s:rand(5,8)});}
 function startStage(si){
-  G.stage=si;G.den=false;G.arena=false;resetWorld();G.banner=150;G.fade=1;
+  G.stage=si;G.den=false;G.arena=false;G.training=false;resetWorld();G.banner=150;G.fade=1;
   const S=STAGES[si];G.bg=genBg(S,1000+si*77);
   placeRunners(40);for(const p of PL)if(!p.out)G.ents.push(p);
   G.props=S.props.map(([kind,x,y])=>({kind,x,y,z:0}));
@@ -599,7 +600,7 @@ function briefing(si,fromDen){
   setMode('brief');
 }
 function enterDen(){
-  G.den=true;G.arena=false;resetWorld();G.fade=1;G.bg=genBg(DEN,4242);
+  G.den=true;G.arena=false;G.training=false;resetWorld();G.fade=1;G.bg=genBg(DEN,4242);
   placeRunners(70);for(const p of PL){p.out=false;p.hp=Math.max(p.hp,Math.round(p.maxHp*.6));p.mp=p.maxMp;G.ents.push(p);}
   if(PARTY.ally){PARTY.ally.hp=PARTY.ally.maxHp;spawnAlly(PARTY.ally.type);}
   makeRain(true);musicPlay('den');saveGame('den');
@@ -691,6 +692,51 @@ function hurt(t,dmg,dir,o){
   if(t.team===0)tip('dodge','Tap DODGE to roll through attacks untouched.','Press O or Left Shift to roll through attacks untouched.');
   return true;
 }
+const REMATCH={troll:{name:'Gutter King, chromed',acc:'#45d2ff',coat:'#3a4a5a'},blade:{name:'Razor Mei, under contract',acc:'#ffc63d',coat:'#3a1a2a'},archmage:{name:'Voss.exe',acc:'#45d2ff',coat:'#0b2533'}};
+// A beaten boss comes back mid-district: smaller health pool, but already enraged with its rage-phase moves
+function rematch(e){const r=REMATCH[e.kind];if(!r)return;
+  e.rematch=true;e.name=r.name;e.hp=e.maxHp=Math.round(e.maxHp*.6);e.enraged=true;e.spdMul=1.25;e.coolMul*=.75;
+  e.pal=Object.assign({},e.pal,{acc:r.acc,coat:r.coat});G.banner=-150;musicPlay('boss');
+  tip('rematch','Beaten bosses can come back. They start enraged, with their new moves already unlocked.');}
+/* ---------- training ---------- */
+const trainee=(k,x,y,o)=>{const e=spawnEnemy(k,1);e.x=clamp(x,40,W-40);e.y=clamp(y,FY0+8,FY1-4);e.elite=null;e.inv=0;e.trainee=!(o&&o.live);e.cool=o&&o.live?40:9999;if(o&&o.hp)e.hp=e.maxHp=o.hp;if(o&&o.dmg!==undefined)e.dmg=o.dmg;return e;};
+const clearFoes=()=>{G.ents=G.ents.filter(e=>e.team!==1);G.props=[];G.projs=[];const p=PL[0];if(p&&p.x>W-200){burst(p.x,p.y,20,'#7dffb0',10);p.x=120;p.face=1;burst(p.x,p.y,20,'#7dffb0',10);}};
+// Each step: what to say (touch / keyboard), how to set it up, and when it counts as done
+const TRAIN=[
+  {t:'Drag anywhere on the left to walk to the glowing marker.',k:'Walk to the glowing marker with WASD or the arrow keys.',setup(){G.marker={x:390,y:245};},done:p=>Math.hypot(p.x-G.marker.x,(p.y-G.marker.y)*1.6)<16},
+  {t:'Tap PUNCH three times in a row on the dummy. The third hit is an uppercut.',k:'Press J three times in a row on the dummy. The third hit is an uppercut.',setup(p){G.marker=null;clearFoes();trainee('orc',p.x+60,p.y,{hp:999});},done:()=>G.tf.upper},
+  {t:'Riot shields block punches. KICK this one to break his guard.',k:'Riot shields block punches. Kick (K) this one to break his guard.',setup(p){clearFoes();const e=trainee('riot',p.x+50,p.y,{hp:999});e.face=-1;},done:()=>G.ents.some(e=>e.kind==='riot'&&e.state==='hurt')},
+  {t:'Drones fly. JUMP, then PUNCH or KICK in the air to knock this one out.',k:'Drones fly. Jump (Space), then punch or kick in the air to knock this one out.',setup(p){clearFoes();trainee('drone',p.x+60,p.y,{hp:12});},done:()=>!G.ents.some(e=>e.kind==='drone'&&e.state!=='dead')},
+  {t:'This ganger will swing at you. Tap DODGE as he winds up to roll through it.',k:'This ganger will swing at you. Press O or Left Shift as he winds up to roll through it.',setup(p){clearFoes();trainee('ganger',p.x+70,p.y,{live:true,hp:999,dmg:1});},done:()=>G.tf.dodged},
+  {t:'Hit the ganger to stagger him, then walk into him to grab. KICK throws him.',k:'Hit the ganger to stagger him, then walk into him to grab. K throws him.',setup(p){clearFoes();trainee('ganger',p.x+50,p.y,{hp:999});},done:()=>G.tf.threw},
+  {t:'Stand by the drum and tap LIFT, then THROW it at the orc.',k:'Stand by the drum and press J to lift it, then J again to throw it at the orc.',setup(p){clearFoes();G.props=[{kind:'drum',x:p.x+24,y:p.y,z:0}];trainee('orc',p.x+150,p.y,{hp:999});},done:()=>G.tf.prop},
+  {t:'Hold PUNCH until the ring glows, then let go for a heavy blow.',k:'Hold J until the ring glows, then let go for a heavy blow.',setup(p){clearFoes();trainee('orc',p.x+50,p.y,{hp:999});},done:()=>G.tf.heavy},
+  {t:'Tap GUN to shoot, then tap SPELL to cast. Hold SPELL to swap spells later.',k:'Press U to shoot, then I to cast. Q swaps spells later.',setup(p){clearFoes();trainee('ganger',p.x+140,p.y,{hp:999});p.ammo=Math.max(p.ammo,10);p.mp=p.maxMp;G.tf.shot=G.tf.cast=false;},done:()=>G.tf.shot&&G.tf.cast},
+  {t:'Your ★ meter fills as you fight. It is full now. Tap ★ to unleash your special.',k:'Your ★ meter fills as you fight. It is full now. Press F (or punch and kick together).',setup(p){clearFoes();trainee('ganger',p.x+70,p.y,{hp:60});trainee('ganger',p.x+110,p.y+14,{hp:60});p.sp=100;},done:()=>G.tf.special}
+];
+function startTraining(){
+  G.challenge=null;G.rngW=G.rngP=null;G.diff=1;G.ng=0;G.coop=false;
+  PL=[newRunner(0)];applyArch(PL[0],G.pendArch[0]);Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null,ally:null});
+  G.training=true;G.arena=false;G.den=false;G.stage=0;resetWorld();G.bg=genBg(TRAIN_STAGE,777);
+  placeRunners(120);G.ents.push(PL[0]);makeRain(true);G.fade=1;G.tstep=0;G.tf={};G.tdone=0;
+  TRAIN[0].setup(PL[0]);musicPlay('den');setMode('play');
+}
+function trainTick(){
+  const p=PL[0];p.hp=Math.max(p.hp,p.maxHp*.5);p.lives=3;
+  if(p.state==='upper')G.tf.upper=true;
+  if(p.state==='heavy')G.tf.heavy=true;
+  if(p.state==='roll'&&p.t<12&&G.ents.some(e=>e.team===1&&e.state==='windup'&&Math.abs(e.x-p.x)<40))G.tf.dodged=true;
+  if(G.tdone>0){G.tdone--;if(G.tdone===0){G.tstep++;if(G.tstep>=TRAIN.length){prefs.trained=true;savePrefs();clearFoes();setMode('trained');return;}G.tf={};TRAIN[G.tstep].setup(p);}return;}
+  if(TRAIN[G.tstep].done(p)){G.tdone=60;sfx.loot();G.texts.push({x:p.x,y:p.y,z:70,s:'NICE',c:'#7dffb0',life:50,big:true});}
+}
+function drawTraining(){
+  if(!G.training)return;
+  if(G.marker){const sx=G.marker.x-G.camX;ctx.strokeStyle=`rgba(125,255,176,${.5+.3*Math.sin(G.t*.15)})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(sx,G.marker.y,16,5,0,0,7);ctx.stroke();fillPoly([sx-5,G.marker.y-30,sx+5,G.marker.y-30,sx,G.marker.y-20],'#7dffb0');}
+  const st=TRAIN[Math.min(G.tstep,TRAIN.length-1)],lines=wrapTip(isTouch()?st.t:st.k,330),h=lines.length*13+24,y=48;
+  ctx.globalAlpha=.94;ctx.fillStyle='#0b0812';ctx.fillRect(W/2-175,y,350,h);ctx.strokeStyle=G.tdone>0?'#7dffb0':'#ff3d8b';ctx.lineWidth=1;ctx.strokeRect(W/2-174.5,y+.5,349,h-1);ctx.globalAlpha=1;
+  txt('STEP '+(Math.min(G.tstep,TRAIN.length-1)+1)+' OF '+TRAIN.length+(G.tdone>0?'  ·  DONE':''),W/2,y+13,12,G.tdone>0?'#7dffb0':'#ff3d8b','center',false);
+  ctx.font='11px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';lines.forEach((l,i)=>ctx.fillText(l,W/2,y+28+i*13));
+}
 function enrage(e){
   e.enraged=true;e.spdMul=1.3;e.coolMul*=.7;e.inv=50;e.cool=40;setS(e,'idle');
   G.texts.push({x:e.x,y:e.y,z:e.z+80,s:'ENRAGED',c:'#ff4a4a',life:70,big:true});
@@ -745,7 +791,7 @@ function startArena(coop,challenge){
   Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null,ally:null});
   PL.forEach((p,i)=>applyArch(p,G.pendArch[i]));
   for(const p of PL){p.lvl=3;p.pts=4;refresh(p);p.hp=p.maxHp;p.mp=p.maxMp;}
-  G.arena=true;G.den=false;G.score=0;G.awave=0;G.theme=0;G.stage=0;G.bestCombo=0;resetWorld();
+  G.arena=true;G.den=false;G.training=false;G.score=0;G.awave=0;G.theme=0;G.stage=0;G.bestCombo=0;resetWorld();
   G.bg=genBg(STAGES[0],1000);placeRunners(190);for(const p of PL)G.ents.push(p);
   makeRain(true);G.fade=1;G.nextWaveT=80;G.perkPending=false;musicPlay('d0');setMode('play');
   if(G.challenge)G.texts.push({x:W/2,y:150,z:0,s:MODS[G.challenge.mod].name.toUpperCase(),c:'#ffc63d',life:120,big:true});
@@ -839,6 +885,7 @@ function dropProp(p){const pr=p.holding;if(!pr)return;p.holding=null;pr.x=p.x+p.
 function throwProp(p){const pr=p.holding;p.holding=null;const m=p.D.melee;
   G.projs.push({k:'prop',kind:pr.kind,team:0,src:p,x:p.x+p.face*10,y:p.y,z:p.z+40,vx:p.face*5.6,vz:.8,dmg:pr.kind==='drum'?24+m:16+m*1.1,life:120});sfx.whiff();}
 function shatter(pr){
+  if(G.training)G.tf.prop=true;
   const col={can:'#8a93a6',crate:'#a07a4a',drum:'#ff4a4a'}[pr.kind];burst(pr.x,pr.y,pr.z,col,12);
   if(pr.kind==='drum'){const rr=modOn('keg')?66:44;sfx.boom();G.shake=8;G.fx.push({k:'ring',x:pr.x,y:pr.y,z:pr.z,c:'#ff6a3d',life:20,max:20,r:rr});burst(pr.x,pr.y,pr.z,'#ffc63d',16);
     for(const t of G.ents){if(t.team!==1||t.state==='dead')continue;if(Math.abs(t.x-pr.x)<rr&&Math.abs(t.y-pr.y)<18*rr/44)hurt(t,pr.dmg,t.x>=pr.x?1:-1,{kd:true,big:true,air:true,col:'#ff6a3d',src:pr.src,ax:pr.x});}}
@@ -866,6 +913,7 @@ function physics(e){
 function spGain(p,n){if(!p||p.team!==0||G.den)return;const was=p.sp||0;p.sp=Math.min(100,was+n);
   if(was<100&&p.sp>=100){say(p,'★ SPECIAL READY','#ffc63d',80,60);sfx.loot();tip('special','Your special is ready. Tap ★ to unleash it.','Your special is ready. Press F (or punch and kick together) to unleash it.');}}
 function doSpecial(p){
+  if(G.training)G.tf.special=true;
   const A0=ARCH[p.arch]||ARCH.runner;p.sp=0;sfx.level();buzz([30,30,60]);G.flash=Math.max(G.flash,.25);
   G.texts.push({x:p.x,y:p.y,z:84,s:A0.spName.toUpperCase(),c:'#ffc63d',life:70,big:true});
   G.fx.push({k:'ring',x:p.x,y:p.y,z:20,c:'#ffc63d',life:22,max:22,r:70});
@@ -905,7 +953,7 @@ function upRunner(p){
     e.x=p.x+p.face*12;e.y=p.y;e.face=-p.face;
     if(p.t>100){releaseGrab(p);return;}
     if(I.pressed.punch){p.knees++;p.kneeT=8;if(p.knees>=3){hurt(e,6+D.melee*.6,p.face,{kd:true,kb:8,src:p,ax:p.x});p.grab=null;setS(p,'idle');}else hurt(e,4+D.melee*.45,p.face,{src:p,ax:p.x});}
-    else if(I.pressed.kick){let dir=(I.held.right?1:0)-(I.held.left?1:0)||p.face;p.grab=null;setS(p,'throw');
+    else if(I.pressed.kick){let dir=(I.held.right?1:0)-(I.held.left?1:0)||p.face;p.grab=null;setS(p,'throw');if(G.training)G.tf.threw=true;
       setS(e,'down');e.vz=3.4;e.vx=dir*4.6;e.x=p.x+dir*8;e.z=8;e.thrown=p;e.thrownHit=[];sfx.heavy();}
     if(p.kneeT>0)p.kneeT--;
     return;
@@ -962,6 +1010,7 @@ function upRunner(p){
 }
 function clampX(p){if(G.den)p.x=clamp(p.x,G.camX+10,Math.min(DEN.len-10,G.camX+W-10));else p.x=clamp(p.x,G.camX+10,G.camX+W-10);}
 function respawn(p){
+  if(G.training){p.hp=p.maxHp;setS(p,'idle');p.dead=false;p.inv=90;return;}
   p.lives--;
   if(PARTY.contract&&PARTY.contract.key==='ghost'&&!PARTY.contract.done)PARTY.contract.failed=true;
   if(p.lives<0){p.lives=0;p.out=true;G.ents=G.ents.filter(e=>e!==p);
@@ -973,6 +1022,7 @@ function respawn(p){
   say(p,'BACK IN','#45d2ff',70,60);
 }
 function fireBullet(src,dmg,z,spread){
+  if(G.training&&src.team===0)G.tf.shot=true;
   if(src.team===0){if(src.freeAmmo>0)sfx.shot();else{if(src.ammo<=0)return;src.ammo--;sfx.shot();}}else sfx.zap();
   const base={team:src.team,src:src.team===0?src:null,z};
   if(spread){for(let i=-1;i<=1;i++)G.projs.push(Object.assign({k:'bullet',x:src.x+src.face*18,y:src.y+i*5,vx:src.face*6.5,dmg:dmg*.55,life:20},base));}
@@ -980,6 +1030,7 @@ function fireBullet(src,dmg,z,spread){
   burst(src.x+src.face*20,src.y,z,'#ffe28a',4);
 }
 function castSpell(p){
+  if(G.training)G.tf.cast=true;
   const id=p.spells[p.spell],pw=p.D.spell;
   if(id==='fire')G.projs.push({k:'fire',team:0,src:p,x:p.x+p.face*16,y:p.y,z:p.z+28,vx:p.face*3.8,dmg:14+pw,life:130,r:6});
   if(id==='bolt')G.projs.push({k:'bolt',team:0,src:p,x:p.x+p.face*16,y:p.y,z:p.z+28,vx:p.face*7,dmg:10+pw*1.25,life:80,r:4});
@@ -1088,6 +1139,7 @@ function upEnemy(e){
   if(e.state==='summon'){if(e.t===24){for(const s of[-1,1]){const g=spawnEnemy(e.kind==='blackice'?'ice':e.enraged&&s>0?'spirit':'ghoul',s);g.inv=20;}G.texts.push({x:e.x,y:e.y,z:80,s:'RISE',c:'#ff4a4a',life:50});sfx.spell();}if(e.t>=40)setS(e,'idle');return;}
   if(e.state==='blink'&&p){if(e.t===10&&e.d.ice)burst(e.x,e.y,e.z,'#45d2ff',10);if(e.t===20){e.x=clamp(p.x+(Math.random()<.5?-1:1)*rand(110,150),G.camX+20,G.camX+W-20);e.y=clamp(p.y+rand(-12,12),FY0+8,FY1);burst(e.x,e.y,30,'#ffc63d',12);}if(e.t>=34)setS(e,'idle');return;}
   e.cool--;
+  if(e.trainee){if(p)e.face=p.x>=e.x?1:-1;if(e.state!=='idle')setS(e,'idle');return;}
   if(!p){if(e.state!=='idle')setS(e,'idle');return;}
   const dx=p.x-e.x,dy=p.y-e.y,adx=Math.abs(dx),ady=Math.abs(dy);
   e.face=dx>=0?1:-1;
@@ -1180,7 +1232,7 @@ function update(){
     if(G.ents.some(e=>e.kind==='vend'&&e.state!=='dead'&&Math.abs(e.x-p.x)<80))tip('vend','Smash vending machines for medkits, ammo and mana.');
     if(G.props.some(o=>Math.abs(o.x-p.x)<70&&o.x>G.camX))tip('prop','Stand next to a can, crate or drum and tap LIFT, then THROW.','Stand next to a can, crate or drum and press J to lift it, then J again to throw.');
     if(p.hp<p.maxHp*.35&&PARTY.med>0)tip('med','Low on health. Tap MED to use a medkit.','Low on health. Press H to use a medkit.');}}
-  if(G.den)denTick();else if(G.arena)arenaTick();else waves();
+  if(G.den)denTick();else if(G.arena)arenaTick();else if(G.training)trainTick();else waves();
   camera();
   if(G.shake>0)G.shake*=.85;if(G.shake<.3)G.shake=0;
   if(G.outro>0){G.outro--;if(G.outro<30)G.fade=Math.min(1,G.fade+.04);if(G.outro===0&&G.afterOutro){const f=G.afterOutro;G.afterOutro=null;f();}}
@@ -1197,11 +1249,11 @@ function collect(k,p){
 function waves(){
   const S=STAGES[G.stage];if(G.outro)return;
   const foes=G.ents.filter(e=>e.team===1&&e.state!=='dead'&&!e.d.passive).length;
-  if(G.waveLive&&foes===0){G.waveLive=false;G.lock=null;G.wave++;if(G.wave>=S.waves.length){G.exitOpen=true;musicPlay('d'+G.stage);}G.goT=150;}
+  if(G.waveLive&&foes===0){G.waveLive=false;G.lock=null;G.wave++;musicPlay('d'+G.stage);if(G.wave>=S.waves.length)G.exitOpen=true;G.goT=150;}
   if(!G.waveLive&&G.wave<S.waves.length){
     const w=S.waves[G.wave];
     if(G.camX>=w.at-1){G.camX=w.at;G.lock=w.at;G.waveLive=true;
-      w.spawn.forEach((k,i)=>{const e=spawnEnemy(k,i%2?-1:1);e.x+=(i>>1)*(i%2?-18:18);if(DEF[k].boss){e.x=G.camX+W-40;e.y=(FY0+FY1)/2;e.inv=40;}});
+      w.spawn.forEach((k0,i)=>{const re=k0.endsWith('!'),k=re?k0.slice(0,-1):k0;const e=spawnEnemy(k,i%2?-1:1);e.x+=(i>>1)*(i%2?-18:18);if(DEF[k].boss){e.x=G.camX+W-40;e.y=(FY0+FY1)/2;e.inv=40;}if(re)rematch(e);});
       if(w.boss){G.banner=-120;musicPlay('boss');if(PARTY.contract&&PARTY.contract.key==='ghost'&&!PARTY.contract.failed)contractTick('ghost');}
     }
   }
@@ -1216,7 +1268,7 @@ function camera(){
   const minX=Math.min(...a.map(p=>p.x)),maxX=Math.max(...a.map(p=>p.x));
   let target=Math.min((minX+maxX)/2-W*.42,minX-14);
   if(G.den){G.camX+=(clamp(target,0,S.len-W)-G.camX)*.12;return;}
-  if(G.arena){G.camX=0;return;}
+  if(G.arena||G.training){G.camX=0;return;}
   const next=S.waves[G.wave];let max=S.len-W;
   if(G.lock!=null)max=G.lock;else if(next)max=Math.min(max,next.at);
   target=clamp(target,0,max);if(G.lock!=null)target=G.lock;
@@ -1507,9 +1559,10 @@ function drawHudTop(){
   drawPanel(PL[0],10);
   if(G.coop&&PL[1])drawPanel(PL[1],HW-180);
   const S=curS(),C=PARTY.contract;
-  const line1=G.arena?'WAVE '+G.awave:G.den?'THE DEN':S.name.toUpperCase();
+  const line1=G.arena?'WAVE '+G.awave:G.training?'TRAINING':G.den?'THE DEN':S.name.toUpperCase();
   let line2=null,col2='#efe9ff';
   if(G.arena){line2='SCORE '+G.score.toLocaleString();col2='#ffc63d';}
+  else if(G.training){line2=ARCH[PL[0].arch].name.toUpperCase();col2='#a79dc2';}
   else if(C&&!G.den){const st=C.done?'DONE':C.failed?'FAILED':C.key==='ghost'?'NO DEATHS':C.count+'/'+C.need;line2=C.title.toUpperCase()+' · '+st;col2=C.done?'#7dffb0':C.failed?'#ff3d8b':'#efe9ff';}
   if(!G.coop){txt(line1,HW-48,18,14,G.arena?'#efe9ff':'#a79dc2','right');if(line2)txt(line2,HW-48,30,12,col2,'right');}
   else{const yb=inBand?Math.min(BAND/k-6,58):0;
@@ -1520,13 +1573,13 @@ function drawHudTop(){
 function drawHud(){
   const S=curS();
   const boss=G.ents.find(e=>e.team===1&&e.d.boss&&e.state!=='dead');
-  if(boss){const bw=200,bx=(W-bw)/2,by=G.coop&&BAND<46?H-24:H-11;txt(boss.d.name.toUpperCase(),bx,by-3,14,'#efe9ff');bar(bx,by,bw,5,boss.hp,boss.maxHp,'#ffc63d');}
+  if(boss){const bw=200,bx=(W-bw)/2,by=G.coop&&BAND<46?H-24:H-11;txt((boss.name||boss.d.name).toUpperCase(),bx,by-3,14,boss.rematch?'#45d2ff':'#efe9ff');bar(bx,by,bw,5,boss.hp,boss.maxHp,'#ffc63d');}
   if(G.combo>=3){const pop=Math.max(0,8-G.comboT)*.6;txt(G.combo+' HITS',12,72,20+pop,'#ffc63d');if(G.combo>=5)txt('×'+(1+Math.min(G.combo,30)*.02).toFixed(2)+' KARMA',12,84,11,'#b98cff');}
   if(G.goT>0&&!G.waveLive&&!G.den&&!G.arena&&(G.goT>>3)%2)txt(G.exitOpen?'EXIT ▶':'GO ▶',W-16,110,28,'#ff3d8b','right');
   if(G.banner>0){const a=Math.min(1,G.banner/30,(150-G.banner)/15);ctx.globalAlpha=a;ctx.fillStyle='rgba(11,8,18,.7)';ctx.fillRect(0,92,W,52);
     const big=G.arena?'WAVE '+G.awave:'DISTRICT '+(G.stage+1)+' — '+S.name.toUpperCase(),sub=G.arena?(G.awave%5===0?'Boss wave':S.name):S.sub;
     txt(big,W/2,122,30,'#efe9ff','center');ctx.font='12px "Chakra Petch", sans-serif';ctx.fillStyle='#a79dc2';ctx.textAlign='center';ctx.fillText(sub,W/2,137);ctx.globalAlpha=1;}
-  if(G.banner<0&&((-G.banner)>>3)%2)txt('WARNING — BOSS',W/2,110,30,'#ffc63d','center');
+  if(G.banner<0&&((-G.banner)>>3)%2){const rb=G.ents.find(e=>e.rematch&&e.state!=='dead');txt(rb?'REMATCH — '+rb.name.toUpperCase():'WARNING — BOSS',W/2,110,rb?24:30,'#ffc63d','center');}
   if(G.tip){const lines=wrapTip(G.tip.s,300),a=Math.min(1,G.tip.life/20,(330-G.tip.life)/12),h=lines.length*13+10,y=G.coop?50:48;
     ctx.globalAlpha=a*.92;ctx.fillStyle='#0b0812';ctx.fillRect(W/2-160,y,320,h);ctx.strokeStyle='#ffc63d';ctx.lineWidth=1;ctx.strokeRect(W/2-159.5,y+.5,319,h-1);
     ctx.globalAlpha=a;ctx.font='11px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';lines.forEach((l,i)=>ctx.fillText(l,W/2,y+16+i*13));ctx.globalAlpha=1;}
@@ -1553,6 +1606,7 @@ function render(){
   drawRain();
   ctx.restore();
   if(G.mode!=='title'){ctx.save();ctx.translate(0,BAND);drawHud();ctx.restore();drawHudTop();}
+  if(G.training&&G.mode==='play'){ctx.save();ctx.translate(0,BAND);drawTraining();ctx.restore();}
   if(G.slowFoes>0){ctx.fillStyle=`rgba(69,210,255,${Math.min(.12,G.slowFoes/600)})`;ctx.fillRect(0,0,W,VH);}
   if(G.flash>0){ctx.fillStyle=`rgba(255,255,255,${G.flash})`;ctx.fillRect(0,0,W,VH);}
   if(G.fade>0){ctx.fillStyle=`rgba(8,6,12,${G.fade})`;ctx.fillRect(0,0,W,VH);}
@@ -1576,7 +1630,7 @@ function drawNPC(n){
 /* ================= title attract ================= */
 function attract(){
   G.challenge=null;G.rngW=G.rngP=null;
-  PL=[newRunner(0)];G.coop=false;G.den=false;G.arena=false;G.ng=0;resetWorld();
+  PL=[newRunner(0)];G.coop=false;G.den=false;G.arena=false;G.training=false;G.ng=0;resetWorld();
   G.stage=0;G.bg=genBg(STAGES[0],1000);
   const P=PL[0];P.x=150;P.y=225;P.face=1;setS(P,'idle');G.ents.push(P);
   const e=spawnEnemy('ganger',1);e.x=300;e.y=222;e.face=-1;const o=spawnEnemy('orc',1);o.x=345;o.y=236;o.face=-1;
@@ -1607,11 +1661,11 @@ const touchHelp=`<div class="keys">
 <p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
 const helpHtml=()=>isTouch()?touchHelp:keysHtml;
 function seg(key,opts){return `<div class="seg" role="group">${opts.map(([v,l])=>`<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key])===String(v)}">${l}</button>`).join('')}</div>`;}
-function archHtml(){
+function archHtml(n){n=n||2;
   const row=i=>`<div class="job"><div class="row" style="justify-content:space-between"><b>${i?'Runner 2 (co-op)':'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
     <div class="row">${Object.keys(ARCH).map(k=>`<button class="btn sm${G.pendArch[i]===k?'':' ghost'}" data-a="arch:${i}:${k}" aria-pressed="${G.pendArch[i]===k}">${ARCH[k].short}</button>`).join('')}</div>
     <span style="color:var(--muted);font-size:12.5px">${esc(ARCH[G.pendArch[i]].desc)} Special: ${esc(ARCH[G.pendArch[i]].spDesc)}</span></div>`;
-  return `<h3>Choose your runner</h3>${row(0)}${row(1)}`;
+  return `<h3>Choose your runner</h3>${row(0)}${n>1?row(1):''}`;
 }
 function settingsHtml(){
   const row=(n,d,ctl)=>`<div class="setrow"><div><div class="nm" style="font-weight:600">${n}</div>${d?`<div class="ds">${d}</div>`:''}</div>${ctl}</div>`;
@@ -1661,14 +1715,25 @@ function renderOv(){
     const sv=store.get('cs_save3');if(G.mode==='title')G.pendDiff=sv&&sv.diff!==undefined?sv.diff:1;
     h=`<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1>Chrome &amp; Sorcery</h1>
     <p>Two shadowrunners, a fixer with a grudge and five districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="trainpick">Training</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
   }
   if(m==='pick'){
-    h=`<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>
+    h=`<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained?'':'<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
     <div class="list">${DIFF.map((d,i)=>`<div class="item"><div><div class="nm">${d.name}</div><div class="ds">${d.desc}</div></div><div class="acts"><button class="btn sm${G.pendDiff===i?'':' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff===i}">${G.pendDiff===i?'Selected':'Choose'}</button></div></div>`).join('')}</div>
     ${archHtml()}
     <p style="font-size:12.5px">Elites have a colored aura and a name tag: ${Object.values(ELITES).map(x=>`<b style="color:${x.col}">${x.name}</b> ${x.hint}`).join(', ')}. They drop better gear.</p>
     <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+  }
+  if(m==='trainpick'){
+    h=`<div class="card"><p class="eyebrow">Training · Juno's back alley</p><h2>Learn the moves</h2>
+    <p>Ten short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
+    ${archHtml(1)}
+    <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+  }
+  if(m==='trained'){
+    h=`<div class="card"><p class="eyebrow">Training complete</p><h2>You're ready for the streets</h2>
+    <p class="say"><b>Juno · fixer</b>Not bad. Now go break something that's worth money.</p>
+    <div class="row"><button class="btn" data-a="pick">Start a run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
   }
   if(m==='arenapick'){
     const wk=thisWeek(),wb=store.get('cs_week');
@@ -1707,8 +1772,8 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="close">${G.ret==='play'?'Back to the fight':G.ret==='perk'?'Back to the perks':'Done'}</button></div></div>`;
   }
   if(m==='pause'){
-    h=`<div class="card"><p class="eyebrow">Paused · ${G.arena?'arena wave '+G.awave+' · score '+G.score.toLocaleString():G.den?'the Den':'district '+(G.stage+1)} · ${DIFF[G.diff].name}${G.ng&&!G.arena?' NG+'+G.ng:''}</p><h2>Catch your breath</h2>${G.den||G.arena?'':jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop?'<button class="btn ghost" data-a="drop2">Drop Runner 2</button>':'<button class="btn ghost" data-a="join2">Add Runner 2</button>'}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">Quit to title</button></div>${helpHtml()}</div>`;
+    h=`<div class="card"><p class="eyebrow">Paused · ${G.training?'training step '+(G.tstep+1)+' of '+TRAIN.length:G.arena?'arena wave '+G.awave+' · score '+G.score.toLocaleString():G.den?'the Den':'district '+(G.stage+1)} · ${DIFF[G.diff].name}${G.ng&&!G.arena?' NG+'+G.ng:''}</p><h2>Catch your breath</h2>${G.den||G.arena?'':jobHtml(PARTY.contract)}
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop?'<button class="btn ghost" data-a="drop2">Drop Runner 2</button>':'<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training?'<button class="btn ghost" data-a="skipstep">Skip this step</button>':''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training?'Leave training':'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if(m==='npc')h=npcHtml(G.npc);
   if(m==='settings')h=settingsHtml();
@@ -1727,7 +1792,7 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="ngplus">New Game+ ${G.ng+1}</button><button class="btn ghost" data-a="pick">Fresh run</button></div></div>`;
   }
   ov.innerHTML=h;
-  if(['title','pause','over','win','brief','pick','settings','arenapick','perk','arenaover'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
+  if(['title','pause','over','win','brief','pick','settings','arenapick','perk','arenaover','trainpick','trained'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
 }
 function npcHtml(id){
   const n=NPCS.find(x=>x.id===id),stage=G.stage;
@@ -1783,6 +1848,9 @@ ov.addEventListener('click',e=>{
   const rerender=()=>{renderOv();if(G.mode==='npc'||G.ret==='den')saveGame('den');};
   switch(a){
     case 'pick':G.pendDiff=G.diff;setMode('pick');keep=false;break;
+    case 'trainpick':setMode('trainpick');keep=false;break;
+    case 'train':startTraining();keep=false;break;
+    case 'skipstep':if(G.training){G.tdone=1;setMode('play');}keep=false;break;
     case 'arenapick':G.pendDiff=G.arena?G.diff:G.pendDiff;setMode('arenapick');keep=false;break;
     case 'arena1':startArena(false);keep=false;break;
     case 'arena2':startArena(true);keep=false;break;

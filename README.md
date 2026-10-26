@@ -8,6 +8,8 @@
 - Install on a phone with "Add to Home Screen" / "Install app". It works offline after the first load. Bump `VERSION` in `sw.js` when you ship changes.
 
 ## What's in it
+- **Training:** ten short drills in Juno's back alley with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose, and any step can be skipped from the pause menu. Start it from the title screen.
+- **Boss rematches:** beaten bosses come back mid-district, already enraged: Gutter King, chromed (Undercity), Razor Mei, under contract (Arcology) and Voss.exe (inside the host).
 - **Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week, on Runner, with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept.
 - **Sharing:** end screens show run stats (takedowns, elites, bosses, damage dealt and taken, best combo) and a Copy / Share button with a ready-to-paste brag line and the game's link.
 - **Arena mode:** endless waves on one street, for one or two players. Waves grow, the street changes every five waves, a boss arrives every fifth wave, and every third wave you pick one of three perks. You start at level 3. Scores, waves and best combos go on a high-score table saved on the device.
