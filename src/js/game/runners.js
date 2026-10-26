@@ -281,6 +281,12 @@ function upRunner(p) {
         } else if (g.fire === 'auto') {
           if (T(2) || T(5) || T(8) || T(11)) fireBullet(p, D.gun, p.z + 27);
         } else if (T(3)) fireBullet(p, D.gun, p.z + 27, g.fire);
+        if (T(3) && g.gmod === 'ugl' && G.t - (p.uglT === undefined ? -9999 : p.uglT) >= 1200) {
+          p.uglT = G.t;
+          if (!(p.freeAmmo > 0)) p.ammo++; // the launcher has its own round
+          fireBullet(p, D.gun * 1.3 + 10, p.z + 30, 'grenade');
+          say(p, 'GRENADE OUT', '#ff6a3d', 60, 30, true);
+        }
       }
     }
     if (p.state === 'cast' && t === 10) castSpell(p);
@@ -289,7 +295,8 @@ function upRunner(p) {
       p.x += p.rdx * 3.3;
       p.y += p.rdy * 1.8;
     }
-    if (p.state === 'heavy' && t === 9) {
+    if (p.state === 'heavy') heavyMove(p, t, m, R);
+    if (p.state === 'heavy' && t === 9 && !HEAVY_OWN[heavyLook(p)]) {
       let hh = strike(p, 34 + R, 14 + m * 1.4, { kd: true, kb: 10, breaker: true, big: true });
       if (has(p, 'whirl')) {
         p.face *= -1;
@@ -477,6 +484,81 @@ function upRunner(p) {
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+// Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
+// (baton, axe, hammer) add their effect on top of it.
+const HEAVY_OWN = { blade: 1, knucks: 1, whip: 1 };
+const heavyLook = p => (p.eq.weapon && p.eq.weapon.look) || null;
+function heavyMove(p, t, m, R) {
+  const look = heavyLook(p),
+    big = { kd: true, kb: 10, breaker: true, big: true };
+  if (look === 'blade') {
+    // dash forward through the crowd, cutting twice
+    if (t >= 3 && t <= 12) {
+      p.x += p.face * 5.5;
+      clampX(p);
+      if (t % 2)
+        G.parts.push({
+          x: p.x - p.face * 10,
+          y: p.y,
+          z: rand(14, 36),
+          vx: -p.face,
+          vy: 0,
+          vz: 0,
+          life: 10,
+          c: '#45d2ff',
+          sz: 2
+        });
+    }
+    if (t === 6 || t === 12) {
+      if (strike(p, 30 + R, 10 + m * 1.1, big)) p.hvHit = true;
+      if (t === 12) {
+        if (!p.hvHit) sfx.whiff();
+        p.hvHit = false;
+        G.shake = Math.max(G.shake, 3);
+      }
+    }
+  } else if (look === 'knucks') {
+    // three fast hits, the last one knocks down
+    if (t === 5 || t === 9) strike(p, 24 + R, 6 + m * 0.6, { breaker: true, kb: 2 });
+    if (t === 13) {
+      if (!strike(p, 26 + R, 10 + m * 0.9, Object.assign({}, big, { kb: 8 }))) sfx.whiff();
+      G.shake = Math.max(G.shake, 3);
+    }
+  } else if (look === 'whip' && t === 9) {
+    // yank the nearest enemy in your lane from up to 130 px away, then hit it
+    let best = null;
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || e.state === 'down' || e.d.boss || e.d.passive || e.d.fly)
+        continue;
+      const dx = (e.x - p.x) * p.face;
+      if (dx < 20 || dx > 130 || Math.abs(e.y - p.y) > 16) continue;
+      if (!best || dx < (best.x - p.x) * p.face) best = e;
+    }
+    if (best) {
+      best.x = p.x + p.face * 24;
+      best.y = p.y;
+      G.fx.push({ k: 'ring', x: best.x, y: best.y, z: 24, c: '#b98cff', life: 10, max: 10, r: 18 });
+      say(p, 'GET OVER HERE', '#b98cff', 60, 30, true);
+    }
+    if (!strike(p, 34 + R, 13 + m * 1.3, big)) sfx.whiff();
+    G.shake = Math.max(G.shake, 4);
+  } else if (look === 'baton' && t === 9) {
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || (e.d && e.d.passive)) continue;
+      const dx = (e.x - p.x) * p.face;
+      if (dx < -6 || dx > 40 + R || Math.abs(e.y - p.y) > 12) continue;
+      e.cool = Math.max(e.cool || 0, 150);
+      G.texts.push({ x: e.x, y: e.y, z: e.z + 62, s: 'STUN', c: '#45d2ff', life: 28, sm: true });
+    }
+    G.fx.push({ k: 'ring', x: p.x + p.face * 26, y: p.y, z: 20, c: '#45d2ff', life: 12, max: 12, r: 30 });
+  } else if (look === 'axe' && t === 9 && !has(p, 'whirl')) {
+    // a full swing that also catches anyone behind you
+    p.face *= -1;
+    strike(p, 28 + R, 10 + m * 1.0, { kd: true, kb: 8, breaker: true, big: true });
+    p.face *= -1;
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ff6a3d', life: 12, max: 12, r: 34 });
+  }
 }
 // Co-op revive: stand next to where your partner fell for 2.5 seconds without getting hit
 const REVIVE_T = 150;

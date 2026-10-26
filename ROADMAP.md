@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 4:** a heavy blow for every melee weapon, four gun mods at Ratchet's bench, the spirit storm event, and a gear comparison card
 - [x] **Expansion 3:** Turbo, Fog, Split and Pacifist mutators; acid rain, corp parade and manhunt block events; co-op revive; Doc's neural reset; five new feats; GitHub Actions CI
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
@@ -38,13 +39,9 @@ The guiding rules:
 ### Gear and loot
 - [x] ~~**Black-market rarity.**~~ Shipped as eight legendaries unlocked by feats.
 - [ ] **More legendaries (S each).** One per new boss and per new hidden feat, so there's always a ??? left in the Codex.
-- [ ] **Weapon-specific moves (M).** The heavy blow changes with what you hold:
-  - katana: a dash slash
-  - whip: pulls an enemy to you
-  - hammer: a ground pound
-  - knuckles: a three-hit flurry
-- [ ] **Gun mods (M).** Slot one mod into a gun: extended mag (+50% ammo per pickup), laser sight (better crit), suppressor (no heat in the Sprawl), underbarrel launcher (one grenade per room).
-- [ ] **Item comparison on pickup (S).** A small floating card with ▲▼ arrows when you walk over gear, so you know before you open the bag.
+- [x] ~~**Weapon-specific moves.**~~ Shipped: dash slash, flurry, yank, shock stun, cleave and ground pound.
+- [x] ~~**Gun mods.**~~ Shipped: extended mag, laser sight, suppressor and underbarrel launcher at Ratchet's bench.
+- [x] ~~**Item comparison.**~~ Shipped as a floating card over gear on the floor.
 - [ ] **Salvage and crafting (M).** Break unwanted gear into parts at Ratchet's, then spend parts to reroll an affix or upgrade rarity.
 - [ ] **Sets (L).** Two- and three-piece bonuses for matching gear, such as Kagemori Security: armored riot vest + smartgun + shock baton.
 
@@ -129,7 +126,7 @@ These are the next ways to keep "one more run" alive:
 - [ ] **Lantern Vault, part two (L).** A real dragon fight: Ssareth itself, with a flight phase and breath attacks across lanes, unlocked after beating the Avatar on Prime.
 - [x] ~~**Rotating Sprawl events.**~~ Shipped: gang war, blackout, lockdown and night market.
 - [x] ~~**More block events.**~~ Shipped: acid rain, corp parade and manhunt.
-- [ ] **Spirit storm (S).** A toxic spirit storm event: wild spirits roam the block and spells cost half.
+- [x] ~~**Spirit storm.**~~ Shipped.
 - [x] ~~**Mutators for the campaign.**~~ Shipped: Glass Cannon, Elite Streets, Bare Knuckles and One Life.
 - [x] ~~**More mutators.**~~ Shipped: Turbo, Fog, Split and Pacifist.
 - [x] ~~**Shaman and Rigger.**~~ Shipped and unlocked by feats.

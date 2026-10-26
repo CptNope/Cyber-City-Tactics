@@ -261,6 +261,9 @@ function itemLine(it) {
   return itemLine0(it);
 }
 function itemLine0(it) {
+  return itemLine1(it) + (it.gmod ? ` · <span style="color:var(--mana)">${GMODS[it.gmod].name}</span>` : '');
+}
+function itemLine1(it) {
   const bs = BASES[it.slot][it.base] || {};
   const s =
     it.slot === 'armor'

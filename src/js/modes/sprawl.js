@@ -132,6 +132,11 @@ const EVENTS = {
     desc: 'Kagemori is celebrating. Patrols walk the block even with no heat, but every takedown pays 50% more creds.',
     col: '#45d2ff'
   },
+  spiritstorm: {
+    name: 'Spirit storm',
+    desc: 'The astral is boiling over. Wild spirits drift down the block, and every spell costs half the mana.',
+    col: '#b98cff'
+  },
   manhunt: {
     name: 'Manhunt',
     desc: 'Someone put a price on your head. Bounty hunters come for you now and then, and each one carries a fat payout.',
@@ -187,24 +192,17 @@ function genStreet(level, seed) {
   }
   // a block event, rolled from the seed (never on block 1)
   const er = r();
-  const event =
-    level < 2
-      ? null
-      : er < 0.11
-        ? 'gangwar'
-        : er < 0.21
-          ? 'blackout'
-          : er < 0.31
-            ? 'lockdown'
-            : er < 0.41
-              ? 'festival'
-              : er < 0.49
-                ? 'acidrain'
-                : er < 0.57
-                  ? 'parade'
-                  : er < 0.65
-                    ? 'manhunt'
-                    : null;
+  const EVROLL = [
+    ['gangwar', 0.1],
+    ['blackout', 0.19],
+    ['lockdown', 0.28],
+    ['festival', 0.37],
+    ['acidrain', 0.45],
+    ['parade', 0.53],
+    ['manhunt', 0.61],
+    ['spiritstorm', 0.69]
+  ];
+  const event = level < 2 ? null : (EVROLL.find(([, p]) => er < p) || [null])[0];
   if (event === 'lockdown') for (const b of B) if (b.type === 'blacksite') b.tier = 3;
   // Juno's bounty: a named target in one of the tougher good buildings
   const cand = B.filter(b => b.id && isGood(b) && FAC[facOf(b)].boss[b.tier]);
@@ -475,6 +473,19 @@ function blockEventTick(w) {
         tip(
           'parade',
           'Parade patrols ignore your heat. Leave them be, or take them down for the bigger payout.'
+        );
+      }
+    }
+  }
+  if (evOn('spiritstorm')) {
+    w.stormT = (w.stormT === undefined ? 600 : w.stormT) - 1;
+    if (w.stormT <= 0) {
+      w.stormT = ri(1100, 1600);
+      if (G.ents.filter(e => e.kind === 'spirit' && e.state !== 'dead').length < 2) {
+        spawnEnemy('spirit', Math.random() < 0.5 ? -1 : 1);
+        tip(
+          'storm',
+          'Wild spirits shrug off bullets. Use fists and spells, which cost half during the storm.'
         );
       }
     }

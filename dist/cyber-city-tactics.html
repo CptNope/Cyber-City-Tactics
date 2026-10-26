@@ -987,7 +987,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+6438bec';
+const APP_VERSION = '2.0.0+e660032';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2686,10 +2686,24 @@ const BASES = {
       price: 70,
       look: 'knucks',
       crit: 0.08,
-      note: '+8% crit'
+      note: '+8% crit, heavy blow is a three-hit flurry'
     },
-    baton: { name: 'Shock baton', dmg: 5, reach: 4, price: 90, look: 'baton' },
-    katana: { name: 'Katana', dmg: 8, reach: 8, price: 180, look: 'blade' },
+    baton: {
+      name: 'Shock baton',
+      dmg: 5,
+      reach: 4,
+      price: 90,
+      look: 'baton',
+      note: 'heavy blow stuns everything it hits'
+    },
+    katana: {
+      name: 'Katana',
+      dmg: 8,
+      reach: 8,
+      price: 180,
+      look: 'blade',
+      note: 'heavy blow is a dash slash'
+    },
     axe: {
       name: 'Fire axe',
       dmg: 10,
@@ -2697,9 +2711,16 @@ const BASES = {
       price: 240,
       look: 'axe',
       breaker: true,
-      note: 'every hit breaks guards'
+      note: 'every hit breaks guards, heavy blow cleaves both ways'
     },
-    whip: { name: 'Monowhip', dmg: 11, reach: 14, price: 320, look: 'whip' },
+    whip: {
+      name: 'Monowhip',
+      dmg: 11,
+      reach: 14,
+      price: 320,
+      look: 'whip',
+      note: 'heavy blow yanks a distant enemy to you'
+    },
     hammer: {
       name: 'Gravity hammer',
       dmg: 15,
@@ -2707,7 +2728,7 @@ const BASES = {
       price: 420,
       look: 'hammer',
       breaker: true,
-      note: 'breaks guards, heavy blows shake the floor'
+      note: 'breaks guards, heavy blow is a ground pound'
     }
   },
   gun: {
@@ -2730,6 +2751,14 @@ const BASES = {
     exo: { name: 'Exo-frame', arm: 13, price: 340, bonus: { str: 2, agi: -1 } }
   }
 };
+// Gun mods: fitted at Ratchet's bench, one per gun, and they stay with the gun
+const GMODS = {
+  mag: { name: 'Extended mag', desc: 'Ammo pickups give 50% more rounds.', price: 150 },
+  laser: { name: 'Laser sight', desc: '+10% crit chance with this gun.', price: 200 },
+  supp: { name: 'Suppressor', desc: 'Cops you shoot down add no heat.', price: 180 },
+  ugl: { name: 'Underbarrel launcher', desc: 'Every 20 seconds, a shot also lobs a grenade.', price: 300 }
+};
+const gmodOf = p => (p && p.eq && p.eq.gun && p.eq.gun.gmod) || null;
 const FIRE = {
   single: 'single shot',
   burst: '3-round burst',
@@ -3524,10 +3553,18 @@ const FEATS = [
   {
     id: 'events7',
     name: 'Local Weather',
-    desc: 'Live through all seven Sprawl block events.',
+    desc: 'Live through all eight Sprawl block events.',
     lp: 30,
     stat: 'evseen',
-    n: 7
+    n: 8
+  },
+  {
+    id: 'gmod1',
+    name: 'Tinkerer',
+    desc: "Fit a mod to a gun at Ratchet's bench.",
+    lp: 5,
+    stat: 'gmods',
+    n: 1
   },
   {
     id: 'hunters',
@@ -3874,7 +3911,8 @@ function respec(p) {
   refresh(p);
   return n;
 }
-const spellCost = (p, sp) => Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1)));
+const spellCost = (p, sp) =>
+  Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1) * (evOn('spiritstorm') ? 0.5 : 1)));
 
 /* ===== src/js/game/state.js ===== */
 /* Cyber City Tactics · src/js/game/state.js
@@ -4587,7 +4625,11 @@ function hurt(t, dmg, dir, o) {
     }
   } else if (
     o.src &&
-    (roninCrit(o) || Math.random() < o.src.D.crit + (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0))
+    (roninCrit(o) ||
+      Math.random() <
+        o.src.D.crit +
+          (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
+          (o.bullet && gmodOf(o.src) === 'laser' ? 0.1 : 0))
   ) {
     dmg *= o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8;
     crit = true;
@@ -4836,7 +4878,9 @@ function kill(t, dir, o) {
   if (G.world && G.wd) {
     if (t.kind === 'cop') {
       G.wd.copKills++;
-      if (G.wd.copKills % 2 === 0) G.wd.heat = Math.min(5, G.wd.heat + 1);
+      if (o && o.bullet && gmodOf(ks) === 'supp') {
+        G.texts.push({ x: t.x, y: t.y, z: 70, s: 'QUIET', c: '#a79dc2', life: 40, sm: true });
+      } else if (G.wd.copKills % 2 === 0) G.wd.heat = Math.min(5, G.wd.heat + 1);
       G.wd.rep = Math.max(-100, G.wd.rep - 2);
     } else if (!G.dun && ['ganger', 'orc', 'shaman', 'ghoul'].includes(t.kind))
       G.wd.rep = Math.min(100, G.wd.rep + 1);
@@ -5386,6 +5430,12 @@ function upRunner(p) {
         } else if (g.fire === 'auto') {
           if (T(2) || T(5) || T(8) || T(11)) fireBullet(p, D.gun, p.z + 27);
         } else if (T(3)) fireBullet(p, D.gun, p.z + 27, g.fire);
+        if (T(3) && g.gmod === 'ugl' && G.t - (p.uglT === undefined ? -9999 : p.uglT) >= 1200) {
+          p.uglT = G.t;
+          if (!(p.freeAmmo > 0)) p.ammo++; // the launcher has its own round
+          fireBullet(p, D.gun * 1.3 + 10, p.z + 30, 'grenade');
+          say(p, 'GRENADE OUT', '#ff6a3d', 60, 30, true);
+        }
       }
     }
     if (p.state === 'cast' && t === 10) castSpell(p);
@@ -5394,7 +5444,8 @@ function upRunner(p) {
       p.x += p.rdx * 3.3;
       p.y += p.rdy * 1.8;
     }
-    if (p.state === 'heavy' && t === 9) {
+    if (p.state === 'heavy') heavyMove(p, t, m, R);
+    if (p.state === 'heavy' && t === 9 && !HEAVY_OWN[heavyLook(p)]) {
       let hh = strike(p, 34 + R, 14 + m * 1.4, { kd: true, kb: 10, breaker: true, big: true });
       if (has(p, 'whirl')) {
         p.face *= -1;
@@ -5582,6 +5633,81 @@ function upRunner(p) {
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+// Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
+// (baton, axe, hammer) add their effect on top of it.
+const HEAVY_OWN = { blade: 1, knucks: 1, whip: 1 };
+const heavyLook = p => (p.eq.weapon && p.eq.weapon.look) || null;
+function heavyMove(p, t, m, R) {
+  const look = heavyLook(p),
+    big = { kd: true, kb: 10, breaker: true, big: true };
+  if (look === 'blade') {
+    // dash forward through the crowd, cutting twice
+    if (t >= 3 && t <= 12) {
+      p.x += p.face * 5.5;
+      clampX(p);
+      if (t % 2)
+        G.parts.push({
+          x: p.x - p.face * 10,
+          y: p.y,
+          z: rand(14, 36),
+          vx: -p.face,
+          vy: 0,
+          vz: 0,
+          life: 10,
+          c: '#45d2ff',
+          sz: 2
+        });
+    }
+    if (t === 6 || t === 12) {
+      if (strike(p, 30 + R, 10 + m * 1.1, big)) p.hvHit = true;
+      if (t === 12) {
+        if (!p.hvHit) sfx.whiff();
+        p.hvHit = false;
+        G.shake = Math.max(G.shake, 3);
+      }
+    }
+  } else if (look === 'knucks') {
+    // three fast hits, the last one knocks down
+    if (t === 5 || t === 9) strike(p, 24 + R, 6 + m * 0.6, { breaker: true, kb: 2 });
+    if (t === 13) {
+      if (!strike(p, 26 + R, 10 + m * 0.9, Object.assign({}, big, { kb: 8 }))) sfx.whiff();
+      G.shake = Math.max(G.shake, 3);
+    }
+  } else if (look === 'whip' && t === 9) {
+    // yank the nearest enemy in your lane from up to 130 px away, then hit it
+    let best = null;
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || e.state === 'down' || e.d.boss || e.d.passive || e.d.fly)
+        continue;
+      const dx = (e.x - p.x) * p.face;
+      if (dx < 20 || dx > 130 || Math.abs(e.y - p.y) > 16) continue;
+      if (!best || dx < (best.x - p.x) * p.face) best = e;
+    }
+    if (best) {
+      best.x = p.x + p.face * 24;
+      best.y = p.y;
+      G.fx.push({ k: 'ring', x: best.x, y: best.y, z: 24, c: '#b98cff', life: 10, max: 10, r: 18 });
+      say(p, 'GET OVER HERE', '#b98cff', 60, 30, true);
+    }
+    if (!strike(p, 34 + R, 13 + m * 1.3, big)) sfx.whiff();
+    G.shake = Math.max(G.shake, 4);
+  } else if (look === 'baton' && t === 9) {
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || (e.d && e.d.passive)) continue;
+      const dx = (e.x - p.x) * p.face;
+      if (dx < -6 || dx > 40 + R || Math.abs(e.y - p.y) > 12) continue;
+      e.cool = Math.max(e.cool || 0, 150);
+      G.texts.push({ x: e.x, y: e.y, z: e.z + 62, s: 'STUN', c: '#45d2ff', life: 28, sm: true });
+    }
+    G.fx.push({ k: 'ring', x: p.x + p.face * 26, y: p.y, z: 20, c: '#45d2ff', life: 12, max: 12, r: 30 });
+  } else if (look === 'axe' && t === 9 && !has(p, 'whirl')) {
+    // a full swing that also catches anyone behind you
+    p.face *= -1;
+    strike(p, 28 + R, 10 + m * 1.0, { kd: true, kb: 8, breaker: true, big: true });
+    p.face *= -1;
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ff6a3d', life: 12, max: 12, r: 34 });
+  }
 }
 // Co-op revive: stand next to where your partner fell for 2.5 seconds without getting hit
 const REVIVE_T = 150;
@@ -6760,9 +6886,10 @@ function collect(k, p) {
     sfx.buy();
   }
   if (k.k === 'ammo') {
-    p.ammo += 8;
+    const n = gmodOf(p) === 'mag' ? 12 : 8;
+    p.ammo += n;
     sfx.buy();
-    say(p, '+8 AMMO', '#ffe28a');
+    say(p, '+' + n + ' AMMO', '#ffe28a');
   }
   if (k.k === 'mana') {
     p.mp = Math.min(p.maxMp, p.mp + 30);
@@ -7080,6 +7207,11 @@ const EVENTS = {
     desc: 'Kagemori is celebrating. Patrols walk the block even with no heat, but every takedown pays 50% more creds.',
     col: '#45d2ff'
   },
+  spiritstorm: {
+    name: 'Spirit storm',
+    desc: 'The astral is boiling over. Wild spirits drift down the block, and every spell costs half the mana.',
+    col: '#b98cff'
+  },
   manhunt: {
     name: 'Manhunt',
     desc: 'Someone put a price on your head. Bounty hunters come for you now and then, and each one carries a fat payout.',
@@ -7135,24 +7267,17 @@ function genStreet(level, seed) {
   }
   // a block event, rolled from the seed (never on block 1)
   const er = r();
-  const event =
-    level < 2
-      ? null
-      : er < 0.11
-        ? 'gangwar'
-        : er < 0.21
-          ? 'blackout'
-          : er < 0.31
-            ? 'lockdown'
-            : er < 0.41
-              ? 'festival'
-              : er < 0.49
-                ? 'acidrain'
-                : er < 0.57
-                  ? 'parade'
-                  : er < 0.65
-                    ? 'manhunt'
-                    : null;
+  const EVROLL = [
+    ['gangwar', 0.1],
+    ['blackout', 0.19],
+    ['lockdown', 0.28],
+    ['festival', 0.37],
+    ['acidrain', 0.45],
+    ['parade', 0.53],
+    ['manhunt', 0.61],
+    ['spiritstorm', 0.69]
+  ];
+  const event = level < 2 ? null : (EVROLL.find(([, p]) => er < p) || [null])[0];
   if (event === 'lockdown') for (const b of B) if (b.type === 'blacksite') b.tier = 3;
   // Juno's bounty: a named target in one of the tougher good buildings
   const cand = B.filter(b => b.id && isGood(b) && FAC[facOf(b)].boss[b.tier]);
@@ -7423,6 +7548,19 @@ function blockEventTick(w) {
         tip(
           'parade',
           'Parade patrols ignore your heat. Leave them be, or take them down for the bigger payout.'
+        );
+      }
+    }
+  }
+  if (evOn('spiritstorm')) {
+    w.stormT = (w.stormT === undefined ? 600 : w.stormT) - 1;
+    if (w.stormT <= 0) {
+      w.stormT = ri(1100, 1600);
+      if (G.ents.filter(e => e.kind === 'spirit' && e.state !== 'dead').length < 2) {
+        spawnEnemy('spirit', Math.random() < 0.5 ? -1 : 1);
+        tip(
+          'storm',
+          'Wild spirits shrug off bullets. Use fists and spells, which cost half during the storm.'
         );
       }
     }
@@ -10170,6 +10308,31 @@ function wrapTip(s, max) {
   if (line) out.push(line);
   return out;
 }
+// Floating comparison card over gear on the floor, shown when a runner is close
+const cmpVal = it => (!it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.dmg || 0);
+function drawCompare() {
+  for (const k of G.picks) {
+    if (k.k !== 'gear' || !k.item) continue;
+    const p = alive().find(q => Math.abs(q.x - k.x) < 64 && Math.abs(q.y - k.y) < 30);
+    if (!p) continue;
+    const it = k.item,
+      cur = p.eq[it.slot],
+      d = cmpVal(it) - cmpVal(cur),
+      lbl = it.slot === 'armor' ? 'ARM ' : 'DMG ';
+    const nm = it.name.toUpperCase(),
+      w = Math.max(84, (ctx.font = '600 10px Teko, Impact, sans-serif') && ctx.measureText(nm).width + 16),
+      x = clamp(k.x - G.camX - w / 2, 2, W - w - 2),
+      y = k.y - 58;
+    ctx.fillStyle = 'rgba(23,18,31,0.92)';
+    ctx.fillRect(x, y, w, 30);
+    ctx.fillStyle = RCOL[it.rar];
+    ctx.fillRect(x, y, 2, 30);
+    txt(nm, x + 6, y + 11, 10, RCOL[it.rar]);
+    txt(lbl + cmpVal(it), x + 6, y + 24, 10, '#efe9ff');
+    const s = (d > 0 ? '▲' + d : d < 0 ? '▼' + -d : '=') + (cur ? '' : ' VS NONE');
+    txt(s, x + w - 6, y + 24, 10, d > 0 ? '#7dffb0' : d < 0 ? '#ff3d8b' : '#a79dc2', 'right');
+  }
+}
 // Revive marker where a co-op partner fell, with a progress ring
 function drawRevive() {
   for (const q of PL) {
@@ -10481,6 +10644,7 @@ function render() {
   }
   drawBeams();
   drawFx();
+  drawCompare();
   drawRevive();
   for (const q of G.parts) {
     ctx.fillStyle = q.c;
@@ -10900,6 +11064,9 @@ function itemLine(it) {
   return itemLine0(it);
 }
 function itemLine0(it) {
+  return itemLine1(it) + (it.gmod ? ` · <span style="color:var(--mana)">${GMODS[it.gmod].name}</span>` : '');
+}
+function itemLine1(it) {
   const bs = BASES[it.slot][it.base] || {};
   const s =
     it.slot === 'armor'
@@ -11202,6 +11369,21 @@ function renderOv() {
   }
   padRestoreFocus();
 }
+// Ratchet's gun bench: fit one mod to the current runner's gun
+function gunBenchHtml() {
+  const p = PL[G.sheetIdx] || PL[0],
+    g = p.eq.gun;
+  const rows = Object.keys(GMODS)
+    .map(k => {
+      const M = GMODS[k],
+        c = Math.round(M.price * buyMul()),
+        on = g && g.gmod === k,
+        ok = g && !on && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${M.name}</div><div class="ds">${M.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="gmod:${k}" ${ok ? '' : 'disabled'}>${on ? 'Fitted' : '¥' + c}</button></div></div>`;
+    })
+    .join('');
+  return `<h3>Gun bench</h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">${g ? `${esc(p.name)}'s ${esc(g.name)}${g.gmod ? ' has a ' + GMODS[g.gmod].name.toLowerCase() + '. A new mod replaces it.' : ' has no mod.'}` : `${esc(p.name)} has no gun to mod.`}</p><div class="list">${rows}</div>`;
+}
 function npcHtml(id) {
   const n = NPCS.find(x => x.id === id),
     stage = G.stage;
@@ -11265,6 +11447,7 @@ function npcHtml(id) {
   } else if (id === 'ratchet') {
     sayTxt = 'No receipts, no refunds, no questions. Selling? I pay forty cents on the nuyen.';
     body = `${G.world ? `<div class="list"><div class="item"><div><div class="nm">Icebreaker program</div><div class="ds">Cracks one node of any lock instantly. You have ${PARTY.ice || 0}.</div></div><div class="acts"><button class="btn sm${PARTY.creds >= 40 ? '' : ' ghost'}" data-a="buyice" ${PARTY.creds >= 40 ? '' : 'disabled'}>¥40</button></div></div></div>` : ''}
+    ${gunBenchHtml()}
     <h3>For sale</h3><div class="list">${
       G.stock.length
         ? G.stock
@@ -11869,6 +12052,18 @@ ov.addEventListener('click', e => {
       }
       rerender();
       break;
+    case 'gmod': {
+      const g = p.eq.gun,
+        c = Math.round(GMODS[arg].price * buyMul());
+      if (g && g.gmod !== arg && PARTY.creds >= c) {
+        PARTY.creds -= c;
+        g.gmod = arg;
+        bump('gmods');
+        sfx.buy();
+      }
+      rerender();
+      break;
+    }
     case 'cyber': {
       const l = p.cy[arg],
         c = Math.round(CYBER[arg].cost(l) * buyMul());

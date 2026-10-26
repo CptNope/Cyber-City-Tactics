@@ -21,10 +21,24 @@ const BASES = {
       price: 70,
       look: 'knucks',
       crit: 0.08,
-      note: '+8% crit'
+      note: '+8% crit, heavy blow is a three-hit flurry'
     },
-    baton: { name: 'Shock baton', dmg: 5, reach: 4, price: 90, look: 'baton' },
-    katana: { name: 'Katana', dmg: 8, reach: 8, price: 180, look: 'blade' },
+    baton: {
+      name: 'Shock baton',
+      dmg: 5,
+      reach: 4,
+      price: 90,
+      look: 'baton',
+      note: 'heavy blow stuns everything it hits'
+    },
+    katana: {
+      name: 'Katana',
+      dmg: 8,
+      reach: 8,
+      price: 180,
+      look: 'blade',
+      note: 'heavy blow is a dash slash'
+    },
     axe: {
       name: 'Fire axe',
       dmg: 10,
@@ -32,9 +46,16 @@ const BASES = {
       price: 240,
       look: 'axe',
       breaker: true,
-      note: 'every hit breaks guards'
+      note: 'every hit breaks guards, heavy blow cleaves both ways'
     },
-    whip: { name: 'Monowhip', dmg: 11, reach: 14, price: 320, look: 'whip' },
+    whip: {
+      name: 'Monowhip',
+      dmg: 11,
+      reach: 14,
+      price: 320,
+      look: 'whip',
+      note: 'heavy blow yanks a distant enemy to you'
+    },
     hammer: {
       name: 'Gravity hammer',
       dmg: 15,
@@ -42,7 +63,7 @@ const BASES = {
       price: 420,
       look: 'hammer',
       breaker: true,
-      note: 'breaks guards, heavy blows shake the floor'
+      note: 'breaks guards, heavy blow is a ground pound'
     }
   },
   gun: {
@@ -65,6 +86,14 @@ const BASES = {
     exo: { name: 'Exo-frame', arm: 13, price: 340, bonus: { str: 2, agi: -1 } }
   }
 };
+// Gun mods: fitted at Ratchet's bench, one per gun, and they stay with the gun
+const GMODS = {
+  mag: { name: 'Extended mag', desc: 'Ammo pickups give 50% more rounds.', price: 150 },
+  laser: { name: 'Laser sight', desc: '+10% crit chance with this gun.', price: 200 },
+  supp: { name: 'Suppressor', desc: 'Cops you shoot down add no heat.', price: 180 },
+  ugl: { name: 'Underbarrel launcher', desc: 'Every 20 seconds, a shot also lobs a grenade.', price: 300 }
+};
+const gmodOf = p => (p && p.eq && p.eq.gun && p.eq.gun.gmod) || null;
 const FIRE = {
   single: 'single shot',
   burst: '3-round burst',

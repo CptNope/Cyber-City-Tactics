@@ -105,7 +105,11 @@ function hurt(t, dmg, dir, o) {
     }
   } else if (
     o.src &&
-    (roninCrit(o) || Math.random() < o.src.D.crit + (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0))
+    (roninCrit(o) ||
+      Math.random() <
+        o.src.D.crit +
+          (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
+          (o.bullet && gmodOf(o.src) === 'laser' ? 0.1 : 0))
   ) {
     dmg *= o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8;
     crit = true;
@@ -354,7 +358,9 @@ function kill(t, dir, o) {
   if (G.world && G.wd) {
     if (t.kind === 'cop') {
       G.wd.copKills++;
-      if (G.wd.copKills % 2 === 0) G.wd.heat = Math.min(5, G.wd.heat + 1);
+      if (o && o.bullet && gmodOf(ks) === 'supp') {
+        G.texts.push({ x: t.x, y: t.y, z: 70, s: 'QUIET', c: '#a79dc2', life: 40, sm: true });
+      } else if (G.wd.copKills % 2 === 0) G.wd.heat = Math.min(5, G.wd.heat + 1);
       G.wd.rep = Math.max(-100, G.wd.rep - 2);
     } else if (!G.dun && ['ganger', 'orc', 'shaman', 'ghoul'].includes(t.kind))
       G.wd.rep = Math.min(100, G.wd.rep + 1);

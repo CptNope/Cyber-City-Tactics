@@ -312,9 +312,10 @@ function collect(k, p) {
     sfx.buy();
   }
   if (k.k === 'ammo') {
-    p.ammo += 8;
+    const n = gmodOf(p) === 'mag' ? 12 : 8;
+    p.ammo += n;
     sfx.buy();
-    say(p, '+8 AMMO', '#ffe28a');
+    say(p, '+' + n + ' AMMO', '#ffe28a');
   }
   if (k.k === 'mana') {
     p.mp = Math.min(p.maxMp, p.mp + 30);

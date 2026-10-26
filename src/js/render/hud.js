@@ -79,6 +79,31 @@ function wrapTip(s, max) {
   if (line) out.push(line);
   return out;
 }
+// Floating comparison card over gear on the floor, shown when a runner is close
+const cmpVal = it => (!it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.dmg || 0);
+function drawCompare() {
+  for (const k of G.picks) {
+    if (k.k !== 'gear' || !k.item) continue;
+    const p = alive().find(q => Math.abs(q.x - k.x) < 64 && Math.abs(q.y - k.y) < 30);
+    if (!p) continue;
+    const it = k.item,
+      cur = p.eq[it.slot],
+      d = cmpVal(it) - cmpVal(cur),
+      lbl = it.slot === 'armor' ? 'ARM ' : 'DMG ';
+    const nm = it.name.toUpperCase(),
+      w = Math.max(84, (ctx.font = '600 10px Teko, Impact, sans-serif') && ctx.measureText(nm).width + 16),
+      x = clamp(k.x - G.camX - w / 2, 2, W - w - 2),
+      y = k.y - 58;
+    ctx.fillStyle = 'rgba(23,18,31,0.92)';
+    ctx.fillRect(x, y, w, 30);
+    ctx.fillStyle = RCOL[it.rar];
+    ctx.fillRect(x, y, 2, 30);
+    txt(nm, x + 6, y + 11, 10, RCOL[it.rar]);
+    txt(lbl + cmpVal(it), x + 6, y + 24, 10, '#efe9ff');
+    const s = (d > 0 ? '▲' + d : d < 0 ? '▼' + -d : '=') + (cur ? '' : ' VS NONE');
+    txt(s, x + w - 6, y + 24, 10, d > 0 ? '#7dffb0' : d < 0 ? '#ff3d8b' : '#a79dc2', 'right');
+  }
+}
 // Revive marker where a co-op partner fell, with a progress ring
 function drawRevive() {
   for (const q of PL) {
@@ -390,6 +415,7 @@ function render() {
   }
   drawBeams();
   drawFx();
+  drawCompare();
   drawRevive();
   for (const q of G.parts) {
     ctx.fillStyle = q.c;

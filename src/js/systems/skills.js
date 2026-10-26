@@ -127,4 +127,5 @@ function respec(p) {
   refresh(p);
   return n;
 }
-const spellCost = (p, sp) => Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1)));
+const spellCost = (p, sp) =>
+  Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1) * (evOn('spiritstorm') ? 0.5 : 1)));

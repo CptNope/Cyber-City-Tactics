@@ -185,3 +185,105 @@ p1.x = p2.outX + 8;
 step(160);
 ok(!p2.out && G.ents.includes(p2) && p2.hp > 0, 'standing by the marker revives runner 2');
 ok(A.LEG.feats.revive, 'Not Today feat');
+
+// ---- weapon heavy blows
+const heavyWith = (base, setup) => {
+  click('quit');
+  const P = start([]);
+  P.eq.weapon = A.mkItem('weapon', base, 0);
+  A.refresh(P);
+  P.face = 1;
+  P.inv = 999;
+  const r = setup(P);
+  key('KeyJ', true);
+  step(36);
+  key('KeyJ', false);
+  step(30);
+  return { P, r };
+};
+const tough = (k, dx) => {
+  const e = foe(k, dx);
+  e.hp = e.maxHp = 999;
+  return e;
+};
+let x0;
+let hv = heavyWith('katana', P => {
+  x0 = P.x;
+  return [tough('ganger', 40), tough('ganger', 70)];
+});
+ok(
+  hv.P.x - x0 > 40 && hv.r.every(e => e.hp < 999),
+  'katana: dash slash moves ' + Math.round(hv.P.x - x0) + ' px and cuts both gangers'
+);
+hv = heavyWith('knucks', () => tough('orc', 22));
+ok(hv.r.hp < 999 && hv.r.state === 'down', 'knuckles: flurry ends in a knockdown');
+hv = heavyWith('whip', () => tough('ganger', 110));
+ok(
+  hv.r.x - hv.P.x < 100 && hv.r.hp < 999,
+  'whip: yanks a ganger from 110 px and hits it (dx ' + Math.round(hv.r.x - hv.P.x) + ', hp ' + hv.r.hp + ')'
+);
+hv = heavyWith('baton', () => {
+  const e = tough('ganger', 24);
+  e.cool = 0;
+  return e;
+});
+ok(hv.r.cool >= 100, 'baton: heavy blow stuns (cool ' + hv.r.cool + ')');
+hv = heavyWith('axe', () => [tough('ganger', 24), tough('ganger', -20)]);
+ok(
+  hv.r.every(e => e.hp < 999),
+  'axe: cleave hits in front and behind'
+);
+
+// ---- gun mods
+click('quit');
+P = start([]);
+P.eq.gun = A.mkItem('gun', 'heavy', 0);
+A.refresh(P);
+__PARTY.creds = 5000;
+G.sheetIdx = 0;
+ok(/Gun bench/.test(A.npcHtml('ratchet')), "Ratchet's gun bench is listed");
+click('gmod:mag');
+ok(P.eq.gun.gmod === 'mag' && A.LEG.feats.gmod1, 'extended mag fitted, Tinkerer feat');
+let a0 = P.ammo;
+A.collect({ k: 'ammo', x: P.x, y: P.y, t: 1 }, P);
+ok(P.ammo - a0 === 12, 'extended mag: ammo pickup gives 12');
+click('gmod:ugl');
+ok(P.eq.gun.gmod === 'ugl', 'a new mod replaces the old one');
+ok(/Underbarrel launcher/.test(A.itemLine(P.eq.gun)), 'mod shows on the item line');
+P.ammo = 20;
+P.uglT = undefined;
+tap('KeyU');
+step(8);
+ok(
+  G.projs.some(q => q.k === 'nade'),
+  'underbarrel: shot also lobs a grenade'
+);
+ok(P.ammo === 19, 'the grenade costs no extra ammo (' + P.ammo + ')');
+
+// ---- spirit storm and compare card
+ok(A.EVENTS.spiritstorm, 'spirit storm event');
+click('quit');
+click('worldpick');
+click('world1');
+P = __PL()[0];
+G.wd.street.event = 'spiritstorm';
+const fb = A.SPELLS.fire;
+ok(A.spellCost(P, fb) === Math.max(1, Math.round(fb.cost * 0.5)), 'spells cost half in a spirit storm');
+clearFoes();
+G.wd.stormT = 2;
+step(4);
+ok(
+  G.ents.some(e => e.kind === 'spirit'),
+  'wild spirit drifts in'
+);
+G.wd.street.event = null;
+const it = A.mkItem('armor', 'exo', 2);
+G.picks.push({ k: 'gear', item: it, x: P.x + 40, y: P.y, t: 0 });
+P.x = G.picks[G.picks.length - 1].x - 30;
+let err = null;
+try {
+  A.drawCompare();
+} catch (e) {
+  err = e;
+}
+ok(!err && A.cmpVal(it) > A.cmpVal(P.eq.armor), 'compare card draws, exo-frame beats the starting armor');

@@ -508,6 +508,18 @@ ov.addEventListener('click', e => {
       }
       rerender();
       break;
+    case 'gmod': {
+      const g = p.eq.gun,
+        c = Math.round(GMODS[arg].price * buyMul());
+      if (g && g.gmod !== arg && PARTY.creds >= c) {
+        PARTY.creds -= c;
+        g.gmod = arg;
+        bump('gmods');
+        sfx.buy();
+      }
+      rerender();
+      break;
+    }
     case 'cyber': {
       const l = p.cy[arg],
         c = Math.round(CYBER[arg].cost(l) * buyMul());

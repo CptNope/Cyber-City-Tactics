@@ -177,6 +177,21 @@ function renderOv() {
   }
   padRestoreFocus();
 }
+// Ratchet's gun bench: fit one mod to the current runner's gun
+function gunBenchHtml() {
+  const p = PL[G.sheetIdx] || PL[0],
+    g = p.eq.gun;
+  const rows = Object.keys(GMODS)
+    .map(k => {
+      const M = GMODS[k],
+        c = Math.round(M.price * buyMul()),
+        on = g && g.gmod === k,
+        ok = g && !on && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${M.name}</div><div class="ds">${M.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="gmod:${k}" ${ok ? '' : 'disabled'}>${on ? 'Fitted' : '¥' + c}</button></div></div>`;
+    })
+    .join('');
+  return `<h3>Gun bench</h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">${g ? `${esc(p.name)}'s ${esc(g.name)}${g.gmod ? ' has a ' + GMODS[g.gmod].name.toLowerCase() + '. A new mod replaces it.' : ' has no mod.'}` : `${esc(p.name)} has no gun to mod.`}</p><div class="list">${rows}</div>`;
+}
 function npcHtml(id) {
   const n = NPCS.find(x => x.id === id),
     stage = G.stage;
@@ -240,6 +255,7 @@ function npcHtml(id) {
   } else if (id === 'ratchet') {
     sayTxt = 'No receipts, no refunds, no questions. Selling? I pay forty cents on the nuyen.';
     body = `${G.world ? `<div class="list"><div class="item"><div><div class="nm">Icebreaker program</div><div class="ds">Cracks one node of any lock instantly. You have ${PARTY.ice || 0}.</div></div><div class="acts"><button class="btn sm${PARTY.creds >= 40 ? '' : ' ghost'}" data-a="buyice" ${PARTY.creds >= 40 ? '' : 'disabled'}>¥40</button></div></div></div>` : ''}
+    ${gunBenchHtml()}
     <h3>For sale</h3><div class="list">${
       G.stock.length
         ? G.stock

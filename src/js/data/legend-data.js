@@ -315,10 +315,18 @@ const FEATS = [
   {
     id: 'events7',
     name: 'Local Weather',
-    desc: 'Live through all seven Sprawl block events.',
+    desc: 'Live through all eight Sprawl block events.',
     lp: 30,
     stat: 'evseen',
-    n: 7
+    n: 8
+  },
+  {
+    id: 'gmod1',
+    name: 'Tinkerer',
+    desc: "Fit a mod to a gun at Ratchet's bench.",
+    lp: 5,
+    stat: 'gmods',
+    n: 1
   },
   {
     id: 'hunters',

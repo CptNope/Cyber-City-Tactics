@@ -65,7 +65,7 @@ Between districts you walk **the Den**, a street hub where you talk to the local
 | Doc Kessler | Street doc: medkits, ammo and cyberware |
 | Kit | Rents companions |
 | Old Wen | Talismonger: teaches spells |
-| Ratchet | Fence: buys and sells gear |
+| Ratchet | Fence: buys and sells gear, and fits gun mods |
 | Pixel | Street kid: what's happening on the block |
 
 What they say changes after each job.
@@ -192,15 +192,17 @@ Rarity sets the stat multiplier and the number of bonus attributes:
 Better gear shows up as you go deeper into the campaign, the Arena or the Sprawl.
 
 ### Melee weapons
-| Weapon | Notes |
-|---|---|
-| Lead pipe | Starter |
-| Spur knuckles | +8% crit, no reach |
-| Shock baton | |
-| Katana | Long reach |
-| Fire axe | Every hit breaks guards |
-| Monowhip | Longest reach |
-| Gravity hammer | Breaks guards; heavy blows knock down everything in front of you |
+Every weapon has its own heavy blow (hold punch, then release).
+
+| Weapon | Notes | Heavy blow |
+|---|---|---|
+| Lead pipe | Starter | A guard-breaking knockdown swing |
+| Spur knuckles | +8% crit, no reach | **Flurry:** three fast hits, the last one knocks down |
+| Shock baton | | **Shock stun:** knockdown swing that also stuns everything in front of you for 2.5 s |
+| Katana | Long reach | **Dash slash:** dash about 55 px through the crowd, cutting twice |
+| Fire axe | Every hit breaks guards | **Cleave:** the swing also hits anyone behind you |
+| Monowhip | Longest reach | **Yank:** pulls the nearest enemy in your lane (up to 130 px, not bosses or flyers) to you, then hits it |
+| Gravity hammer | Breaks guards | **Ground pound:** knocks down everything in front of you |
 
 ### Guns
 | Gun | Fire mode |
@@ -213,6 +215,17 @@ Better gear shows up as you go deeper into the campaign, the Arena or the Sprawl
 | Smartgun | Smart rounds that track targets across lanes |
 | Railgun | A slug that pierces every target in the lane |
 | Grenade launcher | An arcing grenade that explodes on impact |
+
+**Gun mods.** Ratchet's gun bench (in the Den and at Sprawl safehouses) fits one mod to the current runner's gun. The mod stays with that gun; fitting another replaces it.
+
+| Mod | Price | Effect |
+|---|---|---|
+| Extended mag | ¥150 | Ammo pickups give 12 rounds instead of 8 |
+| Laser sight | ¥200 | +10% crit chance with this gun |
+| Suppressor | ¥180 | Cops you shoot down in the Sprawl add no heat |
+| Underbarrel launcher | ¥300 | Every 20 seconds, a shot also lobs a free grenade |
+
+**Comparing gear.** Walk near gear on the floor and a small card shows its name and how its damage or armor compares to what you're wearing (▲ better, ▼ worse).
 
 ### Armor
 | Armor | Notes |
@@ -328,7 +341,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
-**Block events.** From block 2 on, about two blocks in three have an event. A banner announces it, and it shows in the HUD and at the safehouse:
+**Block events.** From block 2 on, about seven blocks in ten have an event. A banner announces it, and it shows in the HUD and at the safehouse:
 
 | Event | What changes |
 |---|---|
@@ -339,6 +352,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 | Acid rain | Green rain eats at everyone outside, gangers included: 1 HP every two seconds, never below 1. Indoors is dry |
 | Corp parade | Patrol cops walk the block even with no heat, and every takedown pays 50% more creds |
 | Manhunt | Bounty hunters come for you now and then: tough berserk elites that each drop ¥80 plus ¥40 per block |
+| Spirit storm | Wild spirits drift down the block (bullets go straight through them), and every spell costs half the mana |
 
 **The Lantern Vault.** Find all 24 lore shards and Juno tells you the rest. From then on, every block has a lantern-lit door: the Lantern Vault. It's four rooms deep, and at the bottom waits the Avatar of Ssareth, the hardest fight in the game. Beating it earns the *Lights Out* feat and a unique legendary, The Lantern.
 
@@ -347,7 +361,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 55 goals across every mode, for example:
+**Feats.** 56 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss
