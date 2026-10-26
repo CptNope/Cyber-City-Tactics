@@ -84,6 +84,11 @@ button:focus-visible{outline:2px solid var(--mana);outline-offset:2px}
 .derived b{color:var(--text)}
 .meter{height:6px;background:#2a2238;border-radius:3px;overflow:hidden}.meter i{display:block;height:100%;background:var(--karma)}
 .job{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel);display:flex;flex-direction:column;gap:4px}
+.sharebox{user-select:text;-webkit-user-select:text;border:1px dashed var(--line);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);background:var(--panel);overflow-wrap:anywhere}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.stats div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel)}
+.stats b{display:block;font:600 26px/1 var(--font-d);color:var(--text);font-variant-numeric:tabular-nums}
+.stats span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .job .st{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 
 #pad{display:none;justify-content:space-between;align-items:flex-end;gap:12px;padding-block:6px 2px}
@@ -476,6 +481,7 @@ function refresh(p){
   p.D={a,melee:a.str*1.6+(w?w.dmg:0)+cy.arm*3,reach:w?w.reach:0,gun:g?Math.round(g.dmg+a.agi*.8):0,
     armor:(ar?ar.arm:0)+cy.plate*3+Math.floor(a.bod/2),crit:.03+a.agi*.025+cy.wired*.04,spd:1.55+a.agi*.045+cy.wired*.08,
     spell:a.mag*4,regen:Math.max(12,46-a.mag*3)};
+  if(typeof G!=='undefined'&&modOn('brawl'))p.D.melee*=1.4;
   p.maxHp=70+a.bod*14+(p.lvl-1)*5;p.maxMp=Math.max(10,24+a.mag*12-cyN*6);
   p.hp=Math.min(p.hp,p.maxHp);p.mp=Math.min(p.mp,p.maxMp);
 }
@@ -493,7 +499,7 @@ const karmaNext=l=>50+l*45;
 const active=()=>PL.filter(p=>!p.out);
 const alive=()=>PL.filter(p=>!p.out&&p.state!=='dead');
 function gainKarma(n){
-  if(!n)return;
+  if(!n)return;if(G.coop)n=Math.max(1,Math.round(n*.75));
   for(const p of active()){p.karma+=n;
     while(p.karma>=karmaNext(p.lvl)){p.karma-=karmaNext(p.lvl);p.lvl++;p.pts+=2;refresh(p);p.hp=Math.min(p.maxHp,p.hp+Math.round(p.maxHp*.3));
       say(p,'LEVEL '+p.lvl,'#ffc63d',88,80);sfx.level();buzz([20,40,20]);burst(p.x,p.y,30,'#ffc63d',16);
@@ -563,7 +569,7 @@ function spawnEnemy(kind,side){
   const e={kind,d,team:1,pal:d.pal,x,y:rand(FY0+8,FY1-6),z:d.fly?(d.spirit?18:24):0,vx:0,vz:0,face:side<0?1:-1,state:'idle',t:0,walk:0,inv:0,flash:0,
     hp:Math.round(d.hp*hpm*(G.coop?1.25:1)),dmg:Math.round(d.dmg*(1+G.stage*.26)*DF.dmg*NG.dmg),cool:rand(20,d.cool),hits:0,lastHit:0,yoff:rand(-5,5),hover:rand(0,6),tgt:null,sumT:200,
     coolMul:DF.cool*NG.cool,spdMul:1,elite:null};
-  if(!d.boss&&G.mode!=='title'&&Math.random()<DF.elite+NG.elite+G.stage*.02){
+  if(!d.boss&&G.mode!=='title'&&(modOn('elite')||Math.random()<DF.elite+NG.elite+G.stage*.02)){
     const ks=Object.keys(ELITES).filter(k=>!(k==='vampiric'&&d.spirit));const k=pick(ks);e.elite=k;
     if(k==='armored')e.hp=Math.round(e.hp*1.7);
     if(k==='berserk'){e.spdMul=1.35;e.dmg=Math.round(e.dmg*1.3);e.coolMul*=.75;}
@@ -592,6 +598,7 @@ function hurt(t,dmg,dir,o){
     G.texts.push({x:t.x,y:t.y,z:t.z+50,s:'BLOCK',c:'#9fb4d8',life:26,sm:true});if(t.hp<=0)kill(t,dir);return true;}
   if(t.elite==='warded'){o.kd=false;if(o.magic)dmg*=.4;}
   if(t.elite==='armored'&&o.bullet)dmg*=.45;
+  if(modOn('glass'))dmg*=1.6;
   let crit=false;
   if(t.team===0)dmg=dmg*20/(20+t.D.armor);
   else if(o.src&&Math.random()<o.src.D.crit){dmg*=1.8;crit=true;}
@@ -603,6 +610,7 @@ function hurt(t,dmg,dir,o){
   fxSpark(t.x-dir*4,t.y,t.z+(t.d&&t.d.fly?0:30),o.col||'#fff3c4',big);
   G.texts.push({x:t.x+rand(-4,4),y:t.y,z:t.z+50,s:(crit?'CRIT ':'')+dmg,c:t.team===0?'#ff3d8b':crit?'#ffc63d':(o.col||'#efe9ff'),life:34,big:crit});
   G.stop=big?5:3;G.shake=Math.max(G.shake,o.big?6:crit?4:2);if(crit)G.flash=Math.max(G.flash,.12);
+  if(G.run){if(o.src)G.run.dealt+=dmg;if(t.team===0)G.run.taken+=dmg;}
   if(t.team===0&&t.idx===0)buzz(big?60:30);else if(o.src&&o.src.idx===0&&big)buzz(12);
   (big?sfx.heavy:sfx.hit)();
   if(o.src){G.combo++;G.comboT=0;if(G.combo>G.bestCombo)G.bestCombo=G.combo;}
@@ -628,6 +636,32 @@ function enrage(e){
   tip('rage','Enraged bosses learn new moves. Jump over shockwaves.','Enraged bosses learn new moves. Jump (Space) over shockwaves.');G.fx.push({k:'ring',x:e.x,y:e.y,z:30,c:'#ff4a4a',life:26,max:26,r:80});burst(e.x,e.y,30,'#ff4a4a',24);
 }
 /* ---------- arena ---------- */
+const HOME='https://cptnope.github.io/Cyber-City-Tactics/';
+const MODS={
+  glass:{name:'Glass Cannon',desc:'Everyone hits 60% harder, you included.'},
+  keg:{name:'Powder Keg',desc:'Explosive drums every wave, with bigger blasts.'},
+  elite:{name:'Elite Week',desc:'Every regular enemy is an elite. Every one drops gear.'},
+  tide:{name:'Spirit Tide',desc:'Fire spirits join every wave. Bring fists and spells.'},
+  brawl:{name:'Bare Knuckles',desc:'Guns are locked. Punches and kicks hit 40% harder.'}
+};
+function hstr(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function weekId(d){d=d||new Date();const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-day);const y=t.getUTCFullYear();const w=Math.ceil(((t-Date.UTC(y,0,1))/864e5+1)/7);return y+'-W'+String(w).padStart(2,'0');}
+function thisWeek(){const id=weekId(),ks=Object.keys(MODS);return{id,mod:ks[hstr(id)%ks.length]};}
+const modOn=k=>!!(G.arena&&G.challenge&&G.challenge.mod===k);
+// Seeded streams so everyone gets the same waves and perk offers in a given week
+const wr=()=>G.rngW?G.rngW():Math.random(),pr=()=>G.rngP?G.rngP():Math.random();
+const wpick=a=>a[Math.floor(wr()*a.length)];
+function newRunStats(){G.run={kills:0,elites:0,bosses:0,dealt:0,taken:0};}
+function statsHtml(){const r=G.run||{kills:0,elites:0,bosses:0,dealt:0,taken:0};
+  return `<div class="stats"><div><b>${r.kills}</b><span>Takedowns</span></div><div><b>${r.elites}</b><span>Elites</span></div><div><b>${r.bosses}</b><span>Bosses</span></div><div><b>${Math.round(r.dealt).toLocaleString()}</b><span>Damage dealt</span></div><div><b>${Math.round(r.taken).toLocaleString()}</b><span>Damage taken</span></div><div><b>${G.bestCombo}</b><span>Best combo</span></div></div>`;}
+function shareLine(){
+  const who=G.coop?'co-op':'solo',d=DIFF[G.diff].name;
+  if(G.mode==='arenaover'){const e=G.lastEntry||{score:0,wave:0};
+    return `Chrome & Sorcery Arena${G.challenge?` · weekly ${G.challenge.id} "${MODS[G.challenge.mod].name}"`:''}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}`;}
+  return `Chrome & Sorcery: took down Director Voss on ${d}${G.ng?' NG+'+G.ng:''} (${who}), level ${PL[0].lvl}, best combo ${G.bestCombo}, ${(G.run||{}).kills||0} takedowns. Play: ${HOME}`;
+}
+function shareHtml(){const t=shareLine();
+  return `<h3>Brag</h3><div class="sharebox" id="shareTxt">${esc(t)}</div><div class="row"><button class="btn sm" data-a="copyshare" id="copyBtn">Copy</button>${navigator.share?'<button class="btn sm ghost" data-a="nativeshare">Share…</button>':''}</div>`;}
 const PERKS=[
   {id:'pts',name:'Street smarts',desc:'+2 attribute points for each runner.',ok:()=>true,go(){for(const p of PL)p.pts+=2;}},
   {id:'heal',name:'Patch up',desc:'Full HP and mana for everyone, plus 2 medkits.',ok:()=>true,go(){for(const p of active()){p.hp=p.maxHp;p.mp=p.maxMp;}PARTY.med=Math.min(5,PARTY.med+2);}},
@@ -637,14 +671,18 @@ const PERKS=[
   {id:'life',name:'Second wind',desc:'+1 life each. Brings back anyone who is out.',ok:()=>true,go(){for(const p of PL){if(p.out){p.out=false;p.lives=0;p.hp=p.maxHp;p.mp=p.maxMp;setS(p,'idle');p.dead=false;p.x=200;p.y=220;p.z=0;p.inv=90;G.ents.push(p);}else p.lives++;}}},
   {id:'cyber',name:'Back-alley chrome',desc:'Each runner gets +1 level of random cyberware (it still costs max mana).',ok:()=>PL.some(p=>p.cy.arm+p.cy.wired+p.cy.plate<9),go(){for(const p of PL){const ks=['arm','wired','plate'].filter(k=>p.cy[k]<3);if(ks.length){p.cy[pick(ks)]++;refresh(p);}}}}
 ];
-function startArena(coop){
-  G.diff=G.pendDiff;G.ng=0;G.coop=!!coop;
+function startArena(coop,challenge){
+  G.diff=challenge?1:G.pendDiff;G.ng=0;G.coop=!!coop;
+  G.challenge=challenge?thisWeek():null;
+  G.rngW=G.challenge?srng(hstr(G.challenge.id+'w')):null;G.rngP=G.challenge?srng(hstr(G.challenge.id+'p')):null;
+  newRunStats();
   PL=[newRunner(0)];if(coop)PL.push(newRunner(1));
   Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null});
   for(const p of PL){p.lvl=3;p.pts=4;refresh(p);p.hp=p.maxHp;p.mp=p.maxMp;}
   G.arena=true;G.den=false;G.score=0;G.awave=0;G.theme=0;G.stage=0;G.bestCombo=0;resetWorld();
   G.bg=genBg(STAGES[0],1000);placeRunners(190);for(const p of PL)G.ents.push(p);
   makeRain(true);G.fade=1;G.nextWaveT=80;G.perkPending=false;musicPlay('d0');setMode('play');
+  if(G.challenge)G.texts.push({x:W/2,y:150,z:0,s:MODS[G.challenge.mod].name.toUpperCase(),c:'#ffc63d',life:120,big:true});
   tip('arena','Arena: survive as long as you can. A boss every fifth wave, a perk every third. Spend points from CHAR.','Arena: survive as long as you can. A boss every fifth wave, a perk every third. Press C to spend points.');
 }
 function nextArenaWave(){
@@ -652,11 +690,13 @@ function nextArenaWave(){
   G.stage=Math.min(3,Math.floor((w-1)/3));G.ng=Math.max(0,(w-10)*.07);
   const th=Math.floor((w-1)/5)%4;
   if(th!==G.theme||!G.bg){G.theme=th;G.bg=genBg(STAGES[th],1000+th*77);makeRain(STAGES[th].rain);}
-  while(G.props.length<2){const kinds=['can','crate','drum'];G.props.push({kind:pick(kinds),x:ri(80,400),y:ri(FY0+20,FY1-10),z:0});}
+  const wantProps=modOn('keg')?4:2;
+  while(G.props.length<wantProps){const kinds=modOn('keg')?['drum']:['can','crate','drum'];G.props.push({kind:wpick(kinds),x:80+Math.floor(wr()*320),y:FY0+20+Math.floor(wr()*(FY1-FY0-30)),z:0});}
   const boss=w%5===0;let list=[];
-  if(boss){list=[['troll','blade','saint','archmage'][(w/5-1)%4],pick(['ganger','sec','ghoul'])];if(w>=10)list.push(pick(['riot','shaman']));}
+  if(boss){list=[['troll','blade','saint','archmage'][(w/5-1)%4],wpick(['ganger','sec','ghoul'])];if(w>=10)list.push(wpick(['riot','shaman']));}
   else{const pool=['ganger'];if(w>=2)pool.push('orc');if(w>=3)pool.push('shaman');if(w>=4)pool.push('sec');if(w>=5)pool.push('drone','ghoul');if(w>=7)pool.push('riot','spirit');
-    const n=Math.min(7,2+Math.floor(w*.5))+(G.coop?1:0);for(let i=0;i<n;i++)list.push(pick(pool));}
+    const n=Math.min(7,2+Math.floor(w*.5))+(G.coop?1:0);for(let i=0;i<n;i++)list.push(wpick(pool));
+    if(modOn('tide'))list.push('spirit');}
   list.forEach((k,i)=>{const e=spawnEnemy(k,i%2?-1:1);e.x+=(i>>1)*(i%2?-16:16);if(DEF[k].boss){e.x=W-40;e.y=(FY0+FY1)/2;e.inv=40;}});
   G.waveLive=true;G.banner=boss?-120:110;
   musicPlay(boss?'boss':'d'+G.theme);
@@ -669,18 +709,19 @@ function arenaTick(){
   if(!G.waveLive&&G.nextWaveT>0){G.nextWaveT--;if(G.nextWaveT===0){if(G.perkPending){G.perkPending=false;offerPerks();}else nextArenaWave();}}
 }
 function offerPerks(){
-  const ok=PERKS.filter(p=>p.ok());const out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(Math.random()*ok.length),1)[0]);
+  const ok=PERKS.filter(p=>p.ok());const out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(pr()*ok.length),1)[0]);
   G.perks=out.map(p=>p.id);setMode('perk');
 }
 function arenaOver(){
-  const entry={score:G.score,wave:G.awave,diff:G.diff,coop:G.coop,lvl:Math.max(...PL.map(p=>p.lvl)),combo:G.bestCombo,date:new Date().toISOString().slice(0,10),id:Date.now()};
+  const entry={score:G.score,wave:G.awave,diff:G.diff,coop:G.coop,lvl:Math.max(...PL.map(p=>p.lvl)),combo:G.bestCombo,date:new Date().toISOString().slice(0,10),id:Date.now(),week:G.challenge?G.challenge.id:null,mod:G.challenge?G.challenge.mod:null};
+  if(G.challenge){const wb=store.get('cs_week')||{};if(wb.id!==G.challenge.id||entry.score>(wb.score||0))store.set('cs_week',{id:G.challenge.id,score:entry.score,wave:entry.wave});}
   const list=(store.get('cs_arena')||[]).concat([entry]).sort((a,b)=>b.score-a.score).slice(0,8);store.set('cs_arena',list);
   G.lastEntry=entry;musicPlay('title');setMode('arenaover');
 }
 function scoreTable(hl){
   const list=store.get('cs_arena')||[];
   if(!list.length)return '<p>No runs yet. Your best scores show up here.</p>';
-  return `<div class="list">${list.map((e,i)=>`<div class="item"${hl&&e.id===hl?' style="border-color:var(--gold)"':''}><div><div class="nm">${i+1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${DIFF[e.diff].name}${e.coop?' · co-op':''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl&&e.id===hl?'<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>':''}</div></div>`).join('')}</div>`;
+  return `<div class="list">${list.map((e,i)=>`<div class="item"${hl&&e.id===hl?' style="border-color:var(--gold)"':''}><div><div class="nm">${i+1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week?`Weekly ${e.week} · ${MODS[e.mod]?MODS[e.mod].name:''}`:DIFF[e.diff].name}${e.coop?' · co-op':''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl&&e.id===hl?'<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>':''}</div></div>`).join('')}</div>`;
 }
 function drop(k,x,y,extra){G.picks.push(Object.assign({k,x:clamp(x,G.camX+18,G.camX+W-18),y:clamp(y,FY0+4,FY1),t:0},extra||{}));}
 function kill(t,dir){
@@ -690,6 +731,7 @@ function kill(t,dir){
   const d=t.d;
   if(d.boss){G.texts.push({x:t.x,y:t.y,z:t.z+64,s:'FLATLINED',c:'#efe9ff',life:70});G.slow=70;G.flash=.5;}
   const em=t.elite?2:1;
+  if(G.run){G.run.kills++;if(t.elite)G.run.elites++;if(d.boss)G.run.bosses++;}
   gainKarma(Math.round(d.karma*em*DIFF[G.diff].karma*(1+G.stage*.3+G.ng*.3)*(1+Math.min(G.combo,30)*.02)));
   if(G.arena){const pts=Math.round((d.karma||40)*em*10*(1+Math.min(G.combo,30)*.05)*(.8+G.diff*.2));G.score+=pts;G.texts.push({x:t.x,y:t.y,z:t.z+70,s:'+'+pts,c:'#ffc63d',life:36,sm:true});}
   contractTick(t.kind);
@@ -700,7 +742,7 @@ function kill(t,dir){
   if(d.boss)drop('gear',t.x+14,t.y+2,{item:randItem(G.stage+G.ng,true)});
   else if(Math.random()<.08)drop('gear',t.x+12,t.y+2,{item:randItem(G.stage,false)});
   const r=Math.random();
-  if(r<.11)drop('med',t.x+10,t.y+4);else if(r<.24)drop('ammo',t.x-10,t.y+4);else if(r<.34)drop('mana',t.x+6,t.y-4);
+  if(r<.11)drop('med',t.x+10,t.y+4);else if(r<.24){if(!modOn('brawl'))drop('ammo',t.x-10,t.y+4);}else if(r<.34)drop('mana',t.x+6,t.y-4);
   if(d.spirit){burst(t.x,t.y,t.z,'#ffc63d',20);t.gone=true;}
   if(d.boss){G.shake=10;burst(t.x,t.y,30,'#ffc63d',30);G.fx.push({k:'ring',x:t.x,y:t.y,z:30,c:'#ffc63d',life:30,max:30,r:70});}
 }
@@ -727,8 +769,8 @@ function throwProp(p){const pr=p.holding;p.holding=null;const m=p.D.melee;
   G.projs.push({k:'prop',kind:pr.kind,team:0,src:p,x:p.x+p.face*10,y:p.y,z:p.z+40,vx:p.face*5.6,vz:.8,dmg:pr.kind==='drum'?24+m:16+m*1.1,life:120});sfx.whiff();}
 function shatter(pr){
   const col={can:'#8a93a6',crate:'#a07a4a',drum:'#ff4a4a'}[pr.kind];burst(pr.x,pr.y,pr.z,col,12);
-  if(pr.kind==='drum'){sfx.boom();G.shake=8;G.fx.push({k:'ring',x:pr.x,y:pr.y,z:pr.z,c:'#ff6a3d',life:20,max:20,r:44});burst(pr.x,pr.y,pr.z,'#ffc63d',16);
-    for(const t of G.ents){if(t.team!==1||t.state==='dead')continue;if(Math.abs(t.x-pr.x)<44&&Math.abs(t.y-pr.y)<18)hurt(t,pr.dmg,t.x>=pr.x?1:-1,{kd:true,big:true,air:true,col:'#ff6a3d',src:pr.src,ax:pr.x});}}
+  if(pr.kind==='drum'){const rr=modOn('keg')?66:44;sfx.boom();G.shake=8;G.fx.push({k:'ring',x:pr.x,y:pr.y,z:pr.z,c:'#ff6a3d',life:20,max:20,r:rr});burst(pr.x,pr.y,pr.z,'#ffc63d',16);
+    for(const t of G.ents){if(t.team!==1||t.state==='dead')continue;if(Math.abs(t.x-pr.x)<rr&&Math.abs(t.y-pr.y)<18*rr/44)hurt(t,pr.dmg,t.x>=pr.x?1:-1,{kd:true,big:true,air:true,col:'#ff6a3d',src:pr.src,ax:pr.x});}}
   else sfx.heavy();
 }
 function releaseGrab(p,quiet){const e=p.grab;p.grab=null;p.knees=0;if(e&&e.state==='grabbed'){setS(e,'idle');e.inv=20;e.x+=e.face*-8;}if(p.state==='grab')setS(p,'idle');}
@@ -813,6 +855,7 @@ function upRunner(p){
       else{if(G.t-p.lastPunch<30)p.combo++;else p.combo=1;p.lastPunch=G.t;if(p.combo>=3){p.combo=0;setS(p,'upper');}else setS(p,'punch');}
     }
     else if(I.pressed.kick){setS(p,'kick');}
+    else if(I.pressed.gun&&!G.den&&modOn('brawl')){sfx.click();say(p,'GUNS LOCKED','#ffc63d',56,40,true);}
     else if(I.pressed.gun&&!G.den){if(!p.eq.gun){sfx.click();say(p,'NO GUN','#ffc63d',56,40,true);}else if(p.ammo>0){setS(p,'shoot');}else{sfx.click();say(p,'NO AMMO','#ffc63d',56,40,true);}}
     else if(I.pressed.spell&&!G.den){const sp=SPELLS[p.spells[p.spell]];if(p.mp>=sp.cost){p.mp-=sp.cost;setS(p,'cast');sfx.spell();}else{sfx.click();say(p,'NO MANA','#45d2ff',56,40,true);}}
     else{
@@ -1326,6 +1369,7 @@ function drawNPC(n){
 
 /* ================= title attract ================= */
 function attract(){
+  G.challenge=null;G.rngW=G.rngP=null;
   PL=[newRunner(0)];G.coop=false;G.den=false;G.arena=false;G.ng=0;resetWorld();
   G.stage=0;G.bg=genBg(STAGES[0],1000);
   const P=PL[0];P.x=150;P.y=225;P.face=1;setS(P,'idle');G.ents.push(P);
@@ -1412,8 +1456,13 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if(m==='arenapick'){
+    const wk=thisWeek(),wb=store.get('cs_week');
     h=`<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>
     <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
+    <div class="job"><div class="row" style="justify-content:space-between"><b>Weekly challenge · ${wk.id}</b><span class="st" style="color:var(--gold)">${esc(MODS[wk.mod].name)}</span></div>
+    <span style="color:var(--muted);font-size:13px">${esc(MODS[wk.mod].desc)} Same waves and perk offers for everyone this week, on Runner difficulty.${wb&&wb.id===wk.id?` Your best this week: ${wb.score.toLocaleString()} (wave ${wb.wave}).`:''}</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="week1">Play solo</button><button class="btn sm ghost" data-a="week2">Play co-op</button></div></div>
+    <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d,i)=>`<button class="btn sm${G.pendDiff===i?'':' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff===i}">${d.name}</button>`).join('')}</div>
     <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
@@ -1425,8 +1474,9 @@ function renderOv(){
   }
   if(m==='arenaover'){
     const e=G.lastEntry||{score:0,wave:0},list=store.get('cs_arena')||[],rank=list.findIndex(x=>x.id===e.id);
-    h=`<div class="card"><p class="eyebrow">Arena · ${DIFF[G.diff].name}${G.coop?' · co-op':''}</p><h1>${e.score.toLocaleString()}</h1>
-    <p>You made it to wave ${e.wave} at level ${e.lvl} with a best combo of ${e.combo}.${rank===0?' That is your best run yet.':rank>0?` That ranks #${rank+1} on this device.`:''}</p>
+    h=`<div class="card"><p class="eyebrow">Arena · ${G.challenge?'weekly '+G.challenge.id+' · '+esc(MODS[G.challenge.mod].name):DIFF[G.diff].name}${G.coop?' · co-op':''}</p><h1>${e.score.toLocaleString()}</h1>
+    <p>You made it to wave ${e.wave} at level ${e.lvl}.${rank===0?' That is your best run yet.':rank>0?` That ranks #${rank+1} on this device.`:''}</p>
+    ${statsHtml()}${shareHtml()}
     <div class="row"><button class="btn" data-a="arenaagain">Run it again</button><button class="btn ghost" data-a="arenapick">Change difficulty</button><button class="btn ghost" data-a="quit">Title</button></div>
     <h3>Best runs</h3>${scoreTable(e.id)}</div>`;
   }
@@ -1456,6 +1506,7 @@ function renderOv(){
     h=`<div class="card"><p class="eyebrow">Run complete · ${DIFF[G.diff].name}${G.ng?' NG+'+G.ng:''} · level ${PL[0].lvl}${G.coop?' and '+PL[1].lvl:''} · best combo ${G.bestCombo}</p><h1>Paid in full</h1>
     <p class="say"><b>Juno · fixer</b>${d.done?"Clean as a whistle. Nobody's going to believe a runner walked out of Kagemori without a scratch. Keep the prototype. You earned it.":"Voss is down and the vault is open. Messy, but paid is paid."}</p>
     <p>You walk out with ¥${PARTY.creds}, ${PARTY.bag.length} item${PARTY.bag.length===1?'':'s'} in the bag and a cyberarm that still hums.</p>
+    ${statsHtml()}${shareHtml()}
     <p>New Game+ keeps your runners, levels, gear, cyberware and spells. Enemies get tougher, elites get more common and loot gets better.</p>
     <div class="row"><button class="btn" data-a="ngplus">New Game+ ${G.ng+1}</button><button class="btn ghost" data-a="pick">Fresh run</button></div></div>`;
   }
@@ -1486,6 +1537,7 @@ function npcHtml(id){
   <div class="row"><button class="btn" data-a="leave">Leave</button>${id==='juno'?'<button class="btn ghost" data-a="nextjob">Take the next job</button>':''}<button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 function openNPC(id){G.npc=id;sfx.talk();setMode('npc');}
+function selectShare(){const el=document.getElementById('shareTxt');if(!el||!window.getSelection)return;const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);}
 function findBag(uid){return PARTY.bag.findIndex(i=>i.uid===uid);}
 function toggleSheet(who){
   if(G.mode==='play'||G.mode==='den'){G.ret=G.mode;G.sheetIdx=who<PL.length?who:0;setMode('sheet');}
@@ -1497,7 +1549,7 @@ function togglePause(){
   else if(G.mode==='npc')setMode('den');
 }
 function newRun(coop){
-  G.diff=G.pendDiff;G.ng=0;
+  G.diff=G.pendDiff;G.ng=0;G.challenge=null;G.rngW=G.rngP=null;newRunStats();
   PL=[newRunner(0)];if(coop)PL.push(newRunner(1));G.coop=!!coop;
   Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null});G.debrief=null;G.stock=[];G.bestCombo=0;
   briefing(0,false);
@@ -1513,7 +1565,13 @@ ov.addEventListener('click',e=>{
     case 'arenapick':G.pendDiff=G.arena?G.diff:G.pendDiff;setMode('arenapick');keep=false;break;
     case 'arena1':startArena(false);keep=false;break;
     case 'arena2':startArena(true);keep=false;break;
-    case 'arenaagain':G.pendDiff=G.diff;startArena(G.coop);keep=false;break;
+    case 'arenaagain':G.pendDiff=G.diff;startArena(G.coop,!!G.challenge);keep=false;break;
+    case 'week1':startArena(false,true);keep=false;break;
+    case 'week2':startArena(true,true);keep=false;break;
+    case 'copyshare':{const t=shareLine(),btn=document.getElementById('copyBtn');
+      const done=ok=>{if(btn)btn.textContent=ok?'Copied':'Select the text above to copy';};
+      try{navigator.clipboard.writeText(t).then(()=>done(true),()=>{selectShare();done(false);});}catch(err){selectShare();done(false);}break;}
+    case 'nativeshare':{try{navigator.share({title:'Chrome & Sorcery',text:shareLine()}).catch(()=>{});}catch(err){}break;}
     case 'perk':{const pk=PERKS.find(x=>x.id===arg);if(pk&&G.mode==='perk'){pk.go();sfx.level();setMode('play');nextArenaWave();}keep=false;break;}
     case 'settings':G.setRet=G.mode;setMode('settings');keep=false;break;
     case 'setdone':setMode(G.setRet||'title');break;
@@ -1523,7 +1581,7 @@ ov.addEventListener('click',e=>{
     case 'full':goFull();break;
     case 'diff':G.pendDiff=+arg;renderOv();break;
     case 'back2title':setMode('title');break;
-    case 'ngplus':G.ng++;for(const q of PL){q.hp=q.maxHp;q.mp=q.maxMp;q.ammo=Math.max(q.ammo,24);}PARTY.contract=null;G.debrief=null;briefing(0,false);keep=false;break;
+    case 'ngplus':G.ng++;newRunStats();for(const q of PL){q.hp=q.maxHp;q.mp=q.maxMp;q.ammo=Math.max(q.ammo,24);}PARTY.contract=null;G.debrief=null;briefing(0,false);keep=false;break;
     case 'new':newRun(false);keep=false;break;
     case 'new2':newRun(true);keep=false;break;
     case 'cont':{const s=store.get('cs_save3');if(!s)break;loadGame(s);
