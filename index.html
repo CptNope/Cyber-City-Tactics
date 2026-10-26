@@ -162,10 +162,16 @@ const W=480,H=270,FY0=170,FY1=262;
 const cvs=document.getElementById('game'),ctx=cvs.getContext('2d');
 const ov=document.getElementById('ov');
 const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let SCALE=1;
+const isTouch=()=>!!(document.body.classList.contains&&document.body.classList.contains('touch'));
+let SCALE=1,VH=H,BAND=0;
+// In portrait on touch devices the canvas grows taller than 16:9: the extra rows above the street become
+// a sky band that holds a larger, easier-to-read HUD instead of empty page.
 function fit(){
   const r=document.getElementById('stage').getBoundingClientRect();
-  let w=r.width,h=w*H/W; if(h>r.height){h=r.height;w=h*W/H;}
+  const portrait=isTouch()&&r.height>r.width*.8;
+  const hint=document.getElementById('rotHint');const hintH=portrait&&hint&&!hint.hidden?56:portrait?10:0;
+  VH=portrait?clamp(Math.round(W*(r.height-hintH)/r.width),H,400):H;BAND=VH-H;
+  let w=r.width,h=w*VH/W; if(h>r.height){h=r.height;w=h*W/VH;}
   w=Math.max(120,Math.floor(w));h=Math.max(68,Math.floor(h));
   cvs.style.width=w+'px';cvs.style.height=h+'px';
   const dpr=Math.min(window.devicePixelRatio||1,2);
@@ -182,7 +188,6 @@ function srng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;retur
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const prefs=Object.assign({sound:true,music:true,shake:true,haptics:true,tips:true,seen:{},size:'m',lefty:false,rotDismissed:false},store.get('cs_prefs')||{});
-const isTouch=()=>!!(document.body.classList.contains&&document.body.classList.contains('touch'));
 function applyPrefs(){const c=document.body.classList;if(!c.toggle)return;c.toggle('size-s',prefs.size==='s');c.toggle('size-l',prefs.size==='l');c.toggle('lefty',!!prefs.lefty);setTimeout(fit,30);}
 function buzz(p){if(!prefs.haptics||!navigator.vibrate)return;try{navigator.vibrate(p);}catch(e){}}
 let wakeLock=null;
@@ -296,7 +301,7 @@ document.querySelectorAll('.tb').forEach(b=>{const a=b.dataset.act;
 });
 document.getElementById('pauseBtn').addEventListener('click',()=>globalAct('pause'));
 const rotHint=document.getElementById('rotHint');
-rotHint.addEventListener('click',()=>{prefs.rotDismissed=true;savePrefs();rotHint.hidden=true;goFull();});
+rotHint.addEventListener('click',()=>{prefs.rotDismissed=true;savePrefs();rotHint.hidden=true;fit();goFull();});
 // Contextual touch labels: the big buttons say what they will do right now.
 const TB={};document.querySelectorAll('.tb').forEach(b=>{TB[b.dataset.act]=b;});
 const lastLbl={};
@@ -305,7 +310,7 @@ const SPSHORT={fire:'FIRE',bolt:'BOLT',heal:'HEAL'};
 function updateTouchUI(){
   if(!isTouch())return;
   const portrait=(window.innerHeight||0)>(window.innerWidth||0);
-  rotHint.hidden=!(portrait&&!prefs.rotDismissed&&(G.mode==='play'||G.mode==='den'));
+  const wantHint=portrait&&!prefs.rotDismissed&&(G.mode==='play'||G.mode==='den');if(rotHint.hidden===wantHint){rotHint.hidden=!wantHint;fit();}
   const p=PL[0];if(!p)return;
   let punch='PUNCH',kick='KICK';
   if(G.mode==='den'&&nearNPC(p))punch='TALK';
@@ -446,7 +451,7 @@ function mkItem(slot,base,rar){
 }
 function randItem(stage,boost){
   const slot=pick(['weapon','gun','armor','weapon','gun']);
-  const bases=Object.keys(BASES[slot]);const top=clamp(stage+1+(boost?1:0),0,bases.length-1);
+  const bases=Object.keys(BASES[slot]);const top=clamp(Math.floor(stage)+1+(boost?1:0),0,bases.length-1);
   const base=bases[ri(Math.max(0,top-2),top)];
   const roll=Math.random()+stage*.12+(boost?.45:0);
   return mkItem(slot,base,roll>1.15?2:roll>.68?1:0);
@@ -454,7 +459,7 @@ function randItem(stage,boost){
 
 /* ================= state ================= */
 const G={mode:'title',ret:'play',stage:0,camX:0,lock:null,wave:0,waveLive:false,ents:[],projs:[],parts:[],texts:[],picks:[],props:[],fx:[],shake:0,stop:0,t:0,banner:0,goT:0,exitOpen:false,bg:null,rain:[],
-  stock:[],debrief:null,coop:false,diff:1,ng:0,pendDiff:1,den:false,npc:null,sheetIdx:0,combo:0,comboT:999,bestCombo:0,fade:0,flash:0,slow:0,outro:0,afterOutro:null,denPrompt:null,briefFromDen:false};
+  stock:[],debrief:null,coop:false,diff:1,ng:0,pendDiff:1,arena:false,awave:0,score:0,theme:0,nextWaveT:0,perkPending:false,perks:[],lastEntry:null,den:false,npc:null,sheetIdx:0,combo:0,comboT:999,bestCombo:0,fade:0,flash:0,slow:0,outro:0,afterOutro:null,denPrompt:null,briefFromDen:false};
 const PARTY={creds:0,bag:[],med:2,contract:null};
 let PL=[];
 
@@ -510,14 +515,14 @@ function genBg(S,seed){
     const b={x,w,h,wins};if(S.signs.length&&r()<.7){const sg=S.signs[si2++%S.signs.length];b.sign={t:sg[0],c:sg[1],vert:r()<.35,dx:6+r()*(w-50),dy:12+r()*(h*.4)};}near.push(b);x+=w+10+r()*30;}
   return{far,near};
 }
-const curS=()=>G.den?DEN:STAGES[G.stage];
+const curS=()=>G.den?DEN:G.arena?STAGES[G.theme]:STAGES[G.stage];
 
 /* ================= flow ================= */
 function placeRunners(x0){PL.forEach((p,i)=>{p.x=x0+i*14;p.y=212+i*20;p.z=0;p.vz=0;p.vx=0;p.state='idle';p.t=0;p.inv=60;p.dead=false;p.face=1;p.holding=null;p.grab=null;refresh(p);});}
 function resetWorld(){G.camX=0;G.lock=null;G.wave=0;G.waveLive=false;G.ents=[];G.projs=[];G.parts=[];G.texts=[];G.picks=[];G.props=[];G.fx=[];G.exitOpen=false;G.goT=0;G.combo=0;G.comboT=999;G.outro=0;G.afterOutro=null;G.slow=0;G.flash=0;}
 function makeRain(on){G.rain=[];if(on&&!RM)for(let i=0;i<70;i++)G.rain.push({x:rand(0,W),y:rand(0,H),s:rand(5,8)});}
 function startStage(si){
-  G.stage=si;G.den=false;resetWorld();G.banner=150;G.fade=1;
+  G.stage=si;G.den=false;G.arena=false;resetWorld();G.banner=150;G.fade=1;
   const S=STAGES[si];G.bg=genBg(S,1000+si*77);
   placeRunners(40);for(const p of PL)if(!p.out)G.ents.push(p);
   G.props=S.props.map(([kind,x,y])=>({kind,x,y,z:0}));
@@ -527,6 +532,7 @@ function startStage(si){
   if(si===0&&!G.ng)tip('move','Drag anywhere on the left to move. Tap PUNCH three times for an uppercut.','Move with WASD or the arrows. Press J three times for an uppercut, K to kick.');
 }
 function briefing(si,fromDen){
+  G.arena=false;
   const C=CONTRACTS[si];
   if(!PARTY.contract||PARTY.contract.idx!==si)PARTY.contract={idx:si,title:C.title,goal:C.goal,key:C.key,need:C.need,count:0,done:false,failed:false};
   for(const p of PL){p.out=false;p.lives=3;}
@@ -535,7 +541,7 @@ function briefing(si,fromDen){
   setMode('brief');
 }
 function enterDen(){
-  G.den=true;resetWorld();G.fade=1;G.bg=genBg(DEN,4242);
+  G.den=true;G.arena=false;resetWorld();G.fade=1;G.bg=genBg(DEN,4242);
   placeRunners(70);for(const p of PL){p.out=false;p.hp=Math.max(p.hp,Math.round(p.maxHp*.6));p.mp=p.maxMp;G.ents.push(p);}
   makeRain(true);musicPlay('den');saveGame('den');
   setMode('den');
@@ -620,6 +626,61 @@ function enrage(e){
   G.flash=.35;G.shake=10;sfx.boom();buzz([40,30,60]);
   tip('rage','Enraged bosses learn new moves. Jump over shockwaves.','Enraged bosses learn new moves. Jump (Space) over shockwaves.');G.fx.push({k:'ring',x:e.x,y:e.y,z:30,c:'#ff4a4a',life:26,max:26,r:80});burst(e.x,e.y,30,'#ff4a4a',24);
 }
+/* ---------- arena ---------- */
+const PERKS=[
+  {id:'pts',name:'Street smarts',desc:'+2 attribute points for each runner.',ok:()=>true,go(){for(const p of PL)p.pts+=2;}},
+  {id:'heal',name:'Patch up',desc:'Full HP and mana for everyone, plus 2 medkits.',ok:()=>true,go(){for(const p of active()){p.hp=p.maxHp;p.mp=p.maxMp;}PARTY.med=Math.min(5,PARTY.med+2);}},
+  {id:'gear',name:'Supply crate',desc:'A Tuned or better item goes into the bag.',ok:()=>PARTY.bag.length<12,go(){const it=randItem(G.stage+G.ng,true);if(!it.rar)Object.assign(it,mkItem(it.slot,it.base,1));PARTY.bag.push(it);G.texts.push({x:W/2,y:150,z:0,s:it.name.toUpperCase(),c:['#efe9ff','#45d2ff','#ffc63d'][it.rar],life:80});}},
+  {id:'ammo',name:'Ammo drop',desc:'+20 rounds for each runner.',ok:()=>true,go(){for(const p of PL)p.ammo+=20;}},
+  {id:'spell',name:"Old Wen's scroll",desc:"Each runner learns a spell they don't know, no Magic needed.",ok:()=>PL.some(p=>p.spells.length<3),go(){for(const p of PL){const n=Object.keys(SPELLS).find(x=>!p.spells.includes(x));if(n)p.spells.push(n);}}},
+  {id:'life',name:'Second wind',desc:'+1 life each. Brings back anyone who is out.',ok:()=>true,go(){for(const p of PL){if(p.out){p.out=false;p.lives=0;p.hp=p.maxHp;p.mp=p.maxMp;setS(p,'idle');p.dead=false;p.x=200;p.y=220;p.z=0;p.inv=90;G.ents.push(p);}else p.lives++;}}},
+  {id:'cyber',name:'Back-alley chrome',desc:'Each runner gets +1 level of random cyberware (it still costs max mana).',ok:()=>PL.some(p=>p.cy.arm+p.cy.wired+p.cy.plate<9),go(){for(const p of PL){const ks=['arm','wired','plate'].filter(k=>p.cy[k]<3);if(ks.length){p.cy[pick(ks)]++;refresh(p);}}}}
+];
+function startArena(coop){
+  G.diff=G.pendDiff;G.ng=0;G.coop=!!coop;
+  PL=[newRunner(0)];if(coop)PL.push(newRunner(1));
+  Object.assign(PARTY,{creds:0,bag:[],med:2,contract:null});
+  for(const p of PL){p.lvl=3;p.pts=4;refresh(p);p.hp=p.maxHp;p.mp=p.maxMp;}
+  G.arena=true;G.den=false;G.score=0;G.awave=0;G.theme=0;G.stage=0;G.bestCombo=0;resetWorld();
+  G.bg=genBg(STAGES[0],1000);placeRunners(190);for(const p of PL)G.ents.push(p);
+  makeRain(true);G.fade=1;G.nextWaveT=80;G.perkPending=false;musicPlay('d0');setMode('play');
+  tip('arena','Arena: survive as long as you can. A boss every fifth wave, a perk every third. Spend points from CHAR.','Arena: survive as long as you can. A boss every fifth wave, a perk every third. Press C to spend points.');
+}
+function nextArenaWave(){
+  G.awave++;const w=G.awave;
+  G.stage=Math.min(3,Math.floor((w-1)/3));G.ng=Math.max(0,(w-10)*.07);
+  const th=Math.floor((w-1)/5)%4;
+  if(th!==G.theme||!G.bg){G.theme=th;G.bg=genBg(STAGES[th],1000+th*77);makeRain(STAGES[th].rain);}
+  while(G.props.length<2){const kinds=['can','crate','drum'];G.props.push({kind:pick(kinds),x:ri(80,400),y:ri(FY0+20,FY1-10),z:0});}
+  const boss=w%5===0;let list=[];
+  if(boss){list=[['troll','blade','saint','archmage'][(w/5-1)%4],pick(['ganger','sec','ghoul'])];if(w>=10)list.push(pick(['riot','shaman']));}
+  else{const pool=['ganger'];if(w>=2)pool.push('orc');if(w>=3)pool.push('shaman');if(w>=4)pool.push('sec');if(w>=5)pool.push('drone','ghoul');if(w>=7)pool.push('riot','spirit');
+    const n=Math.min(7,2+Math.floor(w*.5))+(G.coop?1:0);for(let i=0;i<n;i++)list.push(pick(pool));}
+  list.forEach((k,i)=>{const e=spawnEnemy(k,i%2?-1:1);e.x+=(i>>1)*(i%2?-16:16);if(DEF[k].boss){e.x=W-40;e.y=(FY0+FY1)/2;e.inv=40;}});
+  G.waveLive=true;G.banner=boss?-120:110;
+  musicPlay(boss?'boss':'d'+G.theme);
+}
+function arenaTick(){
+  const foes=G.ents.filter(e=>e.team===1&&e.state!=='dead').length;
+  if(G.waveLive&&foes===0){G.waveLive=false;const b=G.awave*150;G.score+=b;
+    G.texts.push({x:W/2,y:160,z:0,s:'WAVE '+G.awave+' CLEAR  +'+b,c:'#7dffb0',life:90,big:true});sfx.loot();
+    G.perkPending=G.awave%3===0;G.nextWaveT=G.perkPending?70:150;}
+  if(!G.waveLive&&G.nextWaveT>0){G.nextWaveT--;if(G.nextWaveT===0){if(G.perkPending){G.perkPending=false;offerPerks();}else nextArenaWave();}}
+}
+function offerPerks(){
+  const ok=PERKS.filter(p=>p.ok());const out=[];while(out.length<3&&ok.length)out.push(ok.splice(Math.floor(Math.random()*ok.length),1)[0]);
+  G.perks=out.map(p=>p.id);setMode('perk');
+}
+function arenaOver(){
+  const entry={score:G.score,wave:G.awave,diff:G.diff,coop:G.coop,lvl:Math.max(...PL.map(p=>p.lvl)),combo:G.bestCombo,date:new Date().toISOString().slice(0,10),id:Date.now()};
+  const list=(store.get('cs_arena')||[]).concat([entry]).sort((a,b)=>b.score-a.score).slice(0,8);store.set('cs_arena',list);
+  G.lastEntry=entry;musicPlay('title');setMode('arenaover');
+}
+function scoreTable(hl){
+  const list=store.get('cs_arena')||[];
+  if(!list.length)return '<p>No runs yet. Your best scores show up here.</p>';
+  return `<div class="list">${list.map((e,i)=>`<div class="item"${hl&&e.id===hl?' style="border-color:var(--gold)"':''}><div><div class="nm">${i+1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${DIFF[e.diff].name}${e.coop?' · co-op':''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl&&e.id===hl?'<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>':''}</div></div>`).join('')}</div>`;
+}
 function drop(k,x,y,extra){G.picks.push(Object.assign({k,x:clamp(x,G.camX+18,G.camX+W-18),y:clamp(y,FY0+4,FY1),t:0},extra||{}));}
 function kill(t,dir){
   if(t.state==='grabbed'){const g=PL.find(p=>p.grab===t);if(g){g.grab=null;setS(g,'idle');}}
@@ -629,6 +690,7 @@ function kill(t,dir){
   if(d.boss){G.texts.push({x:t.x,y:t.y,z:t.z+64,s:'FLATLINED',c:'#efe9ff',life:70});G.slow=70;G.flash=.5;}
   const em=t.elite?2:1;
   gainKarma(Math.round(d.karma*em*DIFF[G.diff].karma*(1+G.stage*.3+G.ng*.3)*(1+Math.min(G.combo,30)*.02)));
+  if(G.arena){const pts=Math.round((d.karma||40)*em*10*(1+Math.min(G.combo,30)*.05)*(.8+G.diff*.2));G.score+=pts;G.texts.push({x:t.x,y:t.y,z:t.z+70,s:'+'+pts,c:'#ffc63d',life:36,sm:true});}
   contractTick(t.kind);
   const c=Math.round(ri(d.creds[0],d.creds[1])*em*(1+G.ng*.25)*(1+Math.min(G.combo,30)*.02));if(c>0)drop('cred',t.x,t.y,{v:c});
   if(t.elite){const it=randItem(G.stage+G.ng,true);if(it.rar<1){const b=it.base;Object.assign(it,mkItem(it.slot,b,1));}drop('gear',t.x-12,t.y+2,{item:it});}
@@ -764,7 +826,7 @@ function respawn(p){
   p.lives--;
   if(PARTY.contract&&PARTY.contract.key==='ghost'&&!PARTY.contract.done)PARTY.contract.failed=true;
   if(p.lives<0){p.lives=0;p.out=true;G.ents=G.ents.filter(e=>e!==p);
-    if(!active().length){musicPlay(null);M.cur=null;setMode('over');}
+    if(!active().length){if(G.arena){arenaOver();return;}musicPlay(null);M.cur=null;setMode('over');}
     else say(active()[0],p.name+' IS OUT','#ff3d8b',80,90);
     return;}
   p.hp=p.maxHp;p.mp=Math.max(p.mp,Math.round(p.maxMp/2));setS(p,'idle');p.dead=false;p.inv=120;p.z=30;p.vz=0;p.vx=0;
@@ -912,7 +974,7 @@ function update(){
   if(G.t%30===0&&!G.den){for(const p of alive()){
     if(G.props.some(o=>Math.abs(o.x-p.x)<70&&o.x>G.camX))tip('prop','Stand next to a can, crate or drum and tap LIFT, then THROW.','Stand next to a can, crate or drum and press J to lift it, then J again to throw.');
     if(p.hp<p.maxHp*.35&&PARTY.med>0)tip('med','Low on health. Tap MED to use a medkit.','Low on health. Press H to use a medkit.');}}
-  if(G.den)denTick();else waves();
+  if(G.den)denTick();else if(G.arena)arenaTick();else waves();
   camera();
   if(G.shake>0)G.shake*=.85;if(G.shake<.3)G.shake=0;
   if(G.outro>0){G.outro--;if(G.outro<30)G.fade=Math.min(1,G.fade+.04);if(G.outro===0&&G.afterOutro){const f=G.afterOutro;G.afterOutro=null;f();}}
@@ -948,6 +1010,7 @@ function camera(){
   const minX=Math.min(...a.map(p=>p.x)),maxX=Math.max(...a.map(p=>p.x));
   let target=Math.min((minX+maxX)/2-W*.42,minX-14);
   if(G.den){G.camX+=(clamp(target,0,S.len-W)-G.camX)*.12;return;}
+  if(G.arena){G.camX=0;return;}
   const next=S.waves[G.wave];let max=S.len-W;
   if(G.lock!=null)max=G.lock;else if(next)max=Math.min(max,next.at);
   target=clamp(target,0,max);if(G.lock!=null)target=G.lock;
@@ -1189,30 +1252,44 @@ function drawPanel(p,x){
 }
 function wrapTip(s,max){ctx.font='11px "Chakra Petch", sans-serif';const words=s.split(' '),out=[];let line='';
   for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>max&&line){out.push(line);line=w;}else line=t;}if(line)out.push(line);return out;}
-function drawHud(){
+function drawHudTop(){
+  // k scales the HUD up when the portrait sky band has room for it; HW is the HUD's own width
+  const k=BAND>=46?Math.min(BAND/46,G.coop?1.3:1.45):1,HW=W/k,inBand=BAND>=46;
+  ctx.save();if(!inBand)ctx.translate(0,BAND);ctx.scale(k,k);
   drawPanel(PL[0],10);
-  if(G.coop&&PL[1])drawPanel(PL[1],W-180);
+  if(G.coop&&PL[1])drawPanel(PL[1],HW-180);
   const S=curS(),C=PARTY.contract;
-  if(!G.coop){txt(S.name.toUpperCase(),W-48,18,14,'#a79dc2','right');}
-  if(C&&!G.den){const st=C.done?'DONE':C.failed?'FAILED':C.key==='ghost'?'NO DEATHS':C.count+'/'+C.need;const s=C.title.toUpperCase()+' · '+st,col=C.done?'#7dffb0':C.failed?'#ff3d8b':'#efe9ff';
-    if(G.coop)txt(s,W/2,H-6,12,col,'center');else txt(s,W-48,30,12,col,'right');}
+  const line1=G.arena?'WAVE '+G.awave:G.den?'THE DEN':S.name.toUpperCase();
+  let line2=null,col2='#efe9ff';
+  if(G.arena){line2='SCORE '+G.score.toLocaleString();col2='#ffc63d';}
+  else if(C&&!G.den){const st=C.done?'DONE':C.failed?'FAILED':C.key==='ghost'?'NO DEATHS':C.count+'/'+C.need;line2=C.title.toUpperCase()+' · '+st;col2=C.done?'#7dffb0':C.failed?'#ff3d8b':'#efe9ff';}
+  if(!G.coop){txt(line1,HW-48,18,14,G.arena?'#efe9ff':'#a79dc2','right');if(line2)txt(line2,HW-48,30,12,col2,'right');}
+  else{const yb=inBand?Math.min(BAND/k-6,58):0;
+    if(inBand){txt(line1+(line2?'  ·  '+line2:''),HW/2,yb,12,line2?col2:'#a79dc2','center');}}
+  ctx.restore();
+  if(G.coop&&!inBand){const s=(G.arena?'WAVE '+G.awave+' · ':G.den?'THE DEN':'')+(line2||'');if(s)txt(s,W/2,VH-6,12,line2?col2:'#a79dc2','center');}
+}
+function drawHud(){
+  const S=curS();
   const boss=G.ents.find(e=>e.team===1&&e.d.boss&&e.state!=='dead');
-  if(boss){const bw=200,bx=(W-bw)/2,by=G.coop?H-24:H-11;txt(boss.d.name.toUpperCase(),bx,by-3,14,'#efe9ff');bar(bx,by,bw,5,boss.hp,boss.maxHp,'#ffc63d');}
+  if(boss){const bw=200,bx=(W-bw)/2,by=G.coop&&BAND<46?H-24:H-11;txt(boss.d.name.toUpperCase(),bx,by-3,14,'#efe9ff');bar(bx,by,bw,5,boss.hp,boss.maxHp,'#ffc63d');}
   if(G.combo>=3){const pop=Math.max(0,8-G.comboT)*.6;txt(G.combo+' HITS',12,72,20+pop,'#ffc63d');if(G.combo>=5)txt('×'+(1+Math.min(G.combo,30)*.02).toFixed(2)+' KARMA',12,84,11,'#b98cff');}
-  if(G.goT>0&&!G.waveLive&&!G.den&&(G.goT>>3)%2)txt(G.exitOpen?'EXIT ▶':'GO ▶',W-16,110,28,'#ff3d8b','right');
+  if(G.goT>0&&!G.waveLive&&!G.den&&!G.arena&&(G.goT>>3)%2)txt(G.exitOpen?'EXIT ▶':'GO ▶',W-16,110,28,'#ff3d8b','right');
   if(G.banner>0){const a=Math.min(1,G.banner/30,(150-G.banner)/15);ctx.globalAlpha=a;ctx.fillStyle='rgba(11,8,18,.7)';ctx.fillRect(0,92,W,52);
-    txt('DISTRICT '+(G.stage+1)+' — '+S.name.toUpperCase(),W/2,122,30,'#efe9ff','center');ctx.font='12px "Chakra Petch", sans-serif';ctx.fillStyle='#a79dc2';ctx.textAlign='center';ctx.fillText(S.sub,W/2,137);ctx.globalAlpha=1;}
+    const big=G.arena?'WAVE '+G.awave:'DISTRICT '+(G.stage+1)+' — '+S.name.toUpperCase(),sub=G.arena?(G.awave%5===0?'Boss wave':S.name):S.sub;
+    txt(big,W/2,122,30,'#efe9ff','center');ctx.font='12px "Chakra Petch", sans-serif';ctx.fillStyle='#a79dc2';ctx.textAlign='center';ctx.fillText(sub,W/2,137);ctx.globalAlpha=1;}
   if(G.banner<0&&((-G.banner)>>3)%2)txt('WARNING — BOSS',W/2,110,30,'#ffc63d','center');
   if(G.tip){const lines=wrapTip(G.tip.s,300),a=Math.min(1,G.tip.life/20,(330-G.tip.life)/12),h=lines.length*13+10,y=G.coop?50:48;
     ctx.globalAlpha=a*.92;ctx.fillStyle='#0b0812';ctx.fillRect(W/2-160,y,320,h);ctx.strokeStyle='#ffc63d';ctx.lineWidth=1;ctx.strokeRect(W/2-159.5,y+.5,319,h-1);
     ctx.globalAlpha=a;ctx.font='11px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';lines.forEach((l,i)=>ctx.fillText(l,W/2,y+16+i*13));ctx.globalAlpha=1;}
-  if(G.den){txt('THE DEN',W/2,G.coop?60:18,14,'#a79dc2','center');if(G.denPrompt){const n=G.denPrompt,sx=n.x-G.camX;txt('▼ '+n.name.toUpperCase(),sx,140,13,'#ffc63d','center');ctx.font='10px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';ctx.fillText(isTouch()?'TALK':'J to talk',sx,151);}}
+  if(G.den){if(G.denPrompt){const n=G.denPrompt,sx=n.x-G.camX;txt('▼ '+n.name.toUpperCase(),sx,140,13,'#ffc63d','center');ctx.font='10px "Chakra Petch", sans-serif';ctx.fillStyle='#efe9ff';ctx.textAlign='center';ctx.fillText(isTouch()?'TALK':'J to talk',sx,151);}}
 }
 function render(){
   ctx.setTransform(SCALE,0,0,SCALE,0,0);
   if(!G.bg)G.bg=genBg(STAGES[0],1000);
+  if(BAND>0){const S=curS();const g=ctx.createLinearGradient(0,0,0,BAND);g.addColorStop(0,'#08060c');g.addColorStop(1,S.sky[0]);ctx.fillStyle=g;ctx.fillRect(0,0,W,BAND+1);}
   let shx=0,shy=0;if(G.shake&&!RM&&prefs.shake){shx=rand(-G.shake,G.shake)*.6;shy=rand(-G.shake,G.shake)*.6;}
-  ctx.save();ctx.translate(shx,shy);
+  ctx.save();ctx.translate(shx,shy+BAND);
   drawBg();
   for(const k of G.picks)drawPick(k);
   const list=G.ents.map(e=>({e,y:e.y}));
@@ -1226,9 +1303,9 @@ function render(){
   for(const t of G.texts){ctx.globalAlpha=Math.min(1,t.life/12);txt(t.s,t.x-G.camX,t.y-t.z,t.big?22:t.sm?12:16,t.c,'center');}ctx.globalAlpha=1;
   drawRain();
   ctx.restore();
-  if(G.mode!=='title')drawHud();
-  if(G.flash>0){ctx.fillStyle=`rgba(255,255,255,${G.flash})`;ctx.fillRect(0,0,W,H);}
-  if(G.fade>0){ctx.fillStyle=`rgba(8,6,12,${G.fade})`;ctx.fillRect(0,0,W,H);}
+  if(G.mode!=='title'){ctx.save();ctx.translate(0,BAND);drawHud();ctx.restore();drawHudTop();}
+  if(G.flash>0){ctx.fillStyle=`rgba(255,255,255,${G.flash})`;ctx.fillRect(0,0,W,VH);}
+  if(G.fade>0){ctx.fillStyle=`rgba(8,6,12,${G.fade})`;ctx.fillRect(0,0,W,VH);}
 }
 function drawAura(e){const c=ELITES[e.elite].col,sx=e.x-G.camX,sc=(e.d&&e.d.scale)||1;
   ctx.globalAlpha=.35+.15*Math.sin(G.t*.2);ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(sx,e.y,14*sc,4.5*sc,0,0,7);ctx.stroke();
@@ -1248,7 +1325,7 @@ function drawNPC(n){
 
 /* ================= title attract ================= */
 function attract(){
-  PL=[newRunner(0)];G.coop=false;G.den=false;resetWorld();
+  PL=[newRunner(0)];G.coop=false;G.den=false;G.arena=false;G.ng=0;resetWorld();
   G.stage=0;G.bg=genBg(STAGES[0],1000);
   const P=PL[0];P.x=150;P.y=225;P.face=1;setS(P,'idle');G.ents.push(P);
   const e=spawnEnemy('ganger',1);e.x=300;e.y=222;e.face=-1;const o=spawnEnemy('orc',1);o.x=345;o.y=236;o.face=-1;
@@ -1325,13 +1402,32 @@ function renderOv(){
     const sv=store.get('cs_save3');if(G.mode==='title')G.pendDiff=sv&&sv.diff!==undefined?sv.diff:1;
     h=`<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1>Chrome &amp; Sorcery</h1>
     <p>Two shadowrunners, a fixer with a grudge and four districts between you and Director Voss. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button>${sv?`<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff===undefined?1:sv.diff].name}${sv.ng?' NG+'+sv.ng:''}, ${sv.phase==='den'?'the Den after district '+(sv.stage+1):'district '+(sv.stage+1)}</button>`:''}<button class="btn ghost" data-a="settings">Settings</button></div>${helpHtml()}</div>`;
   }
   if(m==='pick'){
     h=`<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>
     <div class="list">${DIFF.map((d,i)=>`<div class="item"><div><div class="nm">${d.name}</div><div class="ds">${d.desc}</div></div><div class="acts"><button class="btn sm${G.pendDiff===i?'':' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff===i}">${G.pendDiff===i?'Selected':'Choose'}</button></div></div>`).join('')}</div>
     <p style="font-size:12.5px">Elites have a colored aura and a name tag: ${Object.values(ELITES).map(x=>`<b style="color:${x.col}">${x.name}</b> ${x.hint}`).join(', ')}. They drop better gear.</p>
     <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+  }
+  if(m==='arenapick'){
+    h=`<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>
+    <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
+    <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d,i)=>`<button class="btn sm${G.pendDiff===i?'':' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff===i}">${d.name}</button>`).join('')}</div>
+    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <h3>Best runs</h3>${scoreTable()}</div>`;
+  }
+  if(m==='perk'){
+    h=`<div class="card"><p class="eyebrow">Arena · wave ${G.awave} cleared · score ${G.score.toLocaleString()}</p><h2>Pick a perk</h2>
+    <div class="list">${G.perks.map(id=>{const pk=PERKS.find(x=>x.id===id);return `<div class="item"><div><div class="nm">${esc(pk.name)}</div><div class="ds">${esc(pk.desc)}</div></div><div class="acts"><button class="btn sm" data-a="perk:${id}">Take it</button></div></div>`;}).join('')}</div>
+    <div class="row"><button class="btn ghost" data-a="sheet">Character${PL.some(p=>p.pts)?' (points to spend)':''}</button></div></div>`;
+  }
+  if(m==='arenaover'){
+    const e=G.lastEntry||{score:0,wave:0},list=store.get('cs_arena')||[],rank=list.findIndex(x=>x.id===e.id);
+    h=`<div class="card"><p class="eyebrow">Arena · ${DIFF[G.diff].name}${G.coop?' · co-op':''}</p><h1>${e.score.toLocaleString()}</h1>
+    <p>You made it to wave ${e.wave} at level ${e.lvl} with a best combo of ${e.combo}.${rank===0?' That is your best run yet.':rank>0?` That ranks #${rank+1} on this device.`:''}</p>
+    <div class="row"><button class="btn" data-a="arenaagain">Run it again</button><button class="btn ghost" data-a="arenapick">Change difficulty</button><button class="btn ghost" data-a="quit">Title</button></div>
+    <h3>Best runs</h3>${scoreTable(e.id)}</div>`;
   }
   if(m==='brief'){
     const C=CONTRACTS[G.stage],S=STAGES[G.stage];
@@ -1340,11 +1436,11 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="go">Take the job</button><button class="btn ghost" data-a="sheet">Character</button>${G.briefFromDen?'<button class="btn ghost" data-a="notyet">Not yet</button>':''}</div></div>`;
   }
   if(m==='sheet'){
-    h=`<div class="card"><p class="eyebrow">${G.ret==='brief'?'Before the job':G.ret==='den'?'The Den':'Paused · district '+(G.stage+1)}</p><h2>Runners</h2>${charHtml()}${G.ret==='play'?jobHtml(PARTY.contract):''}
-    <div class="row"><button class="btn" data-a="close">${G.ret==='play'?'Back to the fight':'Done'}</button></div></div>`;
+    h=`<div class="card"><p class="eyebrow">${G.ret==='brief'?'Before the job':G.ret==='den'?'The Den':G.ret==='perk'?'Arena · between waves':G.arena?'Paused · arena wave '+G.awave:'Paused · district '+(G.stage+1)}</p><h2>Runners</h2>${charHtml()}${G.ret==='play'&&!G.arena?jobHtml(PARTY.contract):''}
+    <div class="row"><button class="btn" data-a="close">${G.ret==='play'?'Back to the fight':G.ret==='perk'?'Back to the perks':'Done'}</button></div></div>`;
   }
   if(m==='pause'){
-    h=`<div class="card"><p class="eyebrow">Paused · ${G.den?'the Den':'district '+(G.stage+1)} · ${DIFF[G.diff].name}${G.ng?' NG+'+G.ng:''}</p><h2>Catch your breath</h2>${G.den?'':jobHtml(PARTY.contract)}
+    h=`<div class="card"><p class="eyebrow">Paused · ${G.arena?'arena wave '+G.awave+' · score '+G.score.toLocaleString():G.den?'the Den':'district '+(G.stage+1)} · ${DIFF[G.diff].name}${G.ng&&!G.arena?' NG+'+G.ng:''}</p><h2>Catch your breath</h2>${G.den||G.arena?'':jobHtml(PARTY.contract)}
     <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop?'<button class="btn ghost" data-a="drop2">Drop Runner 2</button>':'<button class="btn ghost" data-a="join2">Add Runner 2</button>'}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">Quit to title</button></div>${helpHtml()}</div>`;
   }
   if(m==='npc')h=npcHtml(G.npc);
@@ -1363,7 +1459,7 @@ function renderOv(){
     <div class="row"><button class="btn" data-a="ngplus">New Game+ ${G.ng+1}</button><button class="btn ghost" data-a="pick">Fresh run</button></div></div>`;
   }
   ov.innerHTML=h;
-  if(['title','pause','over','win','brief','pick','settings'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
+  if(['title','pause','over','win','brief','pick','settings','arenapick','perk','arenaover'].includes(m)){const f=ov.querySelector('.btn');if(f)f.focus({preventScroll:true});}
 }
 function npcHtml(id){
   const n=NPCS.find(x=>x.id===id),stage=G.stage;
@@ -1413,6 +1509,11 @@ ov.addEventListener('click',e=>{
   const rerender=()=>{renderOv();if(G.mode==='npc'||G.ret==='den')saveGame('den');};
   switch(a){
     case 'pick':G.pendDiff=G.diff;setMode('pick');keep=false;break;
+    case 'arenapick':G.pendDiff=G.arena?G.diff:G.pendDiff;setMode('arenapick');keep=false;break;
+    case 'arena1':startArena(false);keep=false;break;
+    case 'arena2':startArena(true);keep=false;break;
+    case 'arenaagain':G.pendDiff=G.diff;startArena(G.coop);keep=false;break;
+    case 'perk':{const pk=PERKS.find(x=>x.id===arg);if(pk&&G.mode==='perk'){pk.go();sfx.level();setMode('play');nextArenaWave();}keep=false;break;}
     case 'settings':G.setRet=G.mode;setMode('settings');keep=false;break;
     case 'setdone':setMode(G.setRet||'title');break;
     case 'pref':{const k=arg,raw=parts[2];const v=raw==='true'?true:raw==='false'?false:raw;

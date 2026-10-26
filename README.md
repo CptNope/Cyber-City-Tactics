@@ -8,6 +8,7 @@
 - Install on a phone with "Add to Home Screen" / "Install app". It works offline after the first load. Bump `VERSION` in `sw.js` when you ship changes.
 
 ## What's in it
+- **Arena mode:** endless waves on one street, for one or two players. Waves grow, the street changes every five waves, a boss arrives every fifth wave, and every third wave you pick one of three perks. You start at level 3. Scores, waves and best combos go on a high-score table saved on the device.
 - **Difficulty:** Street, Runner or Prime, chosen at the start of a run. After the final boss, **New Game+** keeps your runners, levels, gear, cyberware and spells, and makes enemies tougher, elites more common and loot better. You can repeat it.
 - **Elite enemies:** Armored (halves bullet damage), Berserk (faster, hits harder), Warded (can't be knocked down, resists magic) and Vampiric (heals when it hits you). Each has a colored aura and a name tag, and drops better gear.
 - **Boss rage phases:** at half health each boss enrages. The Gutter King and the Hollow Saint slam the ground and send shockwaves you have to jump. Razor Mei chains three dashes. The Hollow Saint summons fire spirits too. Director Voss fires five-way hexes and teleports more often.
@@ -45,6 +46,7 @@
 | Pause | P or Esc | | Start |
 
 ## On phones
+- Upright, the game view grows taller and the HUD moves into the extra sky at the top, larger and easier to read.
 - Hold the phone sideways. The stick sits left of the screen and the buttons right, so your thumbs never cover the fight. Upright works too, with the controls under the screen.
 - The stick appears wherever your thumb lands on the left side.
 - The big buttons change their label to say what they'll do right now: LIFT, THROW, KNEE, TALK. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them.
