@@ -31,7 +31,7 @@ body{-webkit-tap-highlight-color:transparent;background:var(--ink);color:var(--t
 #app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;box-sizing:border-box;position:relative}
 #stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
 #game{display:block;background:#000;border-radius:3px;box-shadow:0 0 0 1px var(--line)}
-#pauseBtn{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:rgba(23,18,31,.7);color:var(--text);font:600 15px var(--font-b);cursor:pointer;z-index:4}
+#pauseBtn{position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:8px;opacity:.85;border:1px solid var(--line);background:rgba(23,18,31,.7);color:var(--text);font:600 15px var(--font-b);cursor:pointer;z-index:4}
 button:focus-visible{outline:2px solid var(--mana);outline-offset:2px}
 
 #ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(12,10,20,.9);z-index:20;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);box-sizing:border-box}
@@ -120,14 +120,16 @@ body.lefty #btns{align-items:flex-start}
   .urow .tb{height:30px}
 }
 @media (orientation:portrait){
-  body.touch{--b:64px;--b2:52px;--s:150px}
-  body.touch.size-s{--b:56px;--b2:46px;--s:128px}
-  body.touch.size-l{--b:72px;--b2:58px;--s:168px}
+  /* stick zone + 12px gap + three buttons must fit the phone width minus the 32px gutter */
+  body.touch{--b:60px;--b2:50px;--s:min(128px,calc((100vw - 32px - 12px - 16px) * .38))}
+  body.touch.size-s{--b:52px;--b2:44px;--s:min(112px,calc((100vw - 60px) * .36))}
+  body.touch.size-l{--b:min(68px,calc((100vw - 60px) * .2));--b2:min(56px,calc((100vw - 60px) * .17));--s:min(140px,calc((100vw - 60px) * .36))}
+  body.touch #stick{width:var(--s);height:calc(var(--s) * 1.15)}
   body.touch #stage{flex-direction:column;justify-content:flex-start;align-items:center;gap:10px;padding-top:4px}
   body.touch #rotHint{position:static;transform:none}
   body.touch #pad{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
 }
-@media (orientation:portrait) and (max-width:360px){body.touch:not(.size-l){--b:56px;--b2:46px;--s:128px}}
+@media (orientation:portrait) and (max-width:360px){body.touch:not(.size-l){--b:52px;--b2:44px}}
 </style>
 <style>
 /* Static-hosting reset (the artifact viewer normally provides this) */
