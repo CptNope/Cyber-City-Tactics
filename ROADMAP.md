@@ -23,6 +23,7 @@ The guiding rules:
 - [x] Training level and boss rematches
 - [x] **The Sprawl:** open world with procedural buildings, a hacking minigame, heat, cops and street cred
 - [x] **Skill trees:** Brawler, Gunslinger, Mage and Decker, six skills each with a capstone
+- [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
 ---
@@ -30,10 +31,8 @@ The guiding rules:
 ## Next up
 
 ### Gear and loot
-- [ ] **Black-market rarity (M).** A fourth tier above Prototype, with one hand-made legendary per slot that has a unique effect. Examples:
-  - *Ronin's Last Edge:* every 10th hit is a guaranteed crit.
-  - *Hammer of the Hollow Saint:* heavy blows send a shockwave.
-  - *Voss's Smartlink:* bullets chain like Chain Lightning.
+- [x] ~~**Black-market rarity.**~~ Shipped as eight legendaries unlocked by feats.
+- [ ] **More legendaries (S each).** One per new boss and per new hidden feat, so there's always a ??? left in the Codex.
 - [ ] **Weapon-specific moves (M).** The heavy blow changes with what you hold:
   - katana: a dash slash
   - whip: pulls an enemy to you
@@ -98,7 +97,8 @@ The guiding rules:
 - [ ] **Team attacks (M).** When both runners hit the same enemy within half a second, they do a combined finisher.
 - [ ] **Revive (S).** Hold near a downed partner to bring them back instead of waiting for the next district.
 - [ ] **Online co-op (L).** WebRTC peer-to-peer with a share code, keeping the single-file rule by using a tiny public signaling option or manual offer/answer codes.
-- [ ] **Daily challenge (S).** Like the weekly one, with a daily seed and a shorter run.
+- [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.
+- [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
 
 ### Presentation
 - [ ] **Animated title and menus (S).** Motion on the title card, menu transitions and the skill-tree unlock pulse, all in hand-written CSS and JavaScript (no libraries).
@@ -112,6 +112,20 @@ The guiding rules:
 - [ ] **Split the source (M).** Keep one shipped HTML file, but write the source as modules and inline them with a tiny build script. That makes the game easier to work on without changing how it's played.
 - [ ] **Save export and import (S).** Copy your save as text to move it to another device.
 - [ ] **Performance pass (S).** Cache static background layers to an offscreen canvas for low-end phones.
+
+### Discovery and replayability
+These are the next ways to keep "one more run" alive:
+- [ ] **Lore that changes the game (M).** Collecting all 24 shards opens a secret final job: track down Ssareth's lantern vault, with a dragon-cult boss and the best legendary in the game.
+- [ ] **Rotating Sprawl events (M).** A block-wide event on some blocks, such as a gang war (two crews fight each other, so pick a side), a blackout (no cops but no lights), or a Kagemori lockdown (every black site is tier 3).
+- [ ] **Mutators for the campaign (M).** Opt-in modifiers on any run, like the weekly ones, each adding legend points: one life, no guns, double elites, enemies split on death.
+- [ ] **Unlockable archetypes (M each).** More locked runners behind feats:
+  - Shaman: spirit allies and curses, unlocked by finding 10 lore shards
+  - Rigger: two drones, unlocked by downing 10 couriers
+  - Street Doc: heals with every hit, unlocked by finishing a co-op campaign
+- [ ] **Cosmetics from feats (S).** Coat colors, visor colors and a title shown under your name, so feats show up on your runner.
+- [ ] **Achievement-only secrets (S).** Hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
+- [ ] **Run history (S).** A list of your last 20 runs in the Codex with mode, archetype, level, best combo and how it ended.
+- [ ] **Challenge seeds (S).** Type or share a seed to replay the exact same Sprawl block or Arena run as a friend.
 
 ---
 

@@ -19,6 +19,7 @@ It is one HTML file with no build step and no dependencies. It runs in any moder
 - [Combat](#combat)
 - [Enemies and bosses](#enemies-and-bosses)
 - [The Sprawl in depth](#the-sprawl-in-depth)
+- [Your legend: feats, legendaries and the Codex](#your-legend-feats-legendaries-and-the-codex)
 - [Controls](#controls)
 - [On phones](#on-phones)
 - [Saves](#saves)
@@ -34,6 +35,7 @@ It is one HTML file with no build step and no dependencies. It runs in any moder
    - **The Sprawl** for the open world.
    - **Arena** for endless waves and high scores.
 3. Pick an archetype and a difficulty, solo or co-op, and go.
+4. Check the **Codex** on the title screen now and then. It tracks feats, legendaries, enemies and lore across every run, and most of it starts hidden.
 
 To play locally, run `npx serve .` (or `python3 -m http.server`) in the repo and open the URL it prints. Opening `index.html` straight from disk also works, but the offline service worker only installs over http(s).
 
@@ -79,6 +81,8 @@ Endless waves on one street, solo or co-op, starting at level 3:
 - Every third wave you choose one of three perks: Street smarts, Patch up, Supply crate, Ammo drop, Second wind, Hired help or Back-alley chrome.
 - Scores, waves and best combos are saved to a high-score table on the device.
 
+**Daily challenge:** a new seeded Arena run every day, with a set archetype and modifier, so everyone plays the same day. Your best score for the day and your play streak are kept.
+
 **Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week. You play on Runner with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept, and the end screen has a Copy / Share button with a brag line and the game's link.
 
 ### Training
@@ -113,6 +117,9 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 | Street Samurai | Katana and a cyberarm | **Blade Dance:** dash through everything in front of you | Iron Fists |
 | Combat Mage | Fireball and Manabolt | **Mana Storm:** lightning strikes up to six enemies | Focus |
 | Gunslinger | Heavy pistol, double ammo | **Bullet Time:** enemies slow to half speed, shots are free | Steady Hands |
+| Decker 🔒 | Smartgun, Hacking 5 | **Overload:** fries every machine, ICE and armored trooper on screen and stuns everyone for 4 s | Port Scanner |
+
+The Decker is locked at first. Crack 10 locks in the Sprawl to earn the *Decker* feat and unlock it for every mode.
 
 ### Attributes
 Each level gives **2 attribute points** and **1 skill point**.
@@ -156,6 +163,7 @@ Rarity sets the stat multiplier and the number of bonus attributes:
 | Street | ×1.0 | none |
 | Tuned | ×1.25 | one |
 | Prototype | ×1.55 | two |
+| Black-market (legendary) | ×1.9 | three, plus a unique effect |
 
 Better gear shows up as you go deeper into the campaign, the Arena or the Sprawl.
 
@@ -291,6 +299,43 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 **Getting flatlined** in the Sprawl costs 30% of your creds and clears your heat. You wake at the safehouse.
 
+**Things to find on every block:**
+- **Juno's bounty.** One tougher building on each block holds a named target, marked ☠ BOUNTY on its sign and in gold on the minimap. Take them down for a big cred payout, karma and a shot at a legendary.
+- **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
+- **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
+
+---
+
+## Your legend: feats, legendaries and the Codex
+Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
+
+**Feats.** 42 goals across every mode, for example:
+- *Chain Reaction:* a 25-hit combo
+- *Bounty Hunter:* collect one of Juno's bounties
+- *Zero-Day:* crack a tier-3 lock without a miss
+- *Habit Forming:* play the daily challenge three days running
+
+Some feats are hidden and show as **???** until you earn them. Counting feats show your progress. Earning one pops a banner in play.
+
+**Legend rank.** Every feat is worth legend points. They raise your rank from *Nobody* through *Street rat*, *Known face*, *Runner*, *Pro* and *Prime runner* to *Legend*. Each rank adds ¥15 to the creds you start a campaign or the Sprawl with.
+
+**Legendaries.** Eight Black-market items, each unlocked as a possible drop by a feat. Once unlocked, they can drop from bosses, bounties, tier-3 caches and hidden doors, and ones you haven't found yet come up first.
+
+| Legendary | Slot | Effect | Unlocked by |
+|---|---|---|---|
+| King's Boomstick | Gun | Five knockdown pellets | Beat the Gutter King |
+| Mei's Silk | Weapon | Hits can lash a second enemy | Beat Razor Mei |
+| Saint's Cinder Maul | Weapon | Heavy blows erupt in a fire blast | Beat the Hollow Saint |
+| Voss's Smartlink | Gun | Hits arc lightning to another enemy | Beat Director Voss |
+| Black ICE Shard | Armor | Deflects one hit every 8 s | Delete Black ICE |
+| Ronin's Last Edge | Weapon | Every 6th melee hit crits | Reach +60 street cred |
+| Wyrmfang | Gun | Rail slugs burn, and half your shots are free | A hidden feat |
+| Dragonscale Duster | Armor | Damage you take restores mana | A hidden feat |
+
+**Bestiary.** Every kind of enemy starts as ??? and fills in with a field note and a running kill count once you take one down.
+
+**Lore.** 24 data shards drop from vending machines, crates, bosses and Sprawl caches, and every hidden door holds one. Each shard tells a piece of the world. Collect them in any order and a story comes together about who is really behind Kagemori and what Project LANTERN is.
+
 ---
 
 ## Controls
@@ -328,6 +373,8 @@ Everything is stored in the browser's `localStorage` on the device. Nothing is s
 | `cs_world` | The Sprawl (saved on every street visit and shop action) |
 | `cs_arena` | Arena high scores |
 | `cs_week` | Weekly challenge bests |
+| `cs_day` | Daily challenge best and play streak |
+| `cs_legend` | Your legend: feats, stats, legendaries found, bestiary and lore |
 | `cs_prefs` | Settings and which tips you've seen |
 
 Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned.
@@ -368,8 +415,9 @@ Layout is checked with Playwright screenshots at phone and desktop sizes. These 
 | Combat | `strike`, `hurt`, `kill`, `fireBullet`, `castSpell`, `explode` |
 | Enemies | `DEF`, `ELITES`, `spawnEnemy`, `upEnemy` |
 | Campaign | `STAGES`, `CONTRACTS`, `NPCS`, `startStage`, `enterDen` |
-| Arena | `startArena`, `PERKS`, `MODS` (weekly) |
-| The Sprawl | `genStreet`, `worldTick`, `enterBuilding`, `enterRoom`, `lootChest`, `startHack` |
+| Arena | `startArena`, `PERKS`, `MODS`, `thisWeek`, `thisDay` |
+| Legend and Codex | `FEATS`, `LEGS`, `LORE`, `BEST`, `feat`, `bump`, `legendDrop`, `codexHtml` |
+| The Sprawl | `genStreet`, `worldTick`, `enterBuilding`, `enterRoom`, `lootChest`, `startHack`, `payBounty` |
 | Rendering | `render`, `drawBg`, `drawFig`, `drawHud` |
 | Menus | `renderOv` and the `ov` click handler |
 
