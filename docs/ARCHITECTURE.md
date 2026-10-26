@@ -80,6 +80,17 @@ Hit-stop (`G.stop`) and slow motion (`G.slow`) skip update steps without droppin
 
 `update()` steps every entity (`upRunner`, `upEnemy`, `upAlly`), projectiles, pickups and effects, then hands off to the current mode: `worldTick()` (Sprawl), `denTick()`, `arenaTick()`, `trainTick()` or `waves()` (campaign).
 
+## Screen fitting
+
+`fit()` in core/canvas.js sizes the canvas to fill the whole screen (inside the notch-safe area) and picks a logical view to match its shape. The street is always `H` = 270 tall.
+
+| Screen | View | Extra space |
+|---|---|---|
+| 16:9 or wider | `W` grows from 480 up to `WMAX` (1000) | none; you see more street |
+| Narrower than 16:9 | `W` = 480 | `BAND` on top (HUD and sky), and on touch screens `BOT` underneath, sized to the on-screen controls |
+
+`VH` = `BAND` + 270 + `BOT`. `render()` draws the world translated down by `BAND`, then `drawSkyBand()` and `drawGroundBand()` fill the bands. Because `W` varies, never assume 480: use `W` for the view width and `W0` for the 16:9 baseline. Wave triggers go through `waveAt()`, which clamps each wave's `at` to where the camera can actually reach (`len - W`). Without it, the boss wave of a 1500-long district would never trigger on a wide screen. `tests/screen.test.js` checks ten screen shapes and walks every district's waves at five view widths.
+
 ## State
 
 | Thing | Where | What |

@@ -136,7 +136,8 @@ function fogAlpha(e) {
 }
 function drawHudTop() {
   // k scales the HUD up when the portrait sky band has room for it; HW is the HUD's own width
-  const k = BAND >= 46 ? Math.min(BAND / 46, G.coop ? 1.3 : 1.45) : 1,
+  // the HUD grows into a tall top band on touch screens, where it's read at arm's length; elsewhere it keeps its size
+  const k = BAND >= 46 && isTouch() ? Math.min(BAND / 46, G.coop ? 1.3 : 1.45) : 1,
     HW = W / k,
     inBand = BAND >= 46;
   ctx.save();
@@ -211,7 +212,7 @@ function drawHudTop() {
   ctx.restore();
   if (G.coop && !inBand) {
     const s = (G.arena ? 'WAVE ' + G.awave + ' · ' : G.den ? 'THE DEN' : '') + (line2 || '');
-    if (s) txt(s, W / 2, VH - 6, 12, line2 ? col2 : '#a79dc2', 'center');
+    if (s) txt(s, W / 2, H - 6, 12, line2 ? col2 : '#a79dc2', 'center');
   }
 }
 function drawDark() {
@@ -366,17 +367,69 @@ function drawHud() {
     }
   }
 }
+// Top band on tall screens: night sky fading into the district's sky, with a few stars
+function drawSkyBand() {
+  const S = curS(),
+    g = ctx.createLinearGradient(0, 0, 0, BAND);
+  g.addColorStop(0, '#08060c');
+  g.addColorStop(1, S.sky[0]);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, BAND + 1);
+  ctx.fillStyle = 'rgba(239,233,255,0.5)';
+  for (let i = 0; i < 46; i++) {
+    const x = (i * 97 + 13) % W,
+      y = (i * 61 + 7) % Math.max(1, BAND - 30);
+    if ((G.t + i * 40) % 400 < 380) ctx.fillRect(x, y, i % 5 ? 1 : 1.5, i % 5 ? 1 : 1.5);
+  }
+  if (BAND >= 90) drawFarTowers(S);
+}
+// Distant arcology towers rising into a tall sky band; they drift at a tenth of the camera's speed
+const towerH = i => (((Math.sin(i * 12.9898) * 43758.5453) % 1) + 1) % 1;
+function drawFarTowers(S) {
+  const base = BAND + 4,
+    off = (G.camX || 0) * 0.1,
+    tw = 34;
+  for (let k = Math.floor(off / tw) - 1; k * tw - off < W + tw; k++) {
+    const r = towerH(k),
+      h = BAND * (0.25 + r * 0.6),
+      w = (tw - 6 - r * 10) | 0,
+      x = k * tw - off + ((r * 7) | 0);
+    ctx.fillStyle = S.far;
+    ctx.globalAlpha = 0.55;
+    ctx.fillRect(x, base - h, w, h);
+    if (r > 0.6) ctx.fillRect(x + w / 2 - 1, base - h - 10, 2, 10);
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = S.win;
+    for (let wy = base - h + 6; wy < base - 6; wy += 9)
+      for (let wx = x + 4; wx < x + w - 4; wx += 7)
+        if (towerH(wx * 3.1 + wy * 0.7) > 0.82) ctx.fillRect(wx, wy, 2, 3);
+  }
+  ctx.globalAlpha = 1;
+  // blend the tower bases into the street's own sky so there's no seam
+  const fade = ctx.createLinearGradient(0, BAND - 36, 0, BAND + 1);
+  fade.addColorStop(0, 'rgba(0,0,0,0)');
+  fade.addColorStop(1, S.sky[0]);
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, BAND - 36, W, 37);
+}
+// Bottom band under the touch controls: the pavement carries on and fades to black
+function drawGroundBand() {
+  const S = curS(),
+    y0 = BAND + H,
+    g = ctx.createLinearGradient(0, y0, 0, VH);
+  g.addColorStop(0, S.ground[1]);
+  g.addColorStop(1, '#08060c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y0, W, BOT + 1);
+  ctx.fillStyle = S.line;
+  ctx.globalAlpha = 0.5;
+  ctx.fillRect(0, y0, W, 1);
+  ctx.globalAlpha = 1;
+}
 function render() {
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   if (!G.bg) G.bg = genBg(STAGES[0], 1000);
-  if (BAND > 0) {
-    const S = curS();
-    const g = ctx.createLinearGradient(0, 0, 0, BAND);
-    g.addColorStop(0, '#08060c');
-    g.addColorStop(1, S.sky[0]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, BAND + 1);
-  }
+  if (BAND > 0) drawSkyBand();
   let shx = 0,
     shy = 0;
   if (G.shake && !RM && prefs.shake) {
@@ -431,6 +484,7 @@ function render() {
   ctx.globalAlpha = 1;
   drawRain();
   ctx.restore();
+  if (BOT > 0) drawGroundBand();
   if (G.mode !== 'title') {
     ctx.save();
     ctx.translate(0, BAND);

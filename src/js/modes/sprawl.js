@@ -403,7 +403,7 @@ function enterStreet(x) {
     G.ents.push(p);
   });
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
-  G.camX = clamp(x - W / 2, 0, st.len - W);
+  G.camX = clamp(x - W / 2, 0, Math.max(0, st.len - W));
   makeRain(true);
   musicPlay('den');
   G.fade = 0.8;

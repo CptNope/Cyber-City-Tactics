@@ -349,6 +349,7 @@ function collect(k, p) {
   }
   k.got = true;
 }
+const waveAt = (S, w) => Math.min(w.at, Math.max(0, S.len - W));
 function waves() {
   const S = STAGES[G.stage];
   if (G.outro) return;
@@ -362,10 +363,11 @@ function waves() {
     G.goT = 150;
   }
   if (!G.waveLive && G.wave < S.waves.length) {
-    const w = S.waves[G.wave];
-    if (G.camX >= w.at - 1) {
-      G.camX = w.at;
-      G.lock = w.at;
+    const w = S.waves[G.wave],
+      at = waveAt(S, w); // on a wide screen the camera stops short of the last trigger, so meet it there
+    if (G.camX >= at - 1) {
+      G.camX = at;
+      G.lock = at;
       G.waveLive = true;
       w.spawn.forEach((k0, i) => {
         const re = k0.endsWith('!'),
@@ -407,7 +409,7 @@ function camera() {
     maxX = Math.max(...a.map(p => p.x));
   let target = Math.min((minX + maxX) / 2 - W * 0.42, minX - 14);
   if (G.den || (G.world && !G.dun)) {
-    G.camX += (clamp(target, 0, S.len - W) - G.camX) * 0.12;
+    G.camX += (clamp(target, 0, Math.max(0, S.len - W)) - G.camX) * 0.12;
     return;
   }
   if (G.arena || G.training || G.dun) {
@@ -415,9 +417,9 @@ function camera() {
     return;
   }
   const next = S.waves[G.wave];
-  let max = S.len - W;
+  let max = Math.max(0, S.len - W);
   if (G.lock != null) max = G.lock;
-  else if (next) max = Math.min(max, next.at);
+  else if (next) max = Math.min(max, waveAt(S, next));
   target = clamp(target, 0, max);
   if (G.lock != null) target = G.lock;
   if (target > G.camX) G.camX = Math.min(target, G.camX + 2.2);

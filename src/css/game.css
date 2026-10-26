@@ -48,13 +48,14 @@ body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+/* The canvas fills the whole screen inside the notch-safe area; fit() in core/canvas.js sizes the view
+   to match the screen's shape, and the touch controls float over it. */
 #app {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 8px;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
   box-sizing: border-box;
   position: relative;
 }
@@ -69,8 +70,6 @@ body {
 #game {
   display: block;
   background: #000;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px var(--line);
 }
 #pauseBtn {
   position: absolute;
@@ -107,7 +106,7 @@ button:focus-visible {
 #rotHint {
   position: absolute;
   left: 50%;
-  bottom: 8px;
+  bottom: calc(var(--padH, 0px) + 8px);
   transform: translateX(-50%);
   z-index: 4;
   font: 600 12px var(--font-body);
@@ -674,7 +673,16 @@ button:focus-visible {
   justify-content: space-between;
   align-items: flex-end;
   gap: 12px;
-  padding-block: 6px 2px;
+  position: absolute;
+  z-index: 5;
+  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  padding: 6px 12px 8px;
+  pointer-events: none;
+}
+#pad > * {
+  pointer-events: auto;
 }
 body.touch #pad {
   display: flex;
@@ -788,39 +796,6 @@ body.lefty #btns {
   border-color: var(--muted);
   background: rgba(167, 157, 194, 0.1);
 }
-@media (orientation: landscape) {
-  body.touch #app {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: minmax(0, 1fr);
-    column-gap: 10px;
-  }
-  body.touch #pad {
-    display: contents;
-  }
-  body.touch #stick {
-    grid-column: 1;
-    grid-row: 1;
-    align-self: end;
-  }
-  body.touch #stage {
-    grid-column: 2;
-    grid-row: 1;
-    min-width: 0;
-  }
-  body.touch #btns {
-    grid-column: 3;
-    grid-row: 1;
-    align-self: end;
-    padding-bottom: 4px;
-  }
-  body.touch.lefty #stick {
-    grid-column: 3;
-  }
-  body.touch.lefty #btns {
-    grid-column: 1;
-  }
-}
 @media (orientation: landscape) and (max-height: 460px) {
   body.touch {
     --b: 50px;
@@ -862,19 +837,8 @@ body.lefty #btns {
     width: var(--s);
     height: calc(var(--s) * 1.15);
   }
-  body.touch #stage {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 10px;
-    padding-top: 4px;
-  }
-  body.touch #rotHint {
-    position: static;
-    transform: none;
-  }
   body.touch #pad {
-    padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    padding-bottom: 10px;
   }
 }
 @media (orientation: portrait) and (max-width: 360px) {
@@ -889,8 +853,7 @@ body {
   margin: 0;
 }
 #app {
-  padding-top: max(8px, env(safe-area-inset-top, 0px));
-  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  background: var(--ink);
 }
 
 /* ---------- Update-ready bar (src/js/pwa.js) ---------- */

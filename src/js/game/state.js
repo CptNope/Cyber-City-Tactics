@@ -281,7 +281,7 @@ function genBg(S, seed) {
   const far = [],
     near = [];
   let x = -40;
-  while (x < S.len * 0.25 + W + 60) {
+  while (x < S.len * 0.25 + WMAX + 60) {
     const w = 24 + r() * 46,
       h = 50 + r() * 95;
     const wins = [];
@@ -292,7 +292,7 @@ function genBg(S, seed) {
   }
   x = -60;
   let si2 = 0;
-  while (x < S.len * 0.55 + W + 80) {
+  while (x < S.len * 0.55 + WMAX + 80) {
     const w = 56 + r() * 70,
       h = 70 + r() * 80;
     const wins = [];

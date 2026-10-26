@@ -3,7 +3,11 @@
  * grows taller (VH) and the extra sky band (BAND) holds the HUD.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
-const W = 480,
+// W is the logical view width: 480 at 16:9 and narrower, wider on wider screens (up to WMAX), so the canvas
+// always fills the screen. H is the street's height; taller screens add bands above (BAND) and below (BOT).
+let W = 480;
+const W0 = 480,
+  WMAX = 1000,
   H = 270,
   FY0 = 170,
   FY1 = 262;
@@ -78,26 +82,41 @@ let SCALE = 1,
   BAND = 0;
 // In portrait on touch devices the canvas grows taller than 16:9: the extra rows above the street become
 // a sky band that holds a larger, easier-to-read HUD instead of empty page.
+// Fill the whole screen (inside the notch-safe area) on any device:
+//  - 16:9 or wider: keep the street's height and widen the view, so wide phones and ultrawides see more
+//    street instead of black bars (letterboxing only past 3.7:1);
+//  - narrower than 16:9: keep 480 wide and add height. On touch screens the bottom band (BOT) sits under the
+//    on-screen controls so they never cover the fight; the rest goes to the top band (BAND) for the HUD.
+let BOT = 0;
 function fit() {
-  const r = document.getElementById('stage').getBoundingClientRect();
-  const portrait = isTouch() && r.height > r.width * 0.8;
-  const hint = document.getElementById('rotHint');
-  const hintH = portrait && hint && !hint.hidden ? 56 : portrait ? 10 : 0;
-  VH = portrait ? clamp(Math.round((W * (r.height - hintH)) / r.width), H, 400) : H;
-  BAND = VH - H;
-  let w = r.width,
-    h = (w * VH) / W;
-  if (h > r.height) {
-    h = r.height;
-    w = (h * W) / VH;
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  const r = stage.getBoundingClientRect(),
+    pad = document.getElementById('pad'),
+    padOn = isTouch() && !(document.body.classList.contains && document.body.classList.contains('gamepad')),
+    padH = padOn && pad ? pad.getBoundingClientRect().height : 0;
+  const app = document.getElementById('app');
+  if (app && app.style && app.style.setProperty) app.style.setProperty('--padH', Math.round(padH) + 'px');
+  let cw = Math.max(120, Math.floor(r.width)),
+    ch = Math.max(68, Math.floor(r.height));
+  const a = cw / ch;
+  if (a >= W0 / H) {
+    W = Math.min(WMAX, Math.round(H * a));
+    VH = H;
+    BAND = BOT = 0;
+    if (W === WMAX) cw = Math.floor((ch * WMAX) / H);
+  } else {
+    W = W0;
+    VH = Math.round(W0 / a);
+    const extra = VH - H;
+    BOT = padH ? Math.min(extra, Math.ceil(((padH + 6) * W0) / cw)) : 0;
+    BAND = extra - BOT;
   }
-  w = Math.max(120, Math.floor(w));
-  h = Math.max(68, Math.floor(h));
-  cvs.style.width = w + 'px';
-  cvs.style.height = h + 'px';
+  cvs.style.width = cw + 'px';
+  cvs.style.height = ch + 'px';
   const dpr = lowFx() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-  cvs.width = Math.round(w * dpr);
-  cvs.height = Math.round(h * dpr);
+  cvs.width = Math.round(cw * dpr);
+  cvs.height = Math.round(ch * dpr);
   SCALE = cvs.width / W;
 }
 addEventListener('resize', fit);
