@@ -25,6 +25,7 @@
 }
 body.size-s{--b:50px;--b2:42px;--s:116px}
 body.size-l{--b:68px;--b2:56px;--s:152px}
+[hidden]{display:none!important}
 html,body{height:100%;overscroll-behavior:none}
 body{-webkit-tap-highlight-color:transparent;background:var(--ink);color:var(--text);font-family:var(--font-b);overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px;box-sizing:border-box;position:relative}
@@ -118,7 +119,15 @@ body.lefty #btns{align-items:flex-start}
   body.touch.size-l{--b:56px;--b2:46px;--s:124px}
   .urow .tb{height:30px}
 }
-@media (orientation:portrait) and (max-width:380px){body.touch:not(.size-l){--b:52px;--b2:44px;--s:118px}}
+@media (orientation:portrait){
+  body.touch{--b:64px;--b2:52px;--s:150px}
+  body.touch.size-s{--b:56px;--b2:46px;--s:128px}
+  body.touch.size-l{--b:72px;--b2:58px;--s:168px}
+  body.touch #stage{flex-direction:column;justify-content:flex-start;align-items:center;gap:10px;padding-top:4px}
+  body.touch #rotHint{position:static;transform:none}
+  body.touch #pad{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+}
+@media (orientation:portrait) and (max-width:360px){body.touch:not(.size-l){--b:56px;--b2:46px;--s:128px}}
 </style>
 <style>
 /* Static-hosting reset (the artifact viewer normally provides this) */
