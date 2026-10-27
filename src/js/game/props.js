@@ -73,6 +73,7 @@ function tryGrab(p, dx) {
     if (
       e.team !== 1 ||
       e.d.boss ||
+      e.d.heavy ||
       e.d.fly ||
       e.d.passive ||
       e.state === 'dead' ||

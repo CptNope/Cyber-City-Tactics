@@ -81,7 +81,7 @@ const FAC = {
   },
   blacksite: {
     pool: ['sec', 'riot', 'drone', 'sec'],
-    t3: ['ice', 'glitch', 'ninja'],
+    t3: ['ice', 'glitch', 'ninja', 'mech'],
     boss: [null, 'riot', 'archmage', 'blackice'],
     bossName: ['', 'Site chief', 'Research director', 'Vault ICE'],
     theme: 3
@@ -116,7 +116,7 @@ const FAC = {
     theme: -1
   },
   secret: {
-    pool: ['shaman', 'ghoul', 'spirit', 'shaman'],
+    pool: ['shaman', 'ghoul', 'spirit', 'shaman', 'feral'],
     t3: ['glitch'],
     boss: [null, 'saint', 'saint', 'archmage'],
     bossName: ['', 'Lantern keeper', 'Lantern keeper', 'Wyrm priest'],

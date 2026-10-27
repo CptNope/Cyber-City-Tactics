@@ -148,7 +148,7 @@ function onKill(t, ks) {
   if (t.team !== 1 || (t.d && t.d.passive) || G.training) return;
   bump('kills');
   if (t.elite) bump('elites');
-  const k = t.mini ? 'glitch' : t.kind;
+  const k = t.kind;
   if (BEST[k]) {
     if (!LEG.kills[k]) {
       LEG.kills[k] = 0;

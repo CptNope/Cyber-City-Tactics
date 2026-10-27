@@ -132,7 +132,8 @@ function upEnemy(e) {
             life: 110
           });
         sfx.zap();
-      } else if (d.ranged === 'bullet') fireBullet(e, e.dmg, e.z + (d.fly ? 0 : 27));
+      } else if (d.mimic) echoSpell(e);
+      else if (d.ranged === 'bullet') fireBullet(e, e.dmg, e.z + (d.fly ? 0 : 27));
       else {
         const n = d.ranged === 'hex3' ? (e.enraged ? 5 : 3) : 1;
         for (let i = 0; i < n; i++)
@@ -150,6 +151,7 @@ function upEnemy(e) {
         sfx.zap();
       }
     }
+    if (d.burst && (e.t === 26 || e.t === 30)) fireBullet(e, e.dmg, e.z + 27 * (d.scale || 1));
     if (e.t >= 34) {
       setS(e, 'idle');
       e.cool = cd * rand(0.7, 1.3);
@@ -265,7 +267,35 @@ function upEnemy(e) {
     dy = p.y - e.y,
     adx = Math.abs(dx),
     ady = Math.abs(dy);
-  e.face = dx >= 0 ? 1 : -1;
+  if (d.slowTurn) {
+    // walkers take a full second to turn around: that's the window to hit the back
+    const want = dx >= 0 ? 1 : -1;
+    if (want !== e.face) {
+      e.turnT = (e.turnT || 0) + 1;
+      if (e.turnT > 60) {
+        e.face = want;
+        e.turnT = 0;
+      }
+    } else e.turnT = 0;
+  } else e.face = dx >= 0 ? 1 : -1;
+  if (d.mech && e.cool <= 0 && adx < 46 && ady < 14 && Math.random() < 0.05) {
+    setS(e, 'slam');
+    sfx.heavy();
+    return;
+  }
+  if (d.mimic) {
+    // feral spirits hang back and cast your own last spell at you
+    const s = d.spd * e.spdMul,
+      tx = p.x - Math.sign(dx || 1) * d.range;
+    e.x += clamp(tx - e.x, -s, s);
+    e.y += clamp(p.y - e.y, -s * 0.7, s * 0.7);
+    e.y = clamp(e.y, FY0 + 6, FY1);
+    if (e.cool <= 0 && ady < 12 && adx < 200) {
+      setS(e, 'aim');
+      e.echo = G.lastSpell || 'fire';
+    }
+    return;
+  }
   if (d.spirit) {
     const s = d.spd * e.spdMul;
     e.x += clamp(dx, -s, s);
@@ -391,6 +421,39 @@ function upEnemy(e) {
   } else if (e.state !== 'idle') setS(e, 'idle');
 }
 
+// A feral spirit's echo of the last spell any runner cast
+const ECHO_NAME = { fire: 'FIREBALL', bolt: 'BOLT', heal: 'HEAL', barrier: 'BARRIER', chain: 'CHAIN' };
+function echoSpell(e) {
+  const k = e.echo || 'fire';
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 40, s: 'ECHO: ' + ECHO_NAME[k], c: '#b98cff', life: 40, sm: true });
+  sfx.spell();
+  if (k === 'heal') {
+    for (const o of G.ents)
+      if (o.team === 1 && o.state !== 'dead' && Math.hypot(o.x - e.x, o.y - e.y) < 90)
+        o.hp = Math.min(o.maxHp, o.hp + Math.round(o.maxHp * 0.25));
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#7dffb0', life: 18, max: 18, r: 60 });
+    return;
+  }
+  if (k === 'barrier') {
+    e.shield = Math.round(e.maxHp * 0.6);
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#45d2ff', life: 18, max: 18, r: 24 });
+    return;
+  }
+  const n = k === 'chain' ? 3 : 1;
+  for (let i = 0; i < n; i++)
+    G.projs.push({
+      k: 'hex',
+      tint: k === 'fire' ? 'fire' : 'bolt',
+      team: 1,
+      x: e.x + e.face * 12,
+      y: e.y + (n > 1 ? (i - 1) * 13 : 0),
+      z: e.z + 6,
+      vx: e.face * (k === 'bolt' ? 3.6 : 2.6),
+      dmg: e.dmg * (k === 'fire' ? 1.3 : 1),
+      life: 170,
+      r: 5
+    });
+}
 function enrage(e) {
   e.enraged = true;
   e.spdMul = 1.3;

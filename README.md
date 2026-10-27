@@ -117,6 +117,8 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 - add Runner 2 from the pause menu, or
 - press Start on a second gamepad.
 
+**Team attacks.** When both runners land a hit on the same enemy within half a second, it triggers a combined finisher: a big knockdown hit with a moment of slow motion. Each enemy can take one every two seconds.
+
 **Revive.** When a runner loses their last life, they leave a green marker where they fell. Their partner stands next to it for about two and a half seconds, without getting knocked around, to bring them back with 40% health and no spare lives. The marker goes away when you leave the scene, and then they're back next district as before.
 
 ---
@@ -299,6 +301,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
 - **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
+- **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 70%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
+- **Feral spirits** drift through the Undercity and hidden shrines. They copy the last spell any runner cast: fireballs and bolts come back at you, an echoed heal patches up nearby enemies, and an echoed barrier shields the spirit. Bullets pass through them.
 - **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit. Land any hit and the cloak drops for a few seconds.
 - **Elites:** each has a colored aura and a name tag, and drops better gear.
   - Armored: halves bullet damage
@@ -351,6 +355,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 **Things to find on every block:**
 - **Juno's bounty.** One tougher building on each block holds a named target, marked ☠ BOUNTY on its sign and in gold on the minimap. Take them down for a big cred payout, karma and a shot at a legendary.
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
+- **Hostages.** About a third of the non-final rooms in fair-game buildings hold a zip-tied civilian. Clear the room and they go free: karma, +5 street cred and a medkit. But anyone's stray hit can land on them, yours included, along with gang bullets and explosions. Lose one and it costs 8 cred.
 - **Block map.** Press **M** in the Sprawl, or pick *Block map* from the pause menu, for a list of every building on the street in order: its type, tier, whether it's fair game or already cleaned out, any bounty, and how far away it is.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
@@ -374,7 +379,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 62 goals across every mode, for example:
+**Feats.** 66 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

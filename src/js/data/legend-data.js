@@ -111,6 +111,9 @@ const BEST = {
   spirit: 'Bound fire spirits. Bullets pass right through them; use fists, blades or magic.',
   ninja:
     'Kagemori shadows fade out of sight and only show themselves to strike. Hit one and the cloak drops for a few seconds.',
+  mech: 'A walking gun platform. Its front plates shrug off almost everything, and it turns slowly. Get behind it and hit the glowing vent on its back.',
+  feral:
+    'A wild spirit that watches you fight and throws your last spell back at you. Think twice before you cast near one.',
   hound:
     'Hellhounds hunt in packs, and every hound still standing makes the pack faster. Thin them out early.',
   cop: 'Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.',
@@ -324,6 +327,17 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  { id: 'team1', name: 'Two-Man Job', desc: 'Land a co-op team attack.', lp: 10, stat: 'teamups', n: 1 },
+  { id: 'team25', name: 'In Sync', desc: 'Land 25 team attacks.', lp: 20, stat: 'teamups', n: 25 },
+  {
+    id: 'hostage1',
+    name: 'Not on My Watch',
+    desc: 'Free a hostage in the Sprawl.',
+    lp: 10,
+    stat: 'hostages',
+    n: 1
+  },
+  { id: 'hostage10', name: 'Guardian', desc: 'Free ten hostages.', lp: 20, stat: 'hostages', n: 10 },
   {
     id: 'parry1',
     name: 'Not Even Close',

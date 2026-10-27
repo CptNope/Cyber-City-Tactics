@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 7:** co-op team attacks, mech walkers, feral spirits and hostage rooms
 - [x] **Expansion 6:** a parry on the dodge button, gang nightclubs and Lone Star precincts in the Sprawl, and a block map
 - [x] **Expansion 5:** hellhound packs, cloaked Kagemori shadows, and salvage and crafting at Ratchet's workbench
 - [x] **Expansion 4:** a heavy blow for every melee weapon, four gun mods at Ratchet's bench, the spirit storm event, and a gear comparison card
@@ -63,7 +64,8 @@ The guiding rules:
 - [ ] **More building types (M):**
   - clinics that trade cyberware
   - talisman shops that teach rare spells
-- [ ] **Room variety (M).** Hazard rooms (electrified floors, collapsing ceilings), hostage rooms (free them for cred), and vault rooms with a second, harder hack.
+- [x] ~~**Hostage rooms.**~~ Shipped: clear the room without hitting the hostage.
+- [ ] **More room variety (M).** Hazard rooms (electrified floors, collapsing ceilings) and vault rooms with a second, harder hack.
 - [ ] **Faction reputation (L).** Separate standing with each gang and with Kagemori. Hitting one crew makes its rivals friendlier, and they'll sell to you or send backup.
 - [x] ~~**Bounties.**~~ Shipped: Juno posts a named target each block.
 - [ ] **Day and night (M).** At night there are fewer cops, more gangs and better loot. In the day, shops are open and break-ins are riskier.
@@ -88,15 +90,13 @@ The guiding rules:
 
 ### Combat and enemies
 - [x] ~~**Corp ninjas and hellhounds.**~~ Shipped as Kagemori shadows and hellhound packs.
-- [ ] **More new enemies (M):**
-  - mech walkers (big, weak spot on the back)
-  - feral spirits (copy your last spell)
+- [x] ~~**Mech walkers and feral spirits.**~~ Shipped: a plated walker with a weak back, and a spirit that echoes your last spell.
 - [x] ~~**A parry.**~~ Shipped: a perfect dodge staggers the attacker and sets up a guaranteed crit.
 - [ ] **Juggles and wall bounces (M).** Enemies knocked into the street's back wall bounce back for follow-ups.
 - [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 
 ### Co-op and online
-- [ ] **Team attacks (M).** When both runners hit the same enemy within half a second, they do a combined finisher.
+- [x] ~~**Team attacks.**~~ Shipped: two hits on one enemy within half a second trigger a combined finisher.
 - [x] ~~**Revive.**~~ Shipped: stand by your partner's marker.
 - [ ] **Online co-op (L).** WebRTC peer-to-peer with a share code, keeping the single-file rule by using a tiny public signaling option or manual offer/answer codes.
 - [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.

@@ -720,6 +720,7 @@ function castSpell(p) {
   const id = p.spells[p.spell],
     pw0 = p.D.spell,
     am = p.archonNow ? 2 : 1;
+  G.lastSpell = id; // feral spirits echo this back
   p.archonNow = false;
   const pw = pw0 * am + (am > 1 ? 14 : 0);
   const fm = p.D.spellMul || 1;

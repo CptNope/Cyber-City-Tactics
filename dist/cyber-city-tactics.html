@@ -950,7 +950,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+ae92ea7';
+const APP_VERSION = '2.0.0+969a0c4';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2303,6 +2303,40 @@ const DEF = {
       boot: '#08070c'
     }
   },
+  mech: {
+    name: 'Kagemori mech walker',
+    hp: 150,
+    spd: 0.38,
+    dmg: 11,
+    reach: 30,
+    cool: 110,
+    scale: 1.45,
+    ranged: 'bullet',
+    burst: 3,
+    range: 160,
+    heavy: true,
+    mech: true,
+    slowTurn: true,
+    creds: [40, 64],
+    karma: 60
+  },
+  feral: {
+    name: 'Feral spirit',
+    hp: 34,
+    spd: 0.7,
+    dmg: 10,
+    reach: 0,
+    cool: 130,
+    scale: 1,
+    fly: true,
+    spirit: true,
+    noBullet: true,
+    mimic: true,
+    range: 130,
+    flames: ['#6b2bd9', '#8f4dff', '#b98cff', '#e0c8ff', '#ffffff'],
+    creds: [4, 10],
+    karma: 26
+  },
   hound: {
     name: 'Hellhound',
     hp: 18,
@@ -2341,6 +2375,7 @@ const DEF = {
     }
   },
   chest: { name: 'Loot cache', hp: 1, passive: true, scale: 1, creds: [0, 0], karma: 0 },
+  hostage: { name: 'Hostage', hp: 20, passive: true, hostage: true, scale: 1, creds: [0, 0], karma: 0 },
   vend: { name: 'Vending machine', hp: 24, passive: true, scale: 1, creds: [8, 20], karma: 4 },
   node: { name: 'Data node', hp: 34, passive: true, scale: 1, creds: [0, 0], karma: 14 },
   glitch: {
@@ -2638,7 +2673,7 @@ const STAGES = [
       { at: 120, spawn: ['ghoul', 'ghoul', 'ghoul'] },
       { at: 420, spawn: ['spirit', 'hound', 'hound', 'hound'] },
       { at: 740, spawn: ['troll!', 'spirit', 'ghoul'] },
-      { at: 1000, spawn: ['spirit', 'spirit', 'shaman', 'ghoul'] },
+      { at: 1000, spawn: ['feral', 'spirit', 'shaman', 'ghoul'] },
       { at: 1220, boss: true, spawn: ['saint', 'ghoul'] }
     ]
   },
@@ -2674,7 +2709,7 @@ const STAGES = [
     ],
     waves: [
       { at: 120, spawn: ['sec', 'riot', 'drone'] },
-      { at: 430, spawn: ['shaman', 'sec', 'riot'] },
+      { at: 430, spawn: ['mech', 'sec', 'shaman'] },
       { at: 760, spawn: ['blade!', 'drone', 'sec'] },
       { at: 1040, spawn: ['ninja', 'ninja', 'riot'] },
       { at: 1320, boss: true, spawn: ['archmage', 'riot'] }
@@ -3471,6 +3506,9 @@ const BEST = {
   spirit: 'Bound fire spirits. Bullets pass right through them; use fists, blades or magic.',
   ninja:
     'Kagemori shadows fade out of sight and only show themselves to strike. Hit one and the cloak drops for a few seconds.',
+  mech: 'A walking gun platform. Its front plates shrug off almost everything, and it turns slowly. Get behind it and hit the glowing vent on its back.',
+  feral:
+    'A wild spirit that watches you fight and throws your last spell back at you. Think twice before you cast near one.',
   hound:
     'Hellhounds hunt in packs, and every hound still standing makes the pack faster. Thin them out early.',
   cop: 'Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.',
@@ -3684,6 +3722,17 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  { id: 'team1', name: 'Two-Man Job', desc: 'Land a co-op team attack.', lp: 10, stat: 'teamups', n: 1 },
+  { id: 'team25', name: 'In Sync', desc: 'Land 25 team attacks.', lp: 20, stat: 'teamups', n: 25 },
+  {
+    id: 'hostage1',
+    name: 'Not on My Watch',
+    desc: 'Free a hostage in the Sprawl.',
+    lp: 10,
+    stat: 'hostages',
+    n: 1
+  },
+  { id: 'hostage10', name: 'Guardian', desc: 'Free ten hostages.', lp: 20, stat: 'hostages', n: 10 },
   {
     id: 'parry1',
     name: 'Not Even Close',
@@ -3905,7 +3954,7 @@ function onKill(t, ks) {
   if (t.team !== 1 || (t.d && t.d.passive) || G.training) return;
   bump('kills');
   if (t.elite) bump('elites');
-  const k = t.mini ? 'glitch' : t.kind;
+  const k = t.kind;
   if (BEST[k]) {
     if (!LEG.kills[k]) {
       LEG.kills[k] = 0;
@@ -4581,6 +4630,17 @@ function dropRunner2() {
   G.coop = false;
 }
 
+function spawnHostage(x, y) {
+  const e = spawnPassive('hostage', x, y);
+  e.team = 2; // anyone's stray hit can land on them: runners, gangers and explosions alike
+  e.hp = e.maxHp = 20;
+  e.pal = pick([
+    { skin: '#c98a6b', coat: '#6b6280' },
+    { skin: '#e4c3a8', coat: '#4a6b8a' },
+    { skin: '#8a5a3e', coat: '#7a5a34' }
+  ]);
+  return e;
+}
 function spawnPassive(kind, x, y) {
   const d = DEF[kind],
     hpm = 1 + G.stage * 0.3;
@@ -4770,6 +4830,26 @@ function hurt(t, dmg, dir, o) {
     t.cloaked = false;
     t.recloakT = 150;
   }
+  if (t.d && t.d.mech) {
+    // plated front, weak back: hits from behind do 50% more, hits from the front 70% less
+    const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
+    o.kd = false;
+    if (back) {
+      dmg *= 1.5;
+      if (G.t - (t.weakT || -999) > 40) {
+        t.weakT = G.t;
+        G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'WEAK SPOT', c: '#ffc63d', life: 34, sm: true });
+      }
+    } else {
+      dmg *= 0.3;
+      if (G.t - (t.plateT || -999) > 50) {
+        t.plateT = G.t;
+        sfx.clank();
+        G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'PLATED', c: '#9fb4d8', life: 30, sm: true });
+        tip('mech', 'Mech walkers are plated in front. Roll past and hit the glowing vent on the back.');
+      }
+    }
+  }
   if (t.elite === 'warded') {
     o.kd = false;
     if (o.magic) dmg *= 0.4;
@@ -4820,8 +4900,9 @@ function hurt(t, dmg, dir, o) {
   t.flash = 8;
   if (t.team === 0 && legOf(t, 'armor') === 'dragonscale')
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
-  if (t.state !== 'grabbed' && !fixed) t.x += dir * (o.kb || 3);
-  if (!fixed) t.face = -dir;
+  const heavy = !!(t.d && t.d.heavy);
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3);
+  if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
   t.hits++;
@@ -4847,6 +4928,7 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && t.idx === 0) buzz(big ? 60 : 30);
   else if (o.src && o.src.idx === 0 && big) buzz(12);
   (big ? sfx.heavy : sfx.hit)();
+  if (o.src && o.src.kind === 'player' && t.team === 1 && !o.team && t.hp > 0) teamCheck(t, o.src);
   if (o.src) {
     G.combo++;
     G.comboT = 0;
@@ -4949,6 +5031,7 @@ function hurt(t, dmg, dir, o) {
     const g = PL.find(p => p.grab === t);
     if (g) releaseGrab(g, true);
   }
+  if (heavy) return true; // walkers never flinch or fall
   const boss = t.d && t.d.boss;
   if (boss) {
     if (o.kd && !t.d.fly && Math.random() < 0.35) {
@@ -5066,6 +5149,7 @@ function kill(t, dir, o) {
       G.wd.rep = Math.min(100, G.wd.rep + 1);
   }
   if (t.kind === 'chest' && G.dun) lootChest(t);
+  if (t.kind === 'hostage') hostageLost(t);
   if (d.passive) {
     t.gone = false;
     burst(t.x, t.y, 20, t.kind === 'node' ? '#45d2ff' : '#ffc63d', 18);
@@ -5163,6 +5247,33 @@ function kill(t, dir, o) {
 function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
+}
+// Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
+const TEAM_WINDOW = 30;
+function teamCheck(t, sp) {
+  const prev = t.lastBy;
+  t.lastBy = { i: sp.idx, t: G.t };
+  if (!G.coop || !prev || prev.i === sp.idx || G.t - prev.t > TEAM_WINDOW || (t.teamCD || 0) > G.t) return;
+  t.teamCD = G.t + 120;
+  const a = PL[0],
+    b = PL[1],
+    dmg = Math.round(14 + (a.D.melee + b.D.melee) * 0.6);
+  G.slow = Math.max(G.slow, 16);
+  G.flash = Math.max(G.flash, 0.18);
+  G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: '#ffc63d', life: 22, max: 22, r: 46 });
+  G.texts.push({ x: t.x, y: t.y, z: t.z + 84, s: 'TEAM UP!', c: '#ffc63d', life: 60, big: true });
+  bump('teamups');
+  setTimeout0(() => {
+    if (t.state !== 'dead')
+      hurt(t, dmg, sp.x <= t.x ? 1 : -1, {
+        kd: true,
+        big: true,
+        col: '#ffc63d',
+        src: sp,
+        team: true,
+        ax: sp.x
+      });
+  });
 }
 const useParryCrit = p => ((p.parryT = 0), true); // a parry's counter is one guaranteed crit
 const PARRY_WINDOW = 8; // frames into a dodge that count as a parry (about 0.13 s)
@@ -5327,6 +5438,7 @@ function tryGrab(p, dx) {
     if (
       e.team !== 1 ||
       e.d.boss ||
+      e.d.heavy ||
       e.d.fly ||
       e.d.passive ||
       e.state === 'dead' ||
@@ -6070,6 +6182,7 @@ function castSpell(p) {
   const id = p.spells[p.spell],
     pw0 = p.D.spell,
     am = p.archonNow ? 2 : 1;
+  G.lastSpell = id; // feral spirits echo this back
   p.archonNow = false;
   const pw = pw0 * am + (am > 1 ? 14 : 0);
   const fm = p.D.spellMul || 1;
@@ -6508,7 +6621,8 @@ function upEnemy(e) {
             life: 110
           });
         sfx.zap();
-      } else if (d.ranged === 'bullet') fireBullet(e, e.dmg, e.z + (d.fly ? 0 : 27));
+      } else if (d.mimic) echoSpell(e);
+      else if (d.ranged === 'bullet') fireBullet(e, e.dmg, e.z + (d.fly ? 0 : 27));
       else {
         const n = d.ranged === 'hex3' ? (e.enraged ? 5 : 3) : 1;
         for (let i = 0; i < n; i++)
@@ -6526,6 +6640,7 @@ function upEnemy(e) {
         sfx.zap();
       }
     }
+    if (d.burst && (e.t === 26 || e.t === 30)) fireBullet(e, e.dmg, e.z + 27 * (d.scale || 1));
     if (e.t >= 34) {
       setS(e, 'idle');
       e.cool = cd * rand(0.7, 1.3);
@@ -6641,7 +6756,35 @@ function upEnemy(e) {
     dy = p.y - e.y,
     adx = Math.abs(dx),
     ady = Math.abs(dy);
-  e.face = dx >= 0 ? 1 : -1;
+  if (d.slowTurn) {
+    // walkers take a full second to turn around: that's the window to hit the back
+    const want = dx >= 0 ? 1 : -1;
+    if (want !== e.face) {
+      e.turnT = (e.turnT || 0) + 1;
+      if (e.turnT > 60) {
+        e.face = want;
+        e.turnT = 0;
+      }
+    } else e.turnT = 0;
+  } else e.face = dx >= 0 ? 1 : -1;
+  if (d.mech && e.cool <= 0 && adx < 46 && ady < 14 && Math.random() < 0.05) {
+    setS(e, 'slam');
+    sfx.heavy();
+    return;
+  }
+  if (d.mimic) {
+    // feral spirits hang back and cast your own last spell at you
+    const s = d.spd * e.spdMul,
+      tx = p.x - Math.sign(dx || 1) * d.range;
+    e.x += clamp(tx - e.x, -s, s);
+    e.y += clamp(p.y - e.y, -s * 0.7, s * 0.7);
+    e.y = clamp(e.y, FY0 + 6, FY1);
+    if (e.cool <= 0 && ady < 12 && adx < 200) {
+      setS(e, 'aim');
+      e.echo = G.lastSpell || 'fire';
+    }
+    return;
+  }
   if (d.spirit) {
     const s = d.spd * e.spdMul;
     e.x += clamp(dx, -s, s);
@@ -6767,6 +6910,39 @@ function upEnemy(e) {
   } else if (e.state !== 'idle') setS(e, 'idle');
 }
 
+// A feral spirit's echo of the last spell any runner cast
+const ECHO_NAME = { fire: 'FIREBALL', bolt: 'BOLT', heal: 'HEAL', barrier: 'BARRIER', chain: 'CHAIN' };
+function echoSpell(e) {
+  const k = e.echo || 'fire';
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 40, s: 'ECHO: ' + ECHO_NAME[k], c: '#b98cff', life: 40, sm: true });
+  sfx.spell();
+  if (k === 'heal') {
+    for (const o of G.ents)
+      if (o.team === 1 && o.state !== 'dead' && Math.hypot(o.x - e.x, o.y - e.y) < 90)
+        o.hp = Math.min(o.maxHp, o.hp + Math.round(o.maxHp * 0.25));
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#7dffb0', life: 18, max: 18, r: 60 });
+    return;
+  }
+  if (k === 'barrier') {
+    e.shield = Math.round(e.maxHp * 0.6);
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#45d2ff', life: 18, max: 18, r: 24 });
+    return;
+  }
+  const n = k === 'chain' ? 3 : 1;
+  for (let i = 0; i < n; i++)
+    G.projs.push({
+      k: 'hex',
+      tint: k === 'fire' ? 'fire' : 'bolt',
+      team: 1,
+      x: e.x + e.face * 12,
+      y: e.y + (n > 1 ? (i - 1) * 13 : 0),
+      z: e.z + 6,
+      vx: e.face * (k === 'bolt' ? 3.6 : 2.6),
+      dmg: e.dmg * (k === 'fire' ? 1.3 : 1),
+      life: 170,
+      r: 5
+    });
+}
 function enrage(e) {
   e.enraged = true;
   e.spdMul = 1.3;
@@ -7379,7 +7555,7 @@ const FAC = {
   },
   blacksite: {
     pool: ['sec', 'riot', 'drone', 'sec'],
-    t3: ['ice', 'glitch', 'ninja'],
+    t3: ['ice', 'glitch', 'ninja', 'mech'],
     boss: [null, 'riot', 'archmage', 'blackice'],
     bossName: ['', 'Site chief', 'Research director', 'Vault ICE'],
     theme: 3
@@ -7414,7 +7590,7 @@ const FAC = {
     theme: -1
   },
   secret: {
-    pool: ['shaman', 'ghoul', 'spirit', 'shaman'],
+    pool: ['shaman', 'ghoul', 'spirit', 'shaman', 'feral'],
     t3: ['glitch'],
     boss: [null, 'saint', 'saint', 'archmage'],
     bossName: ['', 'Lantern keeper', 'Lantern keeper', 'Wyrm priest'],
@@ -7967,6 +8143,23 @@ function enterRoom(i) {
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
+  // hostage rooms: free them by clearing the room without hurting them
+  if (!last && isGood(b) && b.type !== 'secret' && r() < 0.35) {
+    spawnHostage(W * 0.55, FY0 + 34);
+    G.texts.push({
+      x: W * 0.55,
+      y: FY0 + 34,
+      z: 60,
+      s: "HOSTAGE · DON'T HIT THEM",
+      c: '#7dffb0',
+      life: 120,
+      sm: true
+    });
+    tip(
+      'hostage',
+      'A hostage! Clear the room without hitting them. Stray punches, bullets and blasts all hurt.'
+    );
+  }
   if (r() < 0.6)
     G.props.push({
       kind: ['can', 'crate', 'drum'][Math.floor(r() * 3)],
@@ -8020,6 +8213,9 @@ function dunTick() {
     last = D0.room === D0.rooms - 1;
   const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
   const chest = G.ents.find(e => e.kind === 'chest' && e.state !== 'dead');
+  const hz = G.ents.find(e => e.kind === 'hostage' && e.state !== 'dead' && !e.freed);
+  if (hz && foes === 0) freeHostage(hz);
+  for (const e of G.ents) if (e.freed && --e.freeT <= 0) e.gone = true;
   if (!G.exitOpen && foes === 0 && !(last && chest)) {
     G.exitOpen = true;
     G.goT = 150;
@@ -8040,6 +8236,23 @@ function dunTick() {
     if (last) exitBuilding();
     else enterRoom(D0.room + 1);
   }
+}
+function freeHostage(h) {
+  const tier = G.dun.b.tier;
+  h.freed = true;
+  h.freeT = 90;
+  h.inv = 999;
+  gainKarma(30 * tier);
+  G.wd.rep = Math.min(100, G.wd.rep + 5);
+  drop('med', h.x + 12, h.y + 6);
+  bump('hostages');
+  sfx.level();
+  G.texts.push({ x: h.x, y: h.y, z: 70, s: 'HOSTAGE FREED · CRED +5', c: '#7dffb0', life: 90 });
+}
+function hostageLost(h) {
+  if (G.wd) G.wd.rep = Math.max(-100, G.wd.rep - 8);
+  sfx.hurt();
+  G.texts.push({ x: h.x, y: h.y, z: 70, s: 'HOSTAGE LOST · CRED −8', c: '#ff3d8b', life: 100 });
 }
 function payBounty(t) {
   const w = G.wd;
@@ -8845,7 +9058,8 @@ function nextArenaWave() {
     if (w >= 5) pool.push('drone', 'ghoul');
     if (w >= 7) pool.push('riot', 'spirit');
     if (w >= 6) pool.push('hound', 'hound');
-    if (w >= 8) pool.push('ninja');
+    if (w >= 8) pool.push('ninja', 'feral');
+    if (w >= 11) pool.push('mech');
     if (w >= 9) pool.push('glitch', 'ice');
     const n = Math.min(7, 2 + Math.floor(w * 0.5)) + (G.coop ? 1 : 0);
     for (let i = 0; i < n; i++) list.push(wpick(pool));
@@ -9024,6 +9238,62 @@ function drawDrone(e) {
   ctx.fillRect(2, 6, 9, 2);
   ctx.restore();
 }
+// Mech walker: a plated cockpit on two reverse-jointed legs, gun forward, a glowing vent on its back
+function drawMech(e) {
+  const sc = e.d.scale * (e.mini ? 0.7 : 1),
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    st = e.state;
+  shadow(sx, e.y, 20 * sc);
+  if (st === 'dead' && e.t > 40 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  if (st === 'dead') ctx.rotate(Math.min(0.5, e.t * 0.02));
+  const fl = e.flash > 0 && e.flash % 2,
+    plate = fl ? '#ffffff' : '#3a4560',
+    plate2 = fl ? '#e8e8e8' : '#26304a',
+    ph = e.walk * 0.18,
+    stomp = st === 'slam' && e.t < 24 ? -Math.min(6, e.t * 0.5) : 0,
+    turning = (e.turnT || 0) > 0;
+  ctx.strokeStyle = plate2;
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  for (const [hx, a] of [
+    [-6, 0],
+    [6, Math.PI]
+  ]) {
+    const sw = st === 'walk' ? Math.sin(ph + a) * 5 : 0,
+      lift = st === 'walk' ? Math.max(0, Math.sin(ph + a)) * 3 : 0;
+    ctx.beginPath();
+    ctx.moveTo(hx, -24 + stomp);
+    ctx.lineTo(hx + 6 + sw * 0.4, -13 - lift);
+    ctx.lineTo(hx + sw, -lift);
+    ctx.stroke();
+    ctx.fillStyle = plate2;
+    ctx.fillRect(hx + sw - 4, -2 - lift, 8, 2.5);
+  }
+  // hull
+  fillPoly(
+    [-15, -44 + stomp, 13, -44 + stomp, 17, -34 + stomp, 13, -23 + stomp, -15, -23 + stomp, -17, -32 + stomp],
+    plate
+  );
+  fillPoly([-15, -44 + stomp, 13, -44 + stomp, 11, -41 + stomp, -13, -41 + stomp], plate2);
+  // cockpit visor and gun
+  ctx.fillStyle = st === 'aim' && (e.t >> 1) % 2 ? '#ffffff' : '#ff3d4a';
+  ctx.fillRect(6, -38 + stomp, 8, 3);
+  ctx.fillStyle = plate2;
+  ctx.fillRect(10, -30 + stomp, 14, 3.4);
+  ctx.fillStyle = '#16141f';
+  ctx.fillRect(22, -29.5 + stomp, 3, 2.4);
+  // the weak spot: a vent on the back that glows hotter while it turns
+  const glow = 0.55 + 0.35 * Math.sin(G.t * 0.2) + (turning ? 0.3 : 0);
+  ctx.fillStyle = `rgba(255,198,61,${Math.min(1, glow)})`;
+  ctx.fillRect(-16, -40 + stomp, 3, 12);
+  ctx.fillStyle = `rgba(255,106,61,${Math.min(0.5, glow * 0.4)})`;
+  ctx.fillRect(-20, -42 + stomp, 4, 16);
+  ctx.restore();
+}
 // Hellhound: a low, four-legged figure with a burning mane and tail
 function drawHound(e) {
   const sc = e.mini ? 0.75 : 1,
@@ -9104,7 +9374,7 @@ function drawSpirit(e) {
       r = 9 - i * 1.4,
       ox = Math.sin(ph) * 2,
       oy = -i * 4 - Math.abs(Math.cos(ph)) * 2;
-    ctx.fillStyle = fl ? '#fff' : ['#ff3d1a', '#ff6a3d', '#ff9a3d', '#ffc63d', '#fff1b0'][i];
+    ctx.fillStyle = fl ? '#fff' : (e.d.flames || ['#ff3d1a', '#ff6a3d', '#ff9a3d', '#ffc63d', '#fff1b0'])[i];
     ctx.beginPath();
     ctx.arc(sx + ox, sy + oy, Math.max(1.5, r), 0, 7);
     ctx.fill();
@@ -9160,6 +9430,37 @@ function drawPassive(e) {
     ctx.globalAlpha = Math.max(0, 1 - e.t / 40);
   }
   shadow(sx, e.y, 13);
+  if (e.kind === 'hostage') {
+    // a civilian sitting zip-tied on the floor, or standing up and waving once freed
+    const c = e.pal || { skin: '#c98a6b', coat: '#6b6280' },
+      up = e.freed,
+      bob = up ? Math.sin(G.t * 0.3) * 2 : Math.sin(G.t * 0.08) * 0.6;
+    ctx.fillStyle = fl ? '#fff' : '#22202c';
+    ctx.fillRect(sx - 6, sy - (up ? 16 : 6), 5, up ? 16 : 6);
+    ctx.fillRect(sx + 1, sy - (up ? 16 : 6), 5, up ? 16 : 6);
+    ctx.fillStyle = fl ? '#fff' : c.coat;
+    ctx.fillRect(sx - 7, sy - (up ? 34 : 22) + bob * 0.3, 14, 18);
+    ctx.fillStyle = fl ? '#fff' : c.skin;
+    ctx.beginPath();
+    ctx.arc(sx, sy - (up ? 39 : 27) + bob * 0.3, 5, 0, 7);
+    ctx.fill();
+    if (up) {
+      ctx.fillRect(sx + 6, sy - 44 + bob, 3, 12);
+    } else {
+      ctx.fillStyle = '#ffc63d';
+      ctx.fillRect(sx - 8, sy - 14, 16, 2);
+      ctx.fillStyle = '#efe9ff';
+      ctx.fillRect(sx - 4, sy - 28, 8, 2);
+    }
+    if (!up && e.state !== 'dead') {
+      ctx.fillStyle = '#7dffb0';
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 0.15);
+      fillPoly([sx - 4, sy - 46, sx + 4, sy - 46, sx, sy - 40], '#7dffb0');
+      ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
   if (e.kind === 'vend') {
     ctx.fillStyle = fl ? '#fff' : '#2b2440';
     ctx.fillRect(sx - 11, sy - 40, 22, 40);
@@ -9281,6 +9582,7 @@ function drawFig(e) {
   if (e.d && e.d.spirit) return drawSpirit(e);
   if (e.d && e.d.fly) return drawDrone(e);
   if (e.d && e.d.quad) return drawHound(e);
+  if (e.d && e.d.mech) return drawMech(e);
   const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
@@ -9960,9 +10262,9 @@ function drawProj(pr) {
     ctx.restore();
   } else {
     const c =
-      pr.k === 'fire'
+      pr.k === 'fire' || pr.tint === 'fire'
         ? ['255,106,61', '#ffe7a8']
-        : pr.k === 'bolt'
+        : pr.k === 'bolt' || pr.tint === 'bolt'
           ? ['185,140,255', '#f2e9ff']
           : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);

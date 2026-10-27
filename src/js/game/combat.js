@@ -89,6 +89,26 @@ function hurt(t, dmg, dir, o) {
     t.cloaked = false;
     t.recloakT = 150;
   }
+  if (t.d && t.d.mech) {
+    // plated front, weak back: hits from behind do 50% more, hits from the front 70% less
+    const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
+    o.kd = false;
+    if (back) {
+      dmg *= 1.5;
+      if (G.t - (t.weakT || -999) > 40) {
+        t.weakT = G.t;
+        G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'WEAK SPOT', c: '#ffc63d', life: 34, sm: true });
+      }
+    } else {
+      dmg *= 0.3;
+      if (G.t - (t.plateT || -999) > 50) {
+        t.plateT = G.t;
+        sfx.clank();
+        G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'PLATED', c: '#9fb4d8', life: 30, sm: true });
+        tip('mech', 'Mech walkers are plated in front. Roll past and hit the glowing vent on the back.');
+      }
+    }
+  }
   if (t.elite === 'warded') {
     o.kd = false;
     if (o.magic) dmg *= 0.4;
@@ -139,8 +159,9 @@ function hurt(t, dmg, dir, o) {
   t.flash = 8;
   if (t.team === 0 && legOf(t, 'armor') === 'dragonscale')
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
-  if (t.state !== 'grabbed' && !fixed) t.x += dir * (o.kb || 3);
-  if (!fixed) t.face = -dir;
+  const heavy = !!(t.d && t.d.heavy);
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3);
+  if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
   t.hits++;
@@ -166,6 +187,7 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && t.idx === 0) buzz(big ? 60 : 30);
   else if (o.src && o.src.idx === 0 && big) buzz(12);
   (big ? sfx.heavy : sfx.hit)();
+  if (o.src && o.src.kind === 'player' && t.team === 1 && !o.team && t.hp > 0) teamCheck(t, o.src);
   if (o.src) {
     G.combo++;
     G.comboT = 0;
@@ -268,6 +290,7 @@ function hurt(t, dmg, dir, o) {
     const g = PL.find(p => p.grab === t);
     if (g) releaseGrab(g, true);
   }
+  if (heavy) return true; // walkers never flinch or fall
   const boss = t.d && t.d.boss;
   if (boss) {
     if (o.kd && !t.d.fly && Math.random() < 0.35) {
@@ -385,6 +408,7 @@ function kill(t, dir, o) {
       G.wd.rep = Math.min(100, G.wd.rep + 1);
   }
   if (t.kind === 'chest' && G.dun) lootChest(t);
+  if (t.kind === 'hostage') hostageLost(t);
   if (d.passive) {
     t.gone = false;
     burst(t.x, t.y, 20, t.kind === 'node' ? '#45d2ff' : '#ffc63d', 18);
@@ -482,6 +506,33 @@ function kill(t, dir, o) {
 function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
+}
+// Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
+const TEAM_WINDOW = 30;
+function teamCheck(t, sp) {
+  const prev = t.lastBy;
+  t.lastBy = { i: sp.idx, t: G.t };
+  if (!G.coop || !prev || prev.i === sp.idx || G.t - prev.t > TEAM_WINDOW || (t.teamCD || 0) > G.t) return;
+  t.teamCD = G.t + 120;
+  const a = PL[0],
+    b = PL[1],
+    dmg = Math.round(14 + (a.D.melee + b.D.melee) * 0.6);
+  G.slow = Math.max(G.slow, 16);
+  G.flash = Math.max(G.flash, 0.18);
+  G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: '#ffc63d', life: 22, max: 22, r: 46 });
+  G.texts.push({ x: t.x, y: t.y, z: t.z + 84, s: 'TEAM UP!', c: '#ffc63d', life: 60, big: true });
+  bump('teamups');
+  setTimeout0(() => {
+    if (t.state !== 'dead')
+      hurt(t, dmg, sp.x <= t.x ? 1 : -1, {
+        kd: true,
+        big: true,
+        col: '#ffc63d',
+        src: sp,
+        team: true,
+        ax: sp.x
+      });
+  });
 }
 const useParryCrit = p => ((p.parryT = 0), true); // a parry's counter is one guaranteed crit
 const PARRY_WINDOW = 8; // frames into a dodge that count as a parry (about 0.13 s)

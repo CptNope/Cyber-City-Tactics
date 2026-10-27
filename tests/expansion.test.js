@@ -480,3 +480,120 @@ ok(
 ok(/fair-game job/.test(els.ov._h) || /Block cleared/.test(els.ov._h), 'map counts the jobs left');
 click('close');
 ok(G.mode === 'play', 'map closes back to the street');
+
+// ---- co-op team attacks
+click('quit');
+start([], true);
+let [r1, r2] = __PL();
+let tg = foe('orc', 20);
+tg.hp = tg.maxHp = 500;
+A.hurt(tg, 5, 1, { src: r1, melee: true });
+step(4);
+let tx1 = G.texts.length;
+A.hurt(tg, 5, 1, { src: r2, melee: true });
+step(3);
+ok(
+  G.texts.slice(tx1).some(t => t.s === 'TEAM UP!') && tg.hp < 490 - 10,
+  'two runners hitting one enemy within 0.5 s: team attack (' + tg.hp + ' hp left)'
+);
+ok(A.LEG.feats.team1, 'Two-Man Job feat');
+step(130);
+tx1 = G.texts.length;
+A.hurt(tg, 5, 1, { src: r1, melee: true });
+step(40);
+A.hurt(tg, 5, 1, { src: r2, melee: true });
+ok(!G.texts.slice(tx1).some(t => t.s === 'TEAM UP!'), 'too far apart: no team attack');
+
+// ---- mech walker
+click('quit');
+P = start([]);
+P.inv = 999;
+const mech = A.spawnEnemy('mech', 1);
+mech.x = P.x + 60;
+mech.y = P.y;
+mech.face = -1;
+mech.elite = null;
+mech.cool = 999;
+mech.inv = 0;
+let h0 = mech.hp;
+A.hurt(mech, 20, 1, { src: P, melee: true, ax: P.x });
+const front = h0 - mech.hp;
+mech.inv = 0;
+h0 = mech.hp;
+A.hurt(mech, 20, -1, { src: P, melee: true, ax: mech.x + 30 });
+const back = h0 - mech.hp;
+ok(front <= 8 && back >= 25, `mech: plated front (${front}) vs weak back (${back}) from a 20-damage hit`);
+mech.inv = 0;
+A.hurt(mech, 5, 1, { src: P, kd: true, ax: P.x });
+ok(mech.state !== 'down' && mech.state !== 'hurt', 'mech never flinches or falls');
+P.x = mech.x + 50;
+step(30);
+const stillFacing = mech.face === -1;
+step(50);
+ok(stillFacing && mech.face === 1, 'mech takes about a second to turn around');
+ok(!A.tryGrab(P, -1) || P.grab !== mech, "mechs can't be grabbed");
+
+// ---- feral spirit
+clearFoes();
+const fr = A.spawnEnemy('feral', 1);
+fr.x = P.x + 120;
+fr.y = P.y;
+fr.elite = null;
+fr.face = -1;
+A.setS(fr, 'aim');
+fr.echo = 'bolt';
+fr.t = 21;
+step(2);
+ok(
+  G.projs.some(q => q.k === 'hex' && q.tint === 'bolt' && q.team === 1),
+  'feral spirit echoes the last spell (bolt)'
+);
+const hurtG = A.spawnEnemy('ganger', 1);
+hurtG.x = fr.x + 10;
+hurtG.y = fr.y;
+hurtG.hp = 5;
+hurtG.maxHp = 100;
+fr.echo = 'heal';
+A.echoSpell(fr);
+ok(hurtG.hp > 5, 'an echoed heal patches up nearby enemies');
+P.mp = 99;
+P.spells = ['fire'];
+P.spell = 0;
+A.castSpell(P);
+ok(G.lastSpell === 'fire', 'casting records the spell for ferals to copy');
+
+// ---- hostage rooms
+click('quit');
+click('worldpick');
+click('world1');
+P = __PL()[0];
+const hb = { id: 81, type: 'hideout', tier: 2, x: P.x, w: 140, name: 'Test den', owner: 'x', seed: 4 };
+A.enterBuilding(hb);
+clearFoes();
+const hs = A.spawnHostage(300, A.FY0 + 34);
+ok(hs.team === 2 && hs.d.hostage, 'hostage spawns on its own side');
+const g2 = A.spawnEnemy('ganger', 1);
+g2.x = 200;
+const rep0 = G.wd.rep;
+step(2);
+ok(!hs.freed, 'not freed while enemies are standing');
+A.hurt(g2, 999, 1, { src: P });
+step(3);
+ok(
+  hs.freed && G.wd.rep === rep0 + 5 && A.LEG.feats.hostage1,
+  'room cleared: hostage freed, cred +5, Not on My Watch'
+);
+const hs2 = A.spawnHostage(260, A.FY0 + 34);
+const g3 = A.spawnEnemy('ganger', 1);
+g3.x = 100;
+const rep1 = G.wd.rep;
+A.hurt(hs2, 999, 1, { src: P, melee: true, ax: P.x });
+step(2);
+ok(hs2.state === 'dead' && G.wd.rep === rep1 - 8, 'a hostage caught by a stray hit is lost: cred −8');
+let herr = null;
+try {
+  A.render();
+} catch (e) {
+  herr = e;
+}
+ok(!herr, 'hostage, mech and feral render without errors' + (herr ? ': ' + herr.message : ''));

@@ -32,6 +32,23 @@ function enterRoom(i) {
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
+  // hostage rooms: free them by clearing the room without hurting them
+  if (!last && isGood(b) && b.type !== 'secret' && r() < 0.35) {
+    spawnHostage(W * 0.55, FY0 + 34);
+    G.texts.push({
+      x: W * 0.55,
+      y: FY0 + 34,
+      z: 60,
+      s: "HOSTAGE · DON'T HIT THEM",
+      c: '#7dffb0',
+      life: 120,
+      sm: true
+    });
+    tip(
+      'hostage',
+      'A hostage! Clear the room without hitting them. Stray punches, bullets and blasts all hurt.'
+    );
+  }
   if (r() < 0.6)
     G.props.push({
       kind: ['can', 'crate', 'drum'][Math.floor(r() * 3)],
@@ -85,6 +102,9 @@ function dunTick() {
     last = D0.room === D0.rooms - 1;
   const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
   const chest = G.ents.find(e => e.kind === 'chest' && e.state !== 'dead');
+  const hz = G.ents.find(e => e.kind === 'hostage' && e.state !== 'dead' && !e.freed);
+  if (hz && foes === 0) freeHostage(hz);
+  for (const e of G.ents) if (e.freed && --e.freeT <= 0) e.gone = true;
   if (!G.exitOpen && foes === 0 && !(last && chest)) {
     G.exitOpen = true;
     G.goT = 150;
@@ -105,6 +125,23 @@ function dunTick() {
     if (last) exitBuilding();
     else enterRoom(D0.room + 1);
   }
+}
+function freeHostage(h) {
+  const tier = G.dun.b.tier;
+  h.freed = true;
+  h.freeT = 90;
+  h.inv = 999;
+  gainKarma(30 * tier);
+  G.wd.rep = Math.min(100, G.wd.rep + 5);
+  drop('med', h.x + 12, h.y + 6);
+  bump('hostages');
+  sfx.level();
+  G.texts.push({ x: h.x, y: h.y, z: 70, s: 'HOSTAGE FREED · CRED +5', c: '#7dffb0', life: 90 });
+}
+function hostageLost(h) {
+  if (G.wd) G.wd.rep = Math.max(-100, G.wd.rep - 8);
+  sfx.hurt();
+  G.texts.push({ x: h.x, y: h.y, z: 70, s: 'HOSTAGE LOST · CRED −8', c: '#ff3d8b', life: 100 });
 }
 function payBounty(t) {
   const w = G.wd;

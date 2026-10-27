@@ -183,6 +183,17 @@ function dropRunner2() {
   G.coop = false;
 }
 
+function spawnHostage(x, y) {
+  const e = spawnPassive('hostage', x, y);
+  e.team = 2; // anyone's stray hit can land on them: runners, gangers and explosions alike
+  e.hp = e.maxHp = 20;
+  e.pal = pick([
+    { skin: '#c98a6b', coat: '#6b6280' },
+    { skin: '#e4c3a8', coat: '#4a6b8a' },
+    { skin: '#8a5a3e', coat: '#7a5a34' }
+  ]);
+  return e;
+}
 function spawnPassive(kind, x, y) {
   const d = DEF[kind],
     hpm = 1 + G.stage * 0.3;

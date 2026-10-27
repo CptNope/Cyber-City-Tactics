@@ -214,6 +214,40 @@ const DEF = {
       boot: '#08070c'
     }
   },
+  mech: {
+    name: 'Kagemori mech walker',
+    hp: 150,
+    spd: 0.38,
+    dmg: 11,
+    reach: 30,
+    cool: 110,
+    scale: 1.45,
+    ranged: 'bullet',
+    burst: 3,
+    range: 160,
+    heavy: true,
+    mech: true,
+    slowTurn: true,
+    creds: [40, 64],
+    karma: 60
+  },
+  feral: {
+    name: 'Feral spirit',
+    hp: 34,
+    spd: 0.7,
+    dmg: 10,
+    reach: 0,
+    cool: 130,
+    scale: 1,
+    fly: true,
+    spirit: true,
+    noBullet: true,
+    mimic: true,
+    range: 130,
+    flames: ['#6b2bd9', '#8f4dff', '#b98cff', '#e0c8ff', '#ffffff'],
+    creds: [4, 10],
+    karma: 26
+  },
   hound: {
     name: 'Hellhound',
     hp: 18,
@@ -252,6 +286,7 @@ const DEF = {
     }
   },
   chest: { name: 'Loot cache', hp: 1, passive: true, scale: 1, creds: [0, 0], karma: 0 },
+  hostage: { name: 'Hostage', hp: 20, passive: true, hostage: true, scale: 1, creds: [0, 0], karma: 0 },
   vend: { name: 'Vending machine', hp: 24, passive: true, scale: 1, creds: [8, 20], karma: 4 },
   node: { name: 'Data node', hp: 34, passive: true, scale: 1, creds: [0, 0], karma: 14 },
   glitch: {
@@ -549,7 +584,7 @@ const STAGES = [
       { at: 120, spawn: ['ghoul', 'ghoul', 'ghoul'] },
       { at: 420, spawn: ['spirit', 'hound', 'hound', 'hound'] },
       { at: 740, spawn: ['troll!', 'spirit', 'ghoul'] },
-      { at: 1000, spawn: ['spirit', 'spirit', 'shaman', 'ghoul'] },
+      { at: 1000, spawn: ['feral', 'spirit', 'shaman', 'ghoul'] },
       { at: 1220, boss: true, spawn: ['saint', 'ghoul'] }
     ]
   },
@@ -585,7 +620,7 @@ const STAGES = [
     ],
     waves: [
       { at: 120, spawn: ['sec', 'riot', 'drone'] },
-      { at: 430, spawn: ['shaman', 'sec', 'riot'] },
+      { at: 430, spawn: ['mech', 'sec', 'shaman'] },
       { at: 760, spawn: ['blade!', 'drone', 'sec'] },
       { at: 1040, spawn: ['ninja', 'ninja', 'riot'] },
       { at: 1320, boss: true, spawn: ['archmage', 'riot'] }

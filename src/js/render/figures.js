@@ -69,6 +69,62 @@ function drawDrone(e) {
   ctx.fillRect(2, 6, 9, 2);
   ctx.restore();
 }
+// Mech walker: a plated cockpit on two reverse-jointed legs, gun forward, a glowing vent on its back
+function drawMech(e) {
+  const sc = e.d.scale * (e.mini ? 0.7 : 1),
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    st = e.state;
+  shadow(sx, e.y, 20 * sc);
+  if (st === 'dead' && e.t > 40 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  if (st === 'dead') ctx.rotate(Math.min(0.5, e.t * 0.02));
+  const fl = e.flash > 0 && e.flash % 2,
+    plate = fl ? '#ffffff' : '#3a4560',
+    plate2 = fl ? '#e8e8e8' : '#26304a',
+    ph = e.walk * 0.18,
+    stomp = st === 'slam' && e.t < 24 ? -Math.min(6, e.t * 0.5) : 0,
+    turning = (e.turnT || 0) > 0;
+  ctx.strokeStyle = plate2;
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  for (const [hx, a] of [
+    [-6, 0],
+    [6, Math.PI]
+  ]) {
+    const sw = st === 'walk' ? Math.sin(ph + a) * 5 : 0,
+      lift = st === 'walk' ? Math.max(0, Math.sin(ph + a)) * 3 : 0;
+    ctx.beginPath();
+    ctx.moveTo(hx, -24 + stomp);
+    ctx.lineTo(hx + 6 + sw * 0.4, -13 - lift);
+    ctx.lineTo(hx + sw, -lift);
+    ctx.stroke();
+    ctx.fillStyle = plate2;
+    ctx.fillRect(hx + sw - 4, -2 - lift, 8, 2.5);
+  }
+  // hull
+  fillPoly(
+    [-15, -44 + stomp, 13, -44 + stomp, 17, -34 + stomp, 13, -23 + stomp, -15, -23 + stomp, -17, -32 + stomp],
+    plate
+  );
+  fillPoly([-15, -44 + stomp, 13, -44 + stomp, 11, -41 + stomp, -13, -41 + stomp], plate2);
+  // cockpit visor and gun
+  ctx.fillStyle = st === 'aim' && (e.t >> 1) % 2 ? '#ffffff' : '#ff3d4a';
+  ctx.fillRect(6, -38 + stomp, 8, 3);
+  ctx.fillStyle = plate2;
+  ctx.fillRect(10, -30 + stomp, 14, 3.4);
+  ctx.fillStyle = '#16141f';
+  ctx.fillRect(22, -29.5 + stomp, 3, 2.4);
+  // the weak spot: a vent on the back that glows hotter while it turns
+  const glow = 0.55 + 0.35 * Math.sin(G.t * 0.2) + (turning ? 0.3 : 0);
+  ctx.fillStyle = `rgba(255,198,61,${Math.min(1, glow)})`;
+  ctx.fillRect(-16, -40 + stomp, 3, 12);
+  ctx.fillStyle = `rgba(255,106,61,${Math.min(0.5, glow * 0.4)})`;
+  ctx.fillRect(-20, -42 + stomp, 4, 16);
+  ctx.restore();
+}
 // Hellhound: a low, four-legged figure with a burning mane and tail
 function drawHound(e) {
   const sc = e.mini ? 0.75 : 1,
@@ -149,7 +205,7 @@ function drawSpirit(e) {
       r = 9 - i * 1.4,
       ox = Math.sin(ph) * 2,
       oy = -i * 4 - Math.abs(Math.cos(ph)) * 2;
-    ctx.fillStyle = fl ? '#fff' : ['#ff3d1a', '#ff6a3d', '#ff9a3d', '#ffc63d', '#fff1b0'][i];
+    ctx.fillStyle = fl ? '#fff' : (e.d.flames || ['#ff3d1a', '#ff6a3d', '#ff9a3d', '#ffc63d', '#fff1b0'])[i];
     ctx.beginPath();
     ctx.arc(sx + ox, sy + oy, Math.max(1.5, r), 0, 7);
     ctx.fill();
@@ -205,6 +261,37 @@ function drawPassive(e) {
     ctx.globalAlpha = Math.max(0, 1 - e.t / 40);
   }
   shadow(sx, e.y, 13);
+  if (e.kind === 'hostage') {
+    // a civilian sitting zip-tied on the floor, or standing up and waving once freed
+    const c = e.pal || { skin: '#c98a6b', coat: '#6b6280' },
+      up = e.freed,
+      bob = up ? Math.sin(G.t * 0.3) * 2 : Math.sin(G.t * 0.08) * 0.6;
+    ctx.fillStyle = fl ? '#fff' : '#22202c';
+    ctx.fillRect(sx - 6, sy - (up ? 16 : 6), 5, up ? 16 : 6);
+    ctx.fillRect(sx + 1, sy - (up ? 16 : 6), 5, up ? 16 : 6);
+    ctx.fillStyle = fl ? '#fff' : c.coat;
+    ctx.fillRect(sx - 7, sy - (up ? 34 : 22) + bob * 0.3, 14, 18);
+    ctx.fillStyle = fl ? '#fff' : c.skin;
+    ctx.beginPath();
+    ctx.arc(sx, sy - (up ? 39 : 27) + bob * 0.3, 5, 0, 7);
+    ctx.fill();
+    if (up) {
+      ctx.fillRect(sx + 6, sy - 44 + bob, 3, 12);
+    } else {
+      ctx.fillStyle = '#ffc63d';
+      ctx.fillRect(sx - 8, sy - 14, 16, 2);
+      ctx.fillStyle = '#efe9ff';
+      ctx.fillRect(sx - 4, sy - 28, 8, 2);
+    }
+    if (!up && e.state !== 'dead') {
+      ctx.fillStyle = '#7dffb0';
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 0.15);
+      fillPoly([sx - 4, sy - 46, sx + 4, sy - 46, sx, sy - 40], '#7dffb0');
+      ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = 1;
+    return;
+  }
   if (e.kind === 'vend') {
     ctx.fillStyle = fl ? '#fff' : '#2b2440';
     ctx.fillRect(sx - 11, sy - 40, 22, 40);
@@ -326,6 +413,7 @@ function drawFig(e) {
   if (e.d && e.d.spirit) return drawSpirit(e);
   if (e.d && e.d.fly) return drawDrone(e);
   if (e.d && e.d.quad) return drawHound(e);
+  if (e.d && e.d.mech) return drawMech(e);
   const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
@@ -1005,9 +1093,9 @@ function drawProj(pr) {
     ctx.restore();
   } else {
     const c =
-      pr.k === 'fire'
+      pr.k === 'fire' || pr.tint === 'fire'
         ? ['255,106,61', '#ffe7a8']
-        : pr.k === 'bolt'
+        : pr.k === 'bolt' || pr.tint === 'bolt'
           ? ['185,140,255', '#f2e9ff']
           : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);
