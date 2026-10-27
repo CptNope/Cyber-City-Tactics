@@ -950,7 +950,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+969a0c4';
+const APP_VERSION = '2.0.0+8831aea';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1770,7 +1770,15 @@ function setLbl(a, html, dim) {
   b.innerHTML = html;
   b.classList.toggle('dim', !!dim);
 }
-const SPSHORT = { fire: 'FIRE', bolt: 'BOLT', heal: 'HEAL', barrier: 'WARD', chain: 'CHAIN' };
+const SPSHORT = {
+  fire: 'FIRE',
+  bolt: 'BOLT',
+  heal: 'HEAL',
+  barrier: 'WARD',
+  chain: 'CHAIN',
+  frost: 'FROST',
+  drain: 'DRAIN'
+};
 function updateTouchUI() {
   if (!isTouch()) return;
   const portrait = (window.innerHeight || 0) > (window.innerWidth || 0);
@@ -2955,6 +2963,23 @@ const SPELLS = {
     desc: 'Arcs through up to three enemies in front of you.',
     req: 4,
     price: 240
+  },
+  // rare spells: only taught at Sprawl talisman shops
+  frost: {
+    name: 'Frost Nova',
+    cost: 26,
+    desc: 'A ring of ice around you: damages everything close and slows every enemy for three seconds.',
+    req: 5,
+    price: 380,
+    rare: true
+  },
+  drain: {
+    name: 'Soul Drain',
+    cost: 16,
+    desc: 'A dark bolt that heals you for half the damage it deals.',
+    req: 4,
+    price: 320,
+    rare: true
   }
 };
 const ARCH = {
@@ -3125,8 +3150,24 @@ function randItem(stage, boost) {
 const CYBER = {
   arm: { name: 'Cyberarm tune-up', desc: '+3 melee damage.', cost: l => 90 + l * 60 },
   wired: { name: 'Wired reflexes', desc: 'Faster movement, +4% crit chance.', cost: l => 110 + l * 70 },
-  plate: { name: 'Dermal plating', desc: '+3 armor.', cost: l => 100 + l * 60 }
+  plate: { name: 'Dermal plating', desc: '+3 armor.', cost: l => 100 + l * 60 },
+  // rare pieces: one level each, only at Sprawl clinics
+  eyes: {
+    name: 'Thermographic eyes',
+    desc: '+8% crit chance, and cloaked Kagemori shadows show up clearly.',
+    cost: () => 600,
+    max: 1,
+    rare: true
+  },
+  boost: {
+    name: 'Reflex booster',
+    desc: 'Your parry window is nearly twice as wide.',
+    cost: () => 750,
+    max: 1,
+    rare: true
+  }
 };
+const cyMax = k => CYBER[k].max || 3;
 const CONTRACTS = [
   {
     title: 'Clear the Barrens',
@@ -3722,6 +3763,13 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
+  {
+    id: 'rare',
+    name: 'Off the Books',
+    desc: 'Buy rare cyberware at a clinic or learn a rare spell at a talisman shop.',
+    lp: 10
+  },
   { id: 'team1', name: 'Two-Man Job', desc: 'Land a co-op team attack.', lp: 10, stat: 'teamups', n: 1 },
   { id: 'team25', name: 'In Sync', desc: 'Land 25 team attacks.', lp: 20, stat: 'teamups', n: 25 },
   {
@@ -4273,7 +4321,7 @@ function refresh(p) {
     g = p.eq.gun,
     ar = p.eq.armor,
     cy = p.cy,
-    cyN = cy.arm + cy.wired + cy.plate,
+    cyN = cy.arm + cy.wired + cy.plate + (cy.eyes || 0) + (cy.boost || 0),
     wb = (w && BASES.weapon[w.base]) || {};
   p.D = {
     a,
@@ -4285,6 +4333,7 @@ function refresh(p) {
       0.03 +
       a.agi * 0.025 +
       cy.wired * 0.04 +
+      (cy.eyes || 0) * 0.08 +
       (wb.crit || 0) +
       ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0),
     spd: 1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08,
@@ -4472,6 +4521,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  G.hazard = null;
   // a downed partner's revive marker belongs to the scene they fell in
   for (const p of PL) p.outX = null;
   G.zaps = [];
@@ -4779,13 +4829,34 @@ function roninCrit(o) {
 function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
+  if (t.vault && !t.vaultDone) {
+    // a vault doesn't break: you hack it, once the room is clear
+    if (o.src && o.src.kind === 'player' && G.mode === 'play') {
+      const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
+      if (foes) {
+        if (G.t - (t.vaultSaid || -99) > 60) {
+          t.vaultSaid = G.t;
+          G.texts.push({
+            x: t.x,
+            y: t.y,
+            z: 50,
+            s: 'CLEAR THE ROOM FIRST',
+            c: '#a79dc2',
+            life: 50,
+            sm: true
+          });
+        }
+      } else startHack(G.dun.b, t);
+    }
+    return false;
+  }
   if (t.state === 'down' && !o.air) return false;
   // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
   if (
     t.team === 0 &&
     t.kind === 'player' &&
     t.state === 'roll' &&
-    t.t <= PARRY_WINDOW &&
+    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) &&
     o.att &&
     o.att.team === 1 &&
     !o.bullet &&
@@ -4831,7 +4902,7 @@ function hurt(t, dmg, dir, o) {
     t.recloakT = 150;
   }
   if (t.d && t.d.mech) {
-    // plated front, weak back: hits from behind do 50% more, hits from the front 70% less
+    // plated front, weak back: hits from behind do 50% more, hits from the front 60% less
     const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
     o.kd = false;
     if (back) {
@@ -4841,7 +4912,7 @@ function hurt(t, dmg, dir, o) {
         G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'WEAK SPOT', c: '#ffc63d', life: 34, sm: true });
       }
     } else {
-      dmg *= 0.3;
+      dmg *= 0.4;
       if (G.t - (t.plateT || -999) > 50) {
         t.plateT = G.t;
         sfx.clank();
@@ -6246,6 +6317,35 @@ function castSpell(p) {
         .sort((a, b) => Math.hypot(a.x - c.x, a.y - c.y) - Math.hypot(b.x - c.x, b.y - c.y))[0];
     }
   }
+  if (id === 'frost') {
+    for (const e of G.ents)
+      if (
+        e.team === 1 &&
+        e.state !== 'dead' &&
+        !(e.d && e.d.passive) &&
+        Math.hypot(e.x - p.x, (e.y - p.y) * 2) < 70
+      )
+        hurt(e, 10 + pw * 0.8, e.x >= p.x ? 1 : -1, { src: p, magic: true, col: '#bfefff', ax: p.x });
+    G.slowFoes = Math.max(G.slowFoes, 180);
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 10, c: '#bfefff', life: 22, max: 22, r: 70 });
+    burst(p.x, p.y, 20, '#bfefff', 18);
+    sfx.spell();
+  }
+  if (id === 'drain')
+    G.projs.push({
+      k: 'bolt',
+      tint: 'drain',
+      drain: true,
+      team: 0,
+      src: p,
+      x: p.x + p.face * 16,
+      y: p.y,
+      z: p.z + 28,
+      vx: p.face * 5,
+      dmg: 9 + pw * 1.1,
+      life: 90,
+      r: 4
+    });
   if (id === 'heal') {
     const n = Math.round((20 + pw * 1.6) * fm);
     for (const q of alive())
@@ -6775,7 +6875,7 @@ function upEnemy(e) {
   if (d.mimic) {
     // feral spirits hang back and cast your own last spell at you
     const s = d.spd * e.spdMul,
-      tx = p.x - Math.sign(dx || 1) * d.range;
+      tx = clamp(p.x - Math.sign(dx || 1) * d.range, G.camX + 24, G.camX + W - 24); // never flee off-screen
     e.x += clamp(tx - e.x, -s, s);
     e.y += clamp(p.y - e.y, -s * 0.7, s * 0.7);
     e.y = clamp(e.y, FY0 + 6, FY1);
@@ -6911,7 +7011,15 @@ function upEnemy(e) {
 }
 
 // A feral spirit's echo of the last spell any runner cast
-const ECHO_NAME = { fire: 'FIREBALL', bolt: 'BOLT', heal: 'HEAL', barrier: 'BARRIER', chain: 'CHAIN' };
+const ECHO_NAME = {
+  fire: 'FIREBALL',
+  bolt: 'BOLT',
+  heal: 'HEAL',
+  barrier: 'BARRIER',
+  chain: 'CHAIN',
+  frost: 'FROST',
+  drain: 'DRAIN'
+};
 function echoSpell(e) {
   const k = e.echo || 'fire';
   G.texts.push({ x: e.x, y: e.y, z: e.z + 40, s: 'ECHO: ' + ECHO_NAME[k], c: '#b98cff', life: 40, sm: true });
@@ -7180,6 +7288,11 @@ function update() {
           magic: pr.k === 'bolt',
           ap: pr.pierce > 0
         });
+      if (pr.drain && pr.src && pr.src.state !== 'dead') {
+        const n = Math.round(pr.dmg * 0.5);
+        pr.src.hp = Math.min(pr.src.maxHp, pr.src.hp + n);
+        say(pr.src, '+' + n + ' HP', '#7dffb0', 60, 34, true);
+      }
       if (pr.pierce > 0 && pr.k === 'bullet') {
         pr.pierce--;
         pr.hit.push(t);
@@ -7599,6 +7712,9 @@ const FAC = {
 };
 // A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
 const PRECINCT_CRED = 30;
+const pickR = (r, a) => a[Math.floor(r() * a.length)];
+// Shops on the street: the safehouse, back-alley clinics and talisman shops. You trade there; you never rob them.
+const isShop = b => b.type === 'safe' || b.type === 'clinic' || b.type === 'talisman';
 const isGood = b =>
   b.type === 'secret' ||
   b.type === 'hideout' ||
@@ -7668,6 +7784,7 @@ const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
 const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
 function genStreet(level, seed) {
+  // (shop buildings are converted from businesses below)
   const r = srng(seed),
     B = [];
   let x = 40;
@@ -7709,6 +7826,20 @@ function genStreet(level, seed) {
       seed: Math.floor(r() * 1e9)
     });
     x += w + 16 + Math.floor(r() * 36);
+  }
+  // from block 2, a back-alley clinic and a talisman shop may take over two businesses
+  if (level >= 2) {
+    const biz = B.filter(b => b.type === 'business');
+    for (const [kind, name, chance] of [
+      ['clinic', pickR(r, ['Ripperdoc Saito', 'Chrome & Bone clinic', 'Dr. Okonkwo, no questions']), 0.65],
+      ['talisman', pickR(r, ['Moonlit Talismans', 'Seven Bells charms', "Grandmother Ash's shop"]), 0.65]
+    ]) {
+      const i = Math.floor(r() * biz.length);
+      if (r() < chance && biz[i]) {
+        Object.assign(biz[i], { type: kind, name, tier: 0, dirty: false, bounty: null });
+        biz.splice(i, 1);
+      }
+    }
   }
   // a block event, rolled from the seed (never on block 1)
   const er = r();
@@ -7970,6 +8101,10 @@ function openDoor(b) {
   if (b.type === 'safe') {
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
+  } else if (b.type === 'clinic' || b.type === 'talisman') {
+    G.shop = b;
+    G.sheetIdx = 0;
+    setMode('shop');
   } else {
     G.bsel = b;
     setMode('bcard');
@@ -8144,7 +8279,21 @@ function enterRoom(i) {
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
   // hostage rooms: free them by clearing the room without hurting them
-  if (!last && isGood(b) && b.type !== 'secret' && r() < 0.35) {
+  const hostage = !last && isGood(b) && b.type !== 'secret' && r() < 0.35;
+  // hazard rooms: an electrified floor lane, or a ceiling coming down in chunks
+  if (!last && !hostage && b.type !== 'home' && r() < 0.3) {
+    G.hazard = { k: r() < 0.5 ? 'shock' : 'ceiling', t: 0, lane: 0, drops: [] };
+    G.texts.push({
+      x: W / 2,
+      y: FY0 - 4,
+      z: 0,
+      s: G.hazard.k === 'shock' ? 'LIVE WIRING · WATCH THE FLOOR' : 'UNSTABLE CEILING · WATCH FOR SHADOWS',
+      c: '#ffc63d',
+      life: 140,
+      sm: true
+    });
+  }
+  if (hostage) {
     spawnHostage(W * 0.55, FY0 + 34);
     G.texts.push({
       x: W * 0.55,
@@ -8200,7 +8349,12 @@ function enterRoom(i) {
       G.banner = -120;
       musicPlay('boss');
     }
-    spawnPassive('chest', W - 44, FY0 + 22);
+    const cache = spawnPassive('chest', W - 44, FY0 + 22);
+    // tier-3 fair-game buildings lock the cache in a vault: a second, harder hack for a much better haul
+    if (b.tier >= 3 && isGood(b) && b.type !== 'secret' && !b.final) {
+      cache.vault = true;
+      cache.name = 'Vault';
+    }
   }
   if (G.banner > 0) musicPlay(D0.fac.theme < 0 ? 'den' : 'd' + D0.fac.theme);
   G.waveLive = true;
@@ -8213,6 +8367,7 @@ function dunTick() {
     last = D0.room === D0.rooms - 1;
   const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
   const chest = G.ents.find(e => e.kind === 'chest' && e.state !== 'dead');
+  hazardTick();
   const hz = G.ents.find(e => e.kind === 'hostage' && e.state !== 'dead' && !e.freed);
   if (hz && foes === 0) freeHostage(hz);
   for (const e of G.ents) if (e.freed && --e.freeT <= 0) e.gone = true;
@@ -8235,6 +8390,54 @@ function dunTick() {
   if (G.exitOpen && alive().some(p => p.x > W - 24)) {
     if (last) exitBuilding();
     else enterRoom(D0.room + 1);
+  }
+}
+// Hazards hit everyone on the ground: runners, enemies, anyone. Lanes are a third of the floor each.
+const LANES = 3,
+  laneY = i => FY0 + 6 + ((FY1 - FY0 - 6) * i) / LANES;
+function hazardTick() {
+  const h = G.hazard;
+  if (!h) return;
+  h.t++;
+  const onGround = e =>
+    e.state !== 'dead' &&
+    !e.out &&
+    !(e.d && (e.d.fly || e.d.passive)) &&
+    e.z < 3 &&
+    (e.team === 0 || e.team === 1);
+  if (h.k === 'shock') {
+    const c = h.t % 240;
+    if (c === 0) h.lane = Math.floor(Math.random() * LANES);
+    if (c >= 70 && c < 170 && c % 15 === 0) {
+      const y0 = laneY(h.lane),
+        y1 = laneY(h.lane + 1);
+      for (const e of G.ents)
+        if (onGround(e) && e.y >= y0 && e.y < y1)
+          hurt(e, 4, e.face ? -e.face : 1, { col: '#45d2ff', kb: 1, ax: e.x });
+      if (c === 70) sfx.zap();
+    }
+  } else if (h.k === 'ceiling') {
+    if (h.t % 70 === 0) {
+      const a = alive(),
+        tg = a.length ? pick(a) : null;
+      h.drops.push({
+        x: clamp((tg ? tg.x : W / 2) + rand(-60, 60), G.camX + 20, G.camX + W - 20),
+        y: tg ? clamp(tg.y + rand(-12, 12), FY0 + 8, FY1) : (FY0 + FY1) / 2,
+        t: 0
+      });
+    }
+    for (const d of h.drops) {
+      d.t++;
+      if (d.t === 50) {
+        for (const e of G.ents)
+          if (onGround(e) && Math.abs(e.x - d.x) < 18 && Math.abs(e.y - d.y) < 10)
+            hurt(e, 12, e.x >= d.x ? 1 : -1, { kd: true, big: true, col: '#a79dc2', ax: d.x });
+        burst(d.x, d.y, 4, '#6b6280', 14);
+        G.shake = Math.max(G.shake, 4);
+        sfx.boom();
+      }
+    }
+    h.drops = h.drops.filter(d => d.t < 70);
   }
 }
 function freeHostage(h) {
@@ -8304,6 +8507,16 @@ function lootChest(t) {
   )
     feat('captain');
   if (b.type === 'club') feat('club');
+  if (t.bonus) {
+    // a cracked vault: double creds, an extra Prototype item and a real shot at a legendary
+    drop('cred', t.x - 30, t.y + 18, { v: c });
+    const it = randItem(G.stage + G.ng + 1, true);
+    Object.assign(it, mkItem(it.slot, it.base, 2, true));
+    drop('gear', t.x + 36, t.y + 18, { item: it });
+    legendDrop(t.x + 10, t.y + 22, 0.35);
+    feat('vault');
+    G.texts.push({ x: t.x, y: t.y, z: 96, s: 'VAULT HAUL', c: '#ffc63d', life: 100, big: true });
+  }
   if (b.type === 'precinct' && isGood(b)) {
     G.wd.heat = 0;
     G.wd.heatT = 0;
@@ -8351,19 +8564,22 @@ function worldWipe() {
  * The lock-cracking minigame.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ----- hacking ----- */
-function startHack(b) {
-  const hak = Math.max(...active().map(p => p.D.a.hak || 1));
+function startHack(b, vault) {
+  const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
+    tier = vault ? 4 : b.tier;
   G.hack = {
     b,
+    vault: vault || null,
+    tier,
     pos: 0,
     dir: 1,
-    speed: 0.42 + 0.2 * b.tier,
-    need: b.tier + 1,
+    speed: 0.42 + 0.2 * tier,
+    need: tier + 1,
     hits: 0,
     miss: 0,
     maxMiss: 2 + (anyHas('spare') ? 1 : 0),
     w:
-      clamp(0.1 + hak * 0.03 - b.tier * 0.02, 0.06, 0.32) *
+      clamp(0.1 + hak * 0.03 - tier * 0.02, 0.06, 0.32) *
       (anyHas('probe') ? 1.25 : 1) *
       (evOn('blackout') ? 1.3 : 1),
     zone: 0.5,
@@ -8458,6 +8674,16 @@ function hackStep() {
 function hackWin() {
   const b = G.hack.b;
   bump('hacks');
+  if (G.hack.vault) {
+    const v = G.hack.vault;
+    v.vaultDone = true;
+    v.bonus = true;
+    G.hack = null;
+    sfx.level();
+    setMode('play');
+    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
+    return;
+  }
   if (b.tier >= 3 && G.hack.miss === 0) feat('zero');
   G.hack = null;
   sfx.level();
@@ -8470,6 +8696,15 @@ function hackWin() {
 }
 function hackFail() {
   const b = G.hack.b;
+  if (G.hack.vault) {
+    const v = G.hack.vault;
+    v.vaultDone = true;
+    G.hack = null;
+    sfx.hurt();
+    setMode('play');
+    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
+    return;
+  }
   G.hack = null;
   b.lockUntil = Date.now() + 12000;
   sfx.hurt();
@@ -9059,10 +9294,12 @@ function nextArenaWave() {
     if (w >= 7) pool.push('riot', 'spirit');
     if (w >= 6) pool.push('hound', 'hound');
     if (w >= 8) pool.push('ninja', 'feral');
-    if (w >= 11) pool.push('mech');
+    if (w >= 13) pool.push('mech');
     if (w >= 9) pool.push('glitch', 'ice');
     const n = Math.min(7, 2 + Math.floor(w * 0.5)) + (G.coop ? 1 : 0);
     for (let i = 0; i < n; i++) list.push(wpick(pool));
+    let mechs = 0;
+    list = list.map(k => (k === 'mech' && mechs++ ? 'sec' : k)); // one walker per wave is plenty
     if (modOn('tide')) list.push('spirit');
   }
   list.forEach((k, i) => {
@@ -9475,6 +9712,21 @@ function drawPassive(e) {
     ctx.strokeStyle = '#ffc63d';
     ctx.lineWidth = 1;
     ctx.strokeRect(sx - 10.5, sy - 39.5, 21, 39);
+  }
+  if (e.kind === 'chest' && e.vault && !e.vaultDone) {
+    // a heavy vault door with a lock light that pulses until it's hacked
+    ctx.fillStyle = fl ? '#fff' : '#2a2e3e';
+    ctx.fillRect(sx - 14, sy - 30, 28, 30);
+    ctx.strokeStyle = '#ffc63d';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sx - 14.5, sy - 30.5, 29, 30);
+    ctx.beginPath();
+    ctx.arc(sx, sy - 15, 7, 0, 7);
+    ctx.stroke();
+    ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#ffc63d';
+    ctx.fillRect(sx + 9, sy - 27, 3, 3);
+    ctx.globalAlpha = 1;
+    return;
   }
   if (e.kind === 'chest') {
     const tc = G.dun ? ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][G.dun.b.tier] : '#ffc63d';
@@ -10264,9 +10516,11 @@ function drawProj(pr) {
     const c =
       pr.k === 'fire' || pr.tint === 'fire'
         ? ['255,106,61', '#ffe7a8']
-        : pr.k === 'bolt' || pr.tint === 'bolt'
-          ? ['185,140,255', '#f2e9ff']
-          : ['69,210,255', '#e6fbff'];
+        : pr.tint === 'drain'
+          ? ['122,40,90', '#ffb0d8']
+          : pr.k === 'bolt' || pr.tint === 'bolt'
+            ? ['185,140,255', '#f2e9ff']
+            : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);
     ctx.fillStyle = `rgba(${c[0]},.25)`;
     ctx.beginPath();
@@ -10786,9 +11040,17 @@ function drawBuildings(base) {
       }
       continue;
     }
-    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114, club: 88, precinct: 104 }[
-        b.type
-      ],
+    const H0 = {
+        safe: 86,
+        home: 94,
+        business: 78,
+        hideout: 70,
+        blacksite: 114,
+        club: 88,
+        precinct: 104,
+        clinic: 82,
+        talisman: 76
+      }[b.type],
       col = {
         safe: '#18261e',
         home: '#231c33',
@@ -10796,7 +11058,9 @@ function drawBuildings(base) {
         hideout: '#2a1a1c',
         blacksite: '#10141f',
         club: '#2a1630',
-        precinct: '#141c2e'
+        precinct: '#141c2e',
+        clinic: '#14262a',
+        talisman: '#241a30'
       }[b.type];
     ctx.fillStyle = col;
     ctx.fillRect(x, base - H0, b.w, H0);
@@ -10828,14 +11092,16 @@ function drawBuildings(base) {
     }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
-      good = b.type === 'safe' || isGood(b);
-    const frame = b.type === 'safe' ? '#7dffb0' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
+      shop = isShop(b),
+      good = shop || isGood(b);
+    const frame =
+      b.type === 'safe' ? '#7dffb0' : shop ? '#ffc63d' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
     ctx.fillStyle = '#07050b';
     ctx.fillRect(dx - 12, base - 40, 24, 40);
     ctx.strokeStyle = frame;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(dx - 12.5, base - 40.5, 25, 40);
-    if (!looted && b.type !== 'safe') {
+    if (!looted && !shop) {
       ctx.fillStyle = frame;
       ctx.globalAlpha = 0.08 + 0.05 * Math.sin(G.t * 0.1 + b.id);
       ctx.fillRect(dx - 12, base - 40, 24, 40);
@@ -10855,7 +11121,7 @@ function drawBuildings(base) {
     const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
-    ctx.fillStyle = looted ? '#6b6280' : good ? '#7dffb0' : '#ff3d8b';
+    ctx.fillStyle = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
     if (b.bounty && !w.bountyDone) {
@@ -10863,7 +11129,20 @@ function drawBuildings(base) {
       ctx.font = '600 13px Teko, Impact, sans-serif';
       ctx.fillText('☠ BOUNTY', dx, base - 68 + Math.sin(G.t * 0.1) * 1.5);
     }
-    if (b.type !== 'safe') {
+    if (b.type === 'clinic' || b.type === 'talisman') {
+      // a lit shop sign: a cross for the clinic, an eye for the talisman shop
+      ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
+      if (b.type === 'clinic') {
+        ctx.fillRect(dx - 2, base - 76, 4, 12);
+        ctx.fillRect(dx - 6, base - 72, 12, 4);
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(dx, base - 70, 7, 4, 0, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = '#0b0812';
+        ctx.fillRect(dx - 1.5, base - 72, 3, 4);
+      }
+    } else if (b.type !== 'safe') {
       for (let k = 0; k < b.tier; k++) {
         ctx.fillStyle = frame;
         ctx.fillRect(dx - 8 + k * 6, base - 63, 4, 3);
@@ -10887,7 +11166,15 @@ function drawMinimap() {
       ctx.fillRect(mx - 2.5, y - 5, 5, 2);
     }
     ctx.fillStyle =
-      b.type === 'safe' ? '#7dffb0' : w.looted.includes(b.id) ? '#4a4060' : isGood(b) ? '#7dffb0' : '#ff3d8b';
+      b.type === 'safe'
+        ? '#7dffb0'
+        : isShop(b)
+          ? '#ffc63d'
+          : w.looted.includes(b.id)
+            ? '#4a4060'
+            : isGood(b)
+              ? '#7dffb0'
+              : '#ff3d8b';
     ctx.fillRect(mx - 1.5, y - 2, 3, 4);
   }
   for (const e of G.ents)
@@ -11270,6 +11557,60 @@ function drawHud() {
     }
   }
 }
+// Hazard rooms: a flickering warning, then a live lane of current; or growing shadows under falling debris
+function drawHazard() {
+  const h = G.hazard;
+  if (h.k === 'shock') {
+    const c = h.t % 240;
+    if (c >= 170 || c < 1) return;
+    const y0 = laneY(h.lane),
+      y1 = laneY(h.lane + 1),
+      live = c >= 70;
+    if (!live) {
+      if ((G.t >> 3) % 2) {
+        ctx.strokeStyle = 'rgba(69,210,255,0.6)';
+        ctx.setLineDash && ctx.setLineDash([6, 5]);
+        ctx.strokeRect(1, y0, W - 2, y1 - y0);
+        ctx.setLineDash && ctx.setLineDash([]);
+      }
+      return;
+    }
+    ctx.fillStyle = 'rgba(69,210,255,0.16)';
+    ctx.fillRect(0, y0, W, y1 - y0);
+    ctx.strokeStyle = '#bff3ff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      let x = ((k * 97 + G.t * 7) % W) | 0,
+        y = y0 + ((k * 13) % (y1 - y0));
+      ctx.moveTo(x, y);
+      for (let s = 0; s < 4; s++) {
+        x += rand(4, 10);
+        y = clamp(y + rand(-5, 5), y0, y1);
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+  } else {
+    for (const d of h.drops) {
+      const sx = d.x - G.camX;
+      if (d.t < 50) {
+        const k = d.t / 50;
+        ctx.fillStyle = `rgba(0,0,0,${0.15 + k * 0.35})`;
+        ctx.beginPath();
+        ctx.ellipse(sx, d.y, 6 + k * 12, 2 + k * 5, 0, 0, 7);
+        ctx.fill();
+        if (d.t > 30) {
+          const fy = d.y - (50 - d.t) * 9;
+          fillPoly([sx - 8, fy - 10, sx + 7, fy - 12, sx + 9, fy, sx - 6, fy + 2], '#4a4060');
+        }
+      } else {
+        ctx.fillStyle = '#3a3348';
+        fillPoly([sx - 12, d.y + 2, sx - 5, d.y - 6, sx + 6, d.y - 5, sx + 13, d.y + 3], '#3a3348');
+      }
+    }
+  }
+}
 // Nightclub rooms: a dance floor of colored tiles pulsing to the beat
 function drawDanceFloor() {
   const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
@@ -11357,6 +11698,7 @@ function render() {
   ctx.translate(shx, shy + BAND);
   drawBg();
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
+  if (G.hazard) drawHazard();
   for (const k of G.picks) drawPick(k);
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });
@@ -11373,7 +11715,9 @@ function render() {
       const fa = fogAlpha(o.e),
         cl = o.e.cloaked && o.e.state !== 'dead';
       if (fa <= 0) continue;
-      ctx.globalAlpha = cl ? fa * (0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
+      // thermographic eyes on any runner make cloaked shadows easy to see
+      const seen = cl && PL.some(q => !q.out && q.cy && q.cy.eyes);
+      ctx.globalAlpha = cl ? fa * (seen ? 0.55 : 0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawAura(o.e);
       drawFig(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
@@ -11733,7 +12077,7 @@ function bcardHtml(b) {
 function hackHtml() {
   const h = G.hack,
     b = h.b;
-  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · lock ${b.tier}</p><h2>Crack the lock</h2>
+  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${h.vault ? 'vault, lock 4' : 'lock ' + b.tier}</p><h2>${h.vault ? 'Crack the vault' : 'Crack the lock'}</h2>
   <p>${PAD.active ? 'Press A or X' : isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
   <div class="trk" id="hkTrk"><div class="zone" id="hkZone"></div><div class="cur" id="hkCur"></div></div>
   <p id="hkProg"></p>
@@ -12072,6 +12416,7 @@ function renderOv() {
   if (m === 'codex') h = codexHtml();
   if (m === 'bcard') h = bcardHtml(G.bsel);
   if (m === 'map') h = mapHtml();
+  if (m === 'shop') h = shopHtml(G.shop);
   if (m === 'hack') h = hackHtml();
   if (m === 'safe') h = safeHtml();
   if (m === 'worldpick') {
@@ -12137,6 +12482,36 @@ function renderOv() {
   }
   padRestoreFocus();
 }
+// Street shops: a back-alley clinic (rare cyberware) or a talisman shop (rare spells)
+function shopHtml(b) {
+  const p = PL[G.sheetIdx] || PL[0],
+    clinic = b.type === 'clinic';
+  const rows = clinic
+    ? Object.keys(CYBER)
+        .filter(k => CYBER[k].rare)
+        .map(k => {
+          const cy = CYBER[k],
+            l = p.cy[k] || 0,
+            c = Math.round(cy.cost(l) * buyMul()),
+            ok = l < cyMax(k) && PARTY.creds >= c;
+          return `<div class="item"><div><div class="nm">${cy.name}</div><div class="ds">${cy.desc} Costs 6 max mana.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="cyber:${k}" ${ok ? '' : 'disabled'}>${l >= cyMax(k) ? 'Installed' : '¥' + c}</button></div></div>`;
+        })
+    : Object.keys(SPELLS)
+        .filter(k => SPELLS[k].rare)
+        .map(sid => {
+          const s = SPELLS[sid],
+            have = p.spells.includes(sid),
+            okM = p.D.a.mag >= s.req,
+            ok = !have && okM && PARTY.creds >= s.price;
+          return `<div class="item"><div><div class="nm">${s.name} <span style="color:var(--muted);font-weight:400">· ${s.cost} mana</span></div><div class="ds">${s.desc} Needs Magic ${s.req}.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="learn:${sid}" ${ok ? '' : 'disabled'}>${have ? 'Known' : !okM ? 'Magic ' + s.req : '¥' + s.price}</button></div></div>`;
+        });
+  const say = clinic
+    ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
+    : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
+  return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>
+  <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
+}
 // The block map: every building on this street in order, with type, tier and what's left to do
 function mapHtml() {
   const w = G.wd,
@@ -12150,6 +12525,8 @@ function mapHtml() {
     blacksite: 'Black site',
     club: 'Nightclub',
     precinct: 'Precinct',
+    clinic: 'Clinic',
+    talisman: 'Talisman shop',
     secret: 'Hidden door'
   };
   const list = w.street.buildings
@@ -12164,15 +12541,17 @@ function mapHtml() {
         st =
           b.type === 'safe'
             ? ['Rest, shops, lay low', 'var(--ok)']
-            : lo
-              ? ['Cleaned out', 'var(--muted)']
-              : good0(b)
-                ? ['Fair game', 'var(--ok)']
-                : ['Hurts the block', 'var(--neon)'];
-      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${b.type === 'safe' ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
+            : isShop(b)
+              ? [b.type === 'clinic' ? 'Rare cyberware' : 'Rare spells', 'var(--gold)']
+              : lo
+                ? ['Cleaned out', 'var(--muted)']
+                : good0(b)
+                  ? ['Fair game', 'var(--ok)']
+                  : ['Hurts the block', 'var(--neon)'];
+      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${isShop(b) ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
     })
     .join('');
-  const left = list.filter(b => b.type !== 'safe' && isGood(b) && !w.looted.includes(b.id)).length;
+  const left = list.filter(b => !isShop(b) && isGood(b) && !w.looted.includes(b.id)).length;
   const ev = w.street.event
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
@@ -12260,6 +12639,7 @@ function npcHtml(id) {
       })
       .join('')}
     ${Object.keys(CYBER)
+      .filter(k => !CYBER[k].rare)
       .map(k => {
         const p = PL[G.sheetIdx] || PL[0],
           cy = CYBER[k],
@@ -12304,6 +12684,7 @@ function npcHtml(id) {
       "Magic isn't bought, it's earned. But I can sell you the formula. Whether you can hold it is your business.";
     const p = PL[G.sheetIdx] || PL[0];
     body = `${whoTabs()}<div class="list">${Object.keys(SPELLS)
+      .filter(sid => !SPELLS[sid].rare)
       .map(sid => {
         const s = SPELLS[sid],
           have = p.spells.includes(sid),
@@ -12927,9 +13308,11 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'cyber': {
-      const l = p.cy[arg],
+      const l = p.cy[arg] || 0,
         c = Math.round(CYBER[arg].cost(l) * buyMul());
-      if (l < 3 && PARTY.creds >= c) {
+      if (l < cyMax(arg) && PARTY.creds >= c) {
+        p.cy[arg] = l;
+        if (CYBER[arg].rare) feat('rare');
         PARTY.creds -= c;
         p.cy[arg]++;
         refresh(p);
@@ -12971,6 +13354,7 @@ ov.addEventListener('click', e => {
       if (!p.spells.includes(arg) && p.D.a.mag >= s.req && PARTY.creds >= s.price) {
         PARTY.creds -= s.price;
         p.spells.push(arg);
+        if (s.rare) feat('rare');
         sfx.level();
       }
       rerender();

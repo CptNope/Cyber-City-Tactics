@@ -113,6 +113,7 @@ function renderOv() {
   if (m === 'codex') h = codexHtml();
   if (m === 'bcard') h = bcardHtml(G.bsel);
   if (m === 'map') h = mapHtml();
+  if (m === 'shop') h = shopHtml(G.shop);
   if (m === 'hack') h = hackHtml();
   if (m === 'safe') h = safeHtml();
   if (m === 'worldpick') {
@@ -178,6 +179,36 @@ function renderOv() {
   }
   padRestoreFocus();
 }
+// Street shops: a back-alley clinic (rare cyberware) or a talisman shop (rare spells)
+function shopHtml(b) {
+  const p = PL[G.sheetIdx] || PL[0],
+    clinic = b.type === 'clinic';
+  const rows = clinic
+    ? Object.keys(CYBER)
+        .filter(k => CYBER[k].rare)
+        .map(k => {
+          const cy = CYBER[k],
+            l = p.cy[k] || 0,
+            c = Math.round(cy.cost(l) * buyMul()),
+            ok = l < cyMax(k) && PARTY.creds >= c;
+          return `<div class="item"><div><div class="nm">${cy.name}</div><div class="ds">${cy.desc} Costs 6 max mana.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="cyber:${k}" ${ok ? '' : 'disabled'}>${l >= cyMax(k) ? 'Installed' : '¥' + c}</button></div></div>`;
+        })
+    : Object.keys(SPELLS)
+        .filter(k => SPELLS[k].rare)
+        .map(sid => {
+          const s = SPELLS[sid],
+            have = p.spells.includes(sid),
+            okM = p.D.a.mag >= s.req,
+            ok = !have && okM && PARTY.creds >= s.price;
+          return `<div class="item"><div><div class="nm">${s.name} <span style="color:var(--muted);font-weight:400">· ${s.cost} mana</span></div><div class="ds">${s.desc} Needs Magic ${s.req}.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="learn:${sid}" ${ok ? '' : 'disabled'}>${have ? 'Known' : !okM ? 'Magic ' + s.req : '¥' + s.price}</button></div></div>`;
+        });
+  const say = clinic
+    ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
+    : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
+  return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>
+  <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
+}
 // The block map: every building on this street in order, with type, tier and what's left to do
 function mapHtml() {
   const w = G.wd,
@@ -191,6 +222,8 @@ function mapHtml() {
     blacksite: 'Black site',
     club: 'Nightclub',
     precinct: 'Precinct',
+    clinic: 'Clinic',
+    talisman: 'Talisman shop',
     secret: 'Hidden door'
   };
   const list = w.street.buildings
@@ -205,15 +238,17 @@ function mapHtml() {
         st =
           b.type === 'safe'
             ? ['Rest, shops, lay low', 'var(--ok)']
-            : lo
-              ? ['Cleaned out', 'var(--muted)']
-              : good0(b)
-                ? ['Fair game', 'var(--ok)']
-                : ['Hurts the block', 'var(--neon)'];
-      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${b.type === 'safe' ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
+            : isShop(b)
+              ? [b.type === 'clinic' ? 'Rare cyberware' : 'Rare spells', 'var(--gold)']
+              : lo
+                ? ['Cleaned out', 'var(--muted)']
+                : good0(b)
+                  ? ['Fair game', 'var(--ok)']
+                  : ['Hurts the block', 'var(--neon)'];
+      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${isShop(b) ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
     })
     .join('');
-  const left = list.filter(b => b.type !== 'safe' && isGood(b) && !w.looted.includes(b.id)).length;
+  const left = list.filter(b => !isShop(b) && isGood(b) && !w.looted.includes(b.id)).length;
   const ev = w.street.event
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
@@ -301,6 +336,7 @@ function npcHtml(id) {
       })
       .join('')}
     ${Object.keys(CYBER)
+      .filter(k => !CYBER[k].rare)
       .map(k => {
         const p = PL[G.sheetIdx] || PL[0],
           cy = CYBER[k],
@@ -345,6 +381,7 @@ function npcHtml(id) {
       "Magic isn't bought, it's earned. But I can sell you the formula. Whether you can hold it is your business.";
     const p = PL[G.sheetIdx] || PL[0];
     body = `${whoTabs()}<div class="list">${Object.keys(SPELLS)
+      .filter(sid => !SPELLS[sid].rare)
       .map(sid => {
         const s = SPELLS[sid],
           have = p.spells.includes(sid),

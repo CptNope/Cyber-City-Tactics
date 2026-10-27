@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 8:** hazard rooms, vaults with a second hack, back-alley clinics with rare cyberware, and talisman shops with two rare spells
 - [x] **Expansion 7:** co-op team attacks, mech walkers, feral spirits and hostage rooms
 - [x] **Expansion 6:** a parry on the dodge button, gang nightclubs and Lone Star precincts in the Sprawl, and a block map
 - [x] **Expansion 5:** hellhound packs, cloaked Kagemori shadows, and salvage and crafting at Ratchet's workbench
@@ -61,11 +62,9 @@ The guiding rules:
 
 ### The Sprawl
 - [x] ~~**Nightclubs and cop precincts.**~~ Shipped: dance-floor brawls, and precincts that open up at street cred +30.
-- [ ] **More building types (M):**
-  - clinics that trade cyberware
-  - talisman shops that teach rare spells
+- [x] ~~**Clinics and talisman shops.**~~ Shipped: rare cyberware and rare spells on the street.
 - [x] ~~**Hostage rooms.**~~ Shipped: clear the room without hitting the hostage.
-- [ ] **More room variety (M).** Hazard rooms (electrified floors, collapsing ceilings) and vault rooms with a second, harder hack.
+- [x] ~~**Hazard and vault rooms.**~~ Shipped: live wiring, unstable ceilings, and lock-4 vaults.
 - [ ] **Faction reputation (L).** Separate standing with each gang and with Kagemori. Hitting one crew makes its rivals friendlier, and they'll sell to you or send backup.
 - [x] ~~**Bounties.**~~ Shipped: Juno posts a named target each block.
 - [ ] **Day and night (M).** At night there are fewer cops, more gangs and better loot. In the day, shops are open and break-ins are riskier.

@@ -38,13 +38,34 @@ function roninCrit(o) {
 function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
+  if (t.vault && !t.vaultDone) {
+    // a vault doesn't break: you hack it, once the room is clear
+    if (o.src && o.src.kind === 'player' && G.mode === 'play') {
+      const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
+      if (foes) {
+        if (G.t - (t.vaultSaid || -99) > 60) {
+          t.vaultSaid = G.t;
+          G.texts.push({
+            x: t.x,
+            y: t.y,
+            z: 50,
+            s: 'CLEAR THE ROOM FIRST',
+            c: '#a79dc2',
+            life: 50,
+            sm: true
+          });
+        }
+      } else startHack(G.dun.b, t);
+    }
+    return false;
+  }
   if (t.state === 'down' && !o.air) return false;
   // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
   if (
     t.team === 0 &&
     t.kind === 'player' &&
     t.state === 'roll' &&
-    t.t <= PARRY_WINDOW &&
+    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) &&
     o.att &&
     o.att.team === 1 &&
     !o.bullet &&
@@ -90,7 +111,7 @@ function hurt(t, dmg, dir, o) {
     t.recloakT = 150;
   }
   if (t.d && t.d.mech) {
-    // plated front, weak back: hits from behind do 50% more, hits from the front 70% less
+    // plated front, weak back: hits from behind do 50% more, hits from the front 60% less
     const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
     o.kd = false;
     if (back) {
@@ -100,7 +121,7 @@ function hurt(t, dmg, dir, o) {
         G.texts.push({ x: t.x, y: t.y, z: t.z + 78, s: 'WEAK SPOT', c: '#ffc63d', life: 34, sm: true });
       }
     } else {
-      dmg *= 0.3;
+      dmg *= 0.4;
       if (G.t - (t.plateT || -999) > 50) {
         t.plateT = G.t;
         sfx.clank();

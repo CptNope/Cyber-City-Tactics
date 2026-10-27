@@ -214,6 +214,11 @@ function update() {
           magic: pr.k === 'bolt',
           ap: pr.pierce > 0
         });
+      if (pr.drain && pr.src && pr.src.state !== 'dead') {
+        const n = Math.round(pr.dmg * 0.5);
+        pr.src.hp = Math.min(pr.src.maxHp, pr.src.hp + n);
+        say(pr.src, '+' + n + ' HP', '#7dffb0', 60, 34, true);
+      }
       if (pr.pierce > 0 && pr.k === 'bullet') {
         pr.pierce--;
         pr.hit.push(t);

@@ -301,7 +301,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
 - **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
-- **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 70%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
+- **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 60%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
 - **Feral spirits** drift through the Undercity and hidden shrines. They copy the last spell any runner cast: fireballs and bolts come back at you, an echoed heal patches up nearby enemies, and an echoed barrier shields the spirit. Bullets pass through them.
 - **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit. Land any hit and the cloak drops for a few seconds.
 - **Elites:** each has a colored aura and a name tag, and drops better gear.
@@ -328,6 +328,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 | Corp black site | Good | Security, riot troopers, drones, ICE; a site chief or vault ICE |
 | Crooked exec's or gang boss's home | Good | Bodyguards |
 | Gang nightclub | Good | Twice the crowd: gangers and orcs, a head bouncer or the club owner. A pulsing dance floor; combos last twice as long and takedowns pay 50% more creds |
+| Back-alley clinic (from block 2) | Shop, never robbed | Rare cyberware: *Thermographic eyes* (+8% crit, and cloaked shadows show up clearly) ¥600; *Reflex booster* (a much wider parry window) ¥750. One of each per runner, 6 max mana each |
+| Talisman shop (from block 2) | Shop, never robbed | Rare spells: *Frost Nova* (damages everything close and slows every enemy for 3 s; Magic 5, ¥380) and *Soul Drain* (a bolt that heals you for half its damage; Magic 4, ¥320) |
 | Lone Star precinct (always tier 3, at most one per block, never on block 1) | Good only at street cred +30 or more; before that, bad: −20 cred, +4 heat | Cops, drones, riot troopers and a watch commander. Clearing it shreds your file: heat drops to zero, plus a big creds payout and an icebreaker |
 | Business | Bad: −cred, +heat | Security and a head of security; more creds |
 | Family home | Bad: −cred, +heat | Nobody to fight, and almost nothing worth taking |
@@ -355,6 +357,10 @@ Companions carry between districts and get patched up in the Den, but if one fal
 **Things to find on every block:**
 - **Juno's bounty.** One tougher building on each block holds a named target, marked ☠ BOUNTY on its sign and in gold on the minimap. Take them down for a big cred payout, karma and a shot at a legendary.
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
+- **Hazard rooms.** About three in ten rooms without a hostage come with a hazard, and it hurts everyone on the floor, enemies included:
+  - *Live wiring:* one lane of the floor flickers as a warning for a second, then carries current for a second and a half. Change lanes or jump.
+  - *Unstable ceiling:* a shadow grows under falling debris near a runner, then the chunk lands with a knockdown.
+- **Vaults.** In tier-3 fair-game buildings the final cache is a vault. Clear the room, then hit it to start a lock-4 hack (five clean hits, a faster cursor). Crack it for double creds, an extra Prototype item and a 35% shot at a legendary. Fail and the vault seals, leaving only the ordinary cache.
 - **Hostages.** About a third of the non-final rooms in fair-game buildings hold a zip-tied civilian. Clear the room and they go free: karma, +5 street cred and a medkit. But anyone's stray hit can land on them, yours included, along with gang bullets and explosions. Lose one and it costs 8 cred.
 - **Block map.** Press **M** in the Sprawl, or pick *Block map* from the pause menu, for a list of every building on the street in order: its type, tier, whether it's fair game or already cleaned out, any bounty, and how far away it is.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
@@ -379,7 +385,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 66 goals across every mode, for example:
+**Feats.** 68 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

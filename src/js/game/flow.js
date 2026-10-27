@@ -25,6 +25,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  G.hazard = null;
   // a downed partner's revive marker belongs to the scene they fell in
   for (const p of PL) p.outX = null;
   G.zaps = [];

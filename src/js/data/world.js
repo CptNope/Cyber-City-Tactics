@@ -6,8 +6,24 @@
 const CYBER = {
   arm: { name: 'Cyberarm tune-up', desc: '+3 melee damage.', cost: l => 90 + l * 60 },
   wired: { name: 'Wired reflexes', desc: 'Faster movement, +4% crit chance.', cost: l => 110 + l * 70 },
-  plate: { name: 'Dermal plating', desc: '+3 armor.', cost: l => 100 + l * 60 }
+  plate: { name: 'Dermal plating', desc: '+3 armor.', cost: l => 100 + l * 60 },
+  // rare pieces: one level each, only at Sprawl clinics
+  eyes: {
+    name: 'Thermographic eyes',
+    desc: '+8% crit chance, and cloaked Kagemori shadows show up clearly.',
+    cost: () => 600,
+    max: 1,
+    rare: true
+  },
+  boost: {
+    name: 'Reflex booster',
+    desc: 'Your parry window is nearly twice as wide.',
+    cost: () => 750,
+    max: 1,
+    rare: true
+  }
 };
+const cyMax = k => CYBER[k].max || 3;
 const CONTRACTS = [
   {
     title: 'Clear the Barrens',

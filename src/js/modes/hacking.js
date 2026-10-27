@@ -3,19 +3,22 @@
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ----- hacking ----- */
-function startHack(b) {
-  const hak = Math.max(...active().map(p => p.D.a.hak || 1));
+function startHack(b, vault) {
+  const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
+    tier = vault ? 4 : b.tier;
   G.hack = {
     b,
+    vault: vault || null,
+    tier,
     pos: 0,
     dir: 1,
-    speed: 0.42 + 0.2 * b.tier,
-    need: b.tier + 1,
+    speed: 0.42 + 0.2 * tier,
+    need: tier + 1,
     hits: 0,
     miss: 0,
     maxMiss: 2 + (anyHas('spare') ? 1 : 0),
     w:
-      clamp(0.1 + hak * 0.03 - b.tier * 0.02, 0.06, 0.32) *
+      clamp(0.1 + hak * 0.03 - tier * 0.02, 0.06, 0.32) *
       (anyHas('probe') ? 1.25 : 1) *
       (evOn('blackout') ? 1.3 : 1),
     zone: 0.5,
@@ -110,6 +113,16 @@ function hackStep() {
 function hackWin() {
   const b = G.hack.b;
   bump('hacks');
+  if (G.hack.vault) {
+    const v = G.hack.vault;
+    v.vaultDone = true;
+    v.bonus = true;
+    G.hack = null;
+    sfx.level();
+    setMode('play');
+    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
+    return;
+  }
   if (b.tier >= 3 && G.hack.miss === 0) feat('zero');
   G.hack = null;
   sfx.level();
@@ -122,6 +135,15 @@ function hackWin() {
 }
 function hackFail() {
   const b = G.hack.b;
+  if (G.hack.vault) {
+    const v = G.hack.vault;
+    v.vaultDone = true;
+    G.hack = null;
+    sfx.hurt();
+    setMode('play');
+    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
+    return;
+  }
   G.hack = null;
   b.lockUntil = Date.now() + 12000;
   sfx.hurt();

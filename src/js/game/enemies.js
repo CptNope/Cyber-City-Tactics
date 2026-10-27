@@ -286,7 +286,7 @@ function upEnemy(e) {
   if (d.mimic) {
     // feral spirits hang back and cast your own last spell at you
     const s = d.spd * e.spdMul,
-      tx = p.x - Math.sign(dx || 1) * d.range;
+      tx = clamp(p.x - Math.sign(dx || 1) * d.range, G.camX + 24, G.camX + W - 24); // never flee off-screen
     e.x += clamp(tx - e.x, -s, s);
     e.y += clamp(p.y - e.y, -s * 0.7, s * 0.7);
     e.y = clamp(e.y, FY0 + 6, FY1);
@@ -422,7 +422,15 @@ function upEnemy(e) {
 }
 
 // A feral spirit's echo of the last spell any runner cast
-const ECHO_NAME = { fire: 'FIREBALL', bolt: 'BOLT', heal: 'HEAL', barrier: 'BARRIER', chain: 'CHAIN' };
+const ECHO_NAME = {
+  fire: 'FIREBALL',
+  bolt: 'BOLT',
+  heal: 'HEAL',
+  barrier: 'BARRIER',
+  chain: 'CHAIN',
+  frost: 'FROST',
+  drain: 'DRAIN'
+};
 function echoSpell(e) {
   const k = e.echo || 'fire';
   G.texts.push({ x: e.x, y: e.y, z: e.z + 40, s: 'ECHO: ' + ECHO_NAME[k], c: '#b98cff', life: 40, sm: true });

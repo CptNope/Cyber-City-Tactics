@@ -557,9 +557,11 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'cyber': {
-      const l = p.cy[arg],
+      const l = p.cy[arg] || 0,
         c = Math.round(CYBER[arg].cost(l) * buyMul());
-      if (l < 3 && PARTY.creds >= c) {
+      if (l < cyMax(arg) && PARTY.creds >= c) {
+        p.cy[arg] = l;
+        if (CYBER[arg].rare) feat('rare');
         PARTY.creds -= c;
         p.cy[arg]++;
         refresh(p);
@@ -601,6 +603,7 @@ ov.addEventListener('click', e => {
       if (!p.spells.includes(arg) && p.D.a.mag >= s.req && PARTY.creds >= s.price) {
         PARTY.creds -= s.price;
         p.spells.push(arg);
+        if (s.rare) feat('rare');
         sfx.level();
       }
       rerender();

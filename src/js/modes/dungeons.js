@@ -33,7 +33,21 @@ function enterRoom(i) {
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
   // hostage rooms: free them by clearing the room without hurting them
-  if (!last && isGood(b) && b.type !== 'secret' && r() < 0.35) {
+  const hostage = !last && isGood(b) && b.type !== 'secret' && r() < 0.35;
+  // hazard rooms: an electrified floor lane, or a ceiling coming down in chunks
+  if (!last && !hostage && b.type !== 'home' && r() < 0.3) {
+    G.hazard = { k: r() < 0.5 ? 'shock' : 'ceiling', t: 0, lane: 0, drops: [] };
+    G.texts.push({
+      x: W / 2,
+      y: FY0 - 4,
+      z: 0,
+      s: G.hazard.k === 'shock' ? 'LIVE WIRING · WATCH THE FLOOR' : 'UNSTABLE CEILING · WATCH FOR SHADOWS',
+      c: '#ffc63d',
+      life: 140,
+      sm: true
+    });
+  }
+  if (hostage) {
     spawnHostage(W * 0.55, FY0 + 34);
     G.texts.push({
       x: W * 0.55,
@@ -89,7 +103,12 @@ function enterRoom(i) {
       G.banner = -120;
       musicPlay('boss');
     }
-    spawnPassive('chest', W - 44, FY0 + 22);
+    const cache = spawnPassive('chest', W - 44, FY0 + 22);
+    // tier-3 fair-game buildings lock the cache in a vault: a second, harder hack for a much better haul
+    if (b.tier >= 3 && isGood(b) && b.type !== 'secret' && !b.final) {
+      cache.vault = true;
+      cache.name = 'Vault';
+    }
   }
   if (G.banner > 0) musicPlay(D0.fac.theme < 0 ? 'den' : 'd' + D0.fac.theme);
   G.waveLive = true;
@@ -102,6 +121,7 @@ function dunTick() {
     last = D0.room === D0.rooms - 1;
   const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
   const chest = G.ents.find(e => e.kind === 'chest' && e.state !== 'dead');
+  hazardTick();
   const hz = G.ents.find(e => e.kind === 'hostage' && e.state !== 'dead' && !e.freed);
   if (hz && foes === 0) freeHostage(hz);
   for (const e of G.ents) if (e.freed && --e.freeT <= 0) e.gone = true;
@@ -124,6 +144,54 @@ function dunTick() {
   if (G.exitOpen && alive().some(p => p.x > W - 24)) {
     if (last) exitBuilding();
     else enterRoom(D0.room + 1);
+  }
+}
+// Hazards hit everyone on the ground: runners, enemies, anyone. Lanes are a third of the floor each.
+const LANES = 3,
+  laneY = i => FY0 + 6 + ((FY1 - FY0 - 6) * i) / LANES;
+function hazardTick() {
+  const h = G.hazard;
+  if (!h) return;
+  h.t++;
+  const onGround = e =>
+    e.state !== 'dead' &&
+    !e.out &&
+    !(e.d && (e.d.fly || e.d.passive)) &&
+    e.z < 3 &&
+    (e.team === 0 || e.team === 1);
+  if (h.k === 'shock') {
+    const c = h.t % 240;
+    if (c === 0) h.lane = Math.floor(Math.random() * LANES);
+    if (c >= 70 && c < 170 && c % 15 === 0) {
+      const y0 = laneY(h.lane),
+        y1 = laneY(h.lane + 1);
+      for (const e of G.ents)
+        if (onGround(e) && e.y >= y0 && e.y < y1)
+          hurt(e, 4, e.face ? -e.face : 1, { col: '#45d2ff', kb: 1, ax: e.x });
+      if (c === 70) sfx.zap();
+    }
+  } else if (h.k === 'ceiling') {
+    if (h.t % 70 === 0) {
+      const a = alive(),
+        tg = a.length ? pick(a) : null;
+      h.drops.push({
+        x: clamp((tg ? tg.x : W / 2) + rand(-60, 60), G.camX + 20, G.camX + W - 20),
+        y: tg ? clamp(tg.y + rand(-12, 12), FY0 + 8, FY1) : (FY0 + FY1) / 2,
+        t: 0
+      });
+    }
+    for (const d of h.drops) {
+      d.t++;
+      if (d.t === 50) {
+        for (const e of G.ents)
+          if (onGround(e) && Math.abs(e.x - d.x) < 18 && Math.abs(e.y - d.y) < 10)
+            hurt(e, 12, e.x >= d.x ? 1 : -1, { kd: true, big: true, col: '#a79dc2', ax: d.x });
+        burst(d.x, d.y, 4, '#6b6280', 14);
+        G.shake = Math.max(G.shake, 4);
+        sfx.boom();
+      }
+    }
+    h.drops = h.drops.filter(d => d.t < 70);
   }
 }
 function freeHostage(h) {
@@ -193,6 +261,16 @@ function lootChest(t) {
   )
     feat('captain');
   if (b.type === 'club') feat('club');
+  if (t.bonus) {
+    // a cracked vault: double creds, an extra Prototype item and a real shot at a legendary
+    drop('cred', t.x - 30, t.y + 18, { v: c });
+    const it = randItem(G.stage + G.ng + 1, true);
+    Object.assign(it, mkItem(it.slot, it.base, 2, true));
+    drop('gear', t.x + 36, t.y + 18, { item: it });
+    legendDrop(t.x + 10, t.y + 22, 0.35);
+    feat('vault');
+    G.texts.push({ x: t.x, y: t.y, z: 96, s: 'VAULT HAUL', c: '#ffc63d', life: 100, big: true });
+  }
   if (b.type === 'precinct' && isGood(b)) {
     G.wd.heat = 0;
     G.wd.heatT = 0;

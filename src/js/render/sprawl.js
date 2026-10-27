@@ -26,9 +26,17 @@ function drawBuildings(base) {
       }
       continue;
     }
-    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114, club: 88, precinct: 104 }[
-        b.type
-      ],
+    const H0 = {
+        safe: 86,
+        home: 94,
+        business: 78,
+        hideout: 70,
+        blacksite: 114,
+        club: 88,
+        precinct: 104,
+        clinic: 82,
+        talisman: 76
+      }[b.type],
       col = {
         safe: '#18261e',
         home: '#231c33',
@@ -36,7 +44,9 @@ function drawBuildings(base) {
         hideout: '#2a1a1c',
         blacksite: '#10141f',
         club: '#2a1630',
-        precinct: '#141c2e'
+        precinct: '#141c2e',
+        clinic: '#14262a',
+        talisman: '#241a30'
       }[b.type];
     ctx.fillStyle = col;
     ctx.fillRect(x, base - H0, b.w, H0);
@@ -68,14 +78,16 @@ function drawBuildings(base) {
     }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
-      good = b.type === 'safe' || isGood(b);
-    const frame = b.type === 'safe' ? '#7dffb0' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
+      shop = isShop(b),
+      good = shop || isGood(b);
+    const frame =
+      b.type === 'safe' ? '#7dffb0' : shop ? '#ffc63d' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
     ctx.fillStyle = '#07050b';
     ctx.fillRect(dx - 12, base - 40, 24, 40);
     ctx.strokeStyle = frame;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(dx - 12.5, base - 40.5, 25, 40);
-    if (!looted && b.type !== 'safe') {
+    if (!looted && !shop) {
       ctx.fillStyle = frame;
       ctx.globalAlpha = 0.08 + 0.05 * Math.sin(G.t * 0.1 + b.id);
       ctx.fillRect(dx - 12, base - 40, 24, 40);
@@ -95,7 +107,7 @@ function drawBuildings(base) {
     const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
-    ctx.fillStyle = looted ? '#6b6280' : good ? '#7dffb0' : '#ff3d8b';
+    ctx.fillStyle = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
     if (b.bounty && !w.bountyDone) {
@@ -103,7 +115,20 @@ function drawBuildings(base) {
       ctx.font = '600 13px Teko, Impact, sans-serif';
       ctx.fillText('☠ BOUNTY', dx, base - 68 + Math.sin(G.t * 0.1) * 1.5);
     }
-    if (b.type !== 'safe') {
+    if (b.type === 'clinic' || b.type === 'talisman') {
+      // a lit shop sign: a cross for the clinic, an eye for the talisman shop
+      ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
+      if (b.type === 'clinic') {
+        ctx.fillRect(dx - 2, base - 76, 4, 12);
+        ctx.fillRect(dx - 6, base - 72, 12, 4);
+      } else {
+        ctx.beginPath();
+        ctx.ellipse(dx, base - 70, 7, 4, 0, 0, 7);
+        ctx.fill();
+        ctx.fillStyle = '#0b0812';
+        ctx.fillRect(dx - 1.5, base - 72, 3, 4);
+      }
+    } else if (b.type !== 'safe') {
       for (let k = 0; k < b.tier; k++) {
         ctx.fillStyle = frame;
         ctx.fillRect(dx - 8 + k * 6, base - 63, 4, 3);
@@ -127,7 +152,15 @@ function drawMinimap() {
       ctx.fillRect(mx - 2.5, y - 5, 5, 2);
     }
     ctx.fillStyle =
-      b.type === 'safe' ? '#7dffb0' : w.looted.includes(b.id) ? '#4a4060' : isGood(b) ? '#7dffb0' : '#ff3d8b';
+      b.type === 'safe'
+        ? '#7dffb0'
+        : isShop(b)
+          ? '#ffc63d'
+          : w.looted.includes(b.id)
+            ? '#4a4060'
+            : isGood(b)
+              ? '#7dffb0'
+              : '#ff3d8b';
     ctx.fillRect(mx - 1.5, y - 2, 3, 4);
   }
   for (const e of G.ents)

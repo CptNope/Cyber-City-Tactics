@@ -149,7 +149,7 @@ function refresh(p) {
     g = p.eq.gun,
     ar = p.eq.armor,
     cy = p.cy,
-    cyN = cy.arm + cy.wired + cy.plate,
+    cyN = cy.arm + cy.wired + cy.plate + (cy.eyes || 0) + (cy.boost || 0),
     wb = (w && BASES.weapon[w.base]) || {};
   p.D = {
     a,
@@ -161,6 +161,7 @@ function refresh(p) {
       0.03 +
       a.agi * 0.025 +
       cy.wired * 0.04 +
+      (cy.eyes || 0) * 0.08 +
       (wb.crit || 0) +
       ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0),
     spd: 1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08,

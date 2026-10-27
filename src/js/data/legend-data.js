@@ -327,6 +327,13 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
+  {
+    id: 'rare',
+    name: 'Off the Books',
+    desc: 'Buy rare cyberware at a clinic or learn a rare spell at a talisman shop.',
+    lp: 10
+  },
   { id: 'team1', name: 'Two-Man Job', desc: 'Land a co-op team attack.', lp: 10, stat: 'teamups', n: 1 },
   { id: 'team25', name: 'In Sync', desc: 'Land 25 team attacks.', lp: 20, stat: 'teamups', n: 25 },
   {

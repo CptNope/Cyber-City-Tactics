@@ -367,6 +367,60 @@ function drawHud() {
     }
   }
 }
+// Hazard rooms: a flickering warning, then a live lane of current; or growing shadows under falling debris
+function drawHazard() {
+  const h = G.hazard;
+  if (h.k === 'shock') {
+    const c = h.t % 240;
+    if (c >= 170 || c < 1) return;
+    const y0 = laneY(h.lane),
+      y1 = laneY(h.lane + 1),
+      live = c >= 70;
+    if (!live) {
+      if ((G.t >> 3) % 2) {
+        ctx.strokeStyle = 'rgba(69,210,255,0.6)';
+        ctx.setLineDash && ctx.setLineDash([6, 5]);
+        ctx.strokeRect(1, y0, W - 2, y1 - y0);
+        ctx.setLineDash && ctx.setLineDash([]);
+      }
+      return;
+    }
+    ctx.fillStyle = 'rgba(69,210,255,0.16)';
+    ctx.fillRect(0, y0, W, y1 - y0);
+    ctx.strokeStyle = '#bff3ff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+      let x = ((k * 97 + G.t * 7) % W) | 0,
+        y = y0 + ((k * 13) % (y1 - y0));
+      ctx.moveTo(x, y);
+      for (let s = 0; s < 4; s++) {
+        x += rand(4, 10);
+        y = clamp(y + rand(-5, 5), y0, y1);
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.stroke();
+  } else {
+    for (const d of h.drops) {
+      const sx = d.x - G.camX;
+      if (d.t < 50) {
+        const k = d.t / 50;
+        ctx.fillStyle = `rgba(0,0,0,${0.15 + k * 0.35})`;
+        ctx.beginPath();
+        ctx.ellipse(sx, d.y, 6 + k * 12, 2 + k * 5, 0, 0, 7);
+        ctx.fill();
+        if (d.t > 30) {
+          const fy = d.y - (50 - d.t) * 9;
+          fillPoly([sx - 8, fy - 10, sx + 7, fy - 12, sx + 9, fy, sx - 6, fy + 2], '#4a4060');
+        }
+      } else {
+        ctx.fillStyle = '#3a3348';
+        fillPoly([sx - 12, d.y + 2, sx - 5, d.y - 6, sx + 6, d.y - 5, sx + 13, d.y + 3], '#3a3348');
+      }
+    }
+  }
+}
 // Nightclub rooms: a dance floor of colored tiles pulsing to the beat
 function drawDanceFloor() {
   const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
@@ -454,6 +508,7 @@ function render() {
   ctx.translate(shx, shy + BAND);
   drawBg();
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
+  if (G.hazard) drawHazard();
   for (const k of G.picks) drawPick(k);
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });
@@ -470,7 +525,9 @@ function render() {
       const fa = fogAlpha(o.e),
         cl = o.e.cloaked && o.e.state !== 'dead';
       if (fa <= 0) continue;
-      ctx.globalAlpha = cl ? fa * (0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
+      // thermographic eyes on any runner make cloaked shadows easy to see
+      const seen = cl && PL.some(q => !q.out && q.cy && q.cy.eyes);
+      ctx.globalAlpha = cl ? fa * (seen ? 0.55 : 0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawAura(o.e);
       drawFig(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);

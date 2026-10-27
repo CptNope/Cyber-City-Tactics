@@ -186,7 +186,7 @@ function bcardHtml(b) {
 function hackHtml() {
   const h = G.hack,
     b = h.b;
-  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · lock ${b.tier}</p><h2>Crack the lock</h2>
+  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${h.vault ? 'vault, lock 4' : 'lock ' + b.tier}</p><h2>${h.vault ? 'Crack the vault' : 'Crack the lock'}</h2>
   <p>${PAD.active ? 'Press A or X' : isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
   <div class="trk" id="hkTrk"><div class="zone" id="hkZone"></div><div class="cur" id="hkCur"></div></div>
   <p id="hkProg"></p>

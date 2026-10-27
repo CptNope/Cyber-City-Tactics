@@ -784,6 +784,35 @@ function castSpell(p) {
         .sort((a, b) => Math.hypot(a.x - c.x, a.y - c.y) - Math.hypot(b.x - c.x, b.y - c.y))[0];
     }
   }
+  if (id === 'frost') {
+    for (const e of G.ents)
+      if (
+        e.team === 1 &&
+        e.state !== 'dead' &&
+        !(e.d && e.d.passive) &&
+        Math.hypot(e.x - p.x, (e.y - p.y) * 2) < 70
+      )
+        hurt(e, 10 + pw * 0.8, e.x >= p.x ? 1 : -1, { src: p, magic: true, col: '#bfefff', ax: p.x });
+    G.slowFoes = Math.max(G.slowFoes, 180);
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 10, c: '#bfefff', life: 22, max: 22, r: 70 });
+    burst(p.x, p.y, 20, '#bfefff', 18);
+    sfx.spell();
+  }
+  if (id === 'drain')
+    G.projs.push({
+      k: 'bolt',
+      tint: 'drain',
+      drain: true,
+      team: 0,
+      src: p,
+      x: p.x + p.face * 16,
+      y: p.y,
+      z: p.z + 28,
+      vx: p.face * 5,
+      dmg: 9 + pw * 1.1,
+      life: 90,
+      r: 4
+    });
   if (id === 'heal') {
     const n = Math.round((20 + pw * 1.6) * fm);
     for (const q of alive())

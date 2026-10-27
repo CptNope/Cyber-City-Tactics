@@ -252,7 +252,15 @@ function setLbl(a, html, dim) {
   b.innerHTML = html;
   b.classList.toggle('dim', !!dim);
 }
-const SPSHORT = { fire: 'FIRE', bolt: 'BOLT', heal: 'HEAL', barrier: 'WARD', chain: 'CHAIN' };
+const SPSHORT = {
+  fire: 'FIRE',
+  bolt: 'BOLT',
+  heal: 'HEAL',
+  barrier: 'WARD',
+  chain: 'CHAIN',
+  frost: 'FROST',
+  drain: 'DRAIN'
+};
 function updateTouchUI() {
   if (!isTouch()) return;
   const portrait = (window.innerHeight || 0) > (window.innerWidth || 0);

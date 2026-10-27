@@ -342,10 +342,12 @@ function nextArenaWave() {
     if (w >= 7) pool.push('riot', 'spirit');
     if (w >= 6) pool.push('hound', 'hound');
     if (w >= 8) pool.push('ninja', 'feral');
-    if (w >= 11) pool.push('mech');
+    if (w >= 13) pool.push('mech');
     if (w >= 9) pool.push('glitch', 'ice');
     const n = Math.min(7, 2 + Math.floor(w * 0.5)) + (G.coop ? 1 : 0);
     for (let i = 0; i < n; i++) list.push(wpick(pool));
+    let mechs = 0;
+    list = list.map(k => (k === 'mech' && mechs++ ? 'sec' : k)); // one walker per wave is plenty
     if (modOn('tide')) list.push('spirit');
   }
   list.forEach((k, i) => {

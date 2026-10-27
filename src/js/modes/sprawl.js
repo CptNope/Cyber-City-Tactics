@@ -125,6 +125,9 @@ const FAC = {
 };
 // A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
 const PRECINCT_CRED = 30;
+const pickR = (r, a) => a[Math.floor(r() * a.length)];
+// Shops on the street: the safehouse, back-alley clinics and talisman shops. You trade there; you never rob them.
+const isShop = b => b.type === 'safe' || b.type === 'clinic' || b.type === 'talisman';
 const isGood = b =>
   b.type === 'secret' ||
   b.type === 'hideout' ||
@@ -194,6 +197,7 @@ const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
 const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
 function genStreet(level, seed) {
+  // (shop buildings are converted from businesses below)
   const r = srng(seed),
     B = [];
   let x = 40;
@@ -235,6 +239,20 @@ function genStreet(level, seed) {
       seed: Math.floor(r() * 1e9)
     });
     x += w + 16 + Math.floor(r() * 36);
+  }
+  // from block 2, a back-alley clinic and a talisman shop may take over two businesses
+  if (level >= 2) {
+    const biz = B.filter(b => b.type === 'business');
+    for (const [kind, name, chance] of [
+      ['clinic', pickR(r, ['Ripperdoc Saito', 'Chrome & Bone clinic', 'Dr. Okonkwo, no questions']), 0.65],
+      ['talisman', pickR(r, ['Moonlit Talismans', 'Seven Bells charms', "Grandmother Ash's shop"]), 0.65]
+    ]) {
+      const i = Math.floor(r() * biz.length);
+      if (r() < chance && biz[i]) {
+        Object.assign(biz[i], { type: kind, name, tier: 0, dirty: false, bounty: null });
+        biz.splice(i, 1);
+      }
+    }
   }
   // a block event, rolled from the seed (never on block 1)
   const er = r();
@@ -496,6 +514,10 @@ function openDoor(b) {
   if (b.type === 'safe') {
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
+  } else if (b.type === 'clinic' || b.type === 'talisman') {
+    G.shop = b;
+    G.sheetIdx = 0;
+    setMode('shop');
   } else {
     G.bsel = b;
     setMode('bcard');

@@ -162,6 +162,23 @@ const SPELLS = {
     desc: 'Arcs through up to three enemies in front of you.',
     req: 4,
     price: 240
+  },
+  // rare spells: only taught at Sprawl talisman shops
+  frost: {
+    name: 'Frost Nova',
+    cost: 26,
+    desc: 'A ring of ice around you: damages everything close and slows every enemy for three seconds.',
+    req: 5,
+    price: 380,
+    rare: true
+  },
+  drain: {
+    name: 'Soul Drain',
+    cost: 16,
+    desc: 'A dark bolt that heals you for half the damage it deals.',
+    req: 4,
+    price: 320,
+    rare: true
   }
 };
 const ARCH = {

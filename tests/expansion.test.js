@@ -597,3 +597,136 @@ try {
   herr = e;
 }
 ok(!herr, 'hostage, mech and feral render without errors' + (herr ? ': ' + herr.message : ''));
+
+// ---- street shops: clinic and talisman
+let shopsOk = true,
+  nClinic = 0,
+  nTal = 0;
+for (let i = 0; i < 150; i++) {
+  const st = A.genStreet(2, i * 4241 + 7);
+  nClinic += st.buildings.filter(b => b.type === 'clinic').length;
+  nTal += st.buildings.filter(b => b.type === 'talisman').length;
+  if (st.buildings.some(b => A.isShop(b) && A.isGood(b))) shopsOk = false;
+  if (A.genStreet(1, i * 4241 + 7).buildings.some(b => b.type === 'clinic' || b.type === 'talisman'))
+    shopsOk = false;
+}
+ok(
+  shopsOk && nClinic > 60 && nTal > 60,
+  `clinics (${nClinic}) and talisman shops (${nTal}) from block 2, never robbable`
+);
+click('quit');
+click('worldpick');
+click('world1');
+P = __PL()[0];
+G.sheetIdx = 0;
+__PARTY.creds = 5000;
+const clinicB = { id: 90, type: 'clinic', tier: 0, x: P.x, w: 140, name: 'Ripperdoc Saito', seed: 1 };
+A.openDoor(clinicB);
+ok(
+  G.mode === 'shop' && /Thermographic eyes/.test(els.ov._h) && /Reflex booster/.test(els.ov._h),
+  'clinic sells rare cyberware'
+);
+ok(!/Thermographic eyes/.test(A.npcHtml('doc')), "Doc doesn't stock it");
+const crit0 = P.D.crit;
+click('cyber:eyes');
+ok(
+  P.cy.eyes === 1 && P.D.crit > crit0 && A.LEG.feats.rare,
+  'thermographic eyes installed: +crit, Off the Books'
+);
+const cr0 = __PARTY.creds;
+click('cyber:eyes');
+ok(__PARTY.creds === cr0 && P.cy.eyes === 1, 'rare pieces install once');
+click('leave');
+const talB = { id: 91, type: 'talisman', tier: 0, x: P.x, w: 140, name: 'Moonlit Talismans', seed: 2 };
+A.openDoor(talB);
+ok(
+  /Frost Nova/.test(els.ov._h) && /Soul Drain/.test(els.ov._h) && !/Frost Nova/.test(A.npcHtml('wen')),
+  'talisman shop teaches rare spells; Old Wen does not'
+);
+P.D.a.mag = 9;
+click('learn:frost');
+click('learn:drain');
+ok(P.spells.includes('frost') && P.spells.includes('drain'), 'learned Frost Nova and Soul Drain');
+click('leave');
+clearFoes();
+let fz = foe('ganger', 30);
+fz.hp = fz.maxHp = 200;
+P.spell = P.spells.indexOf('frost');
+A.castSpell(P);
+ok(fz.hp < 200 && G.slowFoes > 100, 'Frost Nova hurts nearby enemies and slows them all');
+fz.inv = 0;
+P.hp = 20;
+P.spell = P.spells.indexOf('drain');
+A.castSpell(P);
+step(12);
+ok(P.hp > 20, 'Soul Drain heals the caster (' + P.hp + ')');
+
+// ---- hazard rooms
+const hzB = { id: 92, type: 'hideout', tier: 2, x: P.x, w: 140, name: 'Hazard den', seed: 11 };
+A.enterBuilding(hzB);
+clearFoes();
+P = __PL()[0];
+P.inv = 0;
+P.hp = P.maxHp;
+G.hazard = { k: 'shock', t: 239, lane: 0, drops: [] };
+const zg = foe('ganger', 40);
+zg.hp = zg.maxHp = 200;
+zg.cool = 9999;
+step(2);
+const ly = G.hazard.lane;
+zg.y = A.laneY(ly) + 4;
+P.y = A.laneY((ly + 1) % 3) + 6;
+const php = P.hp;
+for (let i = 0; i < 100; i++) {
+  zg.y = A.laneY(ly) + 4;
+  zg.state = 'idle';
+  step(1);
+}
+ok(zg.hp < 200 && P.hp === php, 'live wiring hurts whoever stands in its lane, and only there');
+G.hazard = { k: 'ceiling', t: 1, lane: 0, drops: [{ x: P.x, y: P.y, t: 45 }] };
+P.inv = 0;
+const php2 = P.hp;
+step(8);
+ok(P.hp < php2, 'falling debris lands where its shadow was');
+G.hazard = null;
+
+// ---- vaults
+const vB = { id: 93, type: 'blacksite', tier: 3, x: P.x, w: 140, name: 'Vault test', seed: 21 };
+A.enterBuilding(vB);
+A.enterRoom(G.dun.rooms - 1);
+const vault = G.ents.find(e => e.kind === 'chest');
+P = __PL()[0];
+ok(vault && vault.vault, 'tier-3 fair-game building: the cache is a vault');
+A.hurt(vault, 99, 1, { src: P, melee: true });
+ok(G.mode === 'play' && vault.state !== 'dead', 'enemies standing: the vault waits');
+clearFoes();
+A.hurt(vault, 99, 1, { src: P, melee: true });
+ok(
+  G.mode === 'hack' && G.hack.vault === vault && G.hack.need === 5,
+  'room clear: hitting the vault starts a lock-4 hack'
+);
+A.hackWin();
+ok(G.mode === 'play' && vault.vaultDone && vault.bonus, 'cracked: vault open');
+const gearN = G.picks.filter(k => k.k === 'gear').length;
+A.hurt(vault, 99, 1, { src: P, melee: true });
+step(2);
+ok(
+  A.LEG.feats.vault && G.picks.filter(k => k.k === 'gear').length > gearN,
+  'breaking it pays the vault haul: Safecracker'
+);
+
+// ---- feral spirits stay on screen
+click('quit');
+P = start([]);
+P.inv = 999;
+P.x = G.camX + 30;
+const fer = A.spawnEnemy('feral', 1);
+fer.x = P.x + 60;
+fer.y = P.y;
+fer.elite = null;
+fer.cool = 9999;
+step(300);
+ok(
+  fer.x >= G.camX + 20 && fer.x <= G.camX + A.W - 20,
+  'a feral spirit backs off but never leaves the screen (' + Math.round(fer.x - G.camX) + ')'
+);

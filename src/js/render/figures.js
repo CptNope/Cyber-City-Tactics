@@ -307,6 +307,21 @@ function drawPassive(e) {
     ctx.lineWidth = 1;
     ctx.strokeRect(sx - 10.5, sy - 39.5, 21, 39);
   }
+  if (e.kind === 'chest' && e.vault && !e.vaultDone) {
+    // a heavy vault door with a lock light that pulses until it's hacked
+    ctx.fillStyle = fl ? '#fff' : '#2a2e3e';
+    ctx.fillRect(sx - 14, sy - 30, 28, 30);
+    ctx.strokeStyle = '#ffc63d';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sx - 14.5, sy - 30.5, 29, 30);
+    ctx.beginPath();
+    ctx.arc(sx, sy - 15, 7, 0, 7);
+    ctx.stroke();
+    ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#ffc63d';
+    ctx.fillRect(sx + 9, sy - 27, 3, 3);
+    ctx.globalAlpha = 1;
+    return;
+  }
   if (e.kind === 'chest') {
     const tc = G.dun ? ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][G.dun.b.tier] : '#ffc63d';
     ctx.fillStyle = fl ? '#fff' : '#2a2238';
@@ -1095,9 +1110,11 @@ function drawProj(pr) {
     const c =
       pr.k === 'fire' || pr.tint === 'fire'
         ? ['255,106,61', '#ffe7a8']
-        : pr.k === 'bolt' || pr.tint === 'bolt'
-          ? ['185,140,255', '#f2e9ff']
-          : ['69,210,255', '#e6fbff'];
+        : pr.tint === 'drain'
+          ? ['122,40,90', '#ffb0d8']
+          : pr.k === 'bolt' || pr.tint === 'bolt'
+            ? ['185,140,255', '#f2e9ff']
+            : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);
     ctx.fillStyle = `rgba(${c[0]},.25)`;
     ctx.beginPath();
