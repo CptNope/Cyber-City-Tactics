@@ -212,7 +212,9 @@ const INT = {
   blacksite: { wall: '#0f1622', trim: '#1c2a3e', lamp: '#45d2ff', deco: 'rack' },
   business: { wall: '#1d2233', trim: '#2c3450', lamp: '#ffe9b0', deco: 'shelf' },
   home: { wall: '#2a2236', trim: '#3a3048', lamp: '#ffb36b', deco: 'frame' },
-  dirty: { wall: '#1a1626', trim: '#3a2f18', lamp: '#ffc63d', deco: 'art' }
+  dirty: { wall: '#1a1626', trim: '#3a2f18', lamp: '#ffc63d', deco: 'art' },
+  club: { wall: '#1c1024', trim: '#3a1640', lamp: '#ff3d8b', deco: 'tag' },
+  precinct: { wall: '#18202e', trim: '#26324a', lamp: '#45d2ff', deco: 'rack' }
 };
 function drawInterior(base) {
   const D0 = G.dun,

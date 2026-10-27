@@ -325,6 +325,23 @@ const FEATS = [
     n: 8
   },
   {
+    id: 'parry1',
+    name: 'Not Even Close',
+    desc: 'Parry an attack with a well-timed dodge.',
+    lp: 5,
+    stat: 'parries',
+    n: 1
+  },
+  { id: 'parry25', name: 'Untouchable', desc: 'Parry 25 attacks.', lp: 15, stat: 'parries', n: 25 },
+  { id: 'club', name: 'Last Call', desc: 'Clean out a gang nightclub.', lp: 10 },
+  {
+    id: 'precinct',
+    name: 'Clean Record',
+    desc: 'Raid a Lone Star precinct once the street trusts you, and shred your file.',
+    lp: 20,
+    hidden: 1
+  },
+  {
     id: 'craft1',
     name: 'Back-Alley Engineer',
     desc: "Rework a piece of gear at Ratchet's workbench.",

@@ -27,7 +27,9 @@ const BNAMES = {
   ],
   blacksite: ['Kagemori lab annex', 'Data vault', 'Corp black site', 'Prototype depot'],
   home: ['Walk-up 3F', 'Apartment 2C', 'Row house', 'Coffin hotel 14', 'Basement flat', 'Corner flat'],
-  dirty: ['Penthouse', 'Glass condo', 'Gated loft', 'Rooftop suite']
+  dirty: ['Penthouse', 'Glass condo', 'Gated loft', 'Rooftop suite'],
+  club: ['Club Static', 'The Hex Lounge', 'Neon Fang club', 'Bass Cathedral', 'Club Chrome Heart'],
+  precinct: ['Lone Star precinct 9', 'Lone Star precinct 14', 'Lone Star substation']
 };
 const OWNERS = {
   business: [
@@ -53,6 +55,15 @@ const OWNERS = {
     'A gang crew that shakes down every shop on the block',
     'Gangers who run chop shops and protection rackets',
     'A crew that has been feeding people to ghouls'
+  ],
+  club: [
+    'A gang-run club that launders protection money through the bar',
+    'A crew nightclub where the back room deals cut chrome',
+    'The Neon Fangs run their whole racket from the VIP booth'
+  ],
+  precinct: [
+    'The precinct on Kagemori payroll that keeps this block scared',
+    'Lone Star officers who take bribes from every crew but one'
   ],
   blacksite: [
     'A Kagemori site running experiments on people from this block',
@@ -83,6 +94,20 @@ const FAC = {
     theme: 1
   },
   home: { pool: [], t3: [], boss: [null, null, null, null], bossName: ['', '', '', ''], theme: -1 },
+  club: {
+    pool: ['ganger', 'ganger', 'ganger', 'orc'],
+    t3: ['shaman', 'hound'],
+    boss: [null, 'orc', 'orc', 'troll'],
+    bossName: ['', 'Head bouncer', 'Head bouncer', 'Club owner'],
+    theme: 1
+  },
+  precinct: {
+    pool: ['cop', 'cop', 'drone', 'riot'],
+    t3: ['riot', 'sec'],
+    boss: [null, 'riot', 'riot', 'riot'],
+    bossName: ['', 'Watch commander', 'Watch commander', 'Watch commander'],
+    theme: 3
+  },
   dirty: {
     pool: ['sec', 'orc', 'ganger'],
     t3: ['riot'],
@@ -98,8 +123,15 @@ const FAC = {
     theme: 2
   }
 };
+// A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
+const PRECINCT_CRED = 30;
 const isGood = b =>
-  b.type === 'secret' || b.type === 'hideout' || b.type === 'blacksite' || (b.type === 'home' && b.dirty);
+  b.type === 'secret' ||
+  b.type === 'hideout' ||
+  b.type === 'blacksite' ||
+  b.type === 'club' ||
+  (b.type === 'precinct' && typeof G !== 'undefined' && G.wd && G.wd.rep >= PRECINCT_CRED) ||
+  (b.type === 'home' && b.dirty);
 const facOf = b => (b.type === 'home' ? (b.dirty ? 'dirty' : 'home') : b.type);
 const EVENTS = {
   gangwar: {
@@ -156,8 +188,8 @@ const BOUNTY_N = [
 ];
 const roomsOf = b =>
   b.type === 'home' && !b.dirty ? 1 : b.final ? 4 : b.type === 'secret' ? (b.vault ? 3 : 2) : b.tier + 1;
-const heatFor = b => (b.type === 'business' ? b.tier + 1 : 2);
-const credLoss = b => (b.type === 'business' ? 5 * b.tier : 12);
+const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
+const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
 const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
@@ -170,9 +202,23 @@ function genStreet(level, seed) {
   for (let i = 1; i <= 14; i++) {
     const w = 128 + Math.floor(r() * 56),
       roll = r();
-    let type = roll < 0.3 ? 'home' : roll < 0.54 ? 'business' : roll < 0.8 ? 'hideout' : 'blacksite';
+    let type =
+      roll < 0.27
+        ? 'home'
+        : roll < 0.49
+          ? 'business'
+          : roll < 0.71
+            ? 'hideout'
+            : roll < 0.86
+              ? 'blacksite'
+              : roll < 0.95
+                ? 'club'
+                : 'precinct';
+    // at most two clubs and one precinct per block, and no precinct on block 1
+    if (type === 'club' && B.filter(o => o.type === 'club').length >= 2) type = 'hideout';
+    if (type === 'precinct' && (level < 2 || B.some(o => o.type === 'precinct'))) type = 'business';
     const dirty = type === 'home' && r() < 0.38;
-    const tier = clamp(1 + Math.floor(r() * 2) + Math.floor((level - 1) / 2), 1, 3);
+    const tier = type === 'precinct' ? 3 : clamp(1 + Math.floor(r() * 2) + Math.floor((level - 1) / 2), 1, 3);
     const pool = BNAMES[dirty ? 'dirty' : type],
       own = OWNERS[dirty ? 'dirty' : type];
     let nm = pool[Math.floor(r() * pool.length)];

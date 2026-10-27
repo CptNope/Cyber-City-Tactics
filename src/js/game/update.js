@@ -11,8 +11,11 @@ function update() {
   if (G.fade > 0 && !G.outro) G.fade = Math.max(0, G.fade - 0.035);
   if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.05);
   G.comboT++;
-  if (G.comboT > 110) G.combo = 0;
-  for (const p of PL) if (!p.out) upRunner(p);
+  if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
+  for (const p of PL) {
+    if (p.parryT > 0) p.parryT--;
+    if (!p.out) upRunner(p);
+  }
   reviveTick();
   for (const e of G.ents) if (e.kind === 'ally') upAlly(e);
   if (G.mode !== 'play' && G.mode !== 'den') return;

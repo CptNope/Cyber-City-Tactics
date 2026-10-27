@@ -39,6 +39,20 @@ function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
   if (t.state === 'down' && !o.air) return false;
+  // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
+  if (
+    t.team === 0 &&
+    t.kind === 'player' &&
+    t.state === 'roll' &&
+    t.t <= PARRY_WINDOW &&
+    o.att &&
+    o.att.team === 1 &&
+    !o.bullet &&
+    !o.magic
+  ) {
+    parry(t, o.att);
+    return false;
+  }
   if (t.team === 0 && t.state === 'roll' && t.t < 15) return false;
   if (
     t.team === 0 &&
@@ -110,6 +124,7 @@ function hurt(t, dmg, dir, o) {
   } else if (
     o.src &&
     (roninCrit(o) ||
+      (o.melee && o.src.parryT > 0 && useParryCrit(o.src)) ||
       Math.random() <
         o.src.D.crit +
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
@@ -433,6 +448,7 @@ function kill(t, dir, o) {
       (1 + G.ng * 0.25) *
       (1 + Math.min(G.combo, 30) * 0.02) *
       (evOn('parade') ? 1.5 : 1) *
+      (G.dun && G.dun.b.type === 'club' ? 1.5 : 1) *
       (t.mini ? 0.5 : 1)
   );
   if (c > 0) drop('cred', t.x, t.y, { v: c });
@@ -466,6 +482,26 @@ function kill(t, dir, o) {
 function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
+}
+const useParryCrit = p => ((p.parryT = 0), true); // a parry's counter is one guaranteed crit
+const PARRY_WINDOW = 8; // frames into a dodge that count as a parry (about 0.13 s)
+function parry(p, e) {
+  if (e.parried === G.t) return;
+  e.parried = G.t;
+  p.parryT = 90;
+  e.cool = Math.max(e.cool || 0, e.d.boss ? 70 : 130);
+  if (!e.d.boss && !e.d.fly && e.state !== 'down') {
+    setS(e, 'hurt');
+    e.t = -30; // a longer stagger than a normal flinch
+    e.vx = (e.x >= p.x ? 1 : -1) * 2;
+  }
+  G.slow = Math.max(G.slow, 14);
+  G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 26, c: '#ffc63d', life: 16, max: 16, r: 30 });
+  G.texts.push({ x: p.x, y: p.y, z: 64, s: 'PARRY', c: '#ffc63d', life: 46, big: true });
+  sfx.clank();
+  buzz(20);
+  bump('parries');
+  tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
 }
 function strike(att, reach, dmg, o) {
   let hit = false;

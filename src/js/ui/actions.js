@@ -247,6 +247,11 @@ ov.addEventListener('click', e => {
     case 'close':
       setMode(G.ret);
       break;
+    case 'map':
+      if (G.mode === 'play') G.ret = 'play';
+      setMode('map');
+      keep = false;
+      break;
     case 'leave':
       setMode(G.world ? 'play' : 'den');
       if (G.world) saveWorld();

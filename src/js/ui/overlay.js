@@ -106,12 +106,13 @@ function renderOv() {
   }
   if (m === 'pause') {
     h = `<div class="card"><p class="eyebrow">Paused · ${G.world ? 'the Sprawl · block ' + G.wd.level + ' · heat ' + G.wd.heat : G.training ? 'training step ' + (G.tstep + 1) + ' of ' + TRAIN.length : G.arena ? 'arena wave ' + G.awave + ' · score ' + G.score.toLocaleString() : G.den ? 'the Den' : 'district ' + (G.stage + 1)} · ${DIFF[G.diff].name}${G.ng && !G.arena ? ' NG+' + G.ng : ''}</p><h2>Catch your breath</h2>${G.den || G.arena ? '' : jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if (m === 'npc') h = npcHtml(G.npc);
   if (m === 'settings') h = settingsHtml();
   if (m === 'codex') h = codexHtml();
   if (m === 'bcard') h = bcardHtml(G.bsel);
+  if (m === 'map') h = mapHtml();
   if (m === 'hack') h = hackHtml();
   if (m === 'safe') h = safeHtml();
   if (m === 'worldpick') {
@@ -176,6 +177,47 @@ function renderOv() {
     if (f) f.focus({ preventScroll: true });
   }
   padRestoreFocus();
+}
+// The block map: every building on this street in order, with type, tier and what's left to do
+function mapHtml() {
+  const w = G.wd,
+    p = alive()[0] || PL[0],
+    good0 = b => b.type === 'safe' || isGood(b);
+  const kinds = {
+    safe: 'Safehouse',
+    home: 'Residence',
+    business: 'Business',
+    hideout: 'Gang hideout',
+    blacksite: 'Black site',
+    club: 'Nightclub',
+    precinct: 'Precinct',
+    secret: 'Hidden door'
+  };
+  const list = w.street.buildings
+    .filter(b => !b.hidden || w.found.includes(b.id))
+    .slice()
+    .sort((a, b) => a.x - b.x);
+  const rows = list
+    .map(b => {
+      const lo = w.looted.includes(b.id),
+        d = Math.round((b.x - p.x) / 10),
+        here = Math.abs(d) < 4,
+        st =
+          b.type === 'safe'
+            ? ['Rest, shops, lay low', 'var(--ok)']
+            : lo
+              ? ['Cleaned out', 'var(--muted)']
+              : good0(b)
+                ? ['Fair game', 'var(--ok)']
+                : ['Hurts the block', 'var(--neon)'];
+      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${b.type === 'safe' ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
+    })
+    .join('');
+  const left = list.filter(b => b.type !== 'safe' && isGood(b) && !w.looted.includes(b.id)).length;
+  const ev = w.street.event
+    ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
+    : '';
+  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div><div class="row"><button class="btn" data-a="close">Back to the street</button></div></div>`;
 }
 // Ratchet's workbench: spend parts on the current runner's equipped gear
 function workbenchHtml() {

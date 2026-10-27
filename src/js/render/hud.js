@@ -367,6 +367,20 @@ function drawHud() {
     }
   }
 }
+// Nightclub rooms: a dance floor of colored tiles pulsing to the beat
+function drawDanceFloor() {
+  const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
+    beat = G.t >> 4;
+  for (let ty = 0; ty < 4; ty++)
+    for (let tx = 0; tx * 40 < W; tx++) {
+      const k = (tx * 7 + ty * 3 + beat) % 9;
+      if (k > 3) continue;
+      ctx.fillStyle = cols[(tx + ty + beat) % cols.length];
+      ctx.globalAlpha = 0.1 + (k === 0 ? 0.08 : 0);
+      ctx.fillRect(tx * 40 + 2, FY0 + 4 + ty * 23, 36, 20);
+    }
+  ctx.globalAlpha = 1;
+}
 // Top band on tall screens: night sky fading into the district's sky, with a few stars
 function drawSkyBand() {
   const S = curS(),
@@ -439,6 +453,7 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   drawBg();
+  if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   for (const k of G.picks) drawPick(k);
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });

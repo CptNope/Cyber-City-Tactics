@@ -950,7 +950,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+17ff5c2';
+const APP_VERSION = '2.0.0+ae92ea7';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1600,6 +1600,17 @@ addEventListener('keydown', e => {
         G.hack = null;
         setMode('play');
       } else globalAct('pause');
+    }
+    return;
+  }
+  if (c === 'KeyM' && G.world && G.wd && !G.dun && (G.mode === 'play' || G.mode === 'map')) {
+    e.preventDefault();
+    if (!e.repeat) {
+      if (G.mode === 'map') setMode('play');
+      else {
+        G.ret = 'play';
+        setMode('map');
+      }
     }
     return;
   }
@@ -3674,6 +3685,23 @@ const FEATS = [
     n: 8
   },
   {
+    id: 'parry1',
+    name: 'Not Even Close',
+    desc: 'Parry an attack with a well-timed dodge.',
+    lp: 5,
+    stat: 'parries',
+    n: 1
+  },
+  { id: 'parry25', name: 'Untouchable', desc: 'Parry 25 attacks.', lp: 15, stat: 'parries', n: 25 },
+  { id: 'club', name: 'Last Call', desc: 'Clean out a gang nightclub.', lp: 10 },
+  {
+    id: 'precinct',
+    name: 'Clean Record',
+    desc: 'Raid a Lone Star precinct once the street trusts you, and shred your file.',
+    lp: 20,
+    hidden: 1
+  },
+  {
     id: 'craft1',
     name: 'Back-Alley Engineer',
     desc: "Rework a piece of gear at Ratchet's workbench.",
@@ -4692,6 +4720,20 @@ function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
   if (t.state === 'down' && !o.air) return false;
+  // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
+  if (
+    t.team === 0 &&
+    t.kind === 'player' &&
+    t.state === 'roll' &&
+    t.t <= PARRY_WINDOW &&
+    o.att &&
+    o.att.team === 1 &&
+    !o.bullet &&
+    !o.magic
+  ) {
+    parry(t, o.att);
+    return false;
+  }
   if (t.team === 0 && t.state === 'roll' && t.t < 15) return false;
   if (
     t.team === 0 &&
@@ -4763,6 +4805,7 @@ function hurt(t, dmg, dir, o) {
   } else if (
     o.src &&
     (roninCrit(o) ||
+      (o.melee && o.src.parryT > 0 && useParryCrit(o.src)) ||
       Math.random() <
         o.src.D.crit +
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
@@ -5086,6 +5129,7 @@ function kill(t, dir, o) {
       (1 + G.ng * 0.25) *
       (1 + Math.min(G.combo, 30) * 0.02) *
       (evOn('parade') ? 1.5 : 1) *
+      (G.dun && G.dun.b.type === 'club' ? 1.5 : 1) *
       (t.mini ? 0.5 : 1)
   );
   if (c > 0) drop('cred', t.x, t.y, { v: c });
@@ -5119,6 +5163,26 @@ function kill(t, dir, o) {
 function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
+}
+const useParryCrit = p => ((p.parryT = 0), true); // a parry's counter is one guaranteed crit
+const PARRY_WINDOW = 8; // frames into a dodge that count as a parry (about 0.13 s)
+function parry(p, e) {
+  if (e.parried === G.t) return;
+  e.parried = G.t;
+  p.parryT = 90;
+  e.cool = Math.max(e.cool || 0, e.d.boss ? 70 : 130);
+  if (!e.d.boss && !e.d.fly && e.state !== 'down') {
+    setS(e, 'hurt');
+    e.t = -30; // a longer stagger than a normal flinch
+    e.vx = (e.x >= p.x ? 1 : -1) * 2;
+  }
+  G.slow = Math.max(G.slow, 14);
+  G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 26, c: '#ffc63d', life: 16, max: 16, r: 30 });
+  G.texts.push({ x: p.x, y: p.y, z: 64, s: 'PARRY', c: '#ffc63d', life: 46, big: true });
+  sfx.clank();
+  buzz(20);
+  bump('parries');
+  tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
 }
 function strike(att, reach, dmg, o) {
   let hit = false;
@@ -6737,8 +6801,11 @@ function update() {
   if (G.fade > 0 && !G.outro) G.fade = Math.max(0, G.fade - 0.035);
   if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.05);
   G.comboT++;
-  if (G.comboT > 110) G.combo = 0;
-  for (const p of PL) if (!p.out) upRunner(p);
+  if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
+  for (const p of PL) {
+    if (p.parryT > 0) p.parryT--;
+    if (!p.out) upRunner(p);
+  }
   reviveTick();
   for (const e of G.ents) if (e.kind === 'ally') upAlly(e);
   if (G.mode !== 'play' && G.mode !== 'den') return;
@@ -7258,7 +7325,9 @@ const BNAMES = {
   ],
   blacksite: ['Kagemori lab annex', 'Data vault', 'Corp black site', 'Prototype depot'],
   home: ['Walk-up 3F', 'Apartment 2C', 'Row house', 'Coffin hotel 14', 'Basement flat', 'Corner flat'],
-  dirty: ['Penthouse', 'Glass condo', 'Gated loft', 'Rooftop suite']
+  dirty: ['Penthouse', 'Glass condo', 'Gated loft', 'Rooftop suite'],
+  club: ['Club Static', 'The Hex Lounge', 'Neon Fang club', 'Bass Cathedral', 'Club Chrome Heart'],
+  precinct: ['Lone Star precinct 9', 'Lone Star precinct 14', 'Lone Star substation']
 };
 const OWNERS = {
   business: [
@@ -7284,6 +7353,15 @@ const OWNERS = {
     'A gang crew that shakes down every shop on the block',
     'Gangers who run chop shops and protection rackets',
     'A crew that has been feeding people to ghouls'
+  ],
+  club: [
+    'A gang-run club that launders protection money through the bar',
+    'A crew nightclub where the back room deals cut chrome',
+    'The Neon Fangs run their whole racket from the VIP booth'
+  ],
+  precinct: [
+    'The precinct on Kagemori payroll that keeps this block scared',
+    'Lone Star officers who take bribes from every crew but one'
   ],
   blacksite: [
     'A Kagemori site running experiments on people from this block',
@@ -7314,6 +7392,20 @@ const FAC = {
     theme: 1
   },
   home: { pool: [], t3: [], boss: [null, null, null, null], bossName: ['', '', '', ''], theme: -1 },
+  club: {
+    pool: ['ganger', 'ganger', 'ganger', 'orc'],
+    t3: ['shaman', 'hound'],
+    boss: [null, 'orc', 'orc', 'troll'],
+    bossName: ['', 'Head bouncer', 'Head bouncer', 'Club owner'],
+    theme: 1
+  },
+  precinct: {
+    pool: ['cop', 'cop', 'drone', 'riot'],
+    t3: ['riot', 'sec'],
+    boss: [null, 'riot', 'riot', 'riot'],
+    bossName: ['', 'Watch commander', 'Watch commander', 'Watch commander'],
+    theme: 3
+  },
   dirty: {
     pool: ['sec', 'orc', 'ganger'],
     t3: ['riot'],
@@ -7329,8 +7421,15 @@ const FAC = {
     theme: 2
   }
 };
+// A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
+const PRECINCT_CRED = 30;
 const isGood = b =>
-  b.type === 'secret' || b.type === 'hideout' || b.type === 'blacksite' || (b.type === 'home' && b.dirty);
+  b.type === 'secret' ||
+  b.type === 'hideout' ||
+  b.type === 'blacksite' ||
+  b.type === 'club' ||
+  (b.type === 'precinct' && typeof G !== 'undefined' && G.wd && G.wd.rep >= PRECINCT_CRED) ||
+  (b.type === 'home' && b.dirty);
 const facOf = b => (b.type === 'home' ? (b.dirty ? 'dirty' : 'home') : b.type);
 const EVENTS = {
   gangwar: {
@@ -7387,8 +7486,8 @@ const BOUNTY_N = [
 ];
 const roomsOf = b =>
   b.type === 'home' && !b.dirty ? 1 : b.final ? 4 : b.type === 'secret' ? (b.vault ? 3 : 2) : b.tier + 1;
-const heatFor = b => (b.type === 'business' ? b.tier + 1 : 2);
-const credLoss = b => (b.type === 'business' ? 5 * b.tier : 12);
+const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
+const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
 const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
@@ -7401,9 +7500,23 @@ function genStreet(level, seed) {
   for (let i = 1; i <= 14; i++) {
     const w = 128 + Math.floor(r() * 56),
       roll = r();
-    let type = roll < 0.3 ? 'home' : roll < 0.54 ? 'business' : roll < 0.8 ? 'hideout' : 'blacksite';
+    let type =
+      roll < 0.27
+        ? 'home'
+        : roll < 0.49
+          ? 'business'
+          : roll < 0.71
+            ? 'hideout'
+            : roll < 0.86
+              ? 'blacksite'
+              : roll < 0.95
+                ? 'club'
+                : 'precinct';
+    // at most two clubs and one precinct per block, and no precinct on block 1
+    if (type === 'club' && B.filter(o => o.type === 'club').length >= 2) type = 'hideout';
+    if (type === 'precinct' && (level < 2 || B.some(o => o.type === 'precinct'))) type = 'business';
     const dirty = type === 'home' && r() < 0.38;
-    const tier = clamp(1 + Math.floor(r() * 2) + Math.floor((level - 1) / 2), 1, 3);
+    const tier = type === 'precinct' ? 3 : clamp(1 + Math.floor(r() * 2) + Math.floor((level - 1) / 2), 1, 3);
     const pool = BNAMES[dirty ? 'dirty' : type],
       own = OWNERS[dirty ? 'dirty' : type];
     let nm = pool[Math.floor(r() * pool.length)];
@@ -7848,7 +7961,9 @@ function enterRoom(i) {
   const r = D0.rng,
     last = i === D0.rooms - 1,
     pool = D0.fac.pool.concat(b.tier >= 3 ? D0.fac.t3 : []);
-  const n = pool.length ? Math.min(7, b.tier + i + (G.coop ? 1 : 0)) : 0;
+  const n = pool.length
+    ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+    : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
@@ -7975,6 +8090,15 @@ function lootChest(t) {
     G.wd.street.buildings.filter(x => isGood(x) && x.type !== 'secret').every(x => G.wd.looted.includes(x.id))
   )
     feat('captain');
+  if (b.type === 'club') feat('club');
+  if (b.type === 'precinct' && isGood(b)) {
+    G.wd.heat = 0;
+    G.wd.heatT = 0;
+    drop('icebrk', t.x + 26, t.y + 4);
+    drop('cred', t.x - 26, t.y + 4, { v: 150 + G.wd.level * 60 });
+    feat('precinct');
+    G.texts.push({ x: t.x, y: t.y, z: 96, s: 'FILE SHREDDED · HEAT 0', c: '#45d2ff', life: 110 });
+  }
   if (isGood(b)) {
     const cr = 8 * tier * (evOn('gangwar') && b.type === 'hideout' ? 2 : 1);
     G.wd.rep = Math.min(100, G.wd.rep + cr);
@@ -10195,7 +10319,9 @@ const INT = {
   blacksite: { wall: '#0f1622', trim: '#1c2a3e', lamp: '#45d2ff', deco: 'rack' },
   business: { wall: '#1d2233', trim: '#2c3450', lamp: '#ffe9b0', deco: 'shelf' },
   home: { wall: '#2a2236', trim: '#3a3048', lamp: '#ffb36b', deco: 'frame' },
-  dirty: { wall: '#1a1626', trim: '#3a2f18', lamp: '#ffc63d', deco: 'art' }
+  dirty: { wall: '#1a1626', trim: '#3a2f18', lamp: '#ffc63d', deco: 'art' },
+  club: { wall: '#1c1024', trim: '#3a1640', lamp: '#ff3d8b', deco: 'tag' },
+  precinct: { wall: '#18202e', trim: '#26324a', lamp: '#45d2ff', deco: 'rack' }
 };
 function drawInterior(base) {
   const D0 = G.dun,
@@ -10358,24 +10484,46 @@ function drawBuildings(base) {
       }
       continue;
     }
-    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114 }[b.type],
+    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114, club: 88, precinct: 104 }[
+        b.type
+      ],
       col = {
         safe: '#18261e',
         home: '#231c33',
         business: '#18243a',
         hideout: '#2a1a1c',
-        blacksite: '#10141f'
+        blacksite: '#10141f',
+        club: '#2a1630',
+        precinct: '#141c2e'
       }[b.type];
     ctx.fillStyle = col;
     ctx.fillRect(x, base - H0, b.w, H0);
     ctx.fillStyle = 'rgba(255,255,255,.05)';
     ctx.fillRect(x, base - H0, b.w, 2);
     const wr = srng(b.seed);
-    ctx.fillStyle = b.type === 'blacksite' ? '#45d2ff' : b.type === 'hideout' ? '#ff6a3d' : '#ffb36b';
+    ctx.fillStyle =
+      b.type === 'blacksite' || b.type === 'precinct'
+        ? '#45d2ff'
+        : b.type === 'hideout'
+          ? '#ff6a3d'
+          : b.type === 'club'
+            ? '#ff3d8b'
+            : '#ffb36b';
     ctx.globalAlpha = 0.4;
     for (let wy = base - H0 + 8; wy < base - 60; wy += 12)
       for (let wx = x + 6; wx < x + b.w - 8; wx += 12) if (wr() < 0.45) ctx.fillRect(wx, wy, 5, 6);
     ctx.globalAlpha = 1;
+    if (b.type === 'club') {
+      // a strip of chasing lights over the door
+      for (let k = 0; k < b.w / 8; k++) {
+        ctx.fillStyle = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff'][(k + (G.t >> 3)) % 4];
+        ctx.fillRect(x + 2 + k * 8, base - 46, 4, 2);
+      }
+    } else if (b.type === 'precinct') {
+      // a siren bar on the roof
+      ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      ctx.fillRect(b.x - G.camX - 8, base - H0 - 4, 16, 4);
+    }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
       good = b.type === 'safe' || isGood(b);
@@ -10820,6 +10968,20 @@ function drawHud() {
     }
   }
 }
+// Nightclub rooms: a dance floor of colored tiles pulsing to the beat
+function drawDanceFloor() {
+  const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
+    beat = G.t >> 4;
+  for (let ty = 0; ty < 4; ty++)
+    for (let tx = 0; tx * 40 < W; tx++) {
+      const k = (tx * 7 + ty * 3 + beat) % 9;
+      if (k > 3) continue;
+      ctx.fillStyle = cols[(tx + ty + beat) % cols.length];
+      ctx.globalAlpha = 0.1 + (k === 0 ? 0.08 : 0);
+      ctx.fillRect(tx * 40 + 2, FY0 + 4 + ty * 23, 36, 20);
+    }
+  ctx.globalAlpha = 1;
+}
 // Top band on tall screens: night sky fading into the district's sky, with a few stars
 function drawSkyBand() {
   const S = curS(),
@@ -10892,6 +11054,7 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   drawBg();
+  if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   for (const k of G.picks) drawPick(k);
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });
@@ -11088,7 +11251,7 @@ function attractStep() {
 /* ================= overlays ================= */
 const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / grab / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
-<b>Dodge</b><span>O or Left Shift</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span></div></div>
+<b>Dodge, parry</b><span>O or Left Shift, right as a hit lands</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span><b>Block map</b><span>M in the Sprawl</span></div></div>
 <div><h3>Runner 2</h3><div class="keys"><b>Move</b><span>Arrows</span><b>Punch</b><span>, or Numpad 1</span><b>Kick</b><span>. or Numpad 2</span><b>Jump</b><span>/ or Numpad 3</span>
 <b>Dodge</b><span>Right Shift</span><b>Special</b><span>\\ or Numpad 8</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
@@ -11096,7 +11259,7 @@ const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 const touchHelp = `<div class="keys">
 <b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
-<b>DODGE</b><span>Roll through attacks</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
+<b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
 <p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
@@ -11229,6 +11392,8 @@ function bcardHtml(b) {
         business: 'Business',
         hideout: 'Gang hideout',
         blacksite: 'Corporate black site',
+        club: 'Gang nightclub',
+        precinct: 'Lone Star precinct',
         secret: 'Hidden door'
       }[b.type];
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
@@ -11240,6 +11405,14 @@ function bcardHtml(b) {
       : b.type === 'home' && !b.dirty
         ? 'a little cash and a medkit'
         : `${b.tier} item${b.tier > 1 ? 's' : ''} (${RAR[Math.max(0, b.tier - 1)].n} or better), creds and maybe an icebreaker`;
+  const special =
+    b.type === 'club'
+      ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Dance floor</b>Twice the crowd, all of them drunk. Combos last twice as long in here, and every takedown pays 50% more creds.</p>`
+      : b.type === 'precinct'
+        ? good
+          ? `<p class="say" style="border-color:var(--mana)"><b style="color:var(--mana)">Evidence locker</b>Clean this place out and your file goes in the shredder: heat drops to zero. Expect cops in every room.</p>`
+          : `<p class="say"><b>Juno</b>Not yet. Hit a precinct before the street trusts you and you're just a cop killer. Get your street cred to +${PRECINCT_CRED} first.</p>`
+        : '';
   const moral = good
     ? `<p class="say" style="border-color:var(--ok)"><b style="color:var(--ok)">Pixel's intel</b>${esc(b.owner)}. Cleaning this place out helps the street: cred +${8 * b.tier} and bonus karma.</p>`
     : `<p class="say"><b>Pixel's intel</b>${esc(b.owner)}. Breaking in here hurts people who did nothing to you. Heat +${heatFor(b)} (cops will come), cred −${credLoss(b)}.</p>`;
@@ -11251,7 +11424,7 @@ function bcardHtml(b) {
     b.type === 'secret'
       ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Off the map</b>${esc(b.owner)} Whatever's at the bottom has a real chance of being legendary.</p>`
       : '';
-  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${bty}
+  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
@@ -11590,12 +11763,13 @@ function renderOv() {
   }
   if (m === 'pause') {
     h = `<div class="card"><p class="eyebrow">Paused · ${G.world ? 'the Sprawl · block ' + G.wd.level + ' · heat ' + G.wd.heat : G.training ? 'training step ' + (G.tstep + 1) + ' of ' + TRAIN.length : G.arena ? 'arena wave ' + G.awave + ' · score ' + G.score.toLocaleString() : G.den ? 'the Den' : 'district ' + (G.stage + 1)} · ${DIFF[G.diff].name}${G.ng && !G.arena ? ' NG+' + G.ng : ''}</p><h2>Catch your breath</h2>${G.den || G.arena ? '' : jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if (m === 'npc') h = npcHtml(G.npc);
   if (m === 'settings') h = settingsHtml();
   if (m === 'codex') h = codexHtml();
   if (m === 'bcard') h = bcardHtml(G.bsel);
+  if (m === 'map') h = mapHtml();
   if (m === 'hack') h = hackHtml();
   if (m === 'safe') h = safeHtml();
   if (m === 'worldpick') {
@@ -11660,6 +11834,47 @@ function renderOv() {
     if (f) f.focus({ preventScroll: true });
   }
   padRestoreFocus();
+}
+// The block map: every building on this street in order, with type, tier and what's left to do
+function mapHtml() {
+  const w = G.wd,
+    p = alive()[0] || PL[0],
+    good0 = b => b.type === 'safe' || isGood(b);
+  const kinds = {
+    safe: 'Safehouse',
+    home: 'Residence',
+    business: 'Business',
+    hideout: 'Gang hideout',
+    blacksite: 'Black site',
+    club: 'Nightclub',
+    precinct: 'Precinct',
+    secret: 'Hidden door'
+  };
+  const list = w.street.buildings
+    .filter(b => !b.hidden || w.found.includes(b.id))
+    .slice()
+    .sort((a, b) => a.x - b.x);
+  const rows = list
+    .map(b => {
+      const lo = w.looted.includes(b.id),
+        d = Math.round((b.x - p.x) / 10),
+        here = Math.abs(d) < 4,
+        st =
+          b.type === 'safe'
+            ? ['Rest, shops, lay low', 'var(--ok)']
+            : lo
+              ? ['Cleaned out', 'var(--muted)']
+              : good0(b)
+                ? ['Fair game', 'var(--ok)']
+                : ['Hurts the block', 'var(--neon)'];
+      return `<div class="item"><div><div class="nm" style="color:${lo ? 'var(--muted)' : good0(b) ? 'var(--ok)' : 'var(--neon)'}">${esc(b.name)}${b.bounty && !w.bountyDone ? ' <span style="color:var(--gold)">☠ bounty</span>' : ''}</div><div class="ds">${kinds[b.type]}${b.type === 'safe' ? '' : ' · tier ' + '▮'.repeat(b.tier) + '▯'.repeat(3 - b.tier)} · <span style="color:${st[1]}">${st[0]}</span></div></div><div class="acts"><span style="color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px">${here ? 'Here' : (d < 0 ? '◀ ' : '') + Math.abs(d) + ' m' + (d > 0 ? ' ▶' : '')}</span></div></div>`;
+    })
+    .join('');
+  const left = list.filter(b => b.type !== 'safe' && isGood(b) && !w.looted.includes(b.id)).length;
+  const ev = w.street.event
+    ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
+    : '';
+  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div><div class="row"><button class="btn" data-a="close">Back to the street</button></div></div>`;
 }
 // Ratchet's workbench: spend parts on the current runner's equipped gear
 function workbenchHtml() {
@@ -12099,6 +12314,11 @@ ov.addEventListener('click', e => {
       break;
     case 'close':
       setMode(G.ret);
+      break;
+    case 'map':
+      if (G.mode === 'play') G.ret = 'play';
+      setMode('map');
+      keep = false;
       break;
     case 'leave':
       setMode(G.world ? 'play' : 'den');

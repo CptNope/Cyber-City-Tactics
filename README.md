@@ -288,6 +288,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Combat
 - **Strikes:** punch combos end in an uppercut. You also have kicks and flying kicks.
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
+- **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
 - **Grabs:** walk into a staggered enemy. Punch to knee them, or kick to throw them into others.
 - **Throwables:** trash cans, crates and explosive drums.
@@ -322,6 +323,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 | Gang hideout | Good: +cred, bonus karma | Gangers, orcs, shamans; a crew lieutenant or boss |
 | Corp black site | Good | Security, riot troopers, drones, ICE; a site chief or vault ICE |
 | Crooked exec's or gang boss's home | Good | Bodyguards |
+| Gang nightclub | Good | Twice the crowd: gangers and orcs, a head bouncer or the club owner. A pulsing dance floor; combos last twice as long and takedowns pay 50% more creds |
+| Lone Star precinct (always tier 3, at most one per block, never on block 1) | Good only at street cred +30 or more; before that, bad: −20 cred, +4 heat | Cops, drones, riot troopers and a watch commander. Clearing it shreds your file: heat drops to zero, plus a big creds payout and an icebreaker |
 | Business | Bad: −cred, +heat | Security and a head of security; more creds |
 | Family home | Bad: −cred, +heat | Nobody to fight, and almost nothing worth taking |
 
@@ -348,6 +351,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 **Things to find on every block:**
 - **Juno's bounty.** One tougher building on each block holds a named target, marked ☠ BOUNTY on its sign and in gold on the minimap. Take them down for a big cred payout, karma and a shot at a legendary.
 - **Hidden doors.** Some blocks have an unmarked door wedged between two buildings, and deeper blocks have more of them. It only shows up when you walk close. Behind it is a shrine, or on block 3 and beyond sometimes a wyrm-cult vault, with spirits, a lantern keeper or wyrm priest, a guaranteed lore shard and a good chance at a legendary. Hidden doors are always fair game: no heat.
+- **Block map.** Press **M** in the Sprawl, or pick *Block map* from the pause menu, for a list of every building on the street in order: its type, tier, whether it's fair game or already cleaned out, any bounty, and how far away it is.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
 **Block events.** From block 2 on, about seven blocks in ten have an event. A banner announces it, and it shows in the HUD and at the safehouse:
@@ -370,7 +374,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 58 goals across every mode, for example:
+**Feats.** 62 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss
@@ -409,7 +413,8 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Punch, grab, talk, enter | J | , or Numpad 1 | X |
 | Kick | K | . or Numpad 2 | B |
 | Jump | Space | / or Numpad 3 | A |
-| Dodge | O or Left Shift | Right Shift | LB |
+| Dodge (and parry) | O or Left Shift | Right Shift | LB |
+| Block map (Sprawl) | M | | Pause menu |
 | Special | F, or punch + kick | \\ or Numpad 8 | Stick click |
 | Heavy blow | Hold J | Hold , | Hold X |
 | Gun | U | ; | RB |

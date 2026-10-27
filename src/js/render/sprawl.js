@@ -26,24 +26,46 @@ function drawBuildings(base) {
       }
       continue;
     }
-    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114 }[b.type],
+    const H0 = { safe: 86, home: 94, business: 78, hideout: 70, blacksite: 114, club: 88, precinct: 104 }[
+        b.type
+      ],
       col = {
         safe: '#18261e',
         home: '#231c33',
         business: '#18243a',
         hideout: '#2a1a1c',
-        blacksite: '#10141f'
+        blacksite: '#10141f',
+        club: '#2a1630',
+        precinct: '#141c2e'
       }[b.type];
     ctx.fillStyle = col;
     ctx.fillRect(x, base - H0, b.w, H0);
     ctx.fillStyle = 'rgba(255,255,255,.05)';
     ctx.fillRect(x, base - H0, b.w, 2);
     const wr = srng(b.seed);
-    ctx.fillStyle = b.type === 'blacksite' ? '#45d2ff' : b.type === 'hideout' ? '#ff6a3d' : '#ffb36b';
+    ctx.fillStyle =
+      b.type === 'blacksite' || b.type === 'precinct'
+        ? '#45d2ff'
+        : b.type === 'hideout'
+          ? '#ff6a3d'
+          : b.type === 'club'
+            ? '#ff3d8b'
+            : '#ffb36b';
     ctx.globalAlpha = 0.4;
     for (let wy = base - H0 + 8; wy < base - 60; wy += 12)
       for (let wx = x + 6; wx < x + b.w - 8; wx += 12) if (wr() < 0.45) ctx.fillRect(wx, wy, 5, 6);
     ctx.globalAlpha = 1;
+    if (b.type === 'club') {
+      // a strip of chasing lights over the door
+      for (let k = 0; k < b.w / 8; k++) {
+        ctx.fillStyle = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff'][(k + (G.t >> 3)) % 4];
+        ctx.fillRect(x + 2 + k * 8, base - 46, 4, 2);
+      }
+    } else if (b.type === 'precinct') {
+      // a siren bar on the roof
+      ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      ctx.fillRect(b.x - G.camX - 8, base - H0 - 4, 16, 4);
+    }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
       good = b.type === 'safe' || isGood(b);

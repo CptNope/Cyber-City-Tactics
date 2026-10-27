@@ -26,7 +26,9 @@ function enterRoom(i) {
   const r = D0.rng,
     last = i === D0.rooms - 1,
     pool = D0.fac.pool.concat(b.tier >= 3 ? D0.fac.t3 : []);
-  const n = pool.length ? Math.min(7, b.tier + i + (G.coop ? 1 : 0)) : 0;
+  const n = pool.length
+    ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+    : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
@@ -153,6 +155,15 @@ function lootChest(t) {
     G.wd.street.buildings.filter(x => isGood(x) && x.type !== 'secret').every(x => G.wd.looted.includes(x.id))
   )
     feat('captain');
+  if (b.type === 'club') feat('club');
+  if (b.type === 'precinct' && isGood(b)) {
+    G.wd.heat = 0;
+    G.wd.heatT = 0;
+    drop('icebrk', t.x + 26, t.y + 4);
+    drop('cred', t.x - 26, t.y + 4, { v: 150 + G.wd.level * 60 });
+    feat('precinct');
+    G.texts.push({ x: t.x, y: t.y, z: 96, s: 'FILE SHREDDED · HEAT 0', c: '#45d2ff', life: 110 });
+  }
   if (isGood(b)) {
     const cr = 8 * tier * (evOn('gangwar') && b.type === 'hideout' ? 2 : 1);
     G.wd.rep = Math.min(100, G.wd.rep + cr);

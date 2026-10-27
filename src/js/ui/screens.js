@@ -6,7 +6,7 @@
 /* ================= overlays ================= */
 const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / grab / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
-<b>Dodge</b><span>O or Left Shift</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span></div></div>
+<b>Dodge, parry</b><span>O or Left Shift, right as a hit lands</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span><b>Block map</b><span>M in the Sprawl</span></div></div>
 <div><h3>Runner 2</h3><div class="keys"><b>Move</b><span>Arrows</span><b>Punch</b><span>, or Numpad 1</span><b>Kick</b><span>. or Numpad 2</span><b>Jump</b><span>/ or Numpad 3</span>
 <b>Dodge</b><span>Right Shift</span><b>Special</b><span>\\ or Numpad 8</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
@@ -14,7 +14,7 @@ const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 const touchHelp = `<div class="keys">
 <b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
-<b>DODGE</b><span>Roll through attacks</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
+<b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
 <p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
@@ -147,6 +147,8 @@ function bcardHtml(b) {
         business: 'Business',
         hideout: 'Gang hideout',
         blacksite: 'Corporate black site',
+        club: 'Gang nightclub',
+        precinct: 'Lone Star precinct',
         secret: 'Hidden door'
       }[b.type];
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
@@ -158,6 +160,14 @@ function bcardHtml(b) {
       : b.type === 'home' && !b.dirty
         ? 'a little cash and a medkit'
         : `${b.tier} item${b.tier > 1 ? 's' : ''} (${RAR[Math.max(0, b.tier - 1)].n} or better), creds and maybe an icebreaker`;
+  const special =
+    b.type === 'club'
+      ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Dance floor</b>Twice the crowd, all of them drunk. Combos last twice as long in here, and every takedown pays 50% more creds.</p>`
+      : b.type === 'precinct'
+        ? good
+          ? `<p class="say" style="border-color:var(--mana)"><b style="color:var(--mana)">Evidence locker</b>Clean this place out and your file goes in the shredder: heat drops to zero. Expect cops in every room.</p>`
+          : `<p class="say"><b>Juno</b>Not yet. Hit a precinct before the street trusts you and you're just a cop killer. Get your street cred to +${PRECINCT_CRED} first.</p>`
+        : '';
   const moral = good
     ? `<p class="say" style="border-color:var(--ok)"><b style="color:var(--ok)">Pixel's intel</b>${esc(b.owner)}. Cleaning this place out helps the street: cred +${8 * b.tier} and bonus karma.</p>`
     : `<p class="say"><b>Pixel's intel</b>${esc(b.owner)}. Breaking in here hurts people who did nothing to you. Heat +${heatFor(b)} (cops will come), cred −${credLoss(b)}.</p>`;
@@ -169,7 +179,7 @@ function bcardHtml(b) {
     b.type === 'secret'
       ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Off the map</b>${esc(b.owner)} Whatever's at the bottom has a real chance of being legendary.</p>`
       : '';
-  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${bty}
+  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }

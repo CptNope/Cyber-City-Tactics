@@ -371,3 +371,112 @@ ok(
   'reroll adds an affix (' + P.eq.weapon.name + '), Back-Alley Engineer'
 );
 ok(/Workbench/.test(A.npcHtml('ratchet')), 'workbench listed at Ratchet');
+
+// ---- parry
+click('quit');
+P = start([]);
+P.inv = 0;
+P.hp = P.maxHp;
+let pg = foe('ganger', 18);
+pg.face = -1;
+A.setS(pg, 'windup');
+pg.t = 14;
+A.setS(P, 'roll');
+P.rdx = 0;
+P.rdy = 0;
+let hp0 = P.hp;
+step(3);
+ok(
+  P.hp === hp0 && pg.state === 'hurt' && P.parryT > 0,
+  'dodging just before a hit parries: no damage, attacker staggered'
+);
+ok(A.LEG.feats.parry1, 'Not Even Close feat');
+pg.inv = 0;
+const tx0 = G.texts.length;
+A.hurt(pg, 5, 1, { src: P, melee: true });
+ok(
+  G.texts.slice(tx0).some(t => /CRIT/.test(t.s)) && P.parryT === 0,
+  'the counter-hit is a guaranteed crit, used once'
+);
+clearFoes();
+step(40);
+pg = foe('ganger', 18);
+pg.face = -1;
+A.setS(pg, 'windup');
+pg.t = 14;
+A.setS(P, 'roll');
+P.t = 12;
+P.rdx = 0;
+P.rdy = 0;
+step(3);
+ok(pg.state !== 'hurt' && !(P.parryT > 0), 'a late dodge still dodges, but is no parry');
+
+// ---- nightclubs and precincts
+let clubs = 0,
+  precs = 0,
+  okGen = true;
+for (let i = 0; i < 200; i++) {
+  const st = A.genStreet(3, i * 7919);
+  const c = st.buildings.filter(b => b.type === 'club').length,
+    pc = st.buildings.filter(b => b.type === 'precinct');
+  clubs += c;
+  precs += pc.length;
+  if (c > 2 || pc.length > 1 || pc.some(b => b.tier !== 3)) okGen = false;
+  if (A.genStreet(1, i * 7919).buildings.some(b => b.type === 'precinct')) okGen = false;
+}
+ok(
+  okGen && clubs > 50 && precs > 30,
+  `streets get clubs (${clubs}) and precincts (${precs}); ≤2 clubs, ≤1 tier-3 precinct, none on block 1`
+);
+click('quit');
+click('worldpick');
+click('world1');
+P = __PL()[0];
+const prec = {
+  id: 77,
+  type: 'precinct',
+  tier: 3,
+  x: P.x,
+  w: 140,
+  name: 'Lone Star precinct 9',
+  owner: 'x',
+  seed: 5
+};
+G.wd.rep = 0;
+ok(
+  !A.isGood(prec) && /Get your street cred to \+30/.test(A.bcardHtml(prec)),
+  'precinct is off limits below +30 cred'
+);
+G.wd.rep = 40;
+ok(A.isGood(prec) && /Evidence locker/.test(A.bcardHtml(prec)), 'at +30 cred it becomes fair game');
+G.wd.heat = 3;
+A.enterBuilding(prec);
+G.dun.room = G.dun.rooms - 1;
+const chest = { x: P.x + 40, y: P.y, kind: 'chest' };
+A.lootChest(chest);
+ok(G.wd.heat === 0 && A.LEG.feats.precinct, 'clearing a precinct shreds your file: heat 0, Clean Record');
+A.exitBuilding();
+const club = { id: 78, type: 'club', tier: 2, x: P.x, w: 140, name: 'Club Static', owner: 'x', seed: 9 };
+A.enterBuilding(club);
+const crowd = G.ents.filter(e => e.team === 1 && !e.d.passive).length;
+ok(A.isGood(club) && crowd === 4, 'nightclub: fair game, double crowd (' + crowd + ' in room 1)');
+let derr = null;
+try {
+  A.render();
+} catch (e) {
+  derr = e;
+}
+ok(!derr, 'dance floor renders' + (derr ? ': ' + derr.message : ''));
+A.exitBuilding();
+
+// ---- block map
+setMode = A.setMode;
+A.setMode('play');
+click('map');
+ok(
+  G.mode === 'map' && /Block 1 map/.test(els.ov._h) && /Safehouse/.test(els.ov._h),
+  'block map lists the street'
+);
+ok(/fair-game job/.test(els.ov._h) || /Block cleared/.test(els.ov._h), 'map counts the jobs left');
+click('close');
+ok(G.mode === 'play', 'map closes back to the street');

@@ -85,6 +85,17 @@ addEventListener('keydown', e => {
     }
     return;
   }
+  if (c === 'KeyM' && G.world && G.wd && !G.dun && (G.mode === 'play' || G.mode === 'map')) {
+    e.preventDefault();
+    if (!e.repeat) {
+      if (G.mode === 'map') setMode('play');
+      else {
+        G.ret = 'play';
+        setMode('map');
+      }
+    }
+    return;
+  }
   if (c === 'KeyC' || c === 'Tab') {
     if (ACTIVE() || G.mode === 'sheet') {
       e.preventDefault();
