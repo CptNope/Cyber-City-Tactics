@@ -122,8 +122,8 @@ Picked from what the graphics pass turned up:
 - [x] ~~**Low-health feel.**~~ Shipped: under 25% HP the edges bleed red on a heartbeat and the music muffles. Steady instead of pulsing under reduced motion; light mode keeps only the sound.
 
 ### Inventory and economy
-- [ ] **Safehouse stash (S).** 60 extra slots in the Sprawl safehouse and the Den, so collectors don't have to sell.
-- [ ] **New-item markers and auto-sort (S).** A dot on gear you haven't looked at yet, and a sort toggle (rarity, value, slot).
+- [x] ~~**Stash.**~~ Shipped: 60 slots, shared between Ratchet's locker in the Den and the Sprawl safehouse's Stash tab. Stashed gear can't be sold by accident; it belongs to the save, so a new run starts empty.
+- [x] ~~**New-item markers and sorting.**~~ Shipped: a NEW tag on gear until you close the character sheet, and a Best / Value / Newest toggle on every bag list.
 - [ ] **Rotating black market (M).** A trader who appears on random Sprawl blocks with one rare item, a price that drops each block you ignore it, and a cred requirement.
 - [ ] **Haggling (S).** A Face-style skill in the Decker tree, or a street-cred perk, that improves buy and sell prices.
 - [ ] **Item sets (L)** stay planned under Gear and loot.

@@ -58,7 +58,7 @@ const G = {
   denPrompt: null,
   briefFromDen: false
 };
-const PARTY = { creds: 0, bag: [], med: 2, contract: null, ally: null };
+const PARTY = { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null };
 let PL = [];
 
 const RUNNER_KEYS = [
@@ -206,7 +206,7 @@ function saveGame(phase) {
 }
 function loadGame(s) {
   G.coop = !!s.coop;
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null }, s.party || {});
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
   PL = (s.runners || []).map((r, i) => {
     const p = newRunner(i);
     for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];

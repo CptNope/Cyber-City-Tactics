@@ -24,7 +24,7 @@ ov.addEventListener('click', e => {
   const rerender = () => {
     renderOv();
     if (G.world) saveWorld();
-    else if (G.mode === 'npc' || G.ret === 'den') saveGame('den');
+    else if (G.mode === 'npc' || G.mode === 'locker' || G.ret === 'den') saveGame('den');
   };
   switch (a) {
     case 'pick':
@@ -531,6 +531,34 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'stash': {
+      const i = findBag(arg);
+      PARTY.stash = PARTY.stash || [];
+      if (i >= 0 && PARTY.stash.length < STASH_MAX) {
+        const it = PARTY.bag.splice(i, 1)[0];
+        it.fresh = false;
+        PARTY.stash.push(it);
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
+    case 'unstash': {
+      const st = PARTY.stash || [],
+        i = st.findIndex(x => x.uid === arg);
+      if (i >= 0 && PARTY.bag.length < BAG_MAX) {
+        PARTY.bag.push(st.splice(i, 1)[0]);
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
+    case 'locker':
+      setMode('locker');
+      break;
+    case 'lockerback':
+      openNPC('ratchet');
+      break;
     case 'lock': {
       // locked items can't be sold, dropped or scrapped, by a click or by "Sell all"
       const i = findBag(arg);
@@ -670,7 +698,7 @@ ov.addEventListener('click', e => {
       const i = G.stock.findIndex(x => x.uid === arg);
       if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < BAG_MAX) {
         PARTY.creds -= G.stock[i].price;
-        PARTY.bag.push(G.stock[i]);
+        PARTY.bag.push(gotItem(G.stock[i]));
         G.stock.splice(i, 1);
         sfx.loot();
       }

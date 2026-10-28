@@ -447,6 +447,7 @@ function startWorld(coop, ch) {
   Object.assign(PARTY, {
     creds: 120 + rankOf(legLP()) * 15,
     bag: [],
+    stash: [],
     med: 2,
     contract: null,
     ally: null,
@@ -501,7 +502,11 @@ function loadWorld(s) {
   G.diff = 1;
   G.ng = 0;
   newRunStats();
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null, ice: 0 }, s.party || {});
+  Object.assign(
+    PARTY,
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, ice: 0 },
+    s.party || {}
+  );
   PL = (s.runners || []).map((r, i) => {
     const p = newRunner(i);
     for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];

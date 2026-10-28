@@ -126,8 +126,24 @@ const RAR = [
   { n: 'Prototype', m: 1.55 },
   { n: 'Black-market', m: 1.9 }
 ];
-// The party bag holds this many items (it was 12). Shops buy anything in it.
-const BAG_MAX = 40;
+// The party bag holds this many items (it was 12). Shops buy anything in it. The stash (Den locker and Sprawl
+// safehouse, shared) holds STASH_MAX more and never leaves home.
+const BAG_MAX = 40,
+  STASH_MAX = 60;
+// Every newly acquired item is stamped: marked NEW until the character sheet is closed, and numbered so the
+// bag can sort newest first.
+function gotItem(it) {
+  it.fresh = true;
+  it.got = PARTY.gotN = (PARTY.gotN || 0) + 1;
+  return it;
+}
+// Bag ordering, shared by the character sheet, every sell list and the stash (prefs.bagSort)
+const BAG_SORTS = {
+  best: (a, b) => b.rar - a.rar || b.price - a.price,
+  value: (a, b) => b.price - a.price,
+  new: (a, b) => (b.got || 0) - (a.got || 0)
+};
+const bagSort = () => BAG_SORTS[prefs.bagSort] || BAG_SORTS.best;
 const RCOL = ['#efe9ff', '#45d2ff', '#ffc63d', '#ff8a3d'];
 const SPELLS = {
   fire: {

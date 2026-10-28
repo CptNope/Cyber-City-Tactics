@@ -5,6 +5,8 @@
 'use strict';
 function setMode(m) {
   if (legDirty) saveLeg();
+  // closing the character sheet means you've seen what's new in the bag
+  if (G.mode === 'sheet' && m !== 'sheet') for (const it of PARTY.bag) it.fresh = false;
   wake(m === 'play' || m === 'den');
   G.mode = m;
   ov.hidden = m === 'play' || m === 'den';
@@ -48,6 +50,10 @@ function renderOv() {
     <p>Ten short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+  }
+  if (m === 'locker') {
+    h = `<div class="card"><p class="eyebrow">The Den · Ratchet's back room</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Your locker</h2><span class="wallet">¥${PARTY.creds}</span></div>${stashHtml()}
+    <div class="row"><button class="btn" data-a="lockerback">Back to Ratchet</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
   }
   if (m === 'trainoffer') {
     // shown once, the first time someone starts a run without having trained
@@ -197,7 +203,7 @@ function renderOv() {
 // and talisman shops will take gear off your hands too, for three quarters of that. Grouped by slot,
 // best first, each line showing how it compares with what the runner on this tab has equipped.
 // lock toggle shown on every bag line; a locked item keeps its name marked so it's obvious in long lists
-const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name);
+const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name) + newTag(it);
 const lockBtn = it =>
   `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
@@ -212,7 +218,7 @@ function sellHtml(kind) {
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
   const groups = ['weapon', 'gun', 'armor']
     .map(slot => {
-      const its = bag.filter(it => it.slot === slot).sort((a, b) => b.rar - a.rar || b.price - a.price);
+      const its = bag.filter(it => it.slot === slot).sort(bagSort());
       if (!its.length) return '';
       return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
         .map(
@@ -222,9 +228,36 @@ function sellHtml(kind) {
         .join('')}`;
     })
     .join('');
-  return `<h3>Sell · bag ${bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
+  return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Sell · bag ${bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
   ${commons.length >= 2 ? `<div class="row"><button class="btn sm" data-a="sellcommon:${kind}">Sell all ${commons.length} Street-grade items · ¥${cTotal}</button></div>` : ''}
   <div class="list">${groups}</div>`;
+}
+// The stash: Ratchet's locker in the Den and the safehouse in the Sprawl share it. Gear here is safe from
+// "Sell all", wipes and full bags, and waits for you between runs of the same save.
+function stashHtml() {
+  const bag = PARTY.bag,
+    st = (PARTY.stash = PARTY.stash || []),
+    p = PL[G.sheetIdx] || PL[0];
+  const col = (list, act, label, room) =>
+    ['weapon', 'gun', 'armor']
+      .map(slot => {
+        const its = list.filter(it => it.slot === slot).sort(bagSort());
+        return its.length
+          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+              its
+                .map(
+                  it =>
+                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
+                )
+                .join('')
+          : '';
+      })
+      .join('') || '<p>Empty.</p>';
+  return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Stash · ${st.length}/${STASH_MAX}</h3>${sortSeg()}</div>
+  <p style="color:var(--muted);font-size:13px">Shared between Ratchet's locker in the Den and your safehouse in the Sprawl. Stashed gear can't be sold by accident and stays put while you're out on the street.</p>
+  <div class="list">${col(st, 'unstash', bag.length < BAG_MAX ? 'Take' : 'Bag full', bag.length < BAG_MAX)}</div>
+  <h3>Party bag · ${bag.length}/${BAG_MAX}</h3>
+  <div class="list">${col(bag, 'stash', st.length < STASH_MAX ? 'Stash' : 'Stash full', st.length < STASH_MAX)}</div>`;
 }
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],
@@ -424,6 +457,7 @@ function npcHtml(id) {
             .join('')
         : '<p>Sold out.</p>'
     }</div>
+    <div class="row"><button class="btn sm" data-a="locker">Open your locker · ${(PARTY.stash || []).length}/${STASH_MAX}</button></div>
     ${sellHtml('fence')}
     ${workbenchHtml()}`;
   } else if (id === 'kit') {
@@ -504,7 +538,14 @@ function newRun(coop) {
   if (coop) PL.push(newRunner(1));
   G.coop = !!coop;
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  Object.assign(PARTY, { creds: rankOf(legLP()) * 15, bag: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, {
+    creds: rankOf(legLP()) * 15,
+    bag: [],
+    stash: [],
+    med: 2,
+    contract: null,
+    ally: null
+  });
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;

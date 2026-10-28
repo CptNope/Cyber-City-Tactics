@@ -973,3 +973,16 @@ body.pad-nav #ov :focus {
 .item.locked {
   border-color: rgba(255, 198, 61, 0.45);
 }
+
+/* NEW marker on gear you haven't looked at yet: small, gold, quiet */
+.newtag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--ink);
+  font: 600 10px/16px var(--font-body);
+  vertical-align: 2px;
+  letter-spacing: 0.04em;
+}

@@ -991,6 +991,19 @@ body.pad-nav #ov :focus {
 .item.locked {
   border-color: rgba(255, 198, 61, 0.45);
 }
+
+/* NEW marker on gear you haven't looked at yet: small, gold, quiet */
+.newtag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--gold);
+  color: var(--ink);
+  font: 600 10px/16px var(--font-body);
+  vertical-align: 2px;
+  letter-spacing: 0.04em;
+}
 </style>
 </head>
 <body>
@@ -1020,7 +1033,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+52a1575';
+const APP_VERSION = '2.0.0+95c21ea';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3097,8 +3110,24 @@ const RAR = [
   { n: 'Prototype', m: 1.55 },
   { n: 'Black-market', m: 1.9 }
 ];
-// The party bag holds this many items (it was 12). Shops buy anything in it.
-const BAG_MAX = 40;
+// The party bag holds this many items (it was 12). Shops buy anything in it. The stash (Den locker and Sprawl
+// safehouse, shared) holds STASH_MAX more and never leaves home.
+const BAG_MAX = 40,
+  STASH_MAX = 60;
+// Every newly acquired item is stamped: marked NEW until the character sheet is closed, and numbered so the
+// bag can sort newest first.
+function gotItem(it) {
+  it.fresh = true;
+  it.got = PARTY.gotN = (PARTY.gotN || 0) + 1;
+  return it;
+}
+// Bag ordering, shared by the character sheet, every sell list and the stash (prefs.bagSort)
+const BAG_SORTS = {
+  best: (a, b) => b.rar - a.rar || b.price - a.price,
+  value: (a, b) => b.price - a.price,
+  new: (a, b) => (b.got || 0) - (a.got || 0)
+};
+const bagSort = () => BAG_SORTS[prefs.bagSort] || BAG_SORTS.best;
 const RCOL = ['#efe9ff', '#45d2ff', '#ffc63d', '#ff8a3d'];
 const SPELLS = {
   fire: {
@@ -4491,7 +4520,7 @@ const G = {
   denPrompt: null,
   briefFromDen: false
 };
-const PARTY = { creds: 0, bag: [], med: 2, contract: null, ally: null };
+const PARTY = { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null };
 let PL = [];
 
 const RUNNER_KEYS = [
@@ -4639,7 +4668,7 @@ function saveGame(phase) {
 }
 function loadGame(s) {
   G.coop = !!s.coop;
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null }, s.party || {});
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
   PL = (s.runners || []).map((r, i) => {
     const p = newRunner(i);
     for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
@@ -7949,7 +7978,7 @@ function collect(k, p) {
       if (k.t % 60 === 1) say(p, 'BAG FULL', '#a79dc2');
       return;
     }
-    PARTY.bag.push(k.item);
+    PARTY.bag.push(gotItem(k.item));
     sfx.loot();
     say(p, k.item.name.toUpperCase(), RCOL[k.item.rar]);
     gotLegend(k.item);
@@ -8083,7 +8112,7 @@ function stageClear() {
     const pz = deb.prize;
     pz.rar = 2;
     pz.name = 'Prototype ' + BASES[pz.slot][pz.base].name;
-    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(pz);
+    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(gotItem(pz));
   }
   G.debrief = deb;
   G.texts.push({ x: G.camX + W / 2, y: 150, z: 0, s: 'DISTRICT CLEAR', c: '#ffc63d', life: 90, big: true });
@@ -8564,6 +8593,7 @@ function startWorld(coop, ch) {
   Object.assign(PARTY, {
     creds: 120 + rankOf(legLP()) * 15,
     bag: [],
+    stash: [],
     med: 2,
     contract: null,
     ally: null,
@@ -8618,7 +8648,11 @@ function loadWorld(s) {
   G.diff = 1;
   G.ng = 0;
   newRunStats();
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null, ice: 0 }, s.party || {});
+  Object.assign(
+    PARTY,
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, ice: 0 },
+    s.party || {}
+  );
   PL = (s.runners || []).map((r, i) => {
     const p = newRunner(i);
     for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
@@ -9577,7 +9611,7 @@ function startTraining() {
   G.coop = false;
   PL = [newRunner(0)];
   applyArch(PL[0], G.pendArch[0]);
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
   G.training = true;
   G.arena = false;
   G.den = false;
@@ -9816,7 +9850,7 @@ const PERKS = [
     go() {
       const it = randItem(G.stage + G.ng, true);
       if (!it.rar) Object.assign(it, mkItem(it.slot, it.base, 1));
-      PARTY.bag.push(it);
+      PARTY.bag.push(gotItem(it));
       G.texts.push({
         x: W / 2,
         y: 150,
@@ -9935,7 +9969,7 @@ function startArena(coop, challenge) {
   newRunStats();
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   for (const p of PL) {
     p.lvl = 3;
@@ -14105,9 +14139,13 @@ function safeHtml() {
     ['kit', 'Kit'],
     ['wen', 'Old Wen'],
     ['ratchet', 'Ratchet'],
+    ['stash', 'Stash'],
     ['lay', 'Lay low']
   ];
   const bar = `<div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button class="tab" role="tab" aria-selected="${G.safeTab === k}" data-a="safetab:${k}">${n}</button>`).join('')}</div>`;
+  if (G.safeTab === 'stash')
+    return `<div class="card"><p class="eyebrow">Safehouse · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Stash</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}${stashHtml()}
+    <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
   if (G.safeTab !== 'lay')
     return npcHtml(G.safeTab)
       .replace('<p class="eyebrow">The Den ·', '<p class="eyebrow">Safehouse ·')
@@ -14211,6 +14249,19 @@ function itemLine1(it) {
       : '')
   );
 }
+const newTag = it => (it.fresh ? '<span class="newtag">New</span>' : '');
+// sort toggle for any bag list
+const sortSeg = () =>
+  `<div class="seg" role="group" aria-label="Sort">${[
+    ['best', 'Best'],
+    ['value', 'Value'],
+    ['new', 'Newest']
+  ]
+    .map(
+      ([v, l]) =>
+        `<button data-a="pref:bagSort:${v}" aria-pressed="${(prefs.bagSort || 'best') === v}">${l}</button>`
+    )
+    .join('')}</div>`;
 function cmp(it, p) {
   const cur = p.eq[it.slot],
     k = it.slot === 'armor' ? 'arm' : 'dmg';
@@ -14288,9 +14339,7 @@ function charHtml() {
   const bag = PARTY.bag.length
     ? ['weapon', 'gun', 'armor']
         .map(slot => {
-          const its = PARTY.bag
-            .filter(it => it.slot === slot)
-            .sort((a, b) => b.rar - a.rar || b.price - a.price);
+          const its = PARTY.bag.filter(it => it.slot === slot).sort(bagSort());
           return its.length
             ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
                 its
@@ -14314,7 +14363,7 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   <h3>Equipped</h3><div class="list">${eq}</div>
-  <h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
+  <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
   <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
@@ -14336,6 +14385,8 @@ function jobHtml(C) {
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 function setMode(m) {
   if (legDirty) saveLeg();
+  // closing the character sheet means you've seen what's new in the bag
+  if (G.mode === 'sheet' && m !== 'sheet') for (const it of PARTY.bag) it.fresh = false;
   wake(m === 'play' || m === 'den');
   G.mode = m;
   ov.hidden = m === 'play' || m === 'den';
@@ -14379,6 +14430,10 @@ function renderOv() {
     <p>Ten short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+  }
+  if (m === 'locker') {
+    h = `<div class="card"><p class="eyebrow">The Den · Ratchet's back room</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Your locker</h2><span class="wallet">¥${PARTY.creds}</span></div>${stashHtml()}
+    <div class="row"><button class="btn" data-a="lockerback">Back to Ratchet</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
   }
   if (m === 'trainoffer') {
     // shown once, the first time someone starts a run without having trained
@@ -14528,7 +14583,7 @@ function renderOv() {
 // and talisman shops will take gear off your hands too, for three quarters of that. Grouped by slot,
 // best first, each line showing how it compares with what the runner on this tab has equipped.
 // lock toggle shown on every bag line; a locked item keeps its name marked so it's obvious in long lists
-const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name);
+const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name) + newTag(it);
 const lockBtn = it =>
   `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
@@ -14543,7 +14598,7 @@ function sellHtml(kind) {
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
   const groups = ['weapon', 'gun', 'armor']
     .map(slot => {
-      const its = bag.filter(it => it.slot === slot).sort((a, b) => b.rar - a.rar || b.price - a.price);
+      const its = bag.filter(it => it.slot === slot).sort(bagSort());
       if (!its.length) return '';
       return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
         .map(
@@ -14553,9 +14608,36 @@ function sellHtml(kind) {
         .join('')}`;
     })
     .join('');
-  return `<h3>Sell · bag ${bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
+  return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Sell · bag ${bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
   ${commons.length >= 2 ? `<div class="row"><button class="btn sm" data-a="sellcommon:${kind}">Sell all ${commons.length} Street-grade items · ¥${cTotal}</button></div>` : ''}
   <div class="list">${groups}</div>`;
+}
+// The stash: Ratchet's locker in the Den and the safehouse in the Sprawl share it. Gear here is safe from
+// "Sell all", wipes and full bags, and waits for you between runs of the same save.
+function stashHtml() {
+  const bag = PARTY.bag,
+    st = (PARTY.stash = PARTY.stash || []),
+    p = PL[G.sheetIdx] || PL[0];
+  const col = (list, act, label, room) =>
+    ['weapon', 'gun', 'armor']
+      .map(slot => {
+        const its = list.filter(it => it.slot === slot).sort(bagSort());
+        return its.length
+          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+              its
+                .map(
+                  it =>
+                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
+                )
+                .join('')
+          : '';
+      })
+      .join('') || '<p>Empty.</p>';
+  return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Stash · ${st.length}/${STASH_MAX}</h3>${sortSeg()}</div>
+  <p style="color:var(--muted);font-size:13px">Shared between Ratchet's locker in the Den and your safehouse in the Sprawl. Stashed gear can't be sold by accident and stays put while you're out on the street.</p>
+  <div class="list">${col(st, 'unstash', bag.length < BAG_MAX ? 'Take' : 'Bag full', bag.length < BAG_MAX)}</div>
+  <h3>Party bag · ${bag.length}/${BAG_MAX}</h3>
+  <div class="list">${col(bag, 'stash', st.length < STASH_MAX ? 'Stash' : 'Stash full', st.length < STASH_MAX)}</div>`;
 }
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],
@@ -14755,6 +14837,7 @@ function npcHtml(id) {
             .join('')
         : '<p>Sold out.</p>'
     }</div>
+    <div class="row"><button class="btn sm" data-a="locker">Open your locker · ${(PARTY.stash || []).length}/${STASH_MAX}</button></div>
     ${sellHtml('fence')}
     ${workbenchHtml()}`;
   } else if (id === 'kit') {
@@ -14835,7 +14918,14 @@ function newRun(coop) {
   if (coop) PL.push(newRunner(1));
   G.coop = !!coop;
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  Object.assign(PARTY, { creds: rankOf(legLP()) * 15, bag: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, {
+    creds: rankOf(legLP()) * 15,
+    bag: [],
+    stash: [],
+    med: 2,
+    contract: null,
+    ally: null
+  });
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;
@@ -14868,7 +14958,7 @@ ov.addEventListener('click', e => {
   const rerender = () => {
     renderOv();
     if (G.world) saveWorld();
-    else if (G.mode === 'npc' || G.ret === 'den') saveGame('den');
+    else if (G.mode === 'npc' || G.mode === 'locker' || G.ret === 'den') saveGame('den');
   };
   switch (a) {
     case 'pick':
@@ -15375,6 +15465,34 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'stash': {
+      const i = findBag(arg);
+      PARTY.stash = PARTY.stash || [];
+      if (i >= 0 && PARTY.stash.length < STASH_MAX) {
+        const it = PARTY.bag.splice(i, 1)[0];
+        it.fresh = false;
+        PARTY.stash.push(it);
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
+    case 'unstash': {
+      const st = PARTY.stash || [],
+        i = st.findIndex(x => x.uid === arg);
+      if (i >= 0 && PARTY.bag.length < BAG_MAX) {
+        PARTY.bag.push(st.splice(i, 1)[0]);
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
+    case 'locker':
+      setMode('locker');
+      break;
+    case 'lockerback':
+      openNPC('ratchet');
+      break;
     case 'lock': {
       // locked items can't be sold, dropped or scrapped, by a click or by "Sell all"
       const i = findBag(arg);
@@ -15514,7 +15632,7 @@ ov.addEventListener('click', e => {
       const i = G.stock.findIndex(x => x.uid === arg);
       if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < BAG_MAX) {
         PARTY.creds -= G.stock[i].price;
-        PARTY.bag.push(G.stock[i]);
+        PARTY.bag.push(gotItem(G.stock[i]));
         G.stock.splice(i, 1);
         sfx.loot();
       }

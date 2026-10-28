@@ -348,7 +348,7 @@ function collect(k, p) {
       if (k.t % 60 === 1) say(p, 'BAG FULL', '#a79dc2');
       return;
     }
-    PARTY.bag.push(k.item);
+    PARTY.bag.push(gotItem(k.item));
     sfx.loot();
     say(p, k.item.name.toUpperCase(), RCOL[k.item.rar]);
     gotLegend(k.item);
@@ -482,7 +482,7 @@ function stageClear() {
     const pz = deb.prize;
     pz.rar = 2;
     pz.name = 'Prototype ' + BASES[pz.slot][pz.base].name;
-    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(pz);
+    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(gotItem(pz));
   }
   G.debrief = deb;
   G.texts.push({ x: G.camX + W / 2, y: 150, z: 0, s: 'DISTRICT CLEAR', c: '#ffc63d', life: 90, big: true });

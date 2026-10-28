@@ -141,7 +141,7 @@ const PERKS = [
     go() {
       const it = randItem(G.stage + G.ng, true);
       if (!it.rar) Object.assign(it, mkItem(it.slot, it.base, 1));
-      PARTY.bag.push(it);
+      PARTY.bag.push(gotItem(it));
       G.texts.push({
         x: W / 2,
         y: 150,
@@ -260,7 +260,7 @@ function startArena(coop, challenge) {
   newRunStats();
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   for (const p of PL) {
     p.lvl = 3;

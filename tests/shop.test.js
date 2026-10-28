@@ -117,3 +117,38 @@ ok(!PARTY.bag.includes(keep), 'unlocked, it drops normally');
   click('new');
   ok(G.mode !== 'trainoffer', 'the offer only ever shows once');
 }
+
+// the stash, NEW markers and sorting
+{
+  click('quit');
+  click('pick');
+  click('new');
+  A.enterDen();
+  PARTY.bag = [];
+  const a = item(1),
+    b = item(2);
+  PARTY.bag.push(A.gotItem(a), A.gotItem(b));
+  ok(a.fresh && b.got > a.got, 'new gear is marked NEW and numbered as it comes in');
+  click('sheet');
+  ok(/class="newtag"/.test(els.ov._h), 'the character sheet shows the NEW marker');
+  click('close');
+  ok(!a.fresh && !b.fresh, 'closing the sheet clears it');
+  A.prefs.bagSort = 'new';
+  ok(A.bagSort()(a, b) > 0, 'Newest puts the latest pickup first');
+  A.prefs.bagSort = 'best';
+  A.openNPC('ratchet');
+  ok(/data-a="locker"/.test(els.ov._h), 'Ratchet has a locker');
+  click('locker');
+  ok(G.mode === 'locker' && /Stash · 0\/60/.test(els.ov._h), 'the locker holds 60');
+  click('stash:' + a.uid);
+  ok(PARTY.stash.includes(a) && !PARTY.bag.includes(a), 'gear moves into the stash');
+  click('sellcommon:fence');
+  ok(PARTY.stash.includes(a), 'and selling never touches it');
+  click('unstash:' + a.uid);
+  ok(PARTY.bag.includes(a) && !PARTY.stash.includes(a), 'and comes back out');
+  click('stash:' + a.uid);
+  click('quit');
+  click('pick');
+  click('new');
+  ok(PARTY.stash.length === 0, 'a new run starts with an empty stash (it belongs to the save)');
+}
