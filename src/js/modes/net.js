@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/modes/net.js
- * Online co-op: two browsers, one Arena run, no server.
+ * Online co-op: two browsers, any mode (the Arena, the campaign, the Sprawl).
  *
  * Connecting: WebRTC peer to peer. The host makes an invite code (its connection offer, compressed and
  * base64'd); the friend pastes it and gets a reply code to send back; the host pastes that and the data
@@ -13,8 +13,10 @@
  * floating text and effects, the sounds that played and the song. The friend's browser runs no game logic;
  * it eases entities toward each snapshot, ticks the cosmetic bits itself and draws with the normal renderer.
  *
- * Scope: Arena runs (open arena, any difficulty). The host picks perks and runs the menus; the friend sees a
- * "host is choosing" card meanwhile.
+ * Scope: once connected the host gets a hub (it stands in for the title) and starts anything; the friend joins
+ * it as runner 2 (netHostTick adds them). The host runs the menus, shops and briefings while the friend sees
+ * what they're doing; the friend's own character sheet sends its point, skill and gear clicks to the host
+ * (netRemoteAct), which runs them as runner 2. Training stays solo.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 const NET_ICE = [{ urls: 'stun:stun.cloudflare.com:3478' }];
@@ -37,36 +39,70 @@ const NET_ACTS = [
   'item',
   'special'
 ];
-// G fields the friend's screen needs (everything else is the host's business)
-const NET_GKEYS = [
-  'camX',
-  'banner',
-  'goT',
-  'fade',
-  'flash',
-  'combo',
-  'comboT',
-  'bestCombo',
-  'score',
-  'awave',
-  'theme',
-  'waveLive',
-  'shake',
-  'nextWaveT',
-  'wave',
-  'diff',
-  'exitOpen',
-  'slowFoes',
-  'tip',
-  'hazard',
-  'lock',
-  'perks',
-  'outro',
-  'stage',
-  'slow',
-  'stop',
-  'lastEntry'
-];
+// G fields the friend's screen never needs: sent another way, the host's own menus and choices, or local
+// render caches. Everything else in G is mirrored, so any mode (Arena, the campaign, the Sprawl) just works.
+const NET_GDENY = new Set([
+  'ents',
+  'projs',
+  'parts',
+  'texts',
+  'fx',
+  'picks',
+  'props',
+  'rain',
+  'bg',
+  'mode',
+  'ret',
+  'pendArch',
+  'pendDiff',
+  'pendMuts',
+  'pendCoat',
+  'pendTrail',
+  'booted',
+  'sheetIdx',
+  'sheetTab',
+  'tree',
+  'justLearned',
+  'seedPre',
+  'seedErr',
+  'rngW',
+  'rngP',
+  'run',
+  'tipQ',
+  'pcamX',
+  'hack',
+  'arenaSeed',
+  'stock'
+]);
+// what the friend sees while the host is in each menu
+const NET_WAIT = {
+  title: 'Your partner is choosing what to play.',
+  nethub: 'Your partner is choosing what to play.',
+  online: 'Your partner is choosing what to play.',
+  pick: 'Your partner is setting up a campaign run.',
+  arenapick: 'Your partner is setting up an Arena run.',
+  worldpick: 'Your partner is heading out into the Sprawl.',
+  trainpick: 'Your partner is choosing what to play.',
+  trainoffer: 'Your partner is choosing what to play.',
+  settings: 'Your partner is changing settings.',
+  codex: 'Your partner is reading the Codex.',
+  start: 'Joining…',
+  brief: 'Your partner is reading the job briefing.',
+  perk: 'Your partner is picking a perk for the team.',
+  pause: 'Your partner paused the game.',
+  sheet: 'Your partner is on the character sheet.',
+  npc: 'Your partner is talking to someone in the Den.',
+  shop: 'Your partner is shopping.',
+  trader: 'Your partner is haggling with Sable.',
+  locker: 'Your partner is in the locker.',
+  safe: 'Your partner is cracking a safe.',
+  bcard: 'Your partner is sizing up a building.',
+  map: 'Your partner is looking at the block map.',
+  hack: 'Your partner is hacking a terminal.',
+  over: 'Out of lives. Your partner can retry or head back.',
+  wiped: 'Wiped out. Your partner can retry or head back.',
+  win: 'The campaign is done. Nice work.'
+};
 const NET = {
   role: null, // 'host' | 'guest' | null
   live: false, // connected and in a game together
@@ -81,6 +117,9 @@ const NET = {
   nid: 0,
   sent: new Map(), // nid -> {key: last sent JSON}
   gsent: {},
+  gref: {},
+  snapN: 0,
+  bgRef: null,
   rIn: null,
   rCnt: {},
   sfxQ: [],
@@ -376,6 +415,8 @@ function netClose() {
   NET.rCnt = {};
   NET.sent = new Map();
   NET.gsent = {};
+  NET.gref = {};
+  NET.bgRef = null;
   NET.sfxQ = [];
   NET.ents = new Map();
   NET.q = [];
@@ -431,6 +472,7 @@ function netRecv(data) {
   });
   NET.rxT = performance.now();
   if (m.k === 'in' && NET.role === 'host') NET.rIn = m;
+  else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a);
   else if (m.k === 'hello' && NET.role === 'host') netHostBegin(m);
   else if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
   else if (m.k === 's' && NET.role === 'guest') {
@@ -452,10 +494,12 @@ function netHostBegin(m) {
   NET.status = 'live';
   NET.sent = new Map();
   NET.gsent = {};
+  NET.gref = {};
+  NET.bgRef = null;
   NET.hmode = '';
+  NET.friend = { arch: G.pendArch[1] };
   netSend({ k: 'start', v: APP_VERSION });
-  G.arenaSeed = null;
-  startArena(true);
+  setMode('nethub');
 }
 // runner 2's buttons, as last reported by the friend
 function netHostInput() {
@@ -543,14 +587,19 @@ function netSnapshot() {
   // forget entities that are gone, so a reused object would resend in full
   const live = new Set(ents.map(netNid));
   for (const k of NET.sent.keys()) if (!live.has(k)) NET.sent.delete(k);
-  const g = {};
-  let gn = 0;
-  for (const k of NET_GKEYS) {
-    const j = G[k] === undefined ? '"$U"' : netJson(G[k]);
+  // G: numbers and strings every time; objects when they're replaced, and re-checked a few times a second
+  const g = {},
+    deep = NET.snapN++ % 8 === 0;
+  for (const k of Object.keys(G)) {
+    if (NET_GDENY.has(k) || k.charCodeAt(0) === 95) continue;
+    const v = G[k];
+    if (typeof v === 'function') continue;
+    if (v && typeof v === 'object' && !deep && NET.gref[k] === v) continue;
+    NET.gref[k] = v;
+    const j = v === undefined ? '"$U"' : netJson(v);
     if (NET.gsent[k] !== j) {
       NET.gsent[k] = j;
       g[k] = j;
-      gn++;
     }
   }
   for (const q of G.projs) netNid(q);
@@ -560,7 +609,7 @@ function netSnapshot() {
     t: G.t,
     hm: G.mode,
     mu: typeof M !== 'undefined' ? M.cur : '',
-    pa: { creds: PARTY.creds, med: PARTY.med },
+    rn: G.rain.length > 0 ? 1 : 0,
     o: G.ents.map(netNid),
     pl: PL.map(netNid),
     sx: NET.sfxQ.splice(0)
@@ -584,14 +633,23 @@ function netSnapshot() {
     netJson(netFresh(G.fx, 20));
   if (NET.gsent.$pk !== pk) out += ',"pk":' + (NET.gsent.$pk = pk);
   if (NET.gsent.$pp !== pp) out += ',"pp":' + (NET.gsent.$pp = pp);
+  // the street's backdrop only when the scene changes, and the shared wallet and bag now and then
+  if (G.bg !== NET.bgRef) {
+    NET.bgRef = G.bg;
+    out += ',"bg":' + netJson(G.bg);
+  }
+  if (deep || NET.gref.$party !== PARTY.bag) {
+    NET.gref.$party = PARTY.bag;
+    const pa = netJson(PARTY);
+    if (NET.gsent.$pa !== pa) out += ',"pa":' + (NET.gsent.$pa = pa);
+  }
   return out + '}';
 }
 function netHostTick() {
   if (!NET.live) return;
-  // back to the title (or into another mode) ends the online session
-  if (G.mode === 'title' || (!G.arena && G.mode === 'play')) {
-    netLeave();
-    return;
+  // whatever the host starts, the friend is runner 2 in it (training stays a solo thing)
+  if ((G.mode === 'play' || G.mode === 'den') && PL.length < 2 && !G.training) {
+    joinRunner2();
   }
   if (tick % 2) return;
   const dc = NET.dc;
@@ -711,15 +769,14 @@ function netApply(s) {
   for (const q of s.nt) G.texts.push(q);
   for (const q of s.nf) G.fx.push(q);
   if (Math.abs(s.t - G.t) > 6) G.t = s.t;
-  if (s.pa) Object.assign(PARTY, s.pa);
+  if (s.pa) {
+    for (const k of Object.keys(PARTY)) if (!(k in s.pa)) delete PARTY[k];
+    Object.assign(PARTY, s.pa);
+  }
+  if (s.bg) G.bg = s.bg;
+  if (!!s.rn !== G.rain.length > 0) makeRain(!!s.rn);
   if (s.mu && typeof M !== 'undefined' && M.cur !== s.mu) musicPlay(s.mu);
   for (const a of s.sx) if (typeof sfx[a[0]] === 'function') sfx[a[0]].apply(sfx, a.slice(1));
-  if (G.theme !== NET.theme) {
-    NET.theme = G.theme;
-    const S = STAGES[G.theme] || STAGES[0];
-    G.bg = genBg(S, 1000 + G.theme * 77);
-    makeRain(S.rain || S.weather === 'sleet');
-  }
   NET.hm = s.hm;
   // first picture: say which runner is yours
   if (!NET.greeted && PL[1] && PL[1].name) {
@@ -785,6 +842,15 @@ function netGuestStep() {
   if (G.mode === 'play' && hm !== 'play' && hm !== 'den') setMode('netwait');
   else if (G.mode === 'netwait' && (hm === 'play' || hm === 'den') && PL.length) setMode('play');
   else if (G.mode === 'netwait' && NET.shownHm !== hm) renderOv();
+  // the friend's sheet follows the mirrored runner (a point spent, an item equipped)
+  if (G.mode === 'sheet' && tick % 6 === 0 && netSheetSig() !== NET.sheetSig) {
+    const card = ov.querySelector('.card'),
+      top = card ? card.scrollTop : 0;
+    NET.sheetSig = netSheetSig();
+    renderOv();
+    const c2 = ov.querySelector('.card');
+    if (c2) c2.scrollTop = top;
+  }
   // buttons: both local key maps and any pad count as "me"
   let h = '';
   for (const a of NET_ACTS) {
@@ -820,21 +886,20 @@ function netInviteLink() {
 function netHtml(m) {
   if (m === 'netwait') {
     NET.shownHm = NET.hm;
-    const what =
-      NET.hm === 'perk'
-        ? 'Your partner is picking a perk for the team.'
-        : NET.hm === 'arenaover'
-          ? `The run is over: wave ${G.awave}, ${(G.score || 0).toLocaleString()} points. Your partner can start another one.`
-          : NET.hm === 'pause'
-            ? 'Your partner paused the game.'
-            : NET.hm === 'start'
-              ? 'Joining the run…'
-              : NET.hm === 'sheet'
-                ? 'Your partner is spending points on the character sheet.'
-                : 'Your partner is in a menu.';
-    return `<div class="card"><p class="eyebrow">Online co-op</p><h2>${NET.hm === 'arenaover' ? 'Run over' : 'One moment'}</h2><p>${what}</p>
-    <div class="row"><button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
+    const over = NET.hm === 'arenaover' || NET.hm === 'over' || NET.hm === 'wiped' || NET.hm === 'win';
+    const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
+    const txt =
+      NET.hm === 'arenaover'
+        ? `The run is over: wave ${G.awave}, ${(G.score || 0).toLocaleString()} points. Your partner can start another one.`
+        : what;
+    return `<div class="card"><p class="eyebrow">Online co-op</p><h2>${over ? (NET.hm === 'win' ? 'You did it' : 'Run over') : 'One moment'}</h2><p>${txt}</p>
+    <div class="row">${PL[1] && (PL[1].pts || PL[1].spts) && !over ? '<button class="btn" data-a="netsheet">Your character (points to spend)</button>' : ''}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
   }
+  if (m === 'nethub')
+    return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>${esc((NET.friend && ARCH[NET.friend.arch] && ARCH[NET.friend.arch].name) || 'Your friend')} is here</h2>
+    <p>Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
+    <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button></div>
+    <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>Paused for you</h2><p>The fight keeps going on your partner's screen while this is open.</p>
     <div class="row"><button class="btn" data-a="netresume">Back to the fight</button>${soundBtns()}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
@@ -908,9 +973,75 @@ function netSelect() {
     t.select();
   }
 }
+// The friend's own character sheet: it draws from the mirrored runner, and the buttons that change something
+// are run on the host, as runner 2, with the same code a local click would use.
+const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock']);
+// what the sheet shows, so it redraws only when one of those changes (not every time runner 2 moves)
+function netSheetSig() {
+  const p = PL[G.sheetIdx] || PL[0];
+  if (!p) return '';
+  return JSON.stringify([
+    p.lvl,
+    p.pts,
+    p.spts,
+    p.attr,
+    p.sk,
+    p.eq,
+    p.spells,
+    p.spell,
+    p.cy,
+    p.karma,
+    p.maxHp,
+    p.maxMp,
+    PARTY.bag,
+    PARTY.creds,
+    G.sheetIdx,
+    G.sheetTab
+  ]);
+}
+function netGuestSheet() {
+  if (G.mode === 'sheet') return setMode('play');
+  if (!PL[1]) return;
+  G.sheetIdx = 1;
+  G.ret = 'play';
+  setMode('sheet');
+  NET.sheetSig = netSheetSig();
+}
+function netRemoteAct(a) {
+  if (typeof a !== 'string' || a.length > 80 || !NET_REMOTE.has(a.split(':')[0]) || PL.length < 2) return;
+  const si = G.sheetIdx,
+    btn = document.createElement('button');
+  G.sheetIdx = 1;
+  btn.dataset.a = a;
+  btn.hidden = true;
+  ov.appendChild(btn);
+  try {
+    btn.click();
+  } finally {
+    btn.remove();
+    G.sheetIdx = si;
+    if (G.mode !== 'play' && G.mode !== 'den') renderOv();
+  }
+}
 // returns true when the action was an online one
 function netAct(a, b) {
+  if (NET.role === 'guest' && NET.live && G.mode === 'sheet') {
+    if (a === 'close' || a === 'sheet') {
+      setMode('play');
+      return true;
+    }
+    if (NET_REMOTE.has(a)) {
+      if (G.sheetIdx === 1 && b && b.dataset) {
+        netSend({ k: 'act', a: b.dataset.a });
+        sfx.click();
+      }
+      return true;
+    }
+  }
   switch (a) {
+    case 'netsheet':
+      netGuestSheet();
+      return true;
     case 'online':
       if (!NET.live) netClose();
       setMode('online');

@@ -4,6 +4,7 @@
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 function setMode(m) {
+  if (m === 'title' && NET.role === 'host' && NET.live) m = 'nethub'; // online, the hub stands in for the title
   if (legDirty) saveLeg();
   // closing the character sheet means you've seen what's new in the bag
   if (G.mode === 'sheet' && m !== 'sheet') for (const it of PARTY.bag) it.fresh = false;
@@ -52,7 +53,8 @@ function renderOv() {
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'trader') h = traderHtml();
-  if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost') h = netHtml(m);
+  if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost' || m === 'nethub')
+    h = netHtml(m);
   if (m === 'locker') {
     h = `<div class="card"><p class="eyebrow">The Den · Ratchet's back room</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Your locker</h2><span class="wallet">¥${PARTY.creds}</span></div>${stashHtml()}
     <div class="row"><button class="btn" data-a="lockerback">Back to Ratchet</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
@@ -519,7 +521,7 @@ function findBag(uid) {
   return PARTY.bag.findIndex(i => i.uid === uid);
 }
 function toggleSheet(who) {
-  if (NET.role === 'guest' && NET.live) return;
+  if (NET.role === 'guest' && NET.live) return netGuestSheet();
   if (G.mode === 'play' || G.mode === 'den') {
     G.ret = G.mode;
     G.sheetIdx = who < PL.length ? who : 0;
@@ -529,7 +531,7 @@ function toggleSheet(who) {
 function togglePause() {
   if (NET.role === 'guest' && NET.live) {
     if (G.mode === 'play') setMode('netmenu');
-    else if (G.mode === 'netmenu') setMode('play');
+    else if (G.mode === 'netmenu' || G.mode === 'sheet') setMode('play');
     return;
   }
   if (G.mode === 'play' || G.mode === 'den') {

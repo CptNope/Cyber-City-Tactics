@@ -95,7 +95,20 @@ const { pathToFileURL } = require('url');
     await fr.waitForFunction(() => NET.status === 'answer', null, { timeout: 15000 });
     await host.fill('textarea[data-net="draft"]', await fr.evaluate(() => NET.code));
     await host.click('[data-a="netconnect"]');
-    await host.waitForFunction(() => NET.live && G.mode === 'play' && G.arena, null, { timeout: 15000 });
+    // connected: the host gets the hub, the friend waits while they choose
+    await host.waitForFunction(() => NET.live && G.mode === 'nethub', null, { timeout: 15000 });
+    await fr.waitForFunction(
+      () => NET.live && G.mode === 'netwait' && /choosing what to play/.test(ov.textContent),
+      null,
+      { timeout: 15000 }
+    );
+    ok(true, 'connected: host picks a mode, friend sees "choosing"');
+    // starting a solo Arena run still brings the friend in as runner 2
+    await host.click('[data-a="arenapick"]');
+    await host.click('[data-a="arena1"]');
+    await host.waitForFunction(() => NET.live && G.mode === 'play' && G.arena && PL.length === 2, null, {
+      timeout: 15000
+    });
     await fr.waitForFunction(() => NET.live && G.mode === 'play' && PL.length === 2, null, {
       timeout: 15000
     });
@@ -206,6 +219,86 @@ const { pathToFileURL } = require('url');
       'friend page: no errors' + (F.errs.length ? ': ' + F.errs.slice(0, 3).join(' | ') : '')
     );
     ok(!H.errs.length, 'host page: no errors' + (H.errs.length ? ': ' + H.errs.slice(0, 3).join(' | ') : ''));
+    // ---- the campaign: back to the hub, start a new run, the friend comes along ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await fr.waitForFunction(() => G.mode === 'netwait', null, { timeout: 5000 });
+    ok(true, 'host quits to the hub; the session stays up and the friend waits');
+    await host.click('[data-a="pick"]');
+    await host.click('[data-a="new"]');
+    for (const a of ['trainskip', 'go']) {
+      const b = await host.$(`[data-a="${a}"]`);
+      if (b) await b.click();
+    }
+    await host.waitForFunction(() => G.mode === 'play' && !G.arena && !G.world && PL.length === 2, null, {
+      timeout: 15000
+    });
+    await fr.waitForFunction(() => G.mode === 'play' && PL.length === 2 && !G.arena, null, {
+      timeout: 15000
+    });
+    await fr.waitForTimeout(800);
+    const camp = await fr.evaluate(() => ({
+      stage: G.stage,
+      bg: !!(G.bg && G.bg.far),
+      ents: G.ents.length,
+      party: typeof PARTY.creds
+    }));
+    ok(
+      camp.stage === 0 && camp.bg && camp.ents >= 2 && camp.party === 'number',
+      'campaign: friend sees district 1, its skyline, the runners and the wallet'
+    );
+    // the friend's own character sheet: spending a point there spends it on the host
+    await host.evaluate(() => {
+      PL[1].pts = 2;
+    });
+    await fr.waitForFunction(() => PL[1] && PL[1].pts === 2, null, { timeout: 5000 });
+    await fr.keyboard.press('KeyC');
+    await fr.waitForFunction(() => G.mode === 'sheet' && G.sheetIdx === 1, null, { timeout: 3000 });
+    const before = await host.evaluate(() => Object.values(PL[1].attr).reduce((a, b) => a + b, 0));
+    await fr.click('[data-a^="attr:"]');
+    await host.waitForFunction(
+      b => Object.values(PL[1].attr).reduce((a, c) => a + c, 0) === b + 1 && PL[1].pts === 1,
+      before,
+      { timeout: 5000 }
+    );
+    ok(true, "friend's sheet: spending a point raises runner 2's attribute on the host");
+    await fr.waitForFunction(() => PL[1].pts === 1, null, { timeout: 5000 });
+    ok(
+      (await host.evaluate(() => Object.values(PL[0].attr).reduce((a, b) => a + b, 0))) > 0 &&
+        (await host.evaluate(() => G.mode)) === 'play',
+      'runner 1 untouched, host still playing'
+    );
+    await fr.keyboard.press('Escape');
+    await fr.waitForFunction(() => G.mode === 'play', null, { timeout: 3000 });
+    // ---- the Sprawl ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await host.click('[data-a="worldpick"]');
+    await host.click('[data-a="world1"]');
+    await host.waitForFunction(() => G.mode === 'play' && G.world && PL.length === 2, null, {
+      timeout: 15000
+    });
+    await fr.waitForFunction(() => G.mode === 'play' && G.world && G.wd && PL.length === 2, null, {
+      timeout: 15000
+    });
+    await fr.waitForTimeout(800);
+    ok(
+      await fr.evaluate(() => !!(G.wd && G.streetStage && G.bg)),
+      'the Sprawl: friend sees the block, its street and skyline'
+    );
+    await fr.screenshot({ path: path.join(require('os').tmpdir(), 'cct-online-sprawl.png') }).catch(() => {});
+    ok(
+      !F.errs.length,
+      'friend page: no errors in campaign or Sprawl' +
+        (F.errs.length ? ': ' + F.errs.slice(0, 3).join(' | ') : '')
+    );
+    ok(
+      !H.errs.length,
+      'host page: no errors in campaign or Sprawl' +
+        (H.errs.length ? ': ' + H.errs.slice(0, 3).join(' | ') : '')
+    );
     // friend leaves → host drops runner 2 and keeps playing
     await fr.keyboard.press('Escape');
     await fr.click('[data-a="netleave"]');
@@ -241,6 +334,9 @@ const { pathToFileURL } = require('url');
     await fr.click('[data-a="netjoin"]');
     await fr.fill('textarea[data-net="draft"]', room.toLowerCase());
     await fr.click('[data-a="netanswer"]');
+    await host.waitForFunction(() => NET.live && G.mode === 'nethub', null, { timeout: 20000 });
+    await host.click('[data-a="arenapick"]');
+    await host.click('[data-a="arena2"]');
     await host.waitForFunction(() => NET.live && G.mode === 'play' && PL.length === 2, null, {
       timeout: 20000
     });
