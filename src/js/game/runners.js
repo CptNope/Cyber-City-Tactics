@@ -10,6 +10,7 @@ function physics(e) {
     e.z += e.vz;
     e.x += e.vx;
     if (e.z <= 0) {
+      if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;
       e.vz = 0;
       e.vx = 0;

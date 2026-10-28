@@ -11,17 +11,24 @@ function fillPoly(pts, col) {
   ctx.closePath();
   ctx.fill();
 }
-function limb(a, b, c, col, w) {
-  ctx.strokeStyle = col;
-  ctx.lineWidth = w;
+// rim: an optional light edge stroked under the limb, so dark trousers still read against a dark street
+function limb(a, b, c, col, w, rim) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(a[0], a[1]);
   ctx.lineTo(b[0], b[1]);
   ctx.lineTo(c[0], c[1]);
+  if (rim) {
+    ctx.strokeStyle = rim;
+    ctx.lineWidth = w + 1.8;
+    ctx.stroke();
+  }
+  ctx.strokeStyle = col;
+  ctx.lineWidth = w;
   ctx.stroke();
 }
+const RIM = 'rgba(190,178,235,.32)';
 function joint(a, c, bend) {
   const mx = (a[0] + c[0]) / 2,
     my = (a[1] + c[1]) / 2;
@@ -29,6 +36,47 @@ function joint(a, c, bend) {
     dy = c[1] - a[1];
   const L = Math.hypot(dx, dy) || 1;
   return [mx - (dy / L) * bend, my + (dx / L) * bend];
+}
+// Pose easing: limbs glide toward each new key pose instead of snapping to it. Rates are per logic step, so
+// motion looks the same at any refresh rate; strikes use a fast rate so hits stay snappy, everything else a
+// softer one, which gives wind-ups their anticipation and recoveries their follow-through.
+function easePose(e, tgt, r) {
+  let p = e._pose;
+  const dt = G.t - (e._poseT === undefined ? -99 : e._poseT);
+  e._poseT = G.t;
+  if (!p || dt > 12 || dt < 0 || RM) {
+    e._pose = tgt.slice();
+    return e._pose;
+  }
+  if (dt === 0) return p; // several renders inside one logic step (high-refresh screens): hold
+  const k = 1 - Math.pow(1 - r, dt);
+  for (let i = 0; i < 15; i++) p[i] += (tgt[i] - p[i]) * k;
+  return p;
+}
+// Squash and stretch, anchored at the feet: landings flatten, take-offs stretch, hits compress, strikes lunge
+function squash(e, st, t, swing) {
+  let sx = 1,
+    sy = 1;
+  const land = G.t - (e.landAt === undefined ? -99 : e.landAt);
+  if (land >= 0 && land < 8 && e.z === 0) {
+    const s = 1 - land / 8;
+    sx += 0.15 * s;
+    sy -= 0.17 * s;
+  } else if (e.z > 0 && e.vz > 1.2) {
+    sx = 0.94;
+    sy = 1.07;
+  } else if (st === 'hurt' && t < 8) {
+    const s = 1 - t / 8;
+    sx -= 0.1 * s;
+    sy += 0.05 * s;
+  } else if (st === 'heavy' && t < 8) {
+    sx = 1.05;
+    sy = 0.95;
+  } else if (swing) {
+    sx = 1.06;
+    sy = 0.97;
+  }
+  return [sx, sy];
 }
 function shadow(x, y, w) {
   ctx.fillStyle = 'rgba(0,0,0,.33)';
@@ -750,6 +798,31 @@ function drawFig(e) {
     ff = [6, 0];
     bf = [-6, 0];
   }
+  // a little bounce in the stride
+  if (st === 'walk' || st === 'charge') {
+    const bob = Math.abs(wc) * 1.3;
+    hip = [hip[0], hip[1] - bob];
+    sh = [sh[0], sh[1] - bob];
+  }
+  const fast = swing || (st === 'kick' && t >= 6 && t <= 12) || st === 'jkick' || st === 'shoot';
+  const P = easePose(
+    e,
+    [hip[0], hip[1], sh[0], sh[1], ff[0], ff[1], bf[0], bf[1], fh[0], fh[1], bh[0], bh[1], fkb, bkb, lean],
+    fast ? 0.72 : st === 'walk' || st === 'charge' ? 0.6 : 0.42
+  );
+  hip = [P[0], P[1]];
+  sh = [P[2], P[3]];
+  ff = [P[4], P[5]];
+  bf = [P[6], P[7]];
+  fh = [P[8], P[9]];
+  bh = [P[10], P[11]];
+  fkb = P[12];
+  bkb = P[13];
+  lean = P[14];
+  if (!lying && st !== 'roll') {
+    const q = squash(e, st, t, swing);
+    if (q[0] !== 1 || q[1] !== 1) ctx.scale(q[0], q[1]);
+  }
   sh = [sh[0] + lean, sh[1]];
   const shF = [sh[0] + 2, sh[1] + 1],
     shB = [sh[0] - 2, sh[1] + 1];
@@ -759,7 +832,7 @@ function drawFig(e) {
   ctx.beginPath();
   ctx.arc(bh[0], bh[1], 2, 0, 7);
   ctx.fill();
-  limb([hip[0] - 2, hip[1]], joint([hip[0] - 2, hip[1]], bf, bkb), bf, pants, 4.6);
+  limb([hip[0] - 2, hip[1]], joint([hip[0] - 2, hip[1]], bf, bkb), bf, pants, 4.6, fl ? null : RIM);
   ctx.fillStyle = pal.boot;
   ctx.fillRect(bf[0] - 3, bf[1] - 2.5, 7, 3);
   const armorCol =
@@ -823,7 +896,7 @@ function drawFig(e) {
     ctx.lineTo(sh[0] + 5, sh[1] + 13);
     ctx.stroke();
   }
-  limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, fkb), ff, pants, 4.6);
+  limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, fkb), ff, pants, 4.6, fl ? null : RIM);
   ctx.fillStyle = pal.boot;
   ctx.fillRect(ff[0] - 3, ff[1] - 2.5, 7.5, 3);
   const hd = [sh[0] + 1, sh[1] - 7.5];
