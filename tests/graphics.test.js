@@ -68,3 +68,36 @@ ok(
   f1._pose[0] > 9 && f1._pose[0] < 10,
   'and it eases in rather than snapping (' + f1._pose[0].toFixed(2) + ')'
 );
+
+// individual looks: same enemy type, different people; stats and gang colour untouched
+const looks = [];
+for (let i = 0; i < 12; i++) {
+  const e = { kind: 'ganger', d: A.DEF.ganger };
+  A.makeLook(e);
+  looks.push(e);
+}
+const coats = new Set(looks.map(e => e.pal.coat)),
+  skins = new Set(looks.map(e => e.pal.skin));
+ok(
+  coats.size >= 6 && skins.size >= 6,
+  `a dozen gangers wear ${coats.size} coats and have ${skins.size} skin tones`
+);
+ok(looks.some(e => e.extra) && looks.some(e => !e.extra), "some carry an accessory, some don't");
+ok(
+  looks.every(e => e.pal.acc === A.DEF.ganger.pal.acc),
+  'the gang colour never changes, so you can still tell crews apart'
+);
+ok(
+  looks.every(e => e.build[0] >= 0.92 && e.build[0] <= 1.08),
+  'builds vary only a little (drawn only, hitboxes unchanged)'
+);
+ok(A.DEF.ganger.pal.coat === '#3d2f52', 'the shared enemy definition is never modified');
+const rs = Math.random;
+let calls = 0;
+Math.random = () => (calls++, rs());
+A.makeLook({ kind: 'orc', d: A.DEF.orc });
+Math.random = rs;
+ok(calls === 0, 'looks never use Math.random, so seeded runs replay identically');
+const boss = { kind: 'troll', d: Object.assign({}, A.DEF.troll, { boss: true }) };
+A.makeLook(boss);
+ok(!boss.extra && !boss.build, 'bosses keep their signature look');

@@ -276,6 +276,13 @@ function drawMech(e) {
     ctx.moveTo(hx, -24 + stomp);
     ctx.lineTo(hx + 6 + sw * 0.4, -13 - lift);
     ctx.lineTo(hx + sw, -lift);
+    if (!fl) {
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.strokeStyle = plate2;
+      ctx.lineWidth = 3.2;
+    }
     ctx.stroke();
     ctx.fillStyle = plate2;
     ctx.fillRect(hx + sw - 4, -2 - lift, 8, 2.5);
@@ -318,15 +325,16 @@ function drawHound(e) {
     ctx.translate(0, -2);
     ctx.rotate(e.z > 0 ? -0.6 : Math.PI * 0.08);
   }
-  const fl = e.flash > 0 && e.flash % 2,
-    body = fl ? '#ffffff' : '#2a1a1e',
-    body2 = fl ? '#e8e8e8' : '#3d2328',
+  const fur = e.pal && e.pal.coat ? e.pal.coat : '#2a1a1e',
+    fl = e.flash > 0 && e.flash % 2,
+    body = fl ? '#ffffff' : fur,
+    body2 = fl ? '#e8e8e8' : e._fur2 || (e._fur2 = mixHex(fur, '#ff6a3d', 0.12)),
     run = st === 'walk' || st === 'lunge',
     ph = e.walk * 0.35,
     leap = st === 'lunge' && e.z > 0;
   if (!lying) {
     const q = squash(e, st, e.t, false);
-    ctx.scale(q[0], q[1]);
+    ctx.scale(q[0] * (e.build ? e.build[0] : 1), q[1] * (e.build ? e.build[1] : 1));
     // a gallop rocks the body nose-up, nose-down; the wind-up sinks onto the haunches; the leap stretches out
     if (run && !leap) ctx.rotate(Math.sin(ph) * 0.07);
     else if (st === 'windup') {
@@ -347,6 +355,15 @@ function drawHound(e) {
     ctx.moveTo(hx, -11);
     ctx.lineTo(hx + sw * 0.5 + bend, -5 - lift);
     ctx.lineTo(hx + sw, -lift);
+    if (!fl) {
+      // the same light rim the runners' legs get, so a dark hound still reads on a dark street
+      const c = ctx.strokeStyle;
+      ctx.strokeStyle = RIM;
+      ctx.lineWidth = 4.2;
+      ctx.stroke();
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2.6;
+    }
     ctx.stroke();
   };
   leg(-9, 0);
@@ -857,6 +874,10 @@ function drawFig(e) {
   lean = P[14];
   if (!lying && st !== 'roll') {
     const q = squash(e, st, t, swing);
+    if (e.build) {
+      q[0] *= e.build[0];
+      q[1] *= e.build[1];
+    }
     if (q[0] !== 1 || q[1] !== 1) ctx.scale(q[0], q[1]);
   }
   sh = [sh[0] + lean, sh[1]];
@@ -1125,6 +1146,7 @@ function drawFig(e) {
     ctx.fillStyle = '#45d2ff';
     ctx.fillRect(hd[0] + 1, hd[1] - 1.5, 5, 1.4);
   }
+  if (e.extra) drawExtra(e, hd, sh, fl);
   const cyb = isP && e.cy.arm > 0;
   const armCol =
     style === 'runner' ? (fl ? '#fff' : cyb ? pal.cyber : cTop) : style === 'blade' ? '#c9d2e6' : coat;

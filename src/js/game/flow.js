@@ -262,6 +262,7 @@ function spawnEnemy(kind, side) {
     spdMul: 1,
     elite: null
   };
+  makeLook(e); // its own skin, clothes, build and maybe an accessory (visual only)
   if (
     !d.boss &&
     G.mode !== 'title' &&
