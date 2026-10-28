@@ -98,6 +98,7 @@ const ARCH_SKILL = {
   mage: 'focus',
   gunslinger: 'steady',
   decker: 'probe',
+  adept: 'breaker',
   shaman: 'focus',
   rigger: 'steady'
 };

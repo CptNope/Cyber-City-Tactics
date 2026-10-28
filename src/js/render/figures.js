@@ -1112,9 +1112,11 @@ function drawProj(pr) {
         ? ['255,106,61', '#ffe7a8']
         : pr.tint === 'drain'
           ? ['122,40,90', '#ffb0d8']
-          : pr.k === 'bolt' || pr.tint === 'bolt'
-            ? ['185,140,255', '#f2e9ff']
-            : ['69,210,255', '#e6fbff'];
+          : pr.tint === 'chi'
+            ? ['255,198,61', '#fff3c4']
+            : pr.k === 'bolt' || pr.tint === 'bolt'
+              ? ['185,140,255', '#f2e9ff']
+              : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);
     ctx.fillStyle = `rgba(${c[0]},.25)`;
     ctx.beginPath();

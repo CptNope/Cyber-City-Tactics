@@ -99,7 +99,7 @@ function shareLine() {
     d = DIFF[G.diff].name;
   if (G.mode === 'arenaover') {
     const e = G.lastEntry || { score: 0, wave: 0 };
-    return `Cyber City Tactics Arena${G.challenge ? ` · ${G.challenge.daily ? 'daily ' + G.challenge.day : 'weekly ' + G.challenge.id} "${MODS[G.challenge.mod].name}"` : ''}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}`;
+    return `Cyber City Tactics Arena${G.challenge ? ` · ${G.challenge.daily ? 'daily ' + G.challenge.day : 'weekly ' + G.challenge.id} "${MODS[G.challenge.mod].name}"` : ' · seed ' + G.arenaSeed}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}${G.challenge ? '' : '?seed=' + G.arenaSeed}`;
   }
   return `Cyber City Tactics: took down Director Voss on ${d}${G.ng ? ' NG+' + G.ng : ''} (${who}), level ${PL[0].lvl}, best combo ${G.bestCombo}, ${(G.run || {}).kills || 0} takedowns. Play: ${HOME}`;
 }
@@ -252,8 +252,11 @@ function startArena(coop, challenge) {
     feat('daily');
     if (dd.streak >= 3) feat('streak');
   } else if (G.challenge) feat('weekly');
-  G.rngW = G.challenge ? srng(hstr(G.challenge.id + 'w')) : null;
-  G.rngP = G.challenge ? srng(hstr(G.challenge.id + 'p')) : null;
+  // open runs get a seed too, so any run can be shared and replayed
+  if (!G.challenge && !G.arenaSeed) G.arenaSeed = seedCode('arena', newSeed());
+  const sid = G.challenge ? G.challenge.id : G.arenaSeed;
+  G.rngW = srng(hstr(sid + 'w'));
+  G.rngP = srng(hstr(sid + 'p'));
   newRunStats();
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));

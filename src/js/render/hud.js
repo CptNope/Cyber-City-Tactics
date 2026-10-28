@@ -529,6 +529,12 @@ function render() {
       const seen = cl && PL.some(q => !q.out && q.cy && q.cy.eyes);
       ctx.globalAlpha = cl ? fa * (seen ? 0.55 : 0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawAura(o.e);
+      if (o.e.chiT > 0) {
+        ctx.fillStyle = `rgba(255,198,61,${0.12 + 0.08 * Math.sin(G.t * 0.4)})`;
+        ctx.beginPath();
+        ctx.ellipse(o.e.x - G.camX, o.e.y - o.e.z - 22, 14, 26, 0, 0, 7);
+        ctx.fill();
+      }
       drawFig(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);

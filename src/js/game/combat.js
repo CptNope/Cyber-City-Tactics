@@ -110,6 +110,7 @@ function hurt(t, dmg, dir, o) {
     t.cloaked = false;
     t.recloakT = 150;
   }
+  if (o.melee && o.src && o.src.chiT > 0) o.kd = true; // Killing Hands
   if (t.d && t.d.mech) {
     // plated front, weak back: hits from behind do 50% more, hits from the front 60% less
     const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
@@ -166,6 +167,7 @@ function hurt(t, dmg, dir, o) {
     o.src &&
     (roninCrit(o) ||
       (o.melee && o.src.parryT > 0 && useParryCrit(o.src)) ||
+      (o.melee && o.src.chiT > 0) ||
       Math.random() <
         o.src.D.crit +
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
@@ -237,6 +239,12 @@ function hurt(t, dmg, dir, o) {
     if (o.bullet && !o.rico && it && it.leg === 'smartlink' && Math.random() < 0.5) {
       const o2 = foe2(110);
       if (o2) G.zaps.push({ tg: o2, delay: 3, dmg: dmg * 0.6, src: sp, bul: true });
+    }
+    if (o.melee && sp.arch === 'medic' && t.team === 1) {
+      // Street Doc: every melee hit patches you up, and a partner standing close
+      sp.hp = Math.min(sp.maxHp, sp.hp + 2);
+      for (const q of alive())
+        if (q !== sp && Math.hypot(q.x - sp.x, q.y - sp.y) < 80) q.hp = Math.min(q.maxHp, q.hp + 1);
     }
     if (o.melee && has(sp, 'leech')) {
       sp.hp = Math.min(sp.maxHp, sp.hp + (crit ? 4 : 2));

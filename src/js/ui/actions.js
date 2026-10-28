@@ -53,10 +53,12 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'arena1':
+      G.arenaSeed = null;
       startArena(false);
       keep = false;
       break;
     case 'arena2':
+      G.arenaSeed = null;
       startArena(true);
       keep = false;
       break;
@@ -334,6 +336,37 @@ ov.addEventListener('click', e => {
       setMode('worldpick');
       keep = false;
       break;
+    case 'seedgo':
+    case 'seedgo2': {
+      const inp = document.getElementById('seedIn'),
+        ch = parseSeed(inp && inp.value);
+      if (!ch) {
+        G.seedErr = true;
+        renderOv();
+        break;
+      }
+      G.seedErr = false;
+      G.seedPre = '';
+      if (ch.mode === 'arena') {
+        G.arenaSeed = ch.code;
+        startArena(a === 'seedgo2');
+      } else startWorld(a === 'seedgo2', ch);
+      keep = false;
+      break;
+    }
+    case 'copyseed': {
+      const t = seedShareLine(),
+        btn = document.getElementById('seedCopy');
+      try {
+        navigator.clipboard.writeText(t).then(
+          () => btn && (btn.textContent = 'Copied'),
+          () => btn && (btn.textContent = 'Select the text to copy')
+        );
+      } catch (err) {
+        if (btn) btn.textContent = 'Select the text to copy';
+      }
+      break;
+    }
     case 'world1':
       startWorld(false);
       keep = false;

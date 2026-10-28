@@ -921,6 +921,28 @@ body.pad-nav #ov :focus {
   outline-offset: 3px;
   box-shadow: 0 0 0 6px rgba(255, 198, 61, 0.18);
 }
+
+/* ---------- Challenge seed box ---------- */
+.seedin {
+  font: 600 16px var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  width: 11em;
+  max-width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.seedin:focus {
+  outline: 2px solid var(--mana);
+  outline-offset: 1px;
+}
 </style>
 </head>
 <body>
@@ -950,7 +972,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+8831aea';
+const APP_VERSION = '2.0.0+5a82f4c';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1087,6 +1109,23 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const ri = (a, b) => Math.floor(rand(a, b + 1));
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const pick = a => a[Math.floor(Math.random() * a.length)];
+/* Challenge seeds. A Sprawl block is S<block>-<seed>, an Arena run A-<seed>, the seed in base 36.
+   Share one and a friend plays the same street (same buildings, event and bounty) or the same arena
+   waves and perk offers. */
+const seedCode = (mode, n, level) =>
+  (mode === 'sprawl' ? 'S' + level : 'A') + '-' + (n >>> 0).toString(36).toUpperCase();
+function parseSeed(raw) {
+  const s = String(raw || '')
+    .toUpperCase()
+    .replace(/^CCT-/, '')
+    .replace(/\s+/g, '');
+  let m = s.match(/^S([1-9]\d?)-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'sprawl', level: Math.min(20, +m[1]), seed: parseInt(m[2], 36), code: s };
+  m = s.match(/^A-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'arena', seed: parseInt(m[1], 36), code: s };
+  return null;
+}
+const newSeed = () => Math.floor(Math.random() * 2e9);
 function srng(seed) {
   let s = seed >>> 0;
   return () => {
@@ -1588,6 +1627,14 @@ function globalAct(a, who) {
 }
 addEventListener('keydown', e => {
   const c = e.code;
+  // typing in a text box (the challenge seed) never moves, pauses or punches
+  if (e.target && e.target.tagName === 'INPUT') {
+    if (c === 'Enter') {
+      const go = document.querySelector('[data-a="seedgo"]');
+      if (go) go.click();
+    }
+    return;
+  }
   if (G.mode === 'hack' && (c === 'KeyJ' || c === 'Space' || c === 'Comma' || c === 'KeyE')) {
     e.preventDefault();
     if (!e.repeat) hackPress();
@@ -3052,6 +3099,27 @@ const ARCH = {
     attr: { bod: 2, str: 2, agi: 5, mag: 1 },
     gun: 'heavy',
     ammo: 48
+  },
+  medic: {
+    name: 'Street Doc',
+    short: 'Street Doc',
+    desc: 'Patches people up between punches. Every melee hit heals you, and a partner close by. Knows Heal.',
+    spName: 'Triage',
+    spDesc:
+      'Heals the whole team by half, gives everyone two seconds of invulnerability, and brings a downed partner straight back.',
+    attr: { bod: 3, str: 2, agi: 2, mag: 3 },
+    spells: ['heal', 'fire'],
+    locked: 'coopwin'
+  },
+  adept: {
+    name: 'Physical Adept',
+    short: 'Adept',
+    desc: 'Magic turned inward. Never uses guns: fists hit 30% harder, and every uppercut throws a chi blast.',
+    spName: 'Killing Hands',
+    spDesc: 'For six seconds every melee hit is a crit that knocks down.',
+    attr: { bod: 2, str: 3, agi: 4, mag: 3 },
+    noGun: true,
+    locked: 'knuckles'
   }
 };
 function applyArch(p, key) {
@@ -3061,6 +3129,7 @@ function applyArch(p, key) {
   p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, A0.cy || {});
   if (A0.weapon) p.eq.weapon = mkItem('weapon', A0.weapon, 0);
   if (A0.gun) p.eq.gun = mkItem('gun', A0.gun, 0);
+  if (A0.noGun) p.eq.gun = null;
   if (A0.spells) p.spells = A0.spells.slice();
   if (A0.ammo) p.ammo = A0.ammo;
   p.sk = null;
@@ -3763,6 +3832,25 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  {
+    id: 'coopwin',
+    name: 'Partners in Crime',
+    desc: 'Finish the campaign in co-op. Unlocks the Street Doc.',
+    lp: 25
+  },
+  {
+    id: 'knuckles',
+    name: 'Fists of the Street',
+    desc: 'Clear a district with the Bare Knuckles mutator on. Unlocks the Adept.',
+    lp: 15
+  },
+  {
+    id: 'seeded',
+    name: 'Same Street',
+    desc: 'Start a Sprawl block from a challenge seed.',
+    lp: 5,
+    hidden: 1
+  },
   { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
   {
     id: 'rare',
@@ -4138,6 +4226,7 @@ const ARCH_SKILL = {
   mage: 'focus',
   gunslinger: 'steady',
   decker: 'probe',
+  adept: 'breaker',
   shaman: 'focus',
   rigger: 'steady'
 };
@@ -4343,6 +4432,7 @@ function refresh(p) {
     spellMul: has(p, 'focus') ? 1.2 : 1
   };
   if (typeof G !== 'undefined' && modOn('brawl')) p.D.melee *= 1.4;
+  if (p.arch === 'adept') p.D.melee *= 1.3;
   p.maxHp = 70 + a.bod * 14 + (p.lvl - 1) * 5 + (ar && ar.mod === 'padded' ? 25 : 0);
   p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6);
   p.hp = Math.min(p.hp, p.maxHp);
@@ -4901,6 +4991,7 @@ function hurt(t, dmg, dir, o) {
     t.cloaked = false;
     t.recloakT = 150;
   }
+  if (o.melee && o.src && o.src.chiT > 0) o.kd = true; // Killing Hands
   if (t.d && t.d.mech) {
     // plated front, weak back: hits from behind do 50% more, hits from the front 60% less
     const back = o.ax !== undefined && (o.ax - t.x) * t.face < 0;
@@ -4957,6 +5048,7 @@ function hurt(t, dmg, dir, o) {
     o.src &&
     (roninCrit(o) ||
       (o.melee && o.src.parryT > 0 && useParryCrit(o.src)) ||
+      (o.melee && o.src.chiT > 0) ||
       Math.random() <
         o.src.D.crit +
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
@@ -5028,6 +5120,12 @@ function hurt(t, dmg, dir, o) {
     if (o.bullet && !o.rico && it && it.leg === 'smartlink' && Math.random() < 0.5) {
       const o2 = foe2(110);
       if (o2) G.zaps.push({ tg: o2, delay: 3, dmg: dmg * 0.6, src: sp, bul: true });
+    }
+    if (o.melee && sp.arch === 'medic' && t.team === 1) {
+      // Street Doc: every melee hit patches you up, and a partner standing close
+      sp.hp = Math.min(sp.maxHp, sp.hp + 2);
+      for (const q of alive())
+        if (q !== sp && Math.hypot(q.x - sp.x, q.y - sp.y) < 80) q.hp = Math.min(q.maxHp, q.hp + 1);
     }
     if (o.melee && has(sp, 'leech')) {
       sp.hp = Math.min(sp.maxHp, sp.hp + (crit ? 4 : 2));
@@ -5614,6 +5712,22 @@ function doSpecial(p) {
   } else if (p.arch === 'rigger') {
     sfx.zap();
     for (let i = 0; i < 3; i++) spawnSummon('drone', p, 720, i - 1);
+  } else if (p.arch === 'medic') {
+    // Triage: heal everyone by half, a moment of invulnerability, and a downed partner gets back up
+    sfx.heal();
+    for (const q of PL) {
+      if (q.out && q.outX != null) revive(q, p);
+      if (q.out) continue;
+      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * 0.5));
+      q.inv = Math.max(q.inv, 120);
+      burst(q.x, q.y, 30, '#7dffb0', 16);
+      say(q, 'PATCHED UP', '#7dffb0', 64, 44, true);
+    }
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#7dffb0', life: 26, max: 26, r: 90 });
+  } else if (p.arch === 'adept') {
+    p.chiT = 360;
+    sfx.spell();
+    burst(p.x, p.y, 30, '#ffc63d', 20);
   } else if (p.arch === 'decker') {
     sfx.zap();
     G.flash = Math.max(G.flash, 0.35);
@@ -5797,6 +5911,7 @@ function upRunner(p) {
     if (p.state === 'punch' && t === 4 && !G.den) {
       if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
+    if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
     if (p.state === 'upper' && t === 6 && !G.den) {
       if (!strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker }))
         sfx.whiff();
@@ -5974,6 +6089,9 @@ function upRunner(p) {
       }
     } else if (I.pressed.kick) {
       setS(p, 'kick');
+    } else if (I.pressed.gun && !G.den && ARCH[p.arch] && ARCH[p.arch].noGun) {
+      sfx.click();
+      say(p, 'ADEPTS FIGHT BARE', '#ffc63d', 56, 40, true);
     } else if (I.pressed.gun && !G.den && modOn('brawl')) {
       sfx.click();
       say(p, 'GUNS LOCKED', '#ffc63d', 56, 40, true);
@@ -6092,6 +6210,23 @@ function heavyMove(p, t, m, R) {
     p.face *= -1;
     G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ff6a3d', life: 12, max: 12, r: 34 });
   }
+}
+// Adept: every uppercut throws a short-range blast of chi down the lane
+function chiBlast(p) {
+  G.projs.push({
+    k: 'bolt',
+    tint: 'chi',
+    team: 0,
+    src: p,
+    x: p.x + p.face * 14,
+    y: p.y,
+    z: p.z + 26,
+    vx: p.face * 5.5,
+    dmg: 6 + (p.D.a.mag || 0) * 2,
+    life: 26,
+    r: 5,
+    kd: true
+  });
 }
 // Co-op revive: stand next to where your partner fell for 2.5 seconds without getting hit
 const REVIVE_T = 150;
@@ -7088,6 +7223,7 @@ function update() {
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
+    if (p.chiT > 0) p.chiT--;
     if (!p.out) upRunner(p);
   }
   reviveTick();
@@ -7514,6 +7650,7 @@ function stageClear() {
   if (G.coop) feat('coop');
   if (!G.stageLost) feat('ghost');
   if (mutN()) feat('mut1');
+  if (modOn('brawl')) feat('knuckles');
   const deb = {
     stage: G.stage,
     title: C ? C.title : 'the job',
@@ -7562,6 +7699,7 @@ function stageClear() {
   G.afterOutro = () => {
     if (G.stage >= STAGES.length - 1) {
       feat('win');
+      if (G.coop) feat('coopwin');
       if (G.diff === 2) feat('prime');
       if (mutN() >= 3) feat('mut3');
       logRun('Campaign', 'Won');
@@ -7903,8 +8041,8 @@ function genStreet(level, seed) {
   }
   return { len: x + 120, buildings: B, event };
 }
-function newWorld(level) {
-  const seed = Math.floor(Math.random() * 1e9);
+function newWorld(level, fixedSeed) {
+  const seed = fixedSeed !== undefined ? fixedSeed : newSeed();
   return {
     level,
     seed,
@@ -7924,7 +8062,19 @@ function newWorld(level) {
     street: genStreet(level, seed)
   };
 }
-function startWorld(coop) {
+const blockCode = w => seedCode('sprawl', w.seed, w.level);
+// Runners starting a seeded block past block 1 get the levels they'd have earned to get there
+function boostTo(p, lvl) {
+  while (p.lvl < lvl) {
+    p.lvl++;
+    p.pts += 2;
+    p.spts = (p.spts || 0) + 1;
+  }
+  refresh(p);
+  p.hp = p.maxHp;
+  p.mp = p.maxMp;
+}
+function startWorld(coop, ch) {
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;
@@ -7942,7 +8092,12 @@ function startWorld(coop) {
     ally: null,
     ice: 2
   });
-  G.wd = newWorld(1);
+  G.wd = ch ? newWorld(ch.level, ch.seed) : newWorld(1);
+  if (ch) feat('seeded');
+  if (ch && ch.level > 1) {
+    for (const p of PL) boostTo(p, 1 + (ch.level - 1) * 3);
+    PARTY.creds += (ch.level - 1) * 150;
+  }
   G.stock = [randItem(0, false), randItem(1, false), randItem(1, true)];
   enterStreet(180);
 }
@@ -9051,7 +9206,7 @@ function shareLine() {
     d = DIFF[G.diff].name;
   if (G.mode === 'arenaover') {
     const e = G.lastEntry || { score: 0, wave: 0 };
-    return `Cyber City Tactics Arena${G.challenge ? ` · ${G.challenge.daily ? 'daily ' + G.challenge.day : 'weekly ' + G.challenge.id} "${MODS[G.challenge.mod].name}"` : ''}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}`;
+    return `Cyber City Tactics Arena${G.challenge ? ` · ${G.challenge.daily ? 'daily ' + G.challenge.day : 'weekly ' + G.challenge.id} "${MODS[G.challenge.mod].name}"` : ' · seed ' + G.arenaSeed}: ${e.score.toLocaleString()} points, wave ${e.wave} (${d}, ${who}), best combo ${e.combo}. Beat it: ${HOME}${G.challenge ? '' : '?seed=' + G.arenaSeed}`;
   }
   return `Cyber City Tactics: took down Director Voss on ${d}${G.ng ? ' NG+' + G.ng : ''} (${who}), level ${PL[0].lvl}, best combo ${G.bestCombo}, ${(G.run || {}).kills || 0} takedowns. Play: ${HOME}`;
 }
@@ -9204,8 +9359,11 @@ function startArena(coop, challenge) {
     feat('daily');
     if (dd.streak >= 3) feat('streak');
   } else if (G.challenge) feat('weekly');
-  G.rngW = G.challenge ? srng(hstr(G.challenge.id + 'w')) : null;
-  G.rngP = G.challenge ? srng(hstr(G.challenge.id + 'p')) : null;
+  // open runs get a seed too, so any run can be shared and replayed
+  if (!G.challenge && !G.arenaSeed) G.arenaSeed = seedCode('arena', newSeed());
+  const sid = G.challenge ? G.challenge.id : G.arenaSeed;
+  G.rngW = srng(hstr(sid + 'w'));
+  G.rngP = srng(hstr(sid + 'p'));
   newRunStats();
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
@@ -10518,9 +10676,11 @@ function drawProj(pr) {
         ? ['255,106,61', '#ffe7a8']
         : pr.tint === 'drain'
           ? ['122,40,90', '#ffb0d8']
-          : pr.k === 'bolt' || pr.tint === 'bolt'
-            ? ['185,140,255', '#f2e9ff']
-            : ['69,210,255', '#e6fbff'];
+          : pr.tint === 'chi'
+            ? ['255,198,61', '#fff3c4']
+            : pr.k === 'bolt' || pr.tint === 'bolt'
+              ? ['185,140,255', '#f2e9ff']
+              : ['69,210,255', '#e6fbff'];
     const r = pr.r + Math.sin(G.t * 0.5);
     ctx.fillStyle = `rgba(${c[0]},.25)`;
     ctx.beginPath();
@@ -11719,6 +11879,12 @@ function render() {
       const seen = cl && PL.some(q => !q.out && q.cy && q.cy.eyes);
       ctx.globalAlpha = cl ? fa * (seen ? 0.55 : 0.1 + 0.06 * Math.sin(G.t * 0.3)) : fa;
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawAura(o.e);
+      if (o.e.chiT > 0) {
+        ctx.fillStyle = `rgba(255,198,61,${0.12 + 0.08 * Math.sin(G.t * 0.4)})`;
+        ctx.beginPath();
+        ctx.ellipse(o.e.x - G.camX, o.e.y - o.e.z - 22, 14, 26, 0, 0, 7);
+        ctx.fill();
+      }
       drawFig(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -12358,7 +12524,7 @@ function renderOv() {
   if (m === 'arenapick') {
     const wk = thisWeek(),
       wb = store.load('cs_week');
-    h = `<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>
+    h = `<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>${G.seedPre ? seedBoxHtml('Play the same waves and perk offers.') : ''}
     <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Weekly challenge · ${wk.id}</b><span class="st" style="color:var(--gold)">${esc(MODS[wk.mod].name)}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(MODS[wk.mod].desc)} Same waves and perk offers for everyone this week, on Runner difficulty.${wb && wb.id === wk.id ? ` Your best this week: ${wb.score.toLocaleString()} (wave ${wb.wave}).` : ''}</span>
@@ -12373,6 +12539,7 @@ function renderOv() {
     ${archHtml()}
     <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
+    ${G.seedPre ? '' : seedBoxHtml('Play the same waves and perk offers.')}
     <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
@@ -12424,7 +12591,9 @@ function renderOv() {
     h = `<div class="card"><p class="eyebrow">Open world</p><h2>The Sprawl</h2>
     <p>One long block, fourteen doors. Hack your way into gang hideouts, corp black sites, businesses and homes. Every building is a randomly built run of rooms with its own guards, boss and loot tier.</p>
     <p class="say"><b>Juno · fixer</b>Hit the crews and the corps and the street will love you. Hit the noodle shop or some family's flat and the cops will be on you before you're out the door. Your call. It always is.</p>
+    ${G.seedPre ? seedBoxHtml('Play the exact same street.') : ''}
     ${archHtml()}
+    ${G.seedPre ? '' : seedBoxHtml('Play the exact same street.')}
     <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'wiped') {
@@ -12512,6 +12681,15 @@ function shopHtml(b) {
   <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
+// The challenge-seed box on the Arena and Sprawl start screens
+function seedBoxHtml(what) {
+  const pre = G.seedPre || '';
+  return `<div class="job"><b>Challenge seed</b><span style="color:var(--muted);font-size:13px">Got a code from a friend? ${what} Codes look like <b style="white-space:nowrap">S3-K2F9QX</b> (a Sprawl block) or <b style="white-space:nowrap">A-9XK2</b> (an Arena run).</span>
+    <div class="row" style="align-items:center"><label for="seedIn" class="sr-only" style="position:absolute;left:-9999px">Challenge seed</label><input id="seedIn" class="seedin" value="${esc(pre)}" placeholder="S3-K2F9QX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14"><button class="btn sm" data-a="seedgo">Play solo</button><button class="btn sm ghost" data-a="seedgo2">Co-op</button></div>
+    ${G.seedErr ? '<span style="color:var(--neon);font-size:13px">That doesn\'t look like a seed. Check the letters and the dash.</span>' : ''}</div>`;
+}
+const seedShareLine = () =>
+  `Cyber City Tactics · Sprawl block ${G.wd.level}, seed ${blockCode(G.wd)}. Same street, same doors. Try it: ${HOME}?seed=${blockCode(G.wd)}`;
 // The block map: every building on this street in order, with type, tier and what's left to do
 function mapHtml() {
   const w = G.wd,
@@ -12555,7 +12733,9 @@ function mapHtml() {
   const ev = w.street.event
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
-  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div><div class="row"><button class="btn" data-a="close">Back to the street</button></div></div>`;
+  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div>
+  <h3>Share this block</h3><div class="sharebox" id="seedTxt">${esc(seedShareLine())}</div>
+  <div class="row"><button class="btn" data-a="close">Back to the street</button><button class="btn sm ghost" data-a="copyseed" id="seedCopy">Copy seed</button></div></div>`;
 }
 // Ratchet's workbench: spend parts on the current runner's equipped gear
 function workbenchHtml() {
@@ -12804,10 +12984,12 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'arena1':
+      G.arenaSeed = null;
       startArena(false);
       keep = false;
       break;
     case 'arena2':
+      G.arenaSeed = null;
       startArena(true);
       keep = false;
       break;
@@ -13085,6 +13267,37 @@ ov.addEventListener('click', e => {
       setMode('worldpick');
       keep = false;
       break;
+    case 'seedgo':
+    case 'seedgo2': {
+      const inp = document.getElementById('seedIn'),
+        ch = parseSeed(inp && inp.value);
+      if (!ch) {
+        G.seedErr = true;
+        renderOv();
+        break;
+      }
+      G.seedErr = false;
+      G.seedPre = '';
+      if (ch.mode === 'arena') {
+        G.arenaSeed = ch.code;
+        startArena(a === 'seedgo2');
+      } else startWorld(a === 'seedgo2', ch);
+      keep = false;
+      break;
+    }
+    case 'copyseed': {
+      const t = seedShareLine(),
+        btn = document.getElementById('seedCopy');
+      try {
+        navigator.clipboard.writeText(t).then(
+          () => btn && (btn.textContent = 'Copied'),
+          () => btn && (btn.textContent = 'Select the text to copy')
+        );
+      } catch (err) {
+        if (btn) btn.textContent = 'Select the text to copy';
+      }
+      break;
+    }
     case 'world1':
       startWorld(false);
       keep = false;
@@ -13607,7 +13820,18 @@ function pwaImportApply() {
 
 /* ---------- app shortcuts ---------- */
 function pwaShortcut() {
-  const go = new URLSearchParams(location.search).get('go');
+  const qs = new URLSearchParams(location.search),
+    sd = parseSeed(qs.get('seed'));
+  if (sd) {
+    // a shared challenge link: open the right start screen with the seed filled in
+    G.seedPre = sd.code;
+    setMode(sd.mode === 'arena' ? 'arenapick' : 'worldpick');
+    try {
+      history.replaceState(null, '', location.pathname);
+    } catch (err) {}
+    return;
+  }
+  const go = qs.get('go');
   const to = { daily: 'arenapick', arena: 'arenapick', sprawl: 'worldpick', codex: 'codex' }[go];
   if (!to) return;
   if (to === 'codex') G.cxTab = 'feats';

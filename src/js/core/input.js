@@ -70,6 +70,14 @@ function globalAct(a, who) {
 }
 addEventListener('keydown', e => {
   const c = e.code;
+  // typing in a text box (the challenge seed) never moves, pauses or punches
+  if (e.target && e.target.tagName === 'INPUT') {
+    if (c === 'Enter') {
+      const go = document.querySelector('[data-a="seedgo"]');
+      if (go) go.click();
+    }
+    return;
+  }
   if (G.mode === 'hack' && (c === 'KeyJ' || c === 'Space' || c === 'Comma' || c === 'KeyE')) {
     e.preventDefault();
     if (!e.repeat) hackPress();

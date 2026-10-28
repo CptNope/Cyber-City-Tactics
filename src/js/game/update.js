@@ -14,6 +14,7 @@ function update() {
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
+    if (p.chiT > 0) p.chiT--;
     if (!p.out) upRunner(p);
   }
   reviveTick();
@@ -440,6 +441,7 @@ function stageClear() {
   if (G.coop) feat('coop');
   if (!G.stageLost) feat('ghost');
   if (mutN()) feat('mut1');
+  if (modOn('brawl')) feat('knuckles');
   const deb = {
     stage: G.stage,
     title: C ? C.title : 'the job',
@@ -488,6 +490,7 @@ function stageClear() {
   G.afterOutro = () => {
     if (G.stage >= STAGES.length - 1) {
       feat('win');
+      if (G.coop) feat('coopwin');
       if (G.diff === 2) feat('prime');
       if (mutN() >= 3) feat('mut3');
       logRun('Campaign', 'Won');

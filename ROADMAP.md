@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 9:** the Street Doc and Physical Adept archetypes, and shareable challenge seeds for Sprawl blocks and Arena runs
 - [x] **Expansion 8:** hazard rooms, vaults with a second hack, back-alley clinics with rare cyberware, and talisman shops with two rare spells
 - [x] **Expansion 7:** co-op team attacks, mech walkers, feral spirits and hostage rooms
 - [x] **Expansion 6:** a parry on the dodge button, gang nightclubs and Lone Star precincts in the Sprawl, and a block map
@@ -131,13 +132,13 @@ These are the next ways to keep "one more run" alive:
 - [x] ~~**Mutators for the campaign.**~~ Shipped: Glass Cannon, Elite Streets, Bare Knuckles and One Life.
 - [x] ~~**More mutators.**~~ Shipped: Turbo, Fog, Split and Pacifist.
 - [x] ~~**Shaman and Rigger.**~~ Shipped and unlocked by feats.
-- [ ] **Street Doc archetype (M).** Heals with every hit; unlocked by finishing a co-op campaign.
-- [ ] **Adept archetype (M).** Magic-fuelled martial artist: no guns, chi-powered combos; unlocked by finishing a district with Bare Knuckles.
+- [x] ~~**Street Doc archetype.**~~ Shipped: heals with every hit, Triage special.
+- [x] ~~**Adept archetype.**~~ Shipped as the Physical Adept: no guns, chi blasts, Killing Hands.
 - [x] ~~**Cosmetics from feats.**~~ Shipped as eight runner coats.
 - [ ] **More cosmetics (S).** Visor colors, hair, a title under your name, and a weapon trail.
 - [ ] **Achievement-only secrets (S).** Hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
 - [x] ~~**Run history.**~~ Shipped in the Codex.
-- [ ] **Challenge seeds (S).** Type or share a seed to replay the exact same Sprawl block or Arena run as a friend.
+- [x] ~~**Challenge seeds.**~~ Shipped: S3-XXXX and A-XXXX codes, share links.
 
 ---
 

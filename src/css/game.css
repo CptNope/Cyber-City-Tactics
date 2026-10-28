@@ -903,3 +903,25 @@ body.pad-nav #ov :focus {
   outline-offset: 3px;
   box-shadow: 0 0 0 6px rgba(255, 198, 61, 0.18);
 }
+
+/* ---------- Challenge seed box ---------- */
+.seedin {
+  font: 600 16px var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  width: 11em;
+  max-width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.seedin:focus {
+  outline: 2px solid var(--mana);
+  outline-offset: 1px;
+}

@@ -316,8 +316,8 @@ function genStreet(level, seed) {
   }
   return { len: x + 120, buildings: B, event };
 }
-function newWorld(level) {
-  const seed = Math.floor(Math.random() * 1e9);
+function newWorld(level, fixedSeed) {
+  const seed = fixedSeed !== undefined ? fixedSeed : newSeed();
   return {
     level,
     seed,
@@ -337,7 +337,19 @@ function newWorld(level) {
     street: genStreet(level, seed)
   };
 }
-function startWorld(coop) {
+const blockCode = w => seedCode('sprawl', w.seed, w.level);
+// Runners starting a seeded block past block 1 get the levels they'd have earned to get there
+function boostTo(p, lvl) {
+  while (p.lvl < lvl) {
+    p.lvl++;
+    p.pts += 2;
+    p.spts = (p.spts || 0) + 1;
+  }
+  refresh(p);
+  p.hp = p.maxHp;
+  p.mp = p.maxMp;
+}
+function startWorld(coop, ch) {
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;
@@ -355,7 +367,12 @@ function startWorld(coop) {
     ally: null,
     ice: 2
   });
-  G.wd = newWorld(1);
+  G.wd = ch ? newWorld(ch.level, ch.seed) : newWorld(1);
+  if (ch) feat('seeded');
+  if (ch && ch.level > 1) {
+    for (const p of PL) boostTo(p, 1 + (ch.level - 1) * 3);
+    PARTY.creds += (ch.level - 1) * 150;
+  }
   G.stock = [randItem(0, false), randItem(1, false), randItem(1, true)];
   enterStreet(180);
 }

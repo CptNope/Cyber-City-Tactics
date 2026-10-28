@@ -8,6 +8,23 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const ri = (a, b) => Math.floor(rand(a, b + 1));
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const pick = a => a[Math.floor(Math.random() * a.length)];
+/* Challenge seeds. A Sprawl block is S<block>-<seed>, an Arena run A-<seed>, the seed in base 36.
+   Share one and a friend plays the same street (same buildings, event and bounty) or the same arena
+   waves and perk offers. */
+const seedCode = (mode, n, level) =>
+  (mode === 'sprawl' ? 'S' + level : 'A') + '-' + (n >>> 0).toString(36).toUpperCase();
+function parseSeed(raw) {
+  const s = String(raw || '')
+    .toUpperCase()
+    .replace(/^CCT-/, '')
+    .replace(/\s+/g, '');
+  let m = s.match(/^S([1-9]\d?)-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'sprawl', level: Math.min(20, +m[1]), seed: parseInt(m[2], 36), code: s };
+  m = s.match(/^A-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'arena', seed: parseInt(m[1], 36), code: s };
+  return null;
+}
+const newSeed = () => Math.floor(Math.random() * 2e9);
 function srng(seed) {
   let s = seed >>> 0;
   return () => {

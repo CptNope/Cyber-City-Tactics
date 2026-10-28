@@ -135,8 +135,12 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 | Decker 🔒 | Smartgun, Hacking 5 | **Overload:** fries every machine, ICE and armored trooper on screen and stuns everyone for 4 s | Port Scanner |
 | Shaman 🔒 | Fireball and Heal | **Spirit Call:** two bound fire spirits fight beside you for 15 s | Focus |
 | Rigger 🔒 | Machine pistol, Hacking 3 | **Drone Swarm:** three combat drones join the fight for 12 s | Steady Hands |
+| Street Doc 🔒 | Heal and Fireball; every melee hit heals you 2 HP and a close partner 1 HP | **Triage:** heals the whole team by half, two seconds of invulnerability, and a downed partner gets straight back up | An extra skill point |
+| Physical Adept 🔒 | No guns, ever; fists hit 30% harder and every uppercut throws a chi blast | **Killing Hands:** for six seconds every melee hit crits and knocks down | Guard Breaker |
 
-Three archetypes are locked at first. Each is unlocked for every mode by a feat:
+Five archetypes are locked at first. Each is unlocked for every mode by a feat:
+- **Street Doc:** finish the campaign in co-op.
+- **Physical Adept:** clear a district with the Bare Knuckles mutator on.
 - **Decker:** crack 10 locks in the Sprawl.
 - **Shaman:** find 10 lore shards.
 - **Rigger:** down 3 Kagemori couriers.
@@ -362,6 +366,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - *Unstable ceiling:* a shadow grows under falling debris near a runner, then the chunk lands with a knockdown.
 - **Vaults.** In tier-3 fair-game buildings the final cache is a vault. Clear the room, then hit it to start a lock-4 hack (five clean hits, a faster cursor). Crack it for double creds, an extra Prototype item and a 35% shot at a legendary. Fail and the vault seals, leaving only the ordinary cache.
 - **Hostages.** About a third of the non-final rooms in fair-game buildings hold a zip-tied civilian. Clear the room and they go free: karma, +5 street cred and a medkit. But anyone's stray hit can land on them, yours included, along with gang bullets and explosions. Lose one and it costs 8 cred.
+- **Challenge seeds.** Every Sprawl block and every Arena run has a seed code: *S3-K2F9QX* is block 3 of one particular street, *A-9XK2* one particular Arena run. The block map shows the current block's code with a share line and link, and Arena results include the run's code. Type a code into the *Challenge seed* box on the Sprawl or Arena start screen, or open a shared link (`?seed=S3-K2F9QX`), and you get the same street (buildings, owners, event, bounty and hidden doors) or the same waves and perk offers. Starting past block 1 brings your runners up to the level they'd have reached.
 - **Block map.** Press **M** in the Sprawl, or pick *Block map* from the pause menu, for a list of every building on the street in order: its type, tier, whether it's fair game or already cleaned out, any bounty, and how far away it is.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
 
@@ -385,7 +390,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 68 goals across every mode, for example:
+**Feats.** 71 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

@@ -81,6 +81,22 @@ function doSpecial(p) {
   } else if (p.arch === 'rigger') {
     sfx.zap();
     for (let i = 0; i < 3; i++) spawnSummon('drone', p, 720, i - 1);
+  } else if (p.arch === 'medic') {
+    // Triage: heal everyone by half, a moment of invulnerability, and a downed partner gets back up
+    sfx.heal();
+    for (const q of PL) {
+      if (q.out && q.outX != null) revive(q, p);
+      if (q.out) continue;
+      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * 0.5));
+      q.inv = Math.max(q.inv, 120);
+      burst(q.x, q.y, 30, '#7dffb0', 16);
+      say(q, 'PATCHED UP', '#7dffb0', 64, 44, true);
+    }
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#7dffb0', life: 26, max: 26, r: 90 });
+  } else if (p.arch === 'adept') {
+    p.chiT = 360;
+    sfx.spell();
+    burst(p.x, p.y, 30, '#ffc63d', 20);
   } else if (p.arch === 'decker') {
     sfx.zap();
     G.flash = Math.max(G.flash, 0.35);
@@ -264,6 +280,7 @@ function upRunner(p) {
     if (p.state === 'punch' && t === 4 && !G.den) {
       if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
+    if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
     if (p.state === 'upper' && t === 6 && !G.den) {
       if (!strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker }))
         sfx.whiff();
@@ -441,6 +458,9 @@ function upRunner(p) {
       }
     } else if (I.pressed.kick) {
       setS(p, 'kick');
+    } else if (I.pressed.gun && !G.den && ARCH[p.arch] && ARCH[p.arch].noGun) {
+      sfx.click();
+      say(p, 'ADEPTS FIGHT BARE', '#ffc63d', 56, 40, true);
     } else if (I.pressed.gun && !G.den && modOn('brawl')) {
       sfx.click();
       say(p, 'GUNS LOCKED', '#ffc63d', 56, 40, true);
@@ -559,6 +579,23 @@ function heavyMove(p, t, m, R) {
     p.face *= -1;
     G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ff6a3d', life: 12, max: 12, r: 34 });
   }
+}
+// Adept: every uppercut throws a short-range blast of chi down the lane
+function chiBlast(p) {
+  G.projs.push({
+    k: 'bolt',
+    tint: 'chi',
+    team: 0,
+    src: p,
+    x: p.x + p.face * 14,
+    y: p.y,
+    z: p.z + 26,
+    vx: p.face * 5.5,
+    dmg: 6 + (p.D.a.mag || 0) * 2,
+    life: 26,
+    r: 5,
+    kd: true
+  });
 }
 // Co-op revive: stand next to where your partner fell for 2.5 seconds without getting hit
 const REVIVE_T = 150;

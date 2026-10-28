@@ -251,6 +251,27 @@ const ARCH = {
     attr: { bod: 2, str: 2, agi: 5, mag: 1 },
     gun: 'heavy',
     ammo: 48
+  },
+  medic: {
+    name: 'Street Doc',
+    short: 'Street Doc',
+    desc: 'Patches people up between punches. Every melee hit heals you, and a partner close by. Knows Heal.',
+    spName: 'Triage',
+    spDesc:
+      'Heals the whole team by half, gives everyone two seconds of invulnerability, and brings a downed partner straight back.',
+    attr: { bod: 3, str: 2, agi: 2, mag: 3 },
+    spells: ['heal', 'fire'],
+    locked: 'coopwin'
+  },
+  adept: {
+    name: 'Physical Adept',
+    short: 'Adept',
+    desc: 'Magic turned inward. Never uses guns: fists hit 30% harder, and every uppercut throws a chi blast.',
+    spName: 'Killing Hands',
+    spDesc: 'For six seconds every melee hit is a crit that knocks down.',
+    attr: { bod: 2, str: 3, agi: 4, mag: 3 },
+    noGun: true,
+    locked: 'knuckles'
   }
 };
 function applyArch(p, key) {
@@ -260,6 +281,7 @@ function applyArch(p, key) {
   p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, A0.cy || {});
   if (A0.weapon) p.eq.weapon = mkItem('weapon', A0.weapon, 0);
   if (A0.gun) p.eq.gun = mkItem('gun', A0.gun, 0);
+  if (A0.noGun) p.eq.gun = null;
   if (A0.spells) p.spells = A0.spells.slice();
   if (A0.ammo) p.ammo = A0.ammo;
   p.sk = null;

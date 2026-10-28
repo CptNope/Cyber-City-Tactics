@@ -235,7 +235,18 @@ function pwaImportApply() {
 
 /* ---------- app shortcuts ---------- */
 function pwaShortcut() {
-  const go = new URLSearchParams(location.search).get('go');
+  const qs = new URLSearchParams(location.search),
+    sd = parseSeed(qs.get('seed'));
+  if (sd) {
+    // a shared challenge link: open the right start screen with the seed filled in
+    G.seedPre = sd.code;
+    setMode(sd.mode === 'arena' ? 'arenapick' : 'worldpick');
+    try {
+      history.replaceState(null, '', location.pathname);
+    } catch (err) {}
+    return;
+  }
+  const go = qs.get('go');
   const to = { daily: 'arenapick', arena: 'arenapick', sprawl: 'worldpick', codex: 'codex' }[go];
   if (!to) return;
   if (to === 'codex') G.cxTab = 'feats';

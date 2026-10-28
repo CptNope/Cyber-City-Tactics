@@ -515,6 +515,7 @@ mech.face = -1;
 mech.elite = null;
 mech.cool = 999;
 mech.inv = 0;
+P.D.crit = 0; // no random crits in this comparison
 let h0 = mech.hp;
 A.hurt(mech, 20, 1, { src: P, melee: true, ax: P.x });
 const front = h0 - mech.hp;
@@ -730,3 +731,127 @@ ok(
   fer.x >= G.camX + 20 && fer.x <= G.camX + A.W - 20,
   'a feral spirit backs off but never leaves the screen (' + Math.round(fer.x - G.camX) + ')'
 );
+
+// ---- Street Doc and Adept
+ok(
+  A.ARCH.medic.locked === 'coopwin' && A.ARCH.adept.locked === 'knuckles',
+  'Street Doc and Adept start locked behind feats'
+);
+click('quit');
+click('pick');
+ok(/🔒 Street Doc/.test(els.ov._h) || !!A.LEG.feats.coopwin, 'Street Doc shows locked on the picker');
+click('back2title');
+A.LEG.feats.coopwin = 1;
+A.LEG.feats.knuckles = 1;
+G.pendArch = ['medic', 'adept'];
+click('pick');
+click('diff:1');
+G.pendMuts = [];
+click('new2');
+click('go');
+step(70);
+G.wave = 99;
+G.waveLive = false;
+clearFoes();
+let [doc, adept] = __PL();
+ok(
+  doc.arch === 'medic' && doc.spells.includes('heal') && adept.arch === 'adept' && !adept.eq.gun,
+  'co-op run: Street Doc with Heal, Adept with no gun'
+);
+doc.hp = 50;
+adept.hp = 50;
+adept.x = doc.x + 20;
+adept.y = doc.y;
+let dg = foe('ganger', 20);
+dg.hp = dg.maxHp = 999;
+A.hurt(dg, 5, 1, { src: doc, melee: true });
+ok(doc.hp === 52 && adept.hp === 51, 'Street Doc: a melee hit heals the doc 2 and a partner close by 1');
+adept.sp = 100;
+doc.sp = 100;
+A.doSpecial(doc);
+ok(
+  doc.hp >= 52 + Math.round(doc.maxHp * 0.5) - 1 && adept.inv > 100,
+  'Triage heals the team by half and shields them'
+);
+const m0 = A.ARCH.adept;
+A.refresh(adept);
+const dmgAdept = adept.D.melee;
+vmA = require('vm');
+vmA.runInThisContext('PL[1].arch = "runner"; refresh(PL[1]);');
+const dmgPlain = adept.D.melee;
+vmA.runInThisContext('PL[1].arch = "adept"; refresh(PL[1]);');
+ok(Math.abs(dmgAdept / dmgPlain - 1.3) < 0.01, 'Adept fists hit 30% harder');
+adept.ammo = 20;
+adept.eq.gun = A.mkItem('gun', 'light', 0);
+const ammo0 = adept.ammo;
+key('Semicolon', true);
+step(2);
+key('Semicolon', false);
+step(20);
+ok(adept.ammo === ammo0, "Adepts won't fire a gun, even one from the bag");
+const proj0 = G.projs.length;
+A.setS(adept, 'upper');
+step(8);
+ok(
+  G.projs.some(q => q.tint === 'chi'),
+  'an Adept uppercut throws a chi blast'
+);
+A.doSpecial(adept);
+dg = foe('ganger', 22);
+dg.hp = dg.maxHp = 999;
+const tx2 = G.texts.length;
+A.hurt(dg, 5, 1, { src: adept, melee: true });
+ok(
+  G.texts.slice(tx2).some(t => /CRIT/.test(t.s)) && dg.state === 'down',
+  'Killing Hands: every melee hit crits and knocks down'
+);
+
+// ---- challenge seeds
+ok(
+  A.parseSeed('s3-k2f9qx').level === 3 && A.parseSeed('CCT-A-9XK2').mode === 'arena' && !A.parseSeed('hello'),
+  'seed codes parse (and junk is rejected)'
+);
+const s1 = A.genStreet(3, A.parseSeed('S3-K2F9QX').seed),
+  s2 = A.genStreet(3, A.parseSeed('s3-k2f9qx').seed);
+ok(JSON.stringify(s1) === JSON.stringify(s2), 'the same seed builds the same street');
+click('quit');
+click('worldpick');
+ok(/Challenge seed/.test(els.ov._h), 'seed box on the Sprawl start screen');
+document.getElementById('seedIn').value = 'nonsense';
+click('seedgo');
+ok(G.mode === 'worldpick' && /doesn't look like a seed/.test(els.ov._h), 'a bad code shows a gentle error');
+document.getElementById('seedIn').value = 'S3-K2F9QX';
+G.pendArch = ['runner', 'samurai'];
+click('seedgo');
+ok(
+  G.world && G.wd.level === 3 && JSON.stringify(G.wd.street) === JSON.stringify(s1),
+  'seeded Sprawl: block 3, the exact street'
+);
+ok(__PL()[0].lvl === 7 && A.LEG.feats.seeded, 'runners start at the level they would have reached (7)');
+A.setMode('play');
+click('map');
+ok(/S3-K2F9QX/.test(els.ov._h), 'the block map shows the seed to share');
+click('close');
+click('quit');
+click('arenapick');
+ok(/Challenge seed/.test(els.ov._h), 'seed box on the Arena start screen');
+document.getElementById('seedIn').value = 'A-9XK2';
+click('seedgo');
+ok(G.arena && G.arenaSeed === 'A-9XK2', 'seeded Arena run');
+const firstWave = () =>
+  G.ents
+    .filter(e => e.team === 1 && !e.d.passive)
+    .map(e => e.kind)
+    .join(',');
+for (let i = 0; i < 200 && !G.ents.some(e => e.team === 1 && !e.d.passive); i++) step(1);
+const w1 = firstWave();
+click('quit');
+click('arenapick');
+document.getElementById('seedIn').value = 'a-9xk2';
+click('seedgo');
+for (let i = 0; i < 200 && !G.ents.some(e => e.team === 1 && !e.d.passive); i++) step(1);
+ok(w1 && firstWave() === w1, 'the same Arena seed sends the same first wave (' + w1 + ')');
+click('quit');
+click('arenapick');
+click('arena1');
+ok(/^A-[0-9A-Z]+$/.test(G.arenaSeed), 'open Arena runs get a shareable seed too (' + G.arenaSeed + ')');

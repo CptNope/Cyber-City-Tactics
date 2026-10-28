@@ -327,6 +327,25 @@ const FEATS = [
     stat: 'evseen',
     n: 8
   },
+  {
+    id: 'coopwin',
+    name: 'Partners in Crime',
+    desc: 'Finish the campaign in co-op. Unlocks the Street Doc.',
+    lp: 25
+  },
+  {
+    id: 'knuckles',
+    name: 'Fists of the Street',
+    desc: 'Clear a district with the Bare Knuckles mutator on. Unlocks the Adept.',
+    lp: 15
+  },
+  {
+    id: 'seeded',
+    name: 'Same Street',
+    desc: 'Start a Sprawl block from a challenge seed.',
+    lp: 5,
+    hidden: 1
+  },
   { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
   {
     id: 'rare',

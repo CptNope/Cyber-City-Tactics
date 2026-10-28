@@ -55,7 +55,7 @@ function renderOv() {
   if (m === 'arenapick') {
     const wk = thisWeek(),
       wb = store.load('cs_week');
-    h = `<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>
+    h = `<div class="card"><p class="eyebrow">Arena · endless waves</p><h2>How long can you last?</h2>${G.seedPre ? seedBoxHtml('Play the same waves and perk offers.') : ''}
     <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Weekly challenge · ${wk.id}</b><span class="st" style="color:var(--gold)">${esc(MODS[wk.mod].name)}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(MODS[wk.mod].desc)} Same waves and perk offers for everyone this week, on Runner difficulty.${wb && wb.id === wk.id ? ` Your best this week: ${wb.score.toLocaleString()} (wave ${wb.wave}).` : ''}</span>
@@ -70,6 +70,7 @@ function renderOv() {
     ${archHtml()}
     <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
+    ${G.seedPre ? '' : seedBoxHtml('Play the same waves and perk offers.')}
     <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
@@ -121,7 +122,9 @@ function renderOv() {
     h = `<div class="card"><p class="eyebrow">Open world</p><h2>The Sprawl</h2>
     <p>One long block, fourteen doors. Hack your way into gang hideouts, corp black sites, businesses and homes. Every building is a randomly built run of rooms with its own guards, boss and loot tier.</p>
     <p class="say"><b>Juno · fixer</b>Hit the crews and the corps and the street will love you. Hit the noodle shop or some family's flat and the cops will be on you before you're out the door. Your call. It always is.</p>
+    ${G.seedPre ? seedBoxHtml('Play the exact same street.') : ''}
     ${archHtml()}
+    ${G.seedPre ? '' : seedBoxHtml('Play the exact same street.')}
     <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'wiped') {
@@ -209,6 +212,15 @@ function shopHtml(b) {
   <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
+// The challenge-seed box on the Arena and Sprawl start screens
+function seedBoxHtml(what) {
+  const pre = G.seedPre || '';
+  return `<div class="job"><b>Challenge seed</b><span style="color:var(--muted);font-size:13px">Got a code from a friend? ${what} Codes look like <b style="white-space:nowrap">S3-K2F9QX</b> (a Sprawl block) or <b style="white-space:nowrap">A-9XK2</b> (an Arena run).</span>
+    <div class="row" style="align-items:center"><label for="seedIn" class="sr-only" style="position:absolute;left:-9999px">Challenge seed</label><input id="seedIn" class="seedin" value="${esc(pre)}" placeholder="S3-K2F9QX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14"><button class="btn sm" data-a="seedgo">Play solo</button><button class="btn sm ghost" data-a="seedgo2">Co-op</button></div>
+    ${G.seedErr ? '<span style="color:var(--neon);font-size:13px">That doesn\'t look like a seed. Check the letters and the dash.</span>' : ''}</div>`;
+}
+const seedShareLine = () =>
+  `Cyber City Tactics · Sprawl block ${G.wd.level}, seed ${blockCode(G.wd)}. Same street, same doors. Try it: ${HOME}?seed=${blockCode(G.wd)}`;
 // The block map: every building on this street in order, with type, tier and what's left to do
 function mapHtml() {
   const w = G.wd,
@@ -252,7 +264,9 @@ function mapHtml() {
   const ev = w.street.event
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
-  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div><div class="row"><button class="btn" data-a="close">Back to the street</button></div></div>`;
+  return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div>
+  <h3>Share this block</h3><div class="sharebox" id="seedTxt">${esc(seedShareLine())}</div>
+  <div class="row"><button class="btn" data-a="close">Back to the street</button><button class="btn sm ghost" data-a="copyseed" id="seedCopy">Copy seed</button></div></div>`;
 }
 // Ratchet's workbench: spend parts on the current runner's equipped gear
 function workbenchHtml() {
