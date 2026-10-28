@@ -986,6 +986,11 @@ body.pad-nav #ov :focus {
   outline: 2px solid var(--mana);
   outline-offset: 1px;
 }
+
+/* a locked bag item: a quiet gold edge, so keepers stand out in a long list */
+.item.locked {
+  border-color: rgba(255, 198, 61, 0.45);
+}
 </style>
 </head>
 <body>
@@ -1015,7 +1020,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+ac2fae3';
+const APP_VERSION = '2.0.0+ebc3a62';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -13740,7 +13745,7 @@ function charHtml() {
                 its
                   .map(
                     it =>
-                      `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button><button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button></div></div>`
+                      `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button>${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button>`}</div></div>`
                   )
                   .join('')
             : '';
@@ -13758,7 +13763,7 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   <h3>Equipped</h3><div class="list">${eq}</div>
-  <h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best.</p><div class="list">${bag}</div>
+  <h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
   <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
@@ -13963,6 +13968,10 @@ function renderOv() {
 // Selling, at any counter. Ratchet is a fence and pays the full rate (and can scrap gear for parts); the clinics
 // and talisman shops will take gear off your hands too, for three quarters of that. Grouped by slot,
 // best first, each line showing how it compares with what the runner on this tab has equipped.
+// lock toggle shown on every bag line; a locked item keeps its name marked so it's obvious in long lists
+const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name);
+const lockBtn = it =>
+  `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
 const sellPrice = (it, kind) => Math.max(1, Math.round(it.price * storeRate(kind)));
 function sellHtml(kind) {
@@ -13971,7 +13980,7 @@ function sellHtml(kind) {
     bag = PARTY.bag,
     pct = Math.round(storeRate(kind) * 100);
   if (!bag.length) return `<h3>Sell</h3><p>Nothing in the bag to sell.</p>`;
-  const commons = bag.filter(it => it.rar === 0),
+  const commons = bag.filter(it => it.rar === 0 && !it.lock),
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
   const groups = ['weapon', 'gun', 'armor']
     .map(slot => {
@@ -13980,7 +13989,7 @@ function sellHtml(kind) {
       return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
         .map(
           it =>
-            `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}</div></div>`
+            `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
         )
         .join('')}`;
     })
@@ -14785,16 +14794,26 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'lock': {
+      // locked items can't be sold, dropped or scrapped, by a click or by "Sell all"
+      const i = findBag(arg);
+      if (i >= 0) {
+        PARTY.bag[i].lock = !PARTY.bag[i].lock;
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
     case 'drop': {
       const i = findBag(arg);
-      if (i >= 0) PARTY.bag.splice(i, 1);
+      if (i >= 0 && !PARTY.bag[i].lock) PARTY.bag.splice(i, 1);
       rerender();
       break;
     }
     case 'sell': {
       // sell:<uid>:<store kind>. The fence pays full rate; other counters pay less (storeRate)
       const i = findBag(arg);
-      if (i >= 0) {
+      if (i >= 0 && !PARTY.bag[i].lock) {
         PARTY.creds += sellPrice(PARTY.bag[i], parts[2]);
         PARTY.bag.splice(i, 1);
         bump('sold');
@@ -14808,7 +14827,7 @@ ov.addEventListener('click', e => {
       let got = 0,
         n = 0;
       PARTY.bag = PARTY.bag.filter(it => {
-        if (it.rar !== 0) return true;
+        if (it.rar !== 0 || it.lock) return true;
         got += sellPrice(it, arg);
         n++;
         return false;
@@ -14855,7 +14874,7 @@ ov.addEventListener('click', e => {
       break;
     case 'salvage': {
       const i = findBag(arg);
-      if (i >= 0 && salvageParts(PARTY.bag[i])) {
+      if (i >= 0 && !PARTY.bag[i].lock && salvageParts(PARTY.bag[i])) {
         const n = salvageParts(PARTY.bag[i]);
         PARTY.parts = (PARTY.parts || 0) + n;
         PARTY.bag.splice(i, 1);

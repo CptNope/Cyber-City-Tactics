@@ -67,3 +67,28 @@ ok(/data-a="sell:[^"]+:doc"/.test(A.shopHtml(shopB)), 'Sprawl back-alley clinics
 ok(/data-a="sell:[^"]+:talis"/.test(A.shopHtml({ type: 'talisman', name: 'T' })), 'and so do talisman shops');
 ok(!/salvage:/.test(A.shopHtml(shopB)), 'only Ratchet scraps gear for parts');
 G.world = false;
+
+// locking keepers
+A.enterDen();
+A.openNPC('ratchet');
+const keep = item(0),
+  junk = item(0);
+PARTY.bag.push(keep, junk);
+click('lock:' + keep.uid);
+ok(
+  keep.lock === true && /data-a="lock:[^"]+" aria-pressed="true"/.test(els.ov._h),
+  'an item can be locked from the sell list'
+);
+const c1 = PARTY.creds;
+click('sell:' + keep.uid + ':fence');
+click('salvage:' + keep.uid);
+ok(PARTY.bag.includes(keep) && PARTY.creds === c1, "a locked item can't be sold or scrapped");
+click('sellcommon:fence');
+ok(PARTY.bag.includes(keep) && !PARTY.bag.includes(junk), '"Sell all" skips locked items and sells the rest');
+click('leave');
+click('sheet');
+click('drop:' + keep.uid);
+ok(PARTY.bag.includes(keep), "and it can't be dropped");
+click('lock:' + keep.uid);
+click('drop:' + keep.uid);
+ok(!PARTY.bag.includes(keep), 'unlocked, it drops normally');

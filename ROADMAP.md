@@ -28,6 +28,8 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Graphics and animation pass:** neon reflections on wet streets, puddles, steam, air traffic and haze; fighters that ease between poses, squash and stretch, and bend their knees the right way; hounds, mechs and the dragon animated to match; every regular enemy with its own look; fireball explosions, hit flashes and spell trails; health bars that show the bite; a neon power-on title; a four-step automatic quality ladder with a pixel budget for big screens; and a frame rate counter
+- [x] **Inventory:** a 40-slot party bag grouped by slot, selling at every store counter (Ratchet pays best), "sell all Street-grade" and item locking
 - [x] **Expansion 11:** street politics (crew and Kagemori standing, rivalries, hit squads, crew backup) and weapon trails
 - [x] **Expansion 10:** the Wyrm's Roost and the fight with Ssareth (ground, flight and lane-breath phases), the Wyrmheart legendary and the Wyrmslayer coat
 - [x] **Expansion 9:** the Street Doc and Physical Adept archetypes, and shareable challenge seeds for Sprawl blocks and Arena runs
@@ -105,10 +107,31 @@ The guiding rules:
 - [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
 
 ### Presentation
-- [ ] **Animated title and menus (S).** Motion on the title card, menu transitions and the skill-tree unlock pulse, all in hand-written CSS and JavaScript (no libraries).
+- [x] ~~**Animated title and menus.**~~ Shipped: the title powers on like a neon tube and skills pop when bought. Menus stay instant, as the brand book asks.
 - [ ] **Per-district music variations (M).** A calmer loop between waves and an intense one during them.
 - [ ] **Accessibility (M).** A high-contrast mode, a colorblind-safe palette for door signs and affixes, remappable keys, a hold-to-toggle option for the heavy blow, and reduced-motion support everywhere.
 - [ ] **Localization scaffolding (M).** Move all text into one table so the game can be translated.
+
+### Feel and presentation, round two
+Picked from what the graphics pass turned up:
+- [ ] **Elites you can read at a glance (S).** Armored elites wear visible plating, berserkers trail red, warded ones carry a shimmer, vampiric ones pulse when they heal.
+- [ ] **Hit reactions and deaths (M).** Knock-back poses that depend on the hit (a stagger, a spin from a heavy blow, a launch from an uppercut) and a few death animations instead of one fall.
+- [ ] **Boss entrances (S).** A name card, a short camera push and a beat of music for each boss, skippable and shown once per run.
+- [ ] **Street props with light (S).** Fire barrels, vending machines and parked spinners that cast glow on the people standing next to them.
+- [ ] **District weather (S).** Fog banks in the Tunnels, sleet over the Arcology, lightning flashes that light the whole street for a frame.
+- [ ] **Low-health feel (S).** A red vignette and a muffled music filter under 25% HP, off with reduced motion.
+
+### Inventory and economy
+- [ ] **Safehouse stash (S).** 60 extra slots in the Sprawl safehouse and the Den, so collectors don't have to sell.
+- [ ] **New-item markers and auto-sort (S).** A dot on gear you haven't looked at yet, and a sort toggle (rarity, value, slot).
+- [ ] **Rotating black market (M).** A trader who appears on random Sprawl blocks with one rare item, a price that drops each block you ignore it, and a cred requirement.
+- [ ] **Haggling (S).** A Face-style skill in the Decker tree, or a street-cred perk, that improves buy and sell prices.
+- [ ] **Item sets (L)** stay planned under Gear and loot.
+
+### Reach and onboarding
+- [ ] **A first-run tutorial block (M).** A short guided street that teaches punch, kick, grab, dodge and doors before the first district, skippable.
+- [ ] **Real-device performance reports (S).** A "Copy performance report" button next to the frame rate counter (device, browser, tier, fps) that players can paste into an issue.
+- [ ] **Store listing kit (S).** Screenshots and a short trailer captured from the game itself for itch.io and the PWA install sheet.
 
 ### Engineering
 - [x] ~~**Check in the test bots.**~~ `tests/` with `npm test`, plus Playwright browser checks.

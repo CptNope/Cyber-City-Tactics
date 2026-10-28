@@ -188,6 +188,10 @@ function renderOv() {
 // Selling, at any counter. Ratchet is a fence and pays the full rate (and can scrap gear for parts); the clinics
 // and talisman shops will take gear off your hands too, for three quarters of that. Grouped by slot,
 // best first, each line showing how it compares with what the runner on this tab has equipped.
+// lock toggle shown on every bag line; a locked item keeps its name marked so it's obvious in long lists
+const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name);
+const lockBtn = it =>
+  `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
 const sellPrice = (it, kind) => Math.max(1, Math.round(it.price * storeRate(kind)));
 function sellHtml(kind) {
@@ -196,7 +200,7 @@ function sellHtml(kind) {
     bag = PARTY.bag,
     pct = Math.round(storeRate(kind) * 100);
   if (!bag.length) return `<h3>Sell</h3><p>Nothing in the bag to sell.</p>`;
-  const commons = bag.filter(it => it.rar === 0),
+  const commons = bag.filter(it => it.rar === 0 && !it.lock),
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
   const groups = ['weapon', 'gun', 'armor']
     .map(slot => {
@@ -205,7 +209,7 @@ function sellHtml(kind) {
       return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
         .map(
           it =>
-            `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}</div></div>`
+            `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
         )
         .join('')}`;
     })

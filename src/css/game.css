@@ -968,3 +968,8 @@ body.pad-nav #ov :focus {
   outline: 2px solid var(--mana);
   outline-offset: 1px;
 }
+
+/* a locked bag item: a quiet gold edge, so keepers stand out in a long list */
+.item.locked {
+  border-color: rgba(255, 198, 61, 0.45);
+}

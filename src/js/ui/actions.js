@@ -509,16 +509,26 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'lock': {
+      // locked items can't be sold, dropped or scrapped, by a click or by "Sell all"
+      const i = findBag(arg);
+      if (i >= 0) {
+        PARTY.bag[i].lock = !PARTY.bag[i].lock;
+        sfx.click();
+      }
+      rerender();
+      break;
+    }
     case 'drop': {
       const i = findBag(arg);
-      if (i >= 0) PARTY.bag.splice(i, 1);
+      if (i >= 0 && !PARTY.bag[i].lock) PARTY.bag.splice(i, 1);
       rerender();
       break;
     }
     case 'sell': {
       // sell:<uid>:<store kind>. The fence pays full rate; other counters pay less (storeRate)
       const i = findBag(arg);
-      if (i >= 0) {
+      if (i >= 0 && !PARTY.bag[i].lock) {
         PARTY.creds += sellPrice(PARTY.bag[i], parts[2]);
         PARTY.bag.splice(i, 1);
         bump('sold');
@@ -532,7 +542,7 @@ ov.addEventListener('click', e => {
       let got = 0,
         n = 0;
       PARTY.bag = PARTY.bag.filter(it => {
-        if (it.rar !== 0) return true;
+        if (it.rar !== 0 || it.lock) return true;
         got += sellPrice(it, arg);
         n++;
         return false;
@@ -579,7 +589,7 @@ ov.addEventListener('click', e => {
       break;
     case 'salvage': {
       const i = findBag(arg);
-      if (i >= 0 && salvageParts(PARTY.bag[i])) {
+      if (i >= 0 && !PARTY.bag[i].lock && salvageParts(PARTY.bag[i])) {
         const n = salvageParts(PARTY.bag[i]);
         PARTY.parts = (PARTY.parts || 0) + n;
         PARTY.bag.splice(i, 1);
