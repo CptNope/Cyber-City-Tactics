@@ -779,7 +779,7 @@ function netApply(s) {
   for (const a of s.sx) if (typeof sfx[a[0]] === 'function') sfx[a[0]].apply(sfx, a.slice(1));
   NET.hm = s.hm;
   // first picture: say which runner is yours
-  if (!NET.greeted && PL[1] && PL[1].name) {
+  if (!NET.greeted && PL[1] && PL[1].name && !G.banner && NET.hm === 'play') {
     NET.greeted = true;
     G.texts.push({
       x: G.camX + W / 2,
@@ -896,8 +896,8 @@ function netHtml(m) {
     <div class="row">${PL[1] && (PL[1].pts || PL[1].spts) && !over ? '<button class="btn" data-a="netsheet">Your character (points to spend)</button>' : ''}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
   }
   if (m === 'nethub')
-    return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>${esc((NET.friend && ARCH[NET.friend.arch] && ARCH[NET.friend.arch].name) || 'Your friend')} is here</h2>
-    <p>Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
+    return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
+    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
     <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')
