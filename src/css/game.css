@@ -222,6 +222,49 @@ button:focus-visible {
     -3px 0 var(--neon),
     3px 0 var(--mana);
 }
+/* First visit only: the sign powers on. CYBER CITY's split pulls into focus while the TACTICS bar
+   stutters alight like a neon tube. Under a second, never blocks input, skipped for reduced motion. */
+.wordmark.boot .wm-city {
+  animation: wmFocus 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.wordmark.boot .wm-bar {
+  animation: wmTube 0.9s steps(1, end) both;
+}
+@keyframes wmFocus {
+  from {
+    opacity: 0.4;
+    text-shadow:
+      -12px 0 var(--neon),
+      12px 0 var(--mana);
+  }
+}
+@keyframes wmTube {
+  0% {
+    opacity: 0.12;
+  }
+  10% {
+    opacity: 1;
+  }
+  16% {
+    opacity: 0.25;
+  }
+  28% {
+    opacity: 1;
+  }
+  33% {
+    opacity: 0.5;
+  }
+  42%,
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark.boot .wm-city,
+  .wordmark.boot .wm-bar {
+    animation: none;
+  }
+}
 .wordmark .wm-bar {
   background: var(--neon);
   color: var(--ink);

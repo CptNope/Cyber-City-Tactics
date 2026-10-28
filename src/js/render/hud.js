@@ -2,12 +2,19 @@
  * HUD, banners, toasts, the blackout overlay, and the main render() pass.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
-function bar(x, y, w, h, v, max, col) {
+// ghost: an earlier value still shown as a pale chunk, so a hit visibly takes a bite before it drains away
+function bar(x, y, w, h, v, max, col, ghost) {
   const f = Math.max(0, w * Math.min(1, v / max));
   ctx.fillStyle = '#0b0812';
   ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
   ctx.fillStyle = '#2a2238';
   ctx.fillRect(x, y, w, h);
+  if (ghost > v) {
+    ctx.fillStyle = '#fff3f8';
+    ctx.globalAlpha = 0.75;
+    ctx.fillRect(x + f, y, Math.max(0, w * Math.min(1, ghost / max)) - f, h);
+    ctx.globalAlpha = 1;
+  }
   ctx.fillStyle = col;
   ctx.fillRect(x, y, f, h);
   ctx.fillStyle = 'rgba(255,255,255,.18)';
@@ -25,6 +32,24 @@ function txt(s, x, y, size, col, align, stroke) {
   ctx.fillStyle = col;
   ctx.fillText(s, x, y);
 }
+// Lagging health for the chip-damage bite: holds for a moment after a hit, then drains (per logic step)
+function hpGhost(e) {
+  if (e._gh === undefined) {
+    e._gh = e.maxHp; // a foe's bar first shows on its first hit: start full so that hit shows its bite
+    e._ghT = G.t;
+  }
+  if (e.hp >= e._gh) {
+    e._gh = e._ghHp = e.hp;
+    e._ghS = G.t;
+    return e.hp;
+  }
+  if (e._ghHp === undefined || e.hp < e._ghHp) e._ghT = G.t; // a fresh hit restarts the hold
+  e._ghHp = e.hp;
+  const dt = G.t - (e._ghS === undefined ? G.t : e._ghS);
+  e._ghS = G.t;
+  if (G.t - e._ghT > 24) e._gh = Math.max(e.hp, e._gh - e.maxHp * 0.012 * dt);
+  return e._gh;
+}
 function drawPanel(p, x) {
   if (p.out) {
     txt(p.name + ' · OUT', x, 18, 15, '#6b6280');
@@ -37,12 +62,19 @@ function drawPanel(p, x) {
     );
     return;
   }
-  txt(p.name + ' LV ' + p.lvl, x, 18, 15, p.idx ? '#ffd27a' : '#efe9ff');
-  if ((p.pts > 0 || p.spts > 0) && (G.t >> 4) % 2)
-    txt('+' + ((p.pts || 0) + (p.spts || 0)) + ' PTS', x + 64, 18, 12, '#ffc63d');
+  const low = p.hp > 0 && p.hp < p.maxHp * 0.25,
+    nm = p.name + ' LV ' + p.lvl;
+  txt(nm, x, 18, 15, low && (G.t >> 3) % 2 ? '#ff3d8b' : p.idx ? '#ffd27a' : '#efe9ff');
+  // unspent points sit right after the name, measured, so a wide fallback font can't push them into the lives
+  if (p.pts > 0 || p.spts > 0) {
+    ctx.font = '600 15px Teko, Impact, sans-serif';
+    const px = x + ctx.measureText(nm).width + 5,
+      s = '+' + ((p.pts || 0) + (p.spts || 0)) + (px < x + 66 ? ' PTS' : '');
+    if ((G.t >> 4) % 2 || RM) txt(s, px, 18, 12, '#ffc63d');
+  }
   for (let i = 0; i < p.lives; i++)
     fillPoly([x + 96 + i * 7, 12, x + 99 + i * 7, 9, x + 102 + i * 7, 12, x + 99 + i * 7, 15], p.pal.acc);
-  bar(x, 22, 96, 6, p.hp, p.maxHp, '#ff3d8b');
+  bar(x, 22, 96, 6, p.hp, p.maxHp, low && (G.t >> 3) % 2 ? '#ff8ab8' : '#ff3d8b', hpGhost(p));
   bar(x, 31, Math.round(96 * Math.min(1, p.maxMp / 80)), 4, p.mp, p.maxMp, '#45d2ff');
   bar(x, 38, 96, 2, p.karma, karmaNext(p.lvl), '#b98cff');
   bar(x, 43, 96, 3, p.sp || 0, 100, (p.sp || 0) >= 100 && (G.t >> 3) % 2 ? '#fff3c4' : '#ffc63d');
@@ -268,7 +300,7 @@ function drawHud() {
       bx = (W - bw) / 2,
       by = G.coop && BAND < 46 ? H - 24 : H - 11;
     txt((boss.name || boss.d.name).toUpperCase(), bx, by - 3, 14, boss.rematch ? '#45d2ff' : '#efe9ff');
-    bar(bx, by, bw, 5, boss.hp, boss.maxHp, '#ffc63d');
+    bar(bx, by, bw, 5, boss.hp, boss.maxHp, '#ffc63d', hpGhost(boss));
   }
   if (G.combo >= 3) {
     const pop = Math.max(0, 8 - G.comboT) * 0.6;
@@ -696,7 +728,8 @@ function drawFoeBar(e) {
     top = e.d.fly ? e.y - e.z - 16 : e.y - e.z - 56 * sc;
   if (e.name) txt(e.name.toUpperCase(), sx, top - (e.elite ? 12 : 4), 10, '#ffc63d', 'center');
   if (e.elite) txt(ELITES[e.elite].name.toUpperCase(), sx, top - 4, 10, ELITES[e.elite].col, 'center');
-  if (e.hp < e.maxHp) bar(sx - 11, top, 22, 2, e.hp, e.maxHp, e.elite ? ELITES[e.elite].col : '#ff6a3d');
+  if (e.hp < e.maxHp)
+    bar(sx - 11, top, 22, 2, e.hp, e.maxHp, e.elite ? ELITES[e.elite].col : '#ff6a3d', hpGhost(e));
 }
 const npcEnt = {};
 function drawNPC(n) {

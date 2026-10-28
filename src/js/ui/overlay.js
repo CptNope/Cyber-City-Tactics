@@ -18,9 +18,11 @@ function renderOv() {
   const m = G.mode;
   let h = '';
   if (m === 'title') {
-    const sv = store.load('cs_save3');
+    const sv = store.load('cs_save3'),
+      boot = G.booted ? '' : ' boot'; // the sign powers on once per session, never on later visits
+    G.booted = true;
     if (G.mode === 'title') G.pendDiff = sv && sv.diff !== undefined ? sv.diff : 1;
-    h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
+    h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
     <p>Two shadowrunners, a fixer with a grudge and five districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
     <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff === undefined ? 1 : sv.diff].name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
