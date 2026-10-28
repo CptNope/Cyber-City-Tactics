@@ -540,3 +540,7 @@ tools/                 build, local server, screenshot generator
 tests/                 headless tests and browser tests
 docs/                  architecture guide
 ```
+
+---
+
+Built by [Jeremy Anderson Tech](https://jeremyanderson.tech/), a web development and security practice in Shrewsbury, MA. [Services](https://jeremyanderson.tech/services/)
