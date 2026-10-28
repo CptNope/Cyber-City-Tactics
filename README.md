@@ -118,7 +118,7 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 - add Runner 2 from the pause menu, or
 - press Start on a second gamepad.
 
-**Online co-op (Arena).** Play with a friend in another browser, on another device, anywhere: **Online co-op** on the title screen. One of you hosts and sends the invite code (or invite link); the other pastes it and sends back a reply code; the host pastes that and you're in. No accounts and no server: the two browsers talk directly. The host plays Runner 1 and picks perks; the friend plays Runner 2 with the archetype and coat they chose. It works best on the same Wi-Fi; across the internet it works on most home networks, though some office and school networks block direct connections.
+**Online co-op (Arena).** Play with a friend in another browser, on another device, anywhere: **Online co-op** on the title screen. One of you hosts and gets a five-letter room code (or an invite link); the other picks **Join a game** and types it in, and you're in. No accounts. The two browsers talk directly; when a network blocks that, Cloudflare relays the game. The host plays Runner 1 and picks perks; the friend plays Runner 2 with the archetype and coat they chose. If the lobby is ever unreachable, the game falls back to swapping two long codes by hand. The lobby is a small Cloudflare Worker in [`server/`](server/README.md).
 
 **Team attacks.** When both runners land a hit on the same enemy within half a second, it triggers a combined finisher: a big knockdown hit with a moment of slow motion. Each enemy can take one every two seconds.
 

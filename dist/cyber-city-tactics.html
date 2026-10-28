@@ -1118,7 +1118,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+e722ec1';
+const APP_VERSION = '2.0.0+7e64567';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -10794,7 +10794,7 @@ function scoreTable(hl) {
 const NET_ICE = [{ urls: 'stun:stun.cloudflare.com:3478' }];
 // The lobby (server/worker.js on Cloudflare): short room codes instead of long ones, and relay passes (TURN)
 // for networks that block direct connections. Empty means long codes only. ?lobby=URL overrides it.
-const NET_LOBBY = '';
+const NET_LOBBY = 'https://cct-lobby.jca2016satx.workers.dev';
 const NET_ROOM_RE = /^[A-HJ-NP-Za-hj-np-z2-9]{5}$/;
 const NET_ACTS = [
   'left',
@@ -10935,6 +10935,7 @@ function lobbyUrl() {
   if (typeof location === 'undefined') return '';
   try {
     const q = new URLSearchParams(location.search).get('lobby');
+    if (q === 'off') return '';
     if (q && /^https?:\/\/[^\s]+$/.test(q)) return q.replace(/\/+$/, '');
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';

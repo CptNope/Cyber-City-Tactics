@@ -20,7 +20,7 @@
 const NET_ICE = [{ urls: 'stun:stun.cloudflare.com:3478' }];
 // The lobby (server/worker.js on Cloudflare): short room codes instead of long ones, and relay passes (TURN)
 // for networks that block direct connections. Empty means long codes only. ?lobby=URL overrides it.
-const NET_LOBBY = '';
+const NET_LOBBY = 'https://cct-lobby.jca2016satx.workers.dev';
 const NET_ROOM_RE = /^[A-HJ-NP-Za-hj-np-z2-9]{5}$/;
 const NET_ACTS = [
   'left',
@@ -161,6 +161,7 @@ function lobbyUrl() {
   if (typeof location === 'undefined') return '';
   try {
     const q = new URLSearchParams(location.search).get('lobby');
+    if (q === 'off') return '';
     if (q && /^https?:\/\/[^\s]+$/.test(q)) return q.replace(/\/+$/, '');
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';

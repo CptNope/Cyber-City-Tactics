@@ -43,7 +43,7 @@ const { pathToFileURL } = require('url');
         localStorage.setItem('cs_prefs', JSON.stringify(p));
       } catch (e) {}
     });
-    await page.goto(base);
+    await page.goto(base + '?lobby=off'); // long codes here; the lobby gets its own section below
     await page.waitForFunction(() => typeof G !== 'undefined' && document.querySelector('#ov .card'));
     await page.evaluate(() => (NET.ice = []));
     return { page, errs };
