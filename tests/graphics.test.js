@@ -186,3 +186,42 @@ ok(!boss.extra && !boss.build, 'bosses keep their signature look');
   }
   ok(!threw, 'every reaction and death draws cleanly' + (threw ? ': ' + threw.message : ''));
 }
+
+// boss entrances: once per boss per run
+{
+  G.run = { kills: 0 };
+  G.mode = 'play';
+  const b = A.spawnEnemy('troll', 1);
+  A.introCheck(b);
+  ok(
+    A.introK() >= 0 && vm.runInThisContext('introE') === b,
+    'a boss gets an entrance the first time it appears'
+  );
+  vm.runInThisContext('introE = null');
+  A.introCheck(b);
+  ok(vm.runInThisContext('introE') === null, 'but only once per run');
+  G.run = { kills: 0 };
+  A.introCheck(b);
+  ok(vm.runInThisContext('introE') === b, 'a new run shows it again');
+  G.t += 200;
+  ok(A.introK() === 0, 'and it ends on its own, with nothing to skip');
+}
+
+// low health: the music muffles below a quarter HP and opens back up after
+{
+  const AU = vm.runInThisContext('A'),
+    m0 = AU.muffle;
+  let mu = null;
+  AU.muffle = on => {
+    mu = on;
+  };
+  G.mode = 'play';
+  const p = __PL()[0];
+  p.hp = Math.floor(p.maxHp * 0.2);
+  A.drawLowHealth();
+  ok(mu === true, 'under 25% HP the music muffles');
+  p.hp = p.maxHp;
+  A.drawLowHealth();
+  ok(mu === false, 'healed, it opens back up');
+  AU.muffle = m0;
+}

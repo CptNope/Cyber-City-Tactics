@@ -116,10 +116,10 @@ The guiding rules:
 Picked from what the graphics pass turned up:
 - [x] ~~**Elites you can read at a glance.**~~ Shipped: armored elites wear steel plates that bullets spark off, berserkers leave red afterimages and steam, warded ones turn a ring of runes that ripples when a spell slides off, vampiric ones have a heartbeat glow and visibly drain you.
 - [x] ~~**Hit reactions and deaths.**~~ Shipped: punches alternate a head snap and a doubled-over flinch, bullets jolt, shocks lock the body rigid, heavy blows spin them through the air, uppercuts tip them over backward with flailing limbs. A finishing jab drops them face-down where they stand; fire kills char and smoke, shock kills twitch and spark, magic kills dissolve into rising motes.
-- [ ] **Boss entrances (S).** A name card, a short camera push and a beat of music for each boss, skippable and shown once per run.
+- [x] ~~**Boss entrances.**~~ Shipped: letterbox bars, a short camera push and a slanted name card with an epithet and a sting, once per boss per run. The fight stays live throughout, so there's nothing to skip.
 - [ ] **Street props with light (S).** Fire barrels, vending machines and parked spinners that cast glow on the people standing next to them.
 - [ ] **District weather (S).** Fog banks in the Tunnels, sleet over the Arcology, lightning flashes that light the whole street for a frame.
-- [ ] **Low-health feel (S).** A red vignette and a muffled music filter under 25% HP, off with reduced motion.
+- [x] ~~**Low-health feel.**~~ Shipped: under 25% HP the edges bleed red on a heartbeat and the music muffles. Steady instead of pulsing under reduced motion; light mode keeps only the sound.
 
 ### Inventory and economy
 - [ ] **Safehouse stash (S).** 60 extra slots in the Sprawl safehouse and the Den, so collectors don't have to sell.

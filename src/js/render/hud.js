@@ -310,6 +310,7 @@ function drawToasts() {
 function drawHud() {
   const S = curS();
   const boss = G.ents.find(e => e.team === 1 && e.d.boss && e.state !== 'dead');
+  introCheck(boss);
   if (boss) {
     const bw = 200,
       bx = (W - bw) / 2,
@@ -353,7 +354,7 @@ function drawHud() {
     ctx.fillText(sub, W / 2, 137);
     ctx.globalAlpha = 1;
   }
-  if (G.banner < 0 && (-G.banner >> 3) % 2) {
+  if (G.banner < 0 && !introK() && (-G.banner >> 3) % 2) {
     const rb = G.ents.find(e => e.rematch && e.state !== 'dead');
     txt(
       rb ? 'REMATCH — ' + rb.name.toUpperCase() : 'WARNING — BOSS',
@@ -616,6 +617,7 @@ function render() {
   }
   ctx.save();
   ctx.translate(shx, shy + BAND);
+  introPush();
   drawBg();
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
@@ -690,7 +692,9 @@ function render() {
   drawRain();
   ctx.restore();
   if (BOT > 0) drawGroundBand();
+  drawLowHealth();
   if (G.mode !== 'title') {
+    drawIntroBars();
     ctx.save();
     ctx.translate(0, BAND);
     drawDark();
@@ -699,6 +703,7 @@ function render() {
     ctx.restore();
     drawHudTop();
   }
+  if (G.mode !== 'title') drawIntro();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {

@@ -16,7 +16,11 @@ const A = {
         this.master.connect(this.ac.destination);
         this.mus = this.ac.createGain();
         this.mus.gain.value = prefs.music ? 0.55 : 0;
-        this.mus.connect(this.ac.destination);
+        // music runs through a low-pass that closes down when a runner is close to flatlining
+        this.lp = this.ac.createBiquadFilter();
+        this.lp.type = 'lowpass';
+        this.lp.frequency.value = 20000;
+        this.mus.connect(this.lp).connect(this.ac.destination);
       } catch (e) {}
     }
     if (this.ac && this.ac.state === 'suspended') this.ac.resume();
@@ -49,6 +53,11 @@ const A = {
     g.gain.value = v;
     s.connect(f).connect(g).connect(dest);
     s.start(t);
+  },
+  muffle(on) {
+    if (!this.lp || this.muffled === on) return;
+    this.muffled = on;
+    this.lp.frequency.setTargetAtTime(on ? 700 : 20000, this.ac.currentTime, on ? 0.25 : 0.6);
   },
   tone(f, d, type, v, slide) {
     if (!this.ac || !prefs.sound) return;
