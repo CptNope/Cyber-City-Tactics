@@ -1,5 +1,6 @@
 /* The bigger party bag and selling gear at every store counter. */
 require('./harness');
+const vm = require('vm');
 const G = __G,
   A = __api,
   PARTY = __PARTY;
@@ -92,3 +93,27 @@ ok(PARTY.bag.includes(keep), "and it can't be dropped");
 click('lock:' + keep.uid);
 click('drop:' + keep.uid);
 ok(!PARTY.bag.includes(keep), 'unlocked, it drops normally');
+
+// first run: Juno offers training once, then the run starts straight after
+{
+  const pf = A.prefs;
+  pf.trained = false;
+  pf.seen.trainoffer = false;
+  click('quit');
+  click('pick');
+  click('new2');
+  ok(G.mode === 'trainoffer', 'the first run offers two minutes of training');
+  click('trainfirst');
+  ok(G.training && G.mode === 'play', 'Train first starts the drills');
+  vm.runInThisContext('setMode("trained")');
+  ok(
+    /data-a="trainrun"/.test(els.ov._h) && /co-op/.test(els.ov._h),
+    'when training ends, one button starts the co-op run that was waiting'
+  );
+  click('trainrun');
+  ok(!G.training && G.coop && __PL().length === 2, 'and it does');
+  click('quit');
+  click('pick');
+  click('new');
+  ok(G.mode !== 'trainoffer', 'the offer only ever shows once');
+}

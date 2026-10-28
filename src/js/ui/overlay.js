@@ -49,10 +49,18 @@ function renderOv() {
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
+  if (m === 'trainoffer') {
+    // shown once, the first time someone starts a run without having trained
+    h = `<div class="card"><p class="eyebrow">First time on the street?</p><h2>Two minutes with Juno first?</h2>
+    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Eleven quick drills: punches, kicks, dodges, parries, grabs, guns, spells and your special. Then the job's yours.</p>
+    <div class="row"><button class="btn" data-a="trainfirst">Train first</button><button class="btn ghost" data-a="trainskip">Skip, start the run</button></div>
+    <p style="color:var(--muted);font-size:13px">Training is always on the title screen if you want it later.</p></div>`;
+  }
   if (m === 'trained') {
+    const then = G.trainThen;
     h = `<div class="card"><p class="eyebrow">Training complete</p><h2>You're ready for the streets</h2>
     <p class="say"><b>Juno · fixer</b>Not bad. Now go break something that's worth money.</p>
-    <div class="row"><button class="btn" data-a="pick">Start a run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    <div class="row">${then ? `<button class="btn" data-a="trainrun">Start the run${then.coop ? ' (co-op)' : ''}</button>` : ''}<button class="btn${then ? ' ghost' : ''}" data-a="pick">${then ? 'Change settings' : 'Start a run'}</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
   }
   if (m === 'arenapick') {
     const wk = thisWeek(),

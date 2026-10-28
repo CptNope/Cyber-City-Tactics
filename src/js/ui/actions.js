@@ -219,13 +219,35 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'new':
-      newRun(false);
+    case 'new2': {
+      const coop = a === 'new2';
+      // the very first run: offer Juno's training once, then go straight into the run afterward
+      if (!prefs.trained && !(prefs.seen && prefs.seen.trainoffer)) {
+        prefs.seen = prefs.seen || {};
+        prefs.seen.trainoffer = true;
+        savePrefs();
+        G.trainThen = { coop };
+        setMode('trainoffer');
+      } else {
+        G.trainThen = null;
+        newRun(coop);
+      }
       keep = false;
       break;
-    case 'new2':
-      newRun(true);
+    }
+    case 'trainfirst':
+      startTraining();
       keep = false;
       break;
+    case 'trainskip':
+    case 'trainrun': {
+      const then = G.trainThen || { coop: false };
+      G.trainThen = null;
+      G.training = false;
+      newRun(then.coop);
+      keep = false;
+      break;
+    }
     case 'cont': {
       const s = store.load('cs_save3');
       if (!s) break;

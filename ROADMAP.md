@@ -129,7 +129,7 @@ Picked from what the graphics pass turned up:
 - [ ] **Item sets (L)** stay planned under Gear and loot.
 
 ### Reach and onboarding
-- [ ] **A first-run tutorial block (M).** A short guided street that teaches punch, kick, grab, dodge and doors before the first district, skippable.
+- [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now eleven, with a new parry drill), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.
 - [ ] **Real-device performance reports (S).** A "Copy performance report" button next to the frame rate counter (device, browser, tier, fps) that players can paste into an issue.
 - [ ] **Store listing kit (S).** Screenshots and a short trailer captured from the game itself for itch.io and the PWA install sheet.
 

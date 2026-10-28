@@ -68,7 +68,7 @@ const TESTS = [
   { file: 'timing', minPass: 27 },
   { file: 'screen', minPass: 20 },
   { file: 'graphics', minPass: 34 },
-  { file: 'shop', minPass: 19 },
+  { file: 'shop', minPass: 24 },
   { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },
   {
     file: 'arena-bot',

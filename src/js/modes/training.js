@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/modes/training.js
- * Juno's ten training drills.
+ * Juno's eleven training drills, and the one-time offer to take them before a first run.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ---------- training ---------- */
@@ -74,6 +74,16 @@ const TRAIN = [
       trainee('ganger', p.x + 70, p.y, { live: true, hp: 999, dmg: 1 });
     },
     done: () => G.tf.dodged
+  },
+  {
+    t: 'Now cut it fine: hold toward him and tap DODGE just as his swing lands to PARRY. He staggers, and your next hit is a sure crit.',
+    k: 'Now cut it fine: hold toward him and press O just as his swing lands to parry. He staggers, and your next hit is a sure crit.',
+    setup(p) {
+      clearFoes();
+      p.parryT = 0;
+      trainee('ganger', p.x + 70, p.y, { live: true, hp: 999, dmg: 1 });
+    },
+    done: p => p.parryT > 0
   },
   {
     t: 'Hit the ganger to stagger him, then walk into him to grab. KICK throws him.',
@@ -174,6 +184,7 @@ function trainTick() {
       if (G.tstep >= TRAIN.length) {
         prefs.trained = true;
         savePrefs();
+        bump('trained');
         clearFoes();
         setMode('trained');
         return;

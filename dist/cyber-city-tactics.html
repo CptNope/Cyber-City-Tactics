@@ -1020,7 +1020,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+76f5023';
+const APP_VERSION = '2.0.0+68f01ad';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -9426,7 +9426,7 @@ function hackFail() {
 
 /* ===== src/js/modes/training.js ===== */
 /* Cyber City Tactics · src/js/modes/training.js
- * Juno's ten training drills.
+ * Juno's eleven training drills, and the one-time offer to take them before a first run.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ---------- training ---------- */
 const trainee = (k, x, y, o) => {
@@ -9500,6 +9500,16 @@ const TRAIN = [
       trainee('ganger', p.x + 70, p.y, { live: true, hp: 999, dmg: 1 });
     },
     done: () => G.tf.dodged
+  },
+  {
+    t: 'Now cut it fine: hold toward him and tap DODGE just as his swing lands to PARRY. He staggers, and your next hit is a sure crit.',
+    k: 'Now cut it fine: hold toward him and press O just as his swing lands to parry. He staggers, and your next hit is a sure crit.',
+    setup(p) {
+      clearFoes();
+      p.parryT = 0;
+      trainee('ganger', p.x + 70, p.y, { live: true, hp: 999, dmg: 1 });
+    },
+    done: p => p.parryT > 0
   },
   {
     t: 'Hit the ganger to stagger him, then walk into him to grab. KICK throws him.',
@@ -9600,6 +9610,7 @@ function trainTick() {
       if (G.tstep >= TRAIN.length) {
         prefs.trained = true;
         savePrefs();
+        bump('trained');
         clearFoes();
         setMode('trained');
         return;
@@ -14233,10 +14244,18 @@ function renderOv() {
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
+  if (m === 'trainoffer') {
+    // shown once, the first time someone starts a run without having trained
+    h = `<div class="card"><p class="eyebrow">First time on the street?</p><h2>Two minutes with Juno first?</h2>
+    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Eleven quick drills: punches, kicks, dodges, parries, grabs, guns, spells and your special. Then the job's yours.</p>
+    <div class="row"><button class="btn" data-a="trainfirst">Train first</button><button class="btn ghost" data-a="trainskip">Skip, start the run</button></div>
+    <p style="color:var(--muted);font-size:13px">Training is always on the title screen if you want it later.</p></div>`;
+  }
   if (m === 'trained') {
+    const then = G.trainThen;
     h = `<div class="card"><p class="eyebrow">Training complete</p><h2>You're ready for the streets</h2>
     <p class="say"><b>Juno · fixer</b>Not bad. Now go break something that's worth money.</p>
-    <div class="row"><button class="btn" data-a="pick">Start a run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    <div class="row">${then ? `<button class="btn" data-a="trainrun">Start the run${then.coop ? ' (co-op)' : ''}</button>` : ''}<button class="btn${then ? ' ghost' : ''}" data-a="pick">${then ? 'Change settings' : 'Start a run'}</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
   }
   if (m === 'arenapick') {
     const wk = thisWeek(),
@@ -14908,13 +14927,35 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'new':
-      newRun(false);
+    case 'new2': {
+      const coop = a === 'new2';
+      // the very first run: offer Juno's training once, then go straight into the run afterward
+      if (!prefs.trained && !(prefs.seen && prefs.seen.trainoffer)) {
+        prefs.seen = prefs.seen || {};
+        prefs.seen.trainoffer = true;
+        savePrefs();
+        G.trainThen = { coop };
+        setMode('trainoffer');
+      } else {
+        G.trainThen = null;
+        newRun(coop);
+      }
       keep = false;
       break;
-    case 'new2':
-      newRun(true);
+    }
+    case 'trainfirst':
+      startTraining();
       keep = false;
       break;
+    case 'trainskip':
+    case 'trainrun': {
+      const then = G.trainThen || { coop: false };
+      G.trainThen = null;
+      G.training = false;
+      newRun(then.coop);
+      keep = false;
+      break;
+    }
     case 'cont': {
       const s = store.load('cs_save3');
       if (!s) break;

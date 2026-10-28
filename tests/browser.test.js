@@ -46,6 +46,9 @@ const { pathToFileURL } = require('url');
   const startRun = async page => {
     await page.click('[data-a="pick"]');
     await page.click('[data-a="new"]');
+    // a first run offers Juno's training once; skip it (the offer itself is checked in shop.test.js)
+    const skip = await page.$('[data-a="trainskip"]');
+    if (skip) await skip.click();
     const go = await page.$('[data-a="go"]');
     if (go) await go.click();
     await page.waitForTimeout(1500);
@@ -216,6 +219,14 @@ const { pathToFileURL } = require('url');
       for (let i = 0; i < 40 && (await focused()) !== 'new'; i++) await press('Down');
       ok((await focused()) === 'new', 'D-pad reaches Start solo');
       await press('A');
+      if ((await mode()) === 'trainoffer') {
+        for (let i = 0; i < 6 && (await focused()) !== 'trainskip'; i++) await press(i % 2 ? 'Down' : 'Right');
+        ok(
+          (await focused()) === 'trainskip',
+          'the D-pad reaches "Skip, start the run" on the first-run training offer'
+        );
+        await press('A');
+      }
       if ((await mode()) === 'brief') await press('A');
       await page.waitForTimeout(1600);
       ok((await mode()) === 'play', 'A starts the district');

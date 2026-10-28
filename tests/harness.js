@@ -133,6 +133,8 @@ const scripts = [...block.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m =
 for (const f of scripts) vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
 
 vm.runInThisContext('global.__G = G; global.__PL = () => PL; global.__PARTY = PARTY;');
+// suites click straight into runs: treat the one-time "train first?" offer as already seen (shop.test checks it)
+vm.runInThisContext('prefs.seen = prefs.seen || {}; prefs.seen.trainoffer = true;');
 global.__api = new Proxy({}, { get: (_, name) => vm.runInThisContext(String(name)) });
 
 global.click = a => ovClick({ target: { closest: () => ({ dataset: { a }, disabled: false }) } });

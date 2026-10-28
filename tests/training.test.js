@@ -1,4 +1,4 @@
-/* Bot completes all ten training drills; boss rematches spawn. */
+/* Bot completes all eleven training drills; boss rematches spawn. */
 require('./harness');
 const G = __G,
   PARTY = __PARTY;
@@ -98,6 +98,15 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
   }
   if (s === 5) {
     const o = foe('ganger');
+    // a parry needs the swing to land mid-roll, so roll toward him, not away
+    if (walkTo(o.x - 26, o.y, 3) && o.state === 'windup' && o.t === 12) {
+      P.face = 1;
+      K('KeyD', true);
+      tap('KeyO');
+    }
+  }
+  if (s === 6) {
+    const o = foe('ganger');
     if (P.state === 'grab') {
       rel();
       if (f % 10 === 0) tap('KeyK');
@@ -109,7 +118,7 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
       tap('KeyJ');
     }
   }
-  if (s === 6) {
+  if (s === 7) {
     const pr = G.props[0];
     if (P.holding) {
       rel();
@@ -117,7 +126,7 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
       if (f % 10 === 0) tap('KeyJ');
     } else if (pr && walkTo(pr.x, pr.y, 4) && f % 10 === 0) tap('KeyJ');
   }
-  if (s === 7) {
+  if (s === 8) {
     const o = foe('orc');
     if (phase === 0) {
       if (walkTo(o.x - 28, o.y, 3)) {
@@ -134,12 +143,12 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
       phase = 0;
     }
   }
-  if (s === 8) {
+  if (s === 9) {
     rel();
     P.face = 1;
     if (f % 40 === 0) tap(f % 80 === 0 ? 'KeyU' : 'KeyI');
   }
-  if (s === 9) {
+  if (s === 10) {
     rel();
     if (f % 30 === 0) tap('KeyF');
   }
