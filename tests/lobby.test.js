@@ -11,7 +11,11 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     pathToFileURL(path.join(__dirname, '..', 'tools', 'lobby-local.mjs')).href
   );
   const worker = W.default;
-  const env = { ROOMS: memRooms(), ALLOWED_ORIGINS: 'https://cptnope.github.io' };
+  const env = {
+    ROOMS: memRooms(),
+    LIMITS: memRooms(W.Limiter),
+    ALLOWED_ORIGINS: 'https://cptnope.github.io'
+  };
   const ORIGIN = 'https://cptnope.github.io';
   const call = (method, p, body, origin = ORIGIN, e = env) =>
     worker.fetch(
@@ -75,6 +79,31 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   const realNow = Date.now;
   Date.now = () => realNow() + 16 * 60 * 1000;
   ok((await call('GET', '/rooms/' + code)).status === 404, 'rooms expire after 15 minutes');
+  Date.now = realNow;
+
+  // rate limits: relay passes and rooms per address per hour
+  const fromIp = (ip, p, method = 'GET', body) =>
+    worker.fetch(
+      new Request('https://lobby.test' + p, {
+        method,
+        headers: { Origin: ORIGIN, 'CF-Connecting-IP': ip, 'Content-Type': 'application/json' },
+        body: body && JSON.stringify(body)
+      }),
+      env
+    );
+  const st = [];
+  for (let i = 0; i < 14; i++) st.push((await fromIp('203.0.113.7', '/ice')).status);
+  ok(
+    st.slice(0, 12).every(s => s === 200) && st[12] === 429 && st[13] === 429,
+    'relay passes: 12 an hour per address, then 429'
+  );
+  ok((await fromIp('203.0.113.8', '/ice')).status === 200, 'another address is unaffected');
+  const rs = [];
+  for (let i = 0; i < 21; i++)
+    rs.push((await fromIp('203.0.113.9', '/rooms', 'POST', { offer: OFFER })).status);
+  ok(rs.slice(0, 20).every(s => s === 201) && rs[20] === 429, 'rooms: 20 an hour per address, then 429');
+  Date.now = () => realNow() + 61 * 60 * 1000;
+  ok((await fromIp('203.0.113.7', '/ice')).status === 200, 'the window slides: an hour later it works again');
   Date.now = realNow;
 
   // ICE: STUN only without secrets; TURN with them, minus port 53

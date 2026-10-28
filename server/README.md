@@ -32,6 +32,13 @@ The Workers Free plan covers the lobby: a game uses a few dozen requests to conn
 
 Rooms are wiped 15 minutes after they're made.
 
+## Security
+
+- **No secrets in the repo.** The TURN key's ID and API token live only in the Worker's encrypted secrets. `.gitignore` blocks `.dev.vars`, `.env` files and `.wrangler/`, and GitHub secret scanning with push protection is on for this repo.
+- **The browser never sees the TURN API token.** Players get short-lived relay usernames and passwords (four hours), which only work on Cloudflare's TURN servers and can't create more.
+- **Limits per address:** 12 relay passes and 20 rooms an hour, enforced by the `Limiter` Durable Object. Requests from other websites' pages are refused (`ALLOWED_ORIGINS`). That check only stops browsers; the per-address limits are what stop scripts.
+- **Rooms hold nothing private:** just the two WebRTC connection descriptions, wiped after 15 minutes.
+
 ## Local testing
 
 `node tools/lobby-local.mjs 8787` runs the same Worker code in Node, with no account needed. Open the game with `?lobby=http://localhost:8787`. The tests `tests/lobby.test.js` and `tests/online.test.js` use it.

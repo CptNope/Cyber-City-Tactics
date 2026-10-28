@@ -4,7 +4,7 @@
  * ?lobby=http://localhost:8787. No Cloudflare account or wrangler needed. */
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
-import worker, { Room } from '../server/worker.js';
+import worker, { Room, Limiter } from '../server/worker.js';
 
 function memStorage() {
   const m = new Map();
@@ -27,14 +27,14 @@ function memStorage() {
     }
   };
 }
-export function memRooms() {
+export function memRooms(Cls = Room) {
   const rooms = new Map();
   return {
     idFromName: n => n,
     get(id) {
       if (!rooms.has(id)) {
         const storage = memStorage();
-        const r = new Room({ storage });
+        const r = new Cls({ storage });
         const set = storage.setAlarm;
         storage.setAlarm = t => set(t, () => r.alarm());
         rooms.set(id, r);
@@ -45,7 +45,7 @@ export function memRooms() {
   };
 }
 export function serveLobby(port, extra = {}) {
-  const env = Object.assign({ ROOMS: memRooms(), ALLOWED_ORIGINS: '' }, extra);
+  const env = Object.assign({ ROOMS: memRooms(), LIMITS: memRooms(Limiter), ALLOWED_ORIGINS: '' }, extra);
   const server = createServer(async (req, res) => {
     try {
       const chunks = [];

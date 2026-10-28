@@ -22,6 +22,9 @@ const ROOM_TTL_MS = 15 * 60 * 1000;
 const MAX_BODY = 16 * 1024;
 const STUN = { urls: ['stun:stun.cloudflare.com:3478'] };
 const TURN_TTL_S = 4 * 60 * 60;
+const ICE_PER_HOUR = 12; // a few games an hour from one address; each host and friend asks once per game
+const ROOMS_PER_HOUR = 20;
+const HOUR = 60 * 60 * 1000;
 
 export function makeCode(rand = Math.random) {
   let s = '';
@@ -102,8 +105,14 @@ export default {
     if (!allowedOrigin(origin, env)) return json({ error: 'origin not allowed' }, 403);
     const h = cors(origin);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
-    if (path === '/ice' && req.method === 'GET') return json(await iceServers(env), 200, h);
+    // per-address limits, so nobody can farm relay passes (Cloudflare bills relayed traffic) or spam rooms
+    const ip = req.headers.get('CF-Connecting-IP') || 'local';
+    if (path === '/ice' && req.method === 'GET') {
+      if (!(await allow(env, 'ice:' + ip, ICE_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
+      return json(await iceServers(env), 200, h);
+    }
     if (path === '/rooms' && req.method === 'POST') {
+      if (!(await allow(env, 'room:' + ip, ROOMS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
       const b = await readBody(req);
       if (!b || !goodBlob(b.offer)) return json({ error: 'bad invite' }, 400, h);
       for (let i = 0; i < 6; i++) {
@@ -139,6 +148,14 @@ export default {
   }
 };
 const room = (env, code) => env.ROOMS.get(env.ROOMS.idFromName(code));
+// true while this key is under its hourly budget; without a LIMITS binding (old deploys) everything is allowed
+async function allow(env, key, max) {
+  if (!env.LIMITS) return true;
+  const r = await env.LIMITS.get(env.LIMITS.idFromName(key)).fetch('https://limit/hit?max=' + max, {
+    method: 'POST'
+  });
+  return r.status === 204;
+}
 async function relay(r, h) {
   const body = r.status === 204 ? null : await r.text();
   return new Response(body, {
@@ -179,6 +196,30 @@ export class Room {
       return a ? json({ answer: a }, 200) : new Response(null, { status: 204 });
     }
     return json({ error: 'not found' }, 404);
+  }
+  async alarm() {
+    await this.state.storage.deleteAll();
+  }
+}
+
+// A sliding one-hour window of hits for one address and purpose
+export class Limiter {
+  constructor(state) {
+    this.state = state;
+  }
+  async fetch(req) {
+    const max = Number(new URL(req.url).searchParams.get('max')) || 10,
+      now = Date.now(),
+      st = this.state.storage;
+    const hits = ((await st.get('h')) || []).filter(t => now - t < HOUR);
+    if (hits.length >= max) {
+      await st.put('h', hits);
+      return new Response(null, { status: 429 });
+    }
+    hits.push(now);
+    await st.put('h', hits);
+    await st.setAlarm(now + HOUR);
+    return new Response(null, { status: 204 });
   }
   async alarm() {
     await this.state.storage.deleteAll();
