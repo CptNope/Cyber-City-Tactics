@@ -71,7 +71,7 @@ function globalAct(a, who) {
 addEventListener('keydown', e => {
   const c = e.code;
   // typing in a text box (the challenge seed) never moves, pauses or punches
-  if (e.target && e.target.tagName === 'INPUT') {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
     if (c === 'Enter') {
       const go = document.querySelector('[data-a="seedgo"]');
       if (go) go.click();
@@ -118,7 +118,7 @@ addEventListener('keydown', e => {
     who = 0;
     a = KA[c];
   } else if (KB[c]) {
-    who = G.coop ? 1 : 0;
+    who = G.coop && !netP2() ? 1 : 0;
     a = KB[c];
   }
   if (!a) return;
@@ -130,7 +130,7 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => {
   const c = e.code;
   if (KA[c]) kp(0, KA[c], false);
-  else if (KB[c]) kp(G.coop ? 1 : 0, KB[c], false);
+  else if (KB[c]) kp(G.coop && !netP2() ? 1 : 0, KB[c], false);
 });
 addEventListener('blur', () => {
   for (const s of INP) for (const k in s.held) s.held[k] = false;
@@ -508,7 +508,7 @@ function pollPads() {
   const now = performance.now();
   list.forEach((gp, n) => {
     if (n > 1) return;
-    let who = G.coop ? (list.length >= 2 ? n : 1) : n === 0 ? 0 : -1;
+    let who = G.coop && !netP2() ? (list.length >= 2 ? n : 1) : n === 0 ? 0 : -1;
     const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed),
       ax = gp.axes[0] || 0,
       ay = gp.axes[1] || 0;

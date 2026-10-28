@@ -22,7 +22,7 @@ src/
     data/                tables only: enemies, districts, gear, contracts, lore, feats
     systems/             cross-mode systems: legend (feats, legendaries, Codex) and skill trees
     game/                the simulation: state, flow between places, combat, runners, enemies, allies, update
-    modes/               mode-specific rules: Sprawl, dungeons, hacking, training, Arena (and challenges)
+    modes/               mode-specific rules: Sprawl, dungeons, hacking, training, Arena (and challenges), online co-op
     render/              drawing: figures, backgrounds, Sprawl street, HUD and the main render()
     ui/                  HTML menus: screens, overlay and mode switching, button actions, title attract
     pwa.js               install prompt, update bar, backups, shortcuts, persistent storage
@@ -43,7 +43,7 @@ The `BUILD:SCRIPTS` block in `index.html` is the one place the order is defined;
 2. **data/** (content → gear → world → legend-data)
 3. **systems/** (legend → skills)
 4. **game/** (state → flow → combat → props → runners → allies → enemies → update)
-5. **modes/** (sprawl → dungeons → hacking → training → arena)
+5. **modes/** (sprawl → blackmarket → choices → dungeons → hacking → training → arena → net)
 6. **render/** (figures → world → sprawl → hud)
 7. **ui/** (attract → screens → overlay → actions)
 8. `pwa.js`, then `main.js`, which boots everything
@@ -78,6 +78,7 @@ frame(now)                        requestAnimationFrame, any refresh rate
 - **Black market (`modes/blackmarket.js`).** `traderOf(w)` places Sable in the widest gap between buildings on blocks where `hash01(seed)` says so (cached on `w.street.trader`). The offer lives on `G.wd.bm` and is carried to the next block by the `newblock` action with `skips + 1`; `bmPrice()` applies 0.85 per skip, floored at half. Her cart is drawn with the street lights so it sits on the ground plane.
 - **Individual looks (`render/looks.js`).** `makeLook()` runs once per regular enemy at spawn and gives it its own skin tone, coat, trousers, hair, build (±8%, drawn only) and, about half the time, an accessory (shades, bandana, beanie, eyepatch, cybereye, scar or chain). The gang colour `pal.acc` never changes, bosses keep their signature look, and the variation comes from a hashed spawn counter rather than `Math.random`, so seeded runs replay identically.
 - **Atmosphere (`render/atmos.js`).** Soft light is never a per-frame gradient. `glow(x, y, rx, ry, colour, alpha)` stretches one cached 64 px radial sprite per colour. Haze at the foot of the skyline and the wet sheen on the road are baked into per-stage gradients (`bgGrads`) that the scene paints anyway, so they cost no extra pixels. Neon signs register in `REFL` as they draw, and the street reflects them afterwards.
+- **Online co-op (`modes/net.js`).** WebRTC, no server: `netStartHost()` makes an offer, waits for ICE gathering to finish (no trickle) and packs the SDP into a `CCT1z…` code (deflate-raw, base64url); the friend's `netStartJoin()` answers the same way. The host is authoritative. Each logic step `netHostInput()` copies the friend's last `{h, c}` message into `INP[1]`: `h` is one held flag per action and `c` a press counter per action, so a tap shorter than a packet still lands. Every second step `netSnapshot()` sends, for every entity in `G.ents` and `PL` (given a stable `nid`), only the fields whose rounded JSON changed since the last send (`NET.sent`), plus changed `G` fields from `NET_GKEYS`, all projectiles, new particles, texts and effects (tagged `_ns` once sent), picks and props when they change, the sounds played during the step (`sfx` is wrapped while `NET.inUpd`) and the song. Entity references travel as `{$e: nid}` and resolve on arrival. On the friend's side `stepOnce()` calls `netGuestStep()` instead of `update()`: it applies the queued snapshots, eases entities and projectiles toward them over two steps, ticks particles, texts, effects and rain itself, and shows `netwait` whenever the host is in a menu. Fields starting with `_` (render caches like `_pose`) never cross. `tests/online.test.js` connects two Chromium pages for real.
 - **Tests.** `tests/timing.test.js` drives the real loop at 30–240 Hz and checks the step count, stall handling, interpolation, error recovery and quality switching.
 
 Hit-stop (`G.stop`) and slow motion (`G.slow`) skip update steps without dropping button presses.

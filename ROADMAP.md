@@ -102,7 +102,8 @@ The guiding rules:
 ### Co-op and online
 - [x] ~~**Team attacks.**~~ Shipped: two hits on one enemy within half a second trigger a combined finisher.
 - [x] ~~**Revive.**~~ Shipped: stand by your partner's marker.
-- [ ] **Online co-op (L).** WebRTC peer-to-peer with a share code, keeping the single-file rule by using a tiny public signaling option or manual offer/answer codes.
+- [x] ~~**Online co-op.**~~ Shipped for the Arena: WebRTC peer to peer with manual invite and reply codes (or an invite link), no server. The host runs the game; the friend's browser sends buttons and draws the host's snapshots.
+- [ ] **Online co-op beyond the Arena (L).** The campaign and the Sprawl online: synced menus (the Den, shops, the character sheet for runner 2), saves on both sides, and rejoining after a dropped connection.
 - [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.
 - [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
 

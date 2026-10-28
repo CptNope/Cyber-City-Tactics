@@ -32,7 +32,7 @@ NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 
 **Short description:** A neon brawler RPG for one or two players. Free in your browser.
 
-**Genre:** Action · **Tags:** beat-em-up, cyberpunk, local-co-op, rpg, open-world, offline
+**Genre:** Action · **Tags:** beat-em-up, cyberpunk, local-co-op, online-co-op, rpg, open-world, offline
 
 **Description:**
 
@@ -44,7 +44,7 @@ NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 > - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
 > - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
 > - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
-> - **Couch co-op** on one keyboard, two controllers or a phone and a gamepad. Training with Juno for anyone new.
+> - **Co-op, couch or online:** one keyboard, two controllers, or two browsers anywhere with an invite code (Arena). Training with Juno for anyone new.
 > - **Plays anywhere:** phones, tablets, laptops and TVs. Install it and it plays offline.
 >
 > No account, no ads, no tracking. Just the game.

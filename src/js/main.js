@@ -22,6 +22,14 @@ function stepOnce() {
   tick++;
   snapPrev();
   let ran = true;
+  // online co-op, friend's side: the host runs the game; this browser glides, draws and sends buttons
+  if (netGuest()) {
+    netGuestStep();
+    for (const s of INP) for (const k in s.pressed) s.pressed[k] = false;
+    return;
+  }
+  if (netHost()) netHostInput();
+  NET.inUpd = true;
   if (G.mode === 'play' || G.mode === 'den') {
     if (G.stop > 0) {
       G.stop--;
@@ -36,6 +44,8 @@ function stepOnce() {
     }
   } else if (G.mode === 'title') attractStep();
   else if (G.mode === 'hack') hackStep();
+  NET.inUpd = false;
+  if (NET.live) netHostTick();
   // keep presses made during hit-stop or slow-mo frames until a frame actually processes them
   if (ran) for (const s of INP) for (const k in s.pressed) s.pressed[k] = false;
 }
@@ -73,6 +83,7 @@ fit();
 attract();
 setMode('title');
 musicPlay('title');
+netFromHash();
 last = performance.now();
 requestAnimationFrame(frame);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);

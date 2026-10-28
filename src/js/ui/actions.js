@@ -19,6 +19,7 @@ ov.addEventListener('click', e => {
     arg = parts[1];
   const card = ov.querySelector('.card'),
     top = card ? card.scrollTop : 0;
+  if (netAct(a, b)) return;
   let keep = true;
   const p = PL[G.sheetIdx] || PL[0];
   const rerender = () => {

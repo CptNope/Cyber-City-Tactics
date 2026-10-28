@@ -995,6 +995,35 @@ body.pad-nav #ov :focus {
   outline-offset: 1px;
 }
 
+/* ---------- Online co-op codes (src/js/modes/net.js) ---------- */
+.netcode {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font:
+    12px/1.35 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  word-break: break-all;
+  background: var(--ink);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.netcode[readonly] {
+  color: var(--muted);
+}
+.netcode:focus {
+  outline: 2px solid var(--mana);
+  outline-offset: 1px;
+}
+
 /* a locked bag item: a quiet gold edge, so keepers stand out in a long list */
 .item.locked {
   border-color: rgba(255, 198, 61, 0.45);

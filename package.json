@@ -9,7 +9,7 @@
     "check": "node tools/build.mjs --check",
     "test": "node tests/run.js",
     "test:quick": "node tests/run.js --quick",
-    "test:browser": "node tests/browser.test.js",
+    "test:browser": "node tests/browser.test.js && node tests/online.test.js",
     "format": "prettier --write \"src/**/*.{js,css}\" \"tests/**/*.js\" \"tools/**/*.mjs\" sw.js"
   },
   "devDependencies": {

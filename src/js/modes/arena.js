@@ -231,6 +231,7 @@ const PERKS = [
   }
 ];
 function startArena(coop, challenge) {
+  if (NET.role === 'host' && NET.live) coop = true; // the friend online is always runner 2
   G.diff = challenge ? 1 : G.pendDiff;
   G.ng = 0;
   G.coop = !!coop;

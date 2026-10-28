@@ -26,7 +26,7 @@ function renderOv() {
     if (G.mode === 'title') G.pendDiff = sv && sv.diff !== undefined ? sv.diff : 1;
     h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
     <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff === undefined ? 1 : sv.diff].name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff === undefined ? 1 : sv.diff].name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {
     h = `<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained ? '' : '<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
@@ -52,6 +52,7 @@ function renderOv() {
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'trader') h = traderHtml();
+  if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost') h = netHtml(m);
   if (m === 'locker') {
     h = `<div class="card"><p class="eyebrow">The Den · Ratchet's back room</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Your locker</h2><span class="wallet">¥${PARTY.creds}</span></div>${stashHtml()}
     <div class="row"><button class="btn" data-a="lockerback">Back to Ratchet</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
@@ -88,7 +89,7 @@ function renderOv() {
     <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
     ${G.seedPre ? '' : seedBoxHtml('Play the same waves and perk offers.')}
-    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="online">Play online</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
   if (m === 'perk') {
@@ -124,7 +125,7 @@ function renderOv() {
   }
   if (m === 'pause') {
     h = `<div class="card"><p class="eyebrow">Paused · ${G.world ? 'the Sprawl · block ' + G.wd.level + ' · heat ' + G.wd.heat : G.training ? 'training step ' + (G.tstep + 1) + ' of ' + TRAIN.length : G.arena ? 'arena wave ' + G.awave + ' · score ' + G.score.toLocaleString() : G.den ? 'the Den' : 'district ' + (G.stage + 1)} · ${DIFF[G.diff].name}${G.ng && !G.arena ? ' NG+' + G.ng : ''}</p><h2>Catch your breath</h2>${G.den || G.arena ? '' : jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${netHost() ? '' : G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if (m === 'npc') h = npcHtml(G.npc);
   if (m === 'settings') h = settingsHtml();
@@ -518,6 +519,7 @@ function findBag(uid) {
   return PARTY.bag.findIndex(i => i.uid === uid);
 }
 function toggleSheet(who) {
+  if (NET.role === 'guest' && NET.live) return;
   if (G.mode === 'play' || G.mode === 'den') {
     G.ret = G.mode;
     G.sheetIdx = who < PL.length ? who : 0;
@@ -525,6 +527,11 @@ function toggleSheet(who) {
   } else if (G.mode === 'sheet' && (G.ret === 'play' || G.ret === 'den')) setMode(G.ret);
 }
 function togglePause() {
+  if (NET.role === 'guest' && NET.live) {
+    if (G.mode === 'play') setMode('netmenu');
+    else if (G.mode === 'netmenu') setMode('play');
+    return;
+  }
   if (G.mode === 'play' || G.mode === 'den') {
     G.ret = G.mode;
     setMode('pause');
