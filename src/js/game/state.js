@@ -200,6 +200,7 @@ function saveGame(phase) {
     }),
     stock: G.stock,
     debrief: G.debrief,
+    choices: G.choices || {},
     bestCombo: G.bestCombo
   };
   store.set('cs_save3', JSON.parse(JSON.stringify(o)));
@@ -228,6 +229,7 @@ function loadGame(s) {
   G.ng = s.ng || 0;
   G.stock = s.stock || [];
   G.debrief = s.debrief || null;
+  G.choices = isObj(s.choices) ? s.choices : {};
   G.bestCombo = s.bestCombo || 0;
 }
 const karmaNext = l => 50 + l * 45;

@@ -59,6 +59,11 @@ function den() {
   for (const id of ['juno', 'sal', 'doc', 'wen', 'ratchet', 'pixel']) {
     __api.openNPC(id);
     stats.npc++;
+    // Juno's story choices: the bot alternates so both branches get played over time
+    if (id === 'juno') {
+      if (__api.pendingChoice() === 'books') click('choose:books:' + (stats.npc % 2 ? 'sell' : 'leak'));
+      if (__api.pendingChoice() === 'voss') click('choose:voss:keep');
+    }
     if (id === 'doc') {
       click('buy:med');
       click('buy:ammo');

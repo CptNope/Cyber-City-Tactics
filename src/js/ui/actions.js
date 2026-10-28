@@ -457,7 +457,12 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'nextjob':
-      briefing(G.stage + 1, true);
+      if (pendingChoice()) renderOv();
+      else briefing(G.stage + 1, true);
+      break;
+    case 'choose':
+      makeChoice(arg, parts[2]);
+      renderOv();
       break;
     case 'sheet':
       G.ret = G.mode === 'npc' ? 'den' : G.mode === 'pause' ? G.ret : G.mode;

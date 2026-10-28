@@ -157,7 +157,7 @@ function renderOv() {
   if (m === 'win') {
     const d = G.debrief || {};
     h = `<div class="card"><p class="eyebrow">Run complete · ${DIFF[G.diff].name}${G.ng ? ' NG+' + G.ng : ''} · level ${PL[0].lvl}${G.coop ? ' and ' + PL[1].lvl : ''} · best combo ${G.bestCombo}</p><h1>Paid in full</h1>
-    <p class="say"><b>Juno · fixer</b>${d.done ? "Her nodes are crashed and the ICE is slag. Voss is gone for good this time, scattered across a thousand dead servers. Kagemori's stock dropped forty points before lunch. Nice work." : "The ICE is down and Voss is scattered across a thousand dead servers. Some of her nodes are still running, but that's Kagemori's problem now."}</p>
+    <p class="say"><b>Juno · fixer</b>${esc(endingText(d.done))}</p>
     <p>You walk out with ¥${PARTY.creds}, ${PARTY.bag.length} item${PARTY.bag.length === 1 ? '' : 's'} in the bag and a cyberarm that still hums.</p>
     ${statsHtml()}${shareHtml()}
     <p>New Game+ keeps your runners, levels, gear, cyberware and spells. Enemies get tougher, elites get more common and loot gets better.</p>
@@ -397,7 +397,8 @@ function npcHtml(id) {
       : `You didn't finish ${d.title}. No bonus this time, but you're still breathing. The next job starts at the end of the street.`;
     body = `<div class="job"><div class="row" style="justify-content:space-between"><b>Debrief</b><span class="st ${d.done ? 'up' : 'down'}">${d.done ? 'Paid' : 'No bonus'}</span></div>
     <span style="color:var(--muted);font-size:13px">${d.done ? `+¥${d.creds} · +${d.karma} karma each${d.pacifist ? ' · <span class="up">Pacifist ×2</span>' : ''}${d.levels ? ` · <span class="up">level up ×${d.levels}</span>` : ''}${d.prize ? ` · ${esc(d.prize.name)} added to the bag` : ''}` : 'Contract rewards withheld.'}</span></div>
-    <p>Next: <b style="color:var(--text)">${esc(STAGES[stage + 1].name)}</b>. ${esc(STAGES[stage + 1].sub)}.</p>`;
+    ${choiceHtml()}
+    <p>Next: <b style="color:var(--text)">${esc(STAGES[stage + 1].name)}</b>. ${esc(STAGES[stage + 1].sub.replace(/\.$/, ''))}.</p>`;
   } else if (n.lines) {
     sayTxt = n.lines[Math.min(stage, n.lines.length - 1)];
   } else if (id === 'doc') {
@@ -496,7 +497,7 @@ function npcHtml(id) {
   }
   return `<div class="card"><p class="eyebrow">The Den · ${esc(n.role)}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(n.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>
   <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${haggleHtml()}${body}
-  <div class="row"><button class="btn" data-a="leave">Leave</button>${id === 'juno' ? '<button class="btn ghost" data-a="nextjob">Take the next job</button>' : ''}<button class="btn ghost" data-a="sheet">Character</button></div></div>`;
+  <div class="row"><button class="btn" data-a="leave">Leave</button>${id === 'juno' ? `<button class="btn ghost" data-a="nextjob" ${pendingChoice() ? 'disabled' : ''}>Take the next job</button>` : ''}<button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 function openNPC(id) {
   G.npc = id;
@@ -533,6 +534,7 @@ function togglePause() {
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
 function newRun(coop) {
+  G.choices = {};
   G.muts = (G.pendMuts || []).slice();
   G.diff = G.pendDiff;
   G.ng = 0;

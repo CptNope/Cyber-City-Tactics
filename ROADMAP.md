@@ -88,9 +88,9 @@ The guiding rules:
 
 ### Campaign and story
 - [x] ~~**The Undercity Market.**~~ Shipped as district 4 (between the Tunnels and the Arcology, where the story goes): a lantern-strung ghoul bazaar with its own music, thralls that heal off every hit, a Hollow Saint rematch, Juno's Night market contract, and Mother Vesper, who mist-steps behind you mid-swing and calls her thralls when angry. Beating her unlocks Vesper's Fang. Saves from before it are moved to the same place in the new order.
-- [ ] **Choices that matter (M).** At two points in the campaign, pick a side (Juno or Pixel, the Saints or the corps). Your choice changes a district's enemies and the ending.
+- [x] ~~**Choices that matter.**~~ Shipped: after the Market, sell Vesper's books through Juno (¥250, but an extra Kagemori guard in every Arcology wave) or leak them to Pixel's feeds (nothing, but one guard fewer). After the Arcology, wipe Voss's backup core (no Voss.exe in the host, more ICE) or keep it as a key (Black ICE starts a quarter weaker, Voss.exe waits). Saved with the run.
 - [ ] **Cutscenes in the engine (M).** Short scripted moments using the existing figures, with speech bubbles and camera pans.
-- [ ] **Endings (S).** A different epilogue depending on street cred, choices and how many bosses you spared.
+- [x] ~~**Endings.**~~ Shipped: four epilogues from Juno, one for each pair of choices.
 
 ### Combat and enemies
 - [x] ~~**Corp ninjas and hellhounds.**~~ Shipped as Kagemori shadows and hellhound packs.

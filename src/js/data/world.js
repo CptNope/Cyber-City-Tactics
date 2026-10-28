@@ -122,6 +122,7 @@ const NPCS = [
       "Gutter King's crew scattered the minute word got out. First round's on the house. Second round, you're paying.",
       "Razor Mei's gone? Half this bar owes you a drink and the other half owed her money. Watch your back either way.",
       "You smell like the tunnels, and that's not a compliment. Whatever is at the top of that arcology is what fed those ghouls.",
+      "A ghoul market under the tunnels? I've bought noodles off worse. Those ledgers you're carrying, though. Careful who you sell them to.",
       "So Voss isn't really dead? Figures. The corps never let anything die, not even their bosses."
     ]
   },
@@ -217,6 +218,7 @@ const NPCS = [
       "Saw Kagemori trucks in the Market last night. No plates. Corp guys only go dark when it's bad.",
       'Those chips you brought back? They map the old transit tunnels. Nobody comes back from there. Well, almost nobody.',
       "I hacked a cam feed. The Director's office glows at night. Not the lights. Her.",
+      'The night market? I sold Vesper a fake ID once. She paid in teeth. Real ones.',
       "I can jack you into the host from right here. Don't die in there. Seriously, your brain won't like it."
     ]
   }

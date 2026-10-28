@@ -72,6 +72,7 @@ const TESTS = [
   { file: 'shop', minPass: 41 },
   { file: 'blackmarket', minPass: 9 },
   { file: 'market', minPass: 15 },
+  { file: 'choices', minPass: 17 },
   { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },
   {
     file: 'arena-bot',

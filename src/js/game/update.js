@@ -378,7 +378,7 @@ function waves() {
       G.camX = at;
       G.lock = at;
       G.waveLive = true;
-      w.spawn.forEach((k0, i) => {
+      choiceSpawn(G.stage, w).forEach((k0, i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;
         const e = spawnEnemy(k, i % 2 ? -1 : 1);
@@ -389,6 +389,7 @@ function waves() {
           e.inv = 40;
         }
         if (re) rematch(e);
+        choiceBoss(e);
       });
       if (w.boss) {
         G.banner = -120;
@@ -407,7 +408,9 @@ function denTick() {
   }
   if (alive().some(p => p.x > DEN.len - 24)) {
     for (const p of PL) p.x = Math.min(p.x, DEN.len - 60);
-    briefing(G.stage + 1, true);
+    // Juno needs an answer first
+    if (pendingChoice()) openNPC('juno');
+    else briefing(G.stage + 1, true);
   }
 }
 function camera() {
