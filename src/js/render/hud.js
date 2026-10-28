@@ -703,7 +703,13 @@ function render() {
   ctx.restore();
   if (BOT > 0) drawGroundBand();
   drawLowHealth();
-  if (G.mode !== 'title') {
+  // the title's attract scene sits behind the online menus too, so they hide the HUD the same way
+  const noHud =
+    G.mode === 'title' ||
+    G.mode === 'online' ||
+    G.mode === 'netlost' ||
+    (G.mode === 'netwait' && NET.hm === 'start');
+  if (!noHud) {
     drawIntroBars();
     ctx.save();
     ctx.translate(0, BAND);
@@ -713,7 +719,7 @@ function render() {
     ctx.restore();
     drawHudTop();
   }
-  if (G.mode !== 'title') drawIntro();
+  if (!noHud) drawIntro();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {
