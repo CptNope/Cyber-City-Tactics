@@ -614,10 +614,24 @@ function render() {
   drawFx();
   drawCompare();
   drawRevive();
+  // particles: fast ones are drawn as short motion streaks, slow ones as chips
+  const streaks = !lowFx();
+  ctx.lineCap = 'round';
   for (const q of G.parts) {
-    ctx.fillStyle = q.c;
+    const px = q.x - G.camX,
+      py = q.y - q.z;
     ctx.globalAlpha = Math.min(1, q.life / 10);
-    ctx.fillRect(q.x - G.camX - q.sz / 2, q.y - q.z - q.sz / 2, q.sz, q.sz);
+    if (streaks && Math.abs(q.vx) + Math.abs(q.vz) > 1.6) {
+      ctx.strokeStyle = q.c;
+      ctx.lineWidth = q.sz * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(px - q.vx * 1.6, py + q.vz * 1.6);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = q.c;
+      ctx.fillRect(px - q.sz / 2, py - q.sz / 2, q.sz, q.sz);
+    }
   }
   ctx.globalAlpha = 1;
   for (const t of G.texts) {

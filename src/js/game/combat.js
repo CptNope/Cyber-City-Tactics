@@ -637,6 +637,17 @@ function explode(pr, o) {
   burst(pr.x, pr.y, pr.z, '#ff6a3d', 18);
   burst(pr.x, pr.y, pr.z, '#ffc63d', 10);
   G.fx.push({ k: 'ring', x: pr.x, y: pr.y, z: pr.z, c: '#ff6a3d', life: 18, max: 18, r: 40 * big });
+  G.fx.push({
+    k: 'boom',
+    x: pr.x,
+    y: pr.y,
+    z: pr.z + 8,
+    c: '#ff6a3d',
+    life: 30,
+    max: 30,
+    r: 30 * big,
+    rot: rand(0, 6)
+  });
   for (const t of G.ents) {
     if (t.team !== 1 || t.state === 'dead') continue;
     if (Math.abs(t.x - pr.x) < 36 * big && Math.abs(t.y - pr.y) < 16 * big)

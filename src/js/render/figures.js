@@ -1249,6 +1249,7 @@ function drawProj(pr) {
     ctx.moveTo(sx, sy);
     ctx.lineTo(sx - Math.sign(pr.vx) * 14, sy);
     ctx.stroke();
+    glow(sx, sy, 8, 4, '#45d2ff', 0.6);
     return;
   }
   if (pr.k === 'nade') {
@@ -1267,6 +1268,7 @@ function drawProj(pr) {
     ctx.moveTo(sx, sy);
     ctx.lineTo(sx - Math.sign(pr.vx) * (pr.rail ? 22 : 9), sy);
     ctx.stroke();
+    glow(sx, sy, pr.rail ? 9 : 5, pr.rail ? 5 : 3, ctx.strokeStyle, 0.6);
   } else if (pr.k === 'wave') {
     ctx.fillStyle = 'rgba(255,106,61,.25)';
     ctx.beginPath();
@@ -1288,19 +1290,25 @@ function drawProj(pr) {
   } else {
     const c =
       pr.k === 'fire' || pr.tint === 'fire'
-        ? ['255,106,61', '#ffe7a8']
+        ? ['255,106,61', '#ffe7a8', '#ff6a3d']
         : pr.tint === 'drain'
-          ? ['122,40,90', '#ffb0d8']
+          ? ['122,40,90', '#ffb0d8', '#c0407e']
           : pr.tint === 'chi'
-            ? ['255,198,61', '#fff3c4']
+            ? ['255,198,61', '#fff3c4', '#ffc63d']
             : pr.k === 'bolt' || pr.tint === 'bolt'
-              ? ['185,140,255', '#f2e9ff']
-              : ['69,210,255', '#e6fbff'];
+              ? ['185,140,255', '#f2e9ff', '#b98cff']
+              : ['69,210,255', '#e6fbff', '#45d2ff'];
     const r = pr.r + Math.sin(G.t * 0.5);
-    ctx.fillStyle = `rgba(${c[0]},.25)`;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r * 2, 0, 7);
-    ctx.fill();
+    // the orb lights the floor beneath it and leaves a fading comet tail
+    glow(sx, pr.y, r * 3.2, r * 1.1, c[2], 0.35);
+    if (!lowFx())
+      for (let i = 3; i >= 1; i--) {
+        ctx.fillStyle = `rgba(${c[0]},${0.32 - i * 0.08})`;
+        ctx.beginPath();
+        ctx.arc(sx - pr.vx * i * 1.6, sy - (pr.vz || 0) * i * -1.6, r * (1 - i * 0.18), 0, 7);
+        ctx.fill();
+      }
+    glow(sx, sy, r * 2.6, r * 2.6, c[2], 0.55);
     ctx.fillStyle = `rgba(${c[0]},.85)`;
     ctx.beginPath();
     ctx.arc(sx, sy, r, 0, 7);
@@ -1394,8 +1402,15 @@ function drawFx() {
     const sx = f.x - G.camX,
       sy = f.y - f.z,
       k = f.life / f.max;
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = f.c;
     if (f.k === 'star') {
+      // impact flash: a hot core for the first few frames, then just the spokes
+      if (k > 0.45) {
+        glow(sx, sy, f.r * 1.3, f.r * 1.3, f.c, (k - 0.45) * 1.4);
+        glow(sx, sy, f.r * 0.45, f.r * 0.45, '#ffffff', (k - 0.45) * 1.8);
+      }
+      ctx.strokeStyle = f.c;
       ctx.globalAlpha = k;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
@@ -1424,6 +1439,28 @@ function drawFx() {
       ctx.beginPath();
       ctx.arc(sx, sy, 6 * k + 2, 0, 7);
       ctx.fill();
+      glow(sx, sy, 26 * k + 6, 12 * k + 4, f.c, k * 0.8);
+    }
+    if (f.k === 'boom') {
+      // fireball: a white-hot core, a swelling orange ball, then smoke that rises and thins
+      const p = 1 - k,
+        r = f.r;
+      glow(sx, sy - p * 10, r * (1.1 + p * 0.7), r * (0.95 + p * 0.6), '#ff6a3d', k * 1.2);
+      glow(sx, sy - p * 6, r * (0.7 + p * 0.4), r * (0.6 + p * 0.35), '#ffc63d', k * k * 1.4);
+      if (k > 0.6) glow(sx, sy, r * 0.35, r * 0.3, '#ffffff', (k - 0.6) * 2.5);
+      if (!lowFx() && p > 0.25)
+        for (let i = 0; i < 4; i++) {
+          const a = f.rot + i * 1.57,
+            d = r * 0.35 * p;
+          glow(
+            sx + Math.cos(a) * d,
+            sy - p * 34 - i * 4 + Math.sin(a) * d * 0.4,
+            r * 0.4 * (0.6 + p),
+            r * 0.35 * (0.6 + p),
+            '#2a2236',
+            (1 - p) * 0.9
+          );
+        }
     }
     if (f.k === 'ring') {
       ctx.globalAlpha = k * 0.9;
