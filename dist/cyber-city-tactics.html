@@ -1039,6 +1039,31 @@ body.pad-nav #ov :focus {
   user-select: text;
   -webkit-user-select: text;
 }
+.netcode.short {
+  font: 600 22px var(--font-body);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  max-width: 12em;
+  resize: none;
+}
+.roomcode {
+  font:
+    600 64px/1 Teko,
+    Impact,
+    sans-serif;
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(255, 198, 61, 0.35);
+  margin: 4px 0 8px;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.netmore summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0;
+}
 .netcode[readonly] {
   color: var(--muted);
 }
@@ -1093,7 +1118,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+dda5315';
+const APP_VERSION = '2.0.0+e722ec1';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -10766,7 +10791,11 @@ function scoreTable(hl) {
  * Scope: Arena runs (open arena, any difficulty). The host picks perks and runs the menus; the friend sees a
  * "host is choosing" card meanwhile.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
-const NET_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+const NET_ICE = [{ urls: 'stun:stun.cloudflare.com:3478' }];
+// The lobby (server/worker.js on Cloudflare): short room codes instead of long ones, and relay passes (TURN)
+// for networks that block direct connections. Empty means long codes only. ?lobby=URL overrides it.
+const NET_LOBBY = '';
+const NET_ROOM_RE = /^[A-HJ-NP-Za-hj-np-z2-9]{5}$/;
 const NET_ACTS = [
   'left',
   'right',
@@ -10890,8 +10919,8 @@ function iceDone(pc) {
     });
   });
 }
-function netPc() {
-  const pc = new RTCPeerConnection({ iceServers: NET.ice });
+function netPc(ice) {
+  const pc = new RTCPeerConnection({ iceServers: ice || NET.ice });
   pc.addEventListener('connectionstatechange', () => {
     if (pc !== NET.pc) return;
     if (pc.connectionState === 'failed')
@@ -10901,6 +10930,66 @@ function netPc() {
   });
   NET.pc = pc;
   return pc;
+}
+function lobbyUrl() {
+  if (typeof location === 'undefined') return '';
+  try {
+    const q = new URLSearchParams(location.search).get('lobby');
+    if (q && /^https?:\/\/[^\s]+$/.test(q)) return q.replace(/\/+$/, '');
+  } catch (e) {}
+  return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
+}
+async function lobby(path, body) {
+  const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null,
+    t = setTimeout(() => ctl && ctl.abort(), 6000);
+  try {
+    return await fetch(lobbyUrl() + path, {
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctl ? ctl.signal : undefined,
+      cache: 'no-store'
+    });
+  } finally {
+    clearTimeout(t);
+  }
+}
+// relay passes from the lobby when it's there; plain STUN otherwise (or whatever a test pinned in NET.ice)
+async function netIce() {
+  if (NET.ice !== NET_ICE || !lobbyUrl()) return NET.ice;
+  try {
+    const r = await lobby('/ice');
+    if (r.ok) {
+      const d = await r.json();
+      NET.relay = !!d.relay;
+      if (Array.isArray(d.iceServers) && d.iceServers.length) return d.iceServers;
+    }
+  } catch (e) {}
+  return NET.ice;
+}
+function netPollStop() {
+  clearInterval(NET.pollT);
+  NET.pollT = 0;
+}
+// the host waits for the friend's reply to land in the room
+function netPollAnswer() {
+  netPollStop();
+  const room = NET.room;
+  NET.pollT = setInterval(async () => {
+    if (NET.room !== room || NET.status !== 'offer') return netPollStop();
+    try {
+      const r = await lobby('/rooms/' + room + '/answer');
+      if (NET.room !== room || NET.status !== 'offer') return;
+      if (r.status === 200) {
+        netPollStop();
+        const d = await r.json();
+        netAnswer(d.answer);
+      } else if (r.status === 404) {
+        netPollStop();
+        netFail(new Error('That room expired. Host again for a new code.'));
+      }
+    } catch (e) {}
+  }, 1500);
 }
 function netFail(e) {
   NET.status = 'error';
@@ -10914,13 +11003,23 @@ async function netStartHost() {
   renderOv();
   try {
     if (typeof RTCPeerConnection === 'undefined') throw new Error("This browser can't do online play.");
-    const pc = netPc();
+    const pc = netPc(await netIce());
     netBind(pc.createDataChannel('cct', { ordered: true }));
     await pc.setLocalDescription(await pc.createOffer());
     await iceDone(pc);
+    if (pc !== NET.pc) return;
     NET.code = await packCode(pc.localDescription);
-    NET.status = 'offer';
     NET.draft = '';
+    NET.room = '';
+    if (lobbyUrl())
+      try {
+        const r = await lobby('/rooms', { offer: NET.code });
+        if (r.status === 201) NET.room = (await r.json()).code;
+      } catch (e) {}
+    if (pc !== NET.pc) return;
+    NET.lobbyDown = !!lobbyUrl() && !NET.room;
+    NET.status = 'offer';
+    if (NET.room) netPollAnswer();
   } catch (e) {
     return netFail(e);
   }
@@ -10943,21 +11042,49 @@ async function netStartJoin(code) {
   NET.role = 'guest';
   NET.status = 'joining';
   renderOv();
+  let room = '';
   try {
     if (typeof RTCPeerConnection === 'undefined') throw new Error("This browser can't do online play.");
+    code = (code || '').trim();
+    // a five-letter room code: fetch the invite from the lobby
+    if (NET_ROOM_RE.test(code)) {
+      if (!lobbyUrl())
+        throw new Error('Room codes need the online lobby. Ask the host for the long invite code.');
+      let r;
+      try {
+        r = await lobby('/rooms/' + code.toUpperCase());
+      } catch (e) {
+        throw new Error(
+          "Couldn't reach the lobby. Check your connection, or ask the host for the long invite code."
+        );
+      }
+      if (r.status === 404)
+        throw new Error('No room with that code. Check the letters, or ask the host to host again.');
+      if (!r.ok) throw new Error("The lobby didn't answer. Ask the host for the long invite code.");
+      room = code.toUpperCase();
+      code = (await r.json()).offer;
+    }
     const d = await unpackCode(code);
     if (d.type !== 'offer') throw new Error("That's a reply code. Paste the invite code from the host.");
     if (d.v && d.v.split('+')[0] !== APP_VERSION.split('+')[0])
       throw new Error(
         `The host is on version ${d.v.split('+')[0]} and you're on ${APP_VERSION.split('+')[0]}. Both reload the game and try again.`
       );
-    const pc = netPc();
+    const pc = netPc(await netIce());
     pc.addEventListener('datachannel', e => netBind(e.channel));
     await pc.setRemoteDescription({ type: 'offer', sdp: d.sdp });
     await pc.setLocalDescription(await pc.createAnswer());
     await iceDone(pc);
+    if (pc !== NET.pc) return;
     NET.code = await packCode(pc.localDescription);
+    NET.room = room;
     NET.status = 'answer';
+    if (room) {
+      const r = await lobby('/rooms/' + room + '/answer', { answer: NET.code }).catch(() => null);
+      if (r && r.status === 409)
+        throw new Error('Someone already joined that room. Ask the host to host again.');
+      NET.status = r && r.ok ? 'sent' : 'answer';
+    }
   } catch (e) {
     return netFail(e);
   }
@@ -11003,6 +11130,10 @@ function netClose() {
   const pc = NET.pc,
     dc = NET.dc;
   NET.pc = NET.dc = null;
+  netPollStop();
+  NET.room = '';
+  NET.lobbyDown = false;
+  NET.relay = false;
   try {
     if (dc) dc.close();
   } catch (e) {}
@@ -11452,7 +11583,12 @@ function netInviteLink() {
   } catch (e) {
     return '';
   }
-  return location.origin + location.pathname + '#join=' + NET.code;
+  return (
+    location.origin +
+    location.pathname +
+    (location.search || '') +
+    (NET.room ? '#room=' + NET.room : '#join=' + NET.code)
+  );
 }
 function netHtml(m) {
   if (m === 'netwait') {
@@ -11480,37 +11616,51 @@ function netHtml(m) {
     <div class="row"><button class="btn" data-a="online">Online co-op</button><button class="btn ghost" data-a="back2title">Title</button></div></div>`;
   // the connect card
   const st = NET.status,
-    busy = st === 'making' || st === 'joining' || st === 'connecting';
+    busy = st === 'making' || st === 'joining' || st === 'connecting',
+    lob = !!lobbyUrl(),
+    err = st === 'error' ? `<p style="color:var(--neon)">${esc(NET.err)}</p>` : '';
   let body = '';
-  if (!NET.role || st === 'error' || st === '') {
-    body = `<p>Play the Arena with a friend in another browser, on another device, anywhere. One of you hosts; the other joins. You swap two codes over chat or text, and that's it: no accounts, no server.</p>
-    ${st === 'error' ? `<p style="color:var(--pink)">${esc(NET.err)}</p>` : ''}
-    ${archHtml(1)}
-    <div class="row"><button class="btn" data-a="nethost">Host a game</button><button class="btn ghost" data-a="netjoin">Join a game</button><button class="btn ghost" data-a="netback">Back</button></div>
-    <p style="color:var(--muted);font-size:12.5px">The host plays as Runner 1 and picks perks; the friend plays as Runner 2 with the archetype and coat chosen above. Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.</p>`;
-  } else if (NET.role === 'host') {
-    const link = netInviteLink();
-    body =
-      st === 'making'
-        ? '<p>Making your invite code…</p>'
-        : `<p><b>1.</b> Send this invite code to your friend.</p>
+  const longHost = `<p><b>1.</b> Send this invite code to your friend.</p>
     <textarea class="netcode" readonly rows="3" aria-label="Your invite code">${esc(NET.code)}</textarea>
-    <div class="row"><button class="btn sm" data-a="netcopy">Copy code</button>${link ? '<button class="btn sm ghost" data-a="netcopylink">Copy invite link</button>' : ''}</div>
+    <div class="row"><button class="btn sm" data-a="netcopy">Copy code</button></div>
     <p><b>2.</b> Paste the reply code they send back.</p>
     <textarea class="netcode" data-net="draft" rows="3" placeholder="Paste the reply code here" aria-label="Reply code">${esc(NET.draft)}</textarea>
-    <div class="row"><button class="btn" data-a="netconnect"${busy ? ' disabled' : ''}>${st === 'connecting' ? 'Connecting…' : 'Connect'}</button><button class="btn ghost" data-a="netcancel">Cancel</button></div>`;
+    <div class="row"><button class="btn" data-a="netconnect"${busy ? ' disabled' : ''}>${st === 'connecting' ? 'Connecting…' : 'Connect'}</button></div>`;
+  if (!NET.role || st === 'error' || st === '') {
+    body = `<p>Play the Arena with a friend in another browser, on another device, anywhere. One of you hosts; the other joins${lob ? ' with a five-letter room code' : ' by swapping two codes over chat or text'}. No accounts.</p>
+    ${err}
+    ${archHtml(1)}
+    <div class="row"><button class="btn" data-a="nethost">Host a game</button><button class="btn ghost" data-a="netjoin">Join a game</button><button class="btn ghost" data-a="netback">Back</button></div>
+    <p style="color:var(--muted);font-size:12.5px">The host plays as Runner 1 and picks perks; the friend plays as Runner 2 with the archetype and coat chosen above. ${lob ? 'The two browsers connect directly; when a network blocks that, the game is relayed through Cloudflare.' : 'Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.'}</p>`;
+  } else if (NET.role === 'host') {
+    const link = netInviteLink();
+    if (st === 'making') body = '<p>Opening a room…</p>';
+    else if (NET.room)
+      body = `<p>Tell your friend this room code. They pick <b>Online co-op › Join a game</b> and type it in.</p>
+    <div class="roomcode" aria-label="Room code ${NET.room.split('').join(' ')}">${NET.room}</div>
+    <div class="row"><button class="btn sm" data-a="netcopyroom">Copy code</button>${link ? '<button class="btn sm ghost" data-a="netcopylink">Copy invite link</button>' : ''}<button class="btn sm ghost" data-a="netcancel">Cancel</button></div>
+    <p style="color:var(--muted)">${st === 'connecting' ? 'Your friend is here. Connecting…' : 'Waiting for your friend… the room stays open for 15 minutes.'}</p>
+    <details class="netmore"><summary>Trouble? Use long codes instead</summary>${longHost}</details>`;
+    else
+      body = `${NET.lobbyDown ? '<p style="color:var(--muted)">The lobby is unreachable right now, so this uses long codes.</p>' : ''}${longHost}
+    <div class="row">${link ? '<button class="btn sm ghost" data-a="netcopylink">Copy invite link</button>' : ''}<button class="btn ghost" data-a="netcancel">Cancel</button></div>`;
   } else {
     body =
       st === 'joining'
-        ? '<p>Reading the invite and making your reply code…</p>'
-        : st === 'answer'
-          ? `<p><b>2.</b> Send this reply code back to the host. The game starts as soon as they paste it.</p>
+        ? '<p>Joining…</p>'
+        : st === 'sent'
+          ? `<p>You're in the room. Connecting to the host…</p>
+    <details class="netmore"><summary>Stuck? Send the host a long reply code</summary><textarea class="netcode" readonly rows="3" aria-label="Your reply code">${esc(NET.code)}</textarea>
+    <div class="row"><button class="btn sm" data-a="netcopy">Copy code</button></div></details>
+    <div class="row"><button class="btn ghost" data-a="netcancel">Cancel</button></div>`
+          : st === 'answer'
+            ? `<p><b>2.</b> Send this reply code back to the host. The game starts as soon as they paste it.</p>
     <textarea class="netcode" readonly rows="3" aria-label="Your reply code">${esc(NET.code)}</textarea>
     <div class="row"><button class="btn sm" data-a="netcopy">Copy code</button><button class="btn ghost" data-a="netcancel">Cancel</button></div>
     <p style="color:var(--muted)">Waiting for the host…</p>`
-          : `<p><b>1.</b> Paste the invite code from the host.</p>
-    <textarea class="netcode" data-net="draft" rows="3" placeholder="Paste the invite code here" aria-label="Invite code">${esc(NET.draft)}</textarea>
-    <div class="row"><button class="btn" data-a="netanswer">Make my reply code</button><button class="btn ghost" data-a="netcancel">Cancel</button></div>`;
+            : `<p>${lob ? 'Type the room code from the host (or paste a long invite code).' : '<b>1.</b> Paste the invite code from the host.'}</p>
+    <textarea class="netcode${lob ? ' short' : ''}" data-net="draft" rows="${lob ? 1 : 3}" placeholder="${lob ? 'K7Q2X' : 'Paste the invite code here'}" aria-label="${lob ? 'Room code or invite code' : 'Invite code'}" autocapitalize="characters" spellcheck="false">${esc(NET.draft)}</textarea>
+    <div class="row"><button class="btn" data-a="netanswer">${lob ? 'Join' : 'Make my reply code'}</button><button class="btn ghost" data-a="netcancel">Cancel</button></div>`;
   }
   return `<div class="card"><p class="eyebrow">Online co-op · Arena</p><h2>${NET.role === 'host' ? 'Host a game' : NET.role === 'guest' ? 'Join a game' : 'Play online'}</h2>${body}</div>`;
 }
@@ -11556,6 +11706,9 @@ function netAct(a, b) {
     case 'netcopy':
       netCopy(NET.code, b);
       return true;
+    case 'netcopyroom':
+      netCopy(NET.room, b);
+      return true;
     case 'netcopylink':
       netCopy(netInviteLink(), b);
       return true;
@@ -11586,7 +11739,7 @@ ov.addEventListener('input', e => {
 // an invite link opens straight onto the join card with the code filled in
 function netFromHash() {
   if (typeof location === 'undefined') return false;
-  const m = (location.hash || '').match(/join=(CCT1[A-Za-z0-9_-]+)/);
+  const m = (location.hash || '').match(/(?:join|room)=(CCT1[A-Za-z0-9_-]+|[A-Za-z0-9]{5})(?![A-Za-z0-9])/);
   if (!m) return false;
   try {
     history.replaceState(null, '', location.pathname + location.search);
@@ -11598,6 +11751,10 @@ function netFromHash() {
   setMode('online');
   return true;
 }
+// a link opened while the game is already up (same page, new #room=…) works too
+addEventListener('hashchange', () => {
+  if (!NET.live) netFromHash();
+});
 
 /* ===== src/js/render/figures.js ===== */
 /* Cyber City Tactics · src/js/render/figures.js

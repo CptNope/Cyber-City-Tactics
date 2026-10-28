@@ -1,0 +1,23 @@
+# Cyber City Tactics online lobby (see README.md in this folder)
+name = "cct-lobby"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Where the game is served. Localhost is always allowed for development.
+[vars]
+ALLOWED_ORIGINS = "https://cptnope.github.io"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+# SQLite-backed Durable Objects work on the Workers Free plan
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+# Secrets (set in the dashboard under Settings › Variables and Secrets, or with `npx wrangler secret put`):
+#   TURN_KEY_ID          the TURN key's ID from Realtime › TURN Server
+#   TURN_KEY_API_TOKEN   that key's API token (shown once when the key is made)
+# Without them the lobby still works; it just hands out STUN only, with no relay.

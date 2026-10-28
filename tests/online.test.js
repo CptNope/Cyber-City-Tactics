@@ -4,6 +4,7 @@
  *  - the friend's held buttons move runner 2 on the host, and a tap lands as a punch
  *  - the friend's screen mirrors the host's entities, runners, wave and score, and draws without errors
  *  - the host opening a menu shows the friend a waiting card; leaving tells the host and drops runner 2
+ *  - with the lobby Worker (run locally): a five-letter room code, invite links, wrong codes, lobby outages
  * Run on its own (node tests/online.test.js) or as part of npm run test:browser. */
 'use strict';
 const path = require('path');
@@ -17,7 +18,8 @@ const { pathToFileURL } = require('url');
   const base = `http://localhost:${port}/`;
   // no STUN in CI, and plain local addresses instead of mDNS names so two pages on one machine can meet
   const browser = await chromium.launch({ args: ['--disable-features=WebRtcHideLocalIpsWithMdns'] });
-  let failed = 0;
+  let failed = 0,
+    lobbySrv = null;
   const ok = (c, m) => {
     console.log((c ? 'PASS ' : 'FAIL ') + m);
     if (!c) failed++;
@@ -210,12 +212,87 @@ const { pathToFileURL } = require('url');
     await host.waitForFunction(() => !NET.live && PL.length === 1, null, { timeout: 8000 });
     ok((await host.evaluate(() => G.mode)) === 'play', 'friend leaves → host keeps playing solo');
     ok((await fr.evaluate(() => G.mode)) === 'title', 'friend is back at the title');
+
+    // ---- the lobby (server/worker.js, run locally): a five-letter room code and no pasting back ----
+    const { serveLobby } = await import(
+      pathToFileURL(path.join(__dirname, '..', 'tools', 'lobby-local.mjs')).href
+    );
+    const lport = port + 900;
+    lobbySrv = await serveLobby(lport);
+    const withLobby = async (page, q, hash = '') => {
+      await page.goto(base + '?lobby=' + encodeURIComponent(q) + hash);
+      await page.waitForFunction(() => typeof G !== 'undefined' && document.querySelector('#ov .card'));
+      await page.evaluate(() => (NET.ice = []));
+    };
+    await withLobby(host, `http://localhost:${lport}`);
+    await withLobby(fr, `http://localhost:${lport}`);
+    await host.click('[data-a="online"]');
+    ok(/room code/.test(await host.textContent('#ov .card')), 'with a lobby, the card offers room codes');
+    await host.click('[data-a="nethost"]');
+    await host.waitForFunction(() => NET.status === 'offer' && NET.room, null, { timeout: 15000 });
+    const room = await host.evaluate(() => NET.room);
+    ok(
+      /^[A-HJ-NP-Z2-9]{5}$/.test(room) && (await host.textContent('.roomcode')) === room,
+      `host sees room code ${room}`
+    );
+    ok(/#room=/.test(await host.evaluate(() => netInviteLink())), 'invite link carries the room code');
+    await fr.click('[data-a="online"]');
+    await fr.click('[data-a="arch:0:samurai"]');
+    await fr.click('[data-a="netjoin"]');
+    await fr.fill('textarea[data-net="draft"]', room.toLowerCase());
+    await fr.click('[data-a="netanswer"]');
+    await host.waitForFunction(() => NET.live && G.mode === 'play' && PL.length === 2, null, {
+      timeout: 20000
+    });
+    await fr.waitForFunction(() => NET.live && G.mode === 'play' && PL.length === 2, null, {
+      timeout: 15000
+    });
+    ok(
+      (await host.evaluate(() => PL[1].arch)) === 'samurai',
+      'friend typed the room code → connected, nothing pasted back'
+    );
+    await fr.keyboard.press('Escape');
+    await fr.click('[data-a="netleave"]');
+    await host.waitForFunction(() => !NET.live && PL.length === 1, null, { timeout: 8000 });
+    // the room is used up; a wrong code says so
+    await fr.click('[data-a="online"]');
+    await fr.click('[data-a="netjoin"]');
+    await fr.fill('textarea[data-net="draft"]', 'ZZZZZ');
+    await fr.click('[data-a="netanswer"]');
+    await fr.waitForFunction(() => NET.status === 'error');
+    ok(/No room with that code/.test(await fr.evaluate(() => NET.err)), 'a wrong room code explains itself');
+    // an invite link opens the join card with the code filled in
+    await withLobby(fr, `http://localhost:${lport}`, '#room=' + room);
+    ok(
+      (await fr.evaluate(() => G.mode + ':' + NET.role + ':' + NET.draft)) === `online:guest:${room}`,
+      'invite link → join card with the room code filled in'
+    );
+    // lobby down: hosting falls back to long codes
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await withLobby(host, 'http://localhost:9');
+    await host.click('[data-a="online"]');
+    await host.click('[data-a="nethost"]');
+    await host.waitForFunction(() => NET.status === 'offer' || NET.status === 'error', null, {
+      timeout: 20000
+    });
+    ok(
+      (await host.evaluate(() => NET.status === 'offer' && !NET.room && NET.lobbyDown)) &&
+        /unreachable/.test(await host.textContent('#ov .card')),
+      'lobby unreachable → long codes, with a note'
+    );
+    ok(
+      !F.errs.filter(e => !/Failed to load resource|ERR_CONNECTION_REFUSED/.test(e)).length,
+      'friend page: no errors in the lobby flow' +
+        (F.errs.length ? ': ' + F.errs.slice(0, 2).join(' | ') : '')
+    );
   } catch (e) {
     console.log('FAIL ' + (e && e.stack ? e.stack.split('\n').slice(0, 3).join(' ') : e));
     failed++;
   }
   await browser.close();
   server.close();
+  if (lobbySrv) lobbySrv.close();
   console.log(failed ? `${failed} online check(s) failed` : 'online co-op: all passed');
   process.exit(failed ? 1 : 0);
 })();
