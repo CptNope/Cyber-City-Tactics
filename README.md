@@ -46,15 +46,16 @@ To play locally, run `npm start` (no install needed) and open the URL it prints.
 ## Game modes
 
 ### Campaign
-Five districts, each with waves of enemies, a side contract from the fixer, and a boss:
+Six districts, each with waves of enemies, a side contract from the fixer, and a boss:
 
 | # | District | Boss |
 |---|---|---|
 | 1 | Rustline Barrens | The Gutter King |
 | 2 | Neon Market | Razor Mei |
 | 3 | Undercity Tunnels | The Hollow Saint |
-| 4 | Kagemori Arcology | Director Voss |
-| 5 | Kagemori Host (inside the Matrix) | Black ICE |
+| 4 | Undercity Market | Mother Vesper |
+| 5 | Kagemori Arcology | Director Voss |
+| 6 | Kagemori Host (inside the Matrix) | Black ICE |
 
 Between districts you walk **the Den**, a street hub where you talk to the locals:
 

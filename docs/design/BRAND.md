@@ -24,7 +24,7 @@ Cyber City Tactics is a neon brawler RPG about street runners who choose who the
 
 Seattle, 2079. Magic came back, dragons came with it, and corporations grew big enough to buy the sky. On paper it's still a city; on the street it's **the Sprawl**.
 
-- **Where:** five districts, from the Rustline Barrens under a dead monorail to the Kagemori Arcology and the Matrix host inside it. Between jobs, runners walk **the Den**, a street hub of fixers, docs and fences.
+- **Where:** six districts, from the Rustline Barrens under a dead monorail through a ghoul night market to the Kagemori Arcology and the Matrix host inside it. Between jobs, runners walk **the Den**, a street hub of fixers, docs and fences.
 - **Who runs it:** Kagemori, a megacorp that builds cyberware and security drones, and something older behind it.
 - **The mystery:** data chips stamped with a paper lantern. Twenty-four lore shards, found across every mode, reveal Project LANTERN and the dragon Ssareth, "who lights the way." Players earn the full story; we never front-load it.
 - **Magic and chrome sit side by side.** A samurai with a cyberarm and a shaman with a bound fire spirit fight on the same street. Neither is the "cool" one.

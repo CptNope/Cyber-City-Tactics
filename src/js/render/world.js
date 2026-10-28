@@ -124,6 +124,7 @@ function drawBg() {
     }
   }
   if (G.dun) drawInterior(base);
+  drawMarketLanterns(S, base);
   ctx.fillStyle = S.wall;
   ctx.fillRect(0, base, W, 14);
   ctx.fillStyle = 'rgba(255,255,255,.06)';

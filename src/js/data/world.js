@@ -53,6 +53,15 @@ const CONTRACTS = [
     say: 'The chips point under the city. Kagemori has been dumping failed experiments into the old transit tunnels, and something down there is eating them. Spirits are loose too. Banish four of them. The thing that runs that pit calls itself the Hollow Saint.'
   },
   {
+    title: 'Night market',
+    goal: 'Take down 6 thralls',
+    key: 'thrall',
+    need: 6,
+    creds: 180,
+    karma: 110,
+    say: 'The Saint was only a mouth. Below the tunnels the ghouls run a night market, and the woman who owns it, Mother Vesper, buys everything Kagemori throws away. She keeps the books on who sells to her. Break her thralls, then get me those books.'
+  },
+  {
     title: 'Ghost',
     goal: 'Reach Director Voss without losing a life',
     key: 'ghost',
@@ -60,7 +69,7 @@ const CONTRACTS = [
     creds: 100,
     karma: 140,
     prize: true,
-    say: "The Saint was fed by Kagemori. Director Voss runs their magic program from the top floor, and she knows your face now. Go up and get paid. Do it clean, no close calls, and I'll throw in something special."
+    say: "Vesper's books all lead to one buyer: Kagemori. Director Voss runs their magic program from the top floor, and she knows your face now. Go up and get paid. Do it clean, no close calls, and I'll throw in something special."
   },
   {
     title: 'Trace',

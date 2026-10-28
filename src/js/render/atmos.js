@@ -228,6 +228,7 @@ function drawPools() {
 // anyone standing near one picks up its colour on that side (litFigures).
 const LIGHTS = [];
 function lampColor(S) {
+  if (S.market) return '#ffb36b';
   return S.tunnel ? '#7dffb0' : S.grid ? '#cfe6ff' : S.win || '#ffb36b';
 }
 function drawStreetLights(S, cx) {
@@ -250,7 +251,7 @@ function drawStreetLights(S, cx) {
       y = FY0 + 5;
     if (tr && Math.abs(x + cx - tr.x) < 50) continue; // leave Sable's corner to her own sign
     // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
-    const barrel = !S.tunnel && !S.grid && h < 0.62;
+    const barrel = (S.market || (!S.tunnel && !S.grid)) && h < 0.62;
     if (barrel) {
       const fl = 0.75 + 0.25 * Math.sin(G.t * 0.31 + k * 2.1) * Math.sin(G.t * 0.13 + k);
       if (!lite) glow(x, y - 4, 42, 12, '#ff6a3d', 0.22 * fl); // light pooled on the ground
@@ -344,5 +345,34 @@ function drawFog(S) {
       x = ((((G.t * sp - G.camX * 0.3 + i * 271) % span) + span) % span) - 180,
       y = FY0 + 30 + i * 18;
     glow(x, y, 170, 26, '#9fb4a8', 0.16);
+  }
+}
+// The Undercity Market's lantern strings: paper lanterns swaying on wires across the bazaar
+function drawMarketLanterns(S, base) {
+  if (!S.market || G.dun) return;
+  const lite = lowFx();
+  for (const [yb, par, step] of [
+    [base - 96, 0.55, 18],
+    [base - 62, 0.8, 22]
+  ]) {
+    const off = G.camX * par,
+      yy = lx => yb + Math.sin((lx + off) * 0.03) * 9;
+    ctx.strokeStyle = 'rgba(20,10,12,.9)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let lx = 0; lx <= W; lx += 6) ctx.lineTo(lx, yy(lx));
+    ctx.stroke();
+    for (let lx = -(off % step); lx < W; lx += step) {
+      const k = Math.floor((lx + off) / step),
+        sway = Math.sin(G.t * 0.04 + k) * 1.5,
+        c = ['#ffb36b', '#ff4a4a', '#ffc63d'][((k % 3) + 3) % 3],
+        x = lx + sway,
+        y = yy(lx) + 5;
+      if (!lite) glow(x, y, 10, 10, c, 0.35);
+      ctx.fillStyle = c;
+      ctx.fillRect(x - 2.5, y - 3.5, 5, 7);
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillRect(x - 2.5, y - 0.5, 5, 1);
+    }
   }
 }

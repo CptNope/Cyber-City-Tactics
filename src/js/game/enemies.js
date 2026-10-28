@@ -309,6 +309,7 @@ function upEnemy(e) {
     }
     return;
   }
+  if (d.vesper && vesperTick(e, p, adx, ady)) return;
   if (d.summon) {
     e.sumT--;
     if (e.sumT <= 0 && G.ents.filter(x => x.kind === 'ghoul' && x.state !== 'dead').length < 3) {
@@ -656,4 +657,52 @@ function enrage(e) {
   );
   G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 30, c: '#ff4a4a', life: 26, max: 26, r: 80 });
   burst(e.x, e.y, 30, '#ff4a4a', 24);
+}
+
+/* Mother Vesper: mist steps and thralls
+ * Every few seconds she dissolves into mist (untouchable for about half a second), drifts, and reforms behind
+ * the nearest runner already swinging. Once enraged she calls two thralls whenever fewer than two remain.
+ * Everything she hits heals her (d.drain, shared with her thralls and vampiric elites). */
+function vesperTick(e, p, adx, ady) {
+  e.mistCD = (e.mistCD === undefined ? 240 : e.mistCD) - 1;
+  if (e.mist > 0) {
+    e.mist--;
+    e.inv = 2;
+    const s = 2.4;
+    e.x += clamp(p.x - e.x, -s, s);
+    e.y += clamp(p.y - e.y, -s * 0.6, s * 0.6);
+    if (e.mist === 0) {
+      e.x = clamp(p.x - (p.face || 1) * 26, G.camX + 20, G.camX + W - 20);
+      e.y = clamp(p.y, FY0 + 6, FY1);
+      e.face = p.x >= e.x ? 1 : -1;
+      e.inv = 0;
+      setS(e, 'windup');
+      e.t = 6; // she comes out of the mist already swinging
+      burst(e.x, e.y, 26, '#b98cff', 10);
+      G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 20, c: '#b98cff', life: 14, max: 14, r: 30 });
+      sfx.whiff();
+    }
+    return true;
+  }
+  if (e.mistCD <= 0 && (e.state === 'idle' || e.state === 'walk') && adx < 180) {
+    e.mist = 34;
+    e.inv = 2;
+    e.mistCD = e.enraged ? 200 : 320;
+    sfx.spell();
+    burst(e.x, e.y, 26, '#b98cff', 12);
+    return true;
+  }
+  if (e.enraged) {
+    e.thrT = (e.thrT === undefined ? 0 : e.thrT) - 1;
+    const n = G.ents.filter(x => x.kind === 'thrall' && x.state !== 'dead').length;
+    if (e.thrT <= 0 && n < 2) {
+      e.thrT = 480;
+      for (const side of [-1, 1]) {
+        const t = spawnEnemy('thrall', side);
+        t.elite = null;
+      }
+      G.texts.push({ x: e.x, y: e.y, z: 80, s: 'THRALLS, TO ME', c: '#ff3d4a', life: 50, sm: true });
+    }
+  }
+  return false;
 }

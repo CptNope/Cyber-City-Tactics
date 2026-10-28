@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/data/content.js
- * Runner palettes and coats, every enemy and boss definition (DEF), the five districts (STAGES), the Den and
+ * Runner palettes and coats, every enemy and boss definition (DEF), the six districts (STAGES), the Den and
  * the training alley.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
@@ -191,6 +191,29 @@ const DEF = {
       hair: '#b9b3a2',
       acc: '#ff4a4a',
       boot: '#1a1712'
+    }
+  },
+  // Mother Vesper's thralls: pale, quick, and every hit they land feeds them
+  thrall: {
+    name: 'Thrall',
+    hp: 40,
+    spd: 1.15,
+    dmg: 8,
+    reach: 22,
+    cool: 66,
+    scale: 1,
+    drain: true,
+    creds: [8, 16],
+    karma: 14,
+    style: 'vamp',
+    pal: {
+      skin: '#d9cfcc',
+      coat: '#2e1620',
+      coat2: '#220f18',
+      pants: '#1a1218',
+      hair: '#1b0e14',
+      acc: '#ff3d4a',
+      boot: '#0e080b'
     }
   },
   spirit: {
@@ -480,6 +503,31 @@ const DEF = {
     creds: [600, 800],
     karma: 2400
   },
+  // Mother Vesper runs the Undercity Market. She steps through mist to appear behind you, and drinks what she hits
+  vesper: {
+    name: 'Mother Vesper',
+    hp: 280,
+    spd: 1.05,
+    dmg: 14,
+    reach: 26,
+    cool: 60,
+    scale: 1.12,
+    boss: true,
+    vesper: true,
+    drain: true,
+    creds: [140, 180],
+    karma: 170,
+    style: 'vamp',
+    pal: {
+      skin: '#ece2df',
+      coat: '#3a0f1e',
+      coat2: '#28091a',
+      pants: '#1a0710',
+      hair: '#120a0e',
+      acc: '#ff3d4a',
+      boot: '#0b0508'
+    }
+  },
   archmage: {
     name: 'Director Voss',
     hp: 270,
@@ -618,6 +666,43 @@ const STAGES = [
       { at: 740, spawn: ['troll!', 'spirit', 'ghoul'] },
       { at: 1000, spawn: ['feral', 'spirit', 'shaman', 'ghoul'] },
       { at: 1220, boss: true, spawn: ['saint', 'ghoul'] }
+    ]
+  },
+  {
+    name: 'Undercity Market',
+    weather: 'clear',
+    sub: 'A ghoul bazaar under the dead lines. Mother Vesper keeps the books.',
+    len: 1650,
+    sky: ['#140a0c', '#2a1418'],
+    moon: '#ff9f6b',
+    far: '#1e1014',
+    near: '#2a161c',
+    win: '#ffb36b',
+    wall: '#1a0e12',
+    ground: ['#2a1a1c', '#140c0e'],
+    line: '#3a2428',
+    rain: false,
+    tunnel: true,
+    market: true,
+    signs: [
+      ['MEAT', '#ff4a4a'],
+      ['BONES', '#ece4c6'],
+      ['LANTERNS', '#ffc63d'],
+      ['NO LIVING', '#b98cff'],
+      ['BLOOD', '#ff3d4a']
+    ],
+    props: [
+      ['crate', 320, 215],
+      ['drum', 640, 235],
+      ['crate', 980, 220],
+      ['can', 1200, 230]
+    ],
+    waves: [
+      { at: 120, spawn: ['thrall', 'thrall', 'ghoul'] },
+      { at: 430, spawn: ['ghoul', 'ghoul', 'thrall', 'spirit'] },
+      { at: 740, spawn: ['saint!', 'thrall', 'ghoul'] },
+      { at: 1000, spawn: ['thrall', 'feral', 'thrall', 'ghoul'] },
+      { at: 1250, boss: true, spawn: ['vesper', 'thrall'] }
     ]
   },
   {

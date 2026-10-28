@@ -185,7 +185,7 @@ function refresh(p) {
 }
 function saveGame(phase) {
   const o = {
-    v: 3,
+    v: 4, // 4: six districts (the Undercity Market is district 4)
     phase,
     stage: G.stage,
     coop: G.coop,

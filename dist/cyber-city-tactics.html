@@ -1033,7 +1033,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+e500373';
+const APP_VERSION = '2.0.0+32f4b0a';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1258,7 +1258,7 @@ const SAVE_SHAPES = {
     s.runners.length > 0 &&
     Number.isInteger(s.stage) &&
     s.stage >= 0 &&
-    s.stage < 5,
+    s.stage < STAGES.length,
   cs_world: s =>
     isObj(s) &&
     isObj(s.wd) &&
@@ -1273,6 +1273,11 @@ const SAVE_SHAPES = {
 /** Read a save slot, or null if it's missing or malformed. */
 store.load = k => {
   const v = store.get(k);
+  // v3 campaign saves predate the Undercity Market (district 4): shift the Arcology and the Host up one
+  if (k === 'cs_save3' && isObj(v) && v.v === 3 && Number.isInteger(v.stage) && v.stage >= 3) {
+    v.stage++;
+    v.v = 4;
+  }
   return v !== null && (!SAVE_SHAPES[k] || SAVE_SHAPES[k](v)) ? v : null;
 };
 const prefs = Object.assign(
@@ -1581,7 +1586,19 @@ const SONGS = {
     snare: '........s.......',
     hat: '..h...h...h..hh.'
   },
+  // the Undercity Market: a slow, swaying minor waltz feel over a heartbeat kick
   d3: {
+    bpm: 108,
+    root: 37,
+    prog: [0, -4, -2, -5],
+    bass: 'r..r..r..f..o...',
+    arp: '0.3.7.3.0.3.8.3.',
+    lead: '7...8...7...3.......5...3...2...0...............',
+    kick: 'x.....x.x.......',
+    snare: '........s.......',
+    hat: '..h..h..h..h..h.'
+  },
+  d4: {
     bpm: 144,
     root: 45,
     prog: [0, -2, -4, -5],
@@ -1592,7 +1609,7 @@ const SONGS = {
     snare: '....s..s....s...',
     hat: 'hhhhhhhhhhhhhhhh'
   },
-  d4: {
+  d5: {
     bpm: 150,
     root: 42,
     prog: [0, 3, -2, 1],
@@ -2248,7 +2265,7 @@ function pollPads() {
 
 /* ===== src/js/data/content.js ===== */
 /* Cyber City Tactics · src/js/data/content.js
- * Runner palettes and coats, every enemy and boss definition (DEF), the five districts (STAGES), the Den and
+ * Runner palettes and coats, every enemy and boss definition (DEF), the six districts (STAGES), the Den and
  * the training alley.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ================= content ================= */
@@ -2439,6 +2456,29 @@ const DEF = {
       hair: '#b9b3a2',
       acc: '#ff4a4a',
       boot: '#1a1712'
+    }
+  },
+  // Mother Vesper's thralls: pale, quick, and every hit they land feeds them
+  thrall: {
+    name: 'Thrall',
+    hp: 40,
+    spd: 1.15,
+    dmg: 8,
+    reach: 22,
+    cool: 66,
+    scale: 1,
+    drain: true,
+    creds: [8, 16],
+    karma: 14,
+    style: 'vamp',
+    pal: {
+      skin: '#d9cfcc',
+      coat: '#2e1620',
+      coat2: '#220f18',
+      pants: '#1a1218',
+      hair: '#1b0e14',
+      acc: '#ff3d4a',
+      boot: '#0e080b'
     }
   },
   spirit: {
@@ -2728,6 +2768,31 @@ const DEF = {
     creds: [600, 800],
     karma: 2400
   },
+  // Mother Vesper runs the Undercity Market. She steps through mist to appear behind you, and drinks what she hits
+  vesper: {
+    name: 'Mother Vesper',
+    hp: 280,
+    spd: 1.05,
+    dmg: 14,
+    reach: 26,
+    cool: 60,
+    scale: 1.12,
+    boss: true,
+    vesper: true,
+    drain: true,
+    creds: [140, 180],
+    karma: 170,
+    style: 'vamp',
+    pal: {
+      skin: '#ece2df',
+      coat: '#3a0f1e',
+      coat2: '#28091a',
+      pants: '#1a0710',
+      hair: '#120a0e',
+      acc: '#ff3d4a',
+      boot: '#0b0508'
+    }
+  },
   archmage: {
     name: 'Director Voss',
     hp: 270,
@@ -2866,6 +2931,43 @@ const STAGES = [
       { at: 740, spawn: ['troll!', 'spirit', 'ghoul'] },
       { at: 1000, spawn: ['feral', 'spirit', 'shaman', 'ghoul'] },
       { at: 1220, boss: true, spawn: ['saint', 'ghoul'] }
+    ]
+  },
+  {
+    name: 'Undercity Market',
+    weather: 'clear',
+    sub: 'A ghoul bazaar under the dead lines. Mother Vesper keeps the books.',
+    len: 1650,
+    sky: ['#140a0c', '#2a1418'],
+    moon: '#ff9f6b',
+    far: '#1e1014',
+    near: '#2a161c',
+    win: '#ffb36b',
+    wall: '#1a0e12',
+    ground: ['#2a1a1c', '#140c0e'],
+    line: '#3a2428',
+    rain: false,
+    tunnel: true,
+    market: true,
+    signs: [
+      ['MEAT', '#ff4a4a'],
+      ['BONES', '#ece4c6'],
+      ['LANTERNS', '#ffc63d'],
+      ['NO LIVING', '#b98cff'],
+      ['BLOOD', '#ff3d4a']
+    ],
+    props: [
+      ['crate', 320, 215],
+      ['drum', 640, 235],
+      ['crate', 980, 220],
+      ['can', 1200, 230]
+    ],
+    waves: [
+      { at: 120, spawn: ['thrall', 'thrall', 'ghoul'] },
+      { at: 430, spawn: ['ghoul', 'ghoul', 'thrall', 'spirit'] },
+      { at: 740, spawn: ['saint!', 'thrall', 'ghoul'] },
+      { at: 1000, spawn: ['thrall', 'feral', 'thrall', 'ghoul'] },
+      { at: 1250, boss: true, spawn: ['vesper', 'thrall'] }
     ]
   },
   {
@@ -3422,6 +3524,15 @@ const CONTRACTS = [
     say: 'The chips point under the city. Kagemori has been dumping failed experiments into the old transit tunnels, and something down there is eating them. Spirits are loose too. Banish four of them. The thing that runs that pit calls itself the Hollow Saint.'
   },
   {
+    title: 'Night market',
+    goal: 'Take down 6 thralls',
+    key: 'thrall',
+    need: 6,
+    creds: 180,
+    karma: 110,
+    say: 'The Saint was only a mouth. Below the tunnels the ghouls run a night market, and the woman who owns it, Mother Vesper, buys everything Kagemori throws away. She keeps the books on who sells to her. Break her thralls, then get me those books.'
+  },
+  {
     title: 'Ghost',
     goal: 'Reach Director Voss without losing a life',
     key: 'ghost',
@@ -3429,7 +3540,7 @@ const CONTRACTS = [
     creds: 100,
     karma: 140,
     prize: true,
-    say: "The Saint was fed by Kagemori. Director Voss runs their magic program from the top floor, and she knows your face now. Go up and get paid. Do it clean, no close calls, and I'll throw in something special."
+    say: "Vesper's books all lead to one buyer: Kagemori. Director Voss runs their magic program from the top floor, and she knows your face now. Go up and get paid. Do it clean, no close calls, and I'll throw in something special."
   },
   {
     title: 'Trace',
@@ -3802,6 +3913,10 @@ const BEST = {
   troll: "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves.",
   blade: "Razor Mei dashes through you, then chains three dashes when she's enraged.",
   saint: 'The Hollow Saint summons spirits and slams the floor. Keep moving.',
+  thrall:
+    "Mother Vesper's people. Quick, pale, and every hit they land heals them a little. Don't trade blows; stagger them and keep the pressure on.",
+  vesper:
+    'Mother Vesper steps into mist and reforms behind you mid-swing. Roll as the fog closes in, and remember she drinks from every hit. Once angry, she calls her thralls.',
   archmage: 'Director Voss teleports and fires hexes, five at a time when enraged.',
   dragon:
     'Ssareth, who lights the way. On the ground it claws and sweeps its tail; in the air you can only shoot it, cast at it or jump-kick it, while it breathes fire down whole lanes. Find the lane it leaves dark.',
@@ -3814,6 +3929,12 @@ const LEGS = {
     base: 'katana',
     name: "Ronin's Last Edge",
     fx: 'Every sixth melee hit is a guaranteed crit.'
+  },
+  vfang: {
+    slot: 'weapon',
+    base: 'katana',
+    name: "Vesper's Fang",
+    fx: 'Every takedown restores 8 HP and 5 mana.'
   },
   maul: {
     slot: 'weapon',
@@ -3897,6 +4018,7 @@ const FEATS = [
   { id: 'b_troll', name: 'Dethroned', desc: 'Beat the Gutter King.', lp: 15, leg: 'boomstick' },
   { id: 'b_blade', name: 'Cut the Razor', desc: 'Beat Razor Mei.', lp: 15, leg: 'silk' },
   { id: 'b_saint', name: 'Ash to Ash', desc: 'Beat the Hollow Saint.', lp: 15, leg: 'maul' },
+  { id: 'b_vesper', name: 'Closing Time', desc: 'Beat Mother Vesper.', lp: 15, leg: 'vfang' },
   { id: 'b_archmage', name: 'Hostile Takeover', desc: 'Beat Director Voss.', lp: 15, leg: 'smartlink' },
   { id: 'b_blackice', name: 'Defragmented', desc: 'Delete Black ICE.', lp: 15, leg: 'iceshard' },
   { id: 'win', name: 'Legend of the Sprawl', desc: 'Finish the campaign.', lp: 30 },
@@ -4696,7 +4818,7 @@ function refresh(p) {
 }
 function saveGame(phase) {
   const o = {
-    v: 3,
+    v: 4, // 4: six districts (the Undercity Market is district 4)
     phase,
     stage: G.stage,
     coop: G.coop,
@@ -5434,7 +5556,12 @@ function hurt(t, dmg, dir, o) {
   )
     setTimeout0(() => hurt(o.att, 6, -dir, { col: '#ff3d8b', kb: 2 }));
   if (t.team === 0) spGain(t, dmg * 0.6);
-  if (t.team === 0 && o.att && o.att.elite === 'vampiric' && o.att.state !== 'dead') {
+  if (
+    t.team === 0 &&
+    o.att &&
+    (o.att.elite === 'vampiric' || (o.att.d && o.att.d.drain)) &&
+    o.att.state !== 'dead'
+  ) {
     const v = o.att;
     v.hp = Math.min(v.maxHp, v.hp + Math.round(dmg * 0.6));
     v.drainT = G.t;
@@ -5521,6 +5648,7 @@ function hurt(t, dmg, dir, o) {
 const REMATCH = {
   troll: { name: 'Gutter King, chromed', acc: '#45d2ff', coat: '#3a4a5a' },
   blade: { name: 'Razor Mei, under contract', acc: '#ffc63d', coat: '#3a1a2a' },
+  saint: { name: 'The Hollow Saint, reborn', acc: '#b98cff', coat: '#2a1a3a' },
   archmage: { name: 'Voss.exe', acc: '#45d2ff', coat: '#0b2533' }
 };
 // A beaten boss comes back mid-district: smaller health pool, but already enraged with its rage-phase moves
@@ -5557,6 +5685,10 @@ function kill(t, dir, o) {
     }
     if (has(ks, 'siphon')) {
       ks.mp = Math.min(ks.maxMp, ks.mp + 4);
+    }
+    if (legOf(ks, 'weapon') === 'vfang') {
+      ks.hp = Math.min(ks.maxHp, ks.hp + 8);
+      ks.mp = Math.min(ks.maxMp, ks.mp + 5);
     }
   }
   if (t.state === 'grabbed') {
@@ -7335,6 +7467,7 @@ function upEnemy(e) {
     }
     return;
   }
+  if (d.vesper && vesperTick(e, p, adx, ady)) return;
   if (d.summon) {
     e.sumT--;
     if (e.sumT <= 0 && G.ents.filter(x => x.kind === 'ghoul' && x.state !== 'dead').length < 3) {
@@ -7682,6 +7815,54 @@ function enrage(e) {
   );
   G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 30, c: '#ff4a4a', life: 26, max: 26, r: 80 });
   burst(e.x, e.y, 30, '#ff4a4a', 24);
+}
+
+/* Mother Vesper: mist steps and thralls
+ * Every few seconds she dissolves into mist (untouchable for about half a second), drifts, and reforms behind
+ * the nearest runner already swinging. Once enraged she calls two thralls whenever fewer than two remain.
+ * Everything she hits heals her (d.drain, shared with her thralls and vampiric elites). */
+function vesperTick(e, p, adx, ady) {
+  e.mistCD = (e.mistCD === undefined ? 240 : e.mistCD) - 1;
+  if (e.mist > 0) {
+    e.mist--;
+    e.inv = 2;
+    const s = 2.4;
+    e.x += clamp(p.x - e.x, -s, s);
+    e.y += clamp(p.y - e.y, -s * 0.6, s * 0.6);
+    if (e.mist === 0) {
+      e.x = clamp(p.x - (p.face || 1) * 26, G.camX + 20, G.camX + W - 20);
+      e.y = clamp(p.y, FY0 + 6, FY1);
+      e.face = p.x >= e.x ? 1 : -1;
+      e.inv = 0;
+      setS(e, 'windup');
+      e.t = 6; // she comes out of the mist already swinging
+      burst(e.x, e.y, 26, '#b98cff', 10);
+      G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 20, c: '#b98cff', life: 14, max: 14, r: 30 });
+      sfx.whiff();
+    }
+    return true;
+  }
+  if (e.mistCD <= 0 && (e.state === 'idle' || e.state === 'walk') && adx < 180) {
+    e.mist = 34;
+    e.inv = 2;
+    e.mistCD = e.enraged ? 200 : 320;
+    sfx.spell();
+    burst(e.x, e.y, 26, '#b98cff', 12);
+    return true;
+  }
+  if (e.enraged) {
+    e.thrT = (e.thrT === undefined ? 0 : e.thrT) - 1;
+    const n = G.ents.filter(x => x.kind === 'thrall' && x.state !== 'dead').length;
+    if (e.thrT <= 0 && n < 2) {
+      e.thrT = 480;
+      for (const side of [-1, 1]) {
+        const t = spawnEnemy('thrall', side);
+        t.elite = null;
+      }
+      G.texts.push({ x: e.x, y: e.y, z: 80, s: 'THRALLS, TO ME', c: '#ff3d4a', life: 50, sm: true });
+    }
+  }
+  return false;
 }
 
 /* ===== src/js/game/update.js ===== */
@@ -11050,7 +11231,20 @@ function drawBeams() {
     }
   }
 }
+// Vesper mid mist-step: no body, just a drifting violet-red fog with two eyes in it
+function drawMist(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z;
+  for (let i = 0; i < 5; i++) {
+    const a = G.t * 0.12 + i * 1.3;
+    glow(sx + Math.cos(a) * 8, sy - 18 - i * 5 + Math.sin(a) * 3, 16, 12, i % 2 ? '#b98cff' : '#5a1a2e', 0.4);
+  }
+  ctx.fillStyle = '#ff3d4a';
+  ctx.fillRect(sx - 3, sy - 34, 2, 1.5);
+  ctx.fillRect(sx + 2, sy - 34, 2, 1.5);
+}
 function drawFig(e) {
+  if (e.mist > 0) return drawMist(e);
   if (e.d && e.d.passive) return drawPassive(e);
   if (e.d && e.d.ice) return drawIce(e);
   if (e.d && e.d.spirit) return drawSpirit(e);
@@ -11373,7 +11567,7 @@ function drawFig(e) {
       ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18'][e.eq.armor.rar]
       : null;
   const cTop = fl ? '#fff' : armorCol || coat;
-  if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard') {
+  if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard' || style === 'vamp') {
     const sw = (st === 'walk' ? ws * 2 : 0) - lean * 0.5;
     fillPoly(
       [
@@ -11624,6 +11818,28 @@ function drawFig(e) {
     eye();
   } else if (style === 'apron') {
     eye();
+  } else if (style === 'vamp') {
+    // slicked-back hair and a high collar standing up behind the neck
+    fillPoly(
+      [
+        hd[0] - 6,
+        hd[1] + 1,
+        hd[0] - 5,
+        hd[1] - 5,
+        hd[0] + 3,
+        hd[1] - 7,
+        hd[0] + 5,
+        hd[1] - 4,
+        hd[0] - 1,
+        hd[1] - 4
+      ],
+      fl ? '#fff' : pal.hair
+    );
+    fillPoly(
+      [sh[0] - 7, sh[1] + 1, sh[0] - 6, sh[1] - 11, sh[0] - 2, sh[1] - 4, sh[0] + 1, sh[1] + 1],
+      fl ? '#fff' : coat2
+    );
+    eye(pal.acc);
   } else if (style === 'glitch') {
     ctx.strokeStyle = '#45d2ff';
     ctx.lineWidth = 0.8;
@@ -12268,6 +12484,7 @@ function drawPools() {
 // anyone standing near one picks up its colour on that side (litFigures).
 const LIGHTS = [];
 function lampColor(S) {
+  if (S.market) return '#ffb36b';
   return S.tunnel ? '#7dffb0' : S.grid ? '#cfe6ff' : S.win || '#ffb36b';
 }
 function drawStreetLights(S, cx) {
@@ -12290,7 +12507,7 @@ function drawStreetLights(S, cx) {
       y = FY0 + 5;
     if (tr && Math.abs(x + cx - tr.x) < 50) continue; // leave Sable's corner to her own sign
     // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
-    const barrel = !S.tunnel && !S.grid && h < 0.62;
+    const barrel = (S.market || (!S.tunnel && !S.grid)) && h < 0.62;
     if (barrel) {
       const fl = 0.75 + 0.25 * Math.sin(G.t * 0.31 + k * 2.1) * Math.sin(G.t * 0.13 + k);
       if (!lite) glow(x, y - 4, 42, 12, '#ff6a3d', 0.22 * fl); // light pooled on the ground
@@ -12384,6 +12601,35 @@ function drawFog(S) {
       x = ((((G.t * sp - G.camX * 0.3 + i * 271) % span) + span) % span) - 180,
       y = FY0 + 30 + i * 18;
     glow(x, y, 170, 26, '#9fb4a8', 0.16);
+  }
+}
+// The Undercity Market's lantern strings: paper lanterns swaying on wires across the bazaar
+function drawMarketLanterns(S, base) {
+  if (!S.market || G.dun) return;
+  const lite = lowFx();
+  for (const [yb, par, step] of [
+    [base - 96, 0.55, 18],
+    [base - 62, 0.8, 22]
+  ]) {
+    const off = G.camX * par,
+      yy = lx => yb + Math.sin((lx + off) * 0.03) * 9;
+    ctx.strokeStyle = 'rgba(20,10,12,.9)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let lx = 0; lx <= W; lx += 6) ctx.lineTo(lx, yy(lx));
+    ctx.stroke();
+    for (let lx = -(off % step); lx < W; lx += step) {
+      const k = Math.floor((lx + off) / step),
+        sway = Math.sin(G.t * 0.04 + k) * 1.5,
+        c = ['#ffb36b', '#ff4a4a', '#ffc63d'][((k % 3) + 3) % 3],
+        x = lx + sway,
+        y = yy(lx) + 5;
+      if (!lite) glow(x, y, 10, 10, c, 0.35);
+      ctx.fillStyle = c;
+      ctx.fillRect(x - 2.5, y - 3.5, 5, 7);
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillRect(x - 2.5, y - 0.5, 5, 1);
+    }
   }
 }
 
@@ -12522,6 +12768,7 @@ const EPITHET = {
   troll: 'Rules the Barrens from a throne of scrap',
   blade: 'Kagemori trained her. Then they tried to retire her',
   saint: 'The ghouls pray to it. It answers',
+  vesper: 'Buys what Kagemori throws away. Sells it back',
   archmage: 'Kagemori security director. Owns the street, the cops and the sky',
   blackice: 'Lethal countermeasure. It does not negotiate',
   avatar: 'What Project LANTERN was built to wake',
@@ -12768,6 +13015,7 @@ function drawBg() {
     }
   }
   if (G.dun) drawInterior(base);
+  drawMarketLanterns(S, base);
   ctx.fillStyle = S.wall;
   ctx.fillRect(0, base, W, 14);
   ctx.fillStyle = 'rgba(255,255,255,.06)';
@@ -14667,7 +14915,7 @@ function renderOv() {
     G.booted = true;
     if (G.mode === 'title') G.pendDiff = sv && sv.diff !== undefined ? sv.diff : 1;
     h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
-    <p>Two shadowrunners, a fixer with a grudge and five districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
+    <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
     <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff === undefined ? 1 : sv.diff].name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {

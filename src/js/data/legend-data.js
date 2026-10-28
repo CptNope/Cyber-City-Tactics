@@ -124,6 +124,10 @@ const BEST = {
   troll: "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves.",
   blade: "Razor Mei dashes through you, then chains three dashes when she's enraged.",
   saint: 'The Hollow Saint summons spirits and slams the floor. Keep moving.',
+  thrall:
+    "Mother Vesper's people. Quick, pale, and every hit they land heals them a little. Don't trade blows; stagger them and keep the pressure on.",
+  vesper:
+    'Mother Vesper steps into mist and reforms behind you mid-swing. Roll as the fog closes in, and remember she drinks from every hit. Once angry, she calls her thralls.',
   archmage: 'Director Voss teleports and fires hexes, five at a time when enraged.',
   dragon:
     'Ssareth, who lights the way. On the ground it claws and sweeps its tail; in the air you can only shoot it, cast at it or jump-kick it, while it breathes fire down whole lanes. Find the lane it leaves dark.',
@@ -136,6 +140,12 @@ const LEGS = {
     base: 'katana',
     name: "Ronin's Last Edge",
     fx: 'Every sixth melee hit is a guaranteed crit.'
+  },
+  vfang: {
+    slot: 'weapon',
+    base: 'katana',
+    name: "Vesper's Fang",
+    fx: 'Every takedown restores 8 HP and 5 mana.'
   },
   maul: {
     slot: 'weapon',
@@ -219,6 +229,7 @@ const FEATS = [
   { id: 'b_troll', name: 'Dethroned', desc: 'Beat the Gutter King.', lp: 15, leg: 'boomstick' },
   { id: 'b_blade', name: 'Cut the Razor', desc: 'Beat Razor Mei.', lp: 15, leg: 'silk' },
   { id: 'b_saint', name: 'Ash to Ash', desc: 'Beat the Hollow Saint.', lp: 15, leg: 'maul' },
+  { id: 'b_vesper', name: 'Closing Time', desc: 'Beat Mother Vesper.', lp: 15, leg: 'vfang' },
   { id: 'b_archmage', name: 'Hostile Takeover', desc: 'Beat Director Voss.', lp: 15, leg: 'smartlink' },
   { id: 'b_blackice', name: 'Defragmented', desc: 'Delete Black ICE.', lp: 15, leg: 'iceshard' },
   { id: 'win', name: 'Legend of the Sprawl', desc: 'Finish the campaign.', lp: 30 },

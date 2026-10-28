@@ -64,7 +64,7 @@ const SAVE_SHAPES = {
     s.runners.length > 0 &&
     Number.isInteger(s.stage) &&
     s.stage >= 0 &&
-    s.stage < 5,
+    s.stage < STAGES.length,
   cs_world: s =>
     isObj(s) &&
     isObj(s.wd) &&
@@ -79,6 +79,11 @@ const SAVE_SHAPES = {
 /** Read a save slot, or null if it's missing or malformed. */
 store.load = k => {
   const v = store.get(k);
+  // v3 campaign saves predate the Undercity Market (district 4): shift the Arcology and the Host up one
+  if (k === 'cs_save3' && isObj(v) && v.v === 3 && Number.isInteger(v.stage) && v.stage >= 3) {
+    v.stage++;
+    v.v = 4;
+  }
   return v !== null && (!SAVE_SHAPES[k] || SAVE_SHAPES[k](v)) ? v : null;
 };
 const prefs = Object.assign(

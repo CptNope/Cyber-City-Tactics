@@ -10,6 +10,7 @@ const EPITHET = {
   troll: 'Rules the Barrens from a throne of scrap',
   blade: 'Kagemori trained her. Then they tried to retire her',
   saint: 'The ghouls pray to it. It answers',
+  vesper: 'Buys what Kagemori throws away. Sells it back',
   archmage: 'Kagemori security director. Owns the street, the cops and the sky',
   blackice: 'Lethal countermeasure. It does not negotiate',
   avatar: 'What Project LANTERN was built to wake',

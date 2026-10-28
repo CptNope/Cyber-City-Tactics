@@ -61,7 +61,19 @@ const SONGS = {
     snare: '........s.......',
     hat: '..h...h...h..hh.'
   },
+  // the Undercity Market: a slow, swaying minor waltz feel over a heartbeat kick
   d3: {
+    bpm: 108,
+    root: 37,
+    prog: [0, -4, -2, -5],
+    bass: 'r..r..r..f..o...',
+    arp: '0.3.7.3.0.3.8.3.',
+    lead: '7...8...7...3.......5...3...2...0...............',
+    kick: 'x.....x.x.......',
+    snare: '........s.......',
+    hat: '..h..h..h..h..h.'
+  },
+  d4: {
     bpm: 144,
     root: 45,
     prog: [0, -2, -4, -5],
@@ -72,7 +84,7 @@ const SONGS = {
     snare: '....s..s....s...',
     hat: 'hhhhhhhhhhhhhhhh'
   },
-  d4: {
+  d5: {
     bpm: 150,
     root: 42,
     prog: [0, 3, -2, 1],

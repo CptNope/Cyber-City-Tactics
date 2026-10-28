@@ -229,15 +229,15 @@ ok(!boss.extra && !boss.build, 'bosses keep their signature look');
 // street lights and weather
 {
   ok(
-    A.STAGES[0].weather === 'storm' && A.STAGES[2].weather === 'fog' && A.STAGES[3].weather === 'sleet',
+    A.STAGES[0].weather === 'storm' && A.STAGES[2].weather === 'fog' && A.STAGES[4].weather === 'sleet',
     'each district has its weather: storm, rain, fog, sleet'
   );
-  A.startStage(3);
+  A.startStage(4);
   ok(G.rain.length > 0 || A.RM, 'the Arcology gets sleet even though it has no rain');
   G.mode = 'play';
   let threw = null;
   try {
-    for (const si of [0, 1, 2, 3, 4]) {
+    for (let si = 0; si < A.STAGES.length; si++) {
       A.startStage(si);
       G.mode = 'play';
       for (const t of [1, 7, 40, 300]) {

@@ -296,7 +296,12 @@ function hurt(t, dmg, dir, o) {
   )
     setTimeout0(() => hurt(o.att, 6, -dir, { col: '#ff3d8b', kb: 2 }));
   if (t.team === 0) spGain(t, dmg * 0.6);
-  if (t.team === 0 && o.att && o.att.elite === 'vampiric' && o.att.state !== 'dead') {
+  if (
+    t.team === 0 &&
+    o.att &&
+    (o.att.elite === 'vampiric' || (o.att.d && o.att.d.drain)) &&
+    o.att.state !== 'dead'
+  ) {
     const v = o.att;
     v.hp = Math.min(v.maxHp, v.hp + Math.round(dmg * 0.6));
     v.drainT = G.t;
@@ -383,6 +388,7 @@ function hurt(t, dmg, dir, o) {
 const REMATCH = {
   troll: { name: 'Gutter King, chromed', acc: '#45d2ff', coat: '#3a4a5a' },
   blade: { name: 'Razor Mei, under contract', acc: '#ffc63d', coat: '#3a1a2a' },
+  saint: { name: 'The Hollow Saint, reborn', acc: '#b98cff', coat: '#2a1a3a' },
   archmage: { name: 'Voss.exe', acc: '#45d2ff', coat: '#0b2533' }
 };
 // A beaten boss comes back mid-district: smaller health pool, but already enraged with its rage-phase moves
@@ -419,6 +425,10 @@ function kill(t, dir, o) {
     }
     if (has(ks, 'siphon')) {
       ks.mp = Math.min(ks.maxMp, ks.mp + 4);
+    }
+    if (legOf(ks, 'weapon') === 'vfang') {
+      ks.hp = Math.min(ks.maxHp, ks.hp + 8);
+      ks.mp = Math.min(ks.maxMp, ks.mp + 5);
     }
   }
   if (t.state === 'grabbed') {

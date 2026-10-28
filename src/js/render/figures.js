@@ -661,7 +661,20 @@ function drawBeams() {
     }
   }
 }
+// Vesper mid mist-step: no body, just a drifting violet-red fog with two eyes in it
+function drawMist(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z;
+  for (let i = 0; i < 5; i++) {
+    const a = G.t * 0.12 + i * 1.3;
+    glow(sx + Math.cos(a) * 8, sy - 18 - i * 5 + Math.sin(a) * 3, 16, 12, i % 2 ? '#b98cff' : '#5a1a2e', 0.4);
+  }
+  ctx.fillStyle = '#ff3d4a';
+  ctx.fillRect(sx - 3, sy - 34, 2, 1.5);
+  ctx.fillRect(sx + 2, sy - 34, 2, 1.5);
+}
 function drawFig(e) {
+  if (e.mist > 0) return drawMist(e);
   if (e.d && e.d.passive) return drawPassive(e);
   if (e.d && e.d.ice) return drawIce(e);
   if (e.d && e.d.spirit) return drawSpirit(e);
@@ -984,7 +997,7 @@ function drawFig(e) {
       ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18'][e.eq.armor.rar]
       : null;
   const cTop = fl ? '#fff' : armorCol || coat;
-  if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard') {
+  if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard' || style === 'vamp') {
     const sw = (st === 'walk' ? ws * 2 : 0) - lean * 0.5;
     fillPoly(
       [
@@ -1235,6 +1248,28 @@ function drawFig(e) {
     eye();
   } else if (style === 'apron') {
     eye();
+  } else if (style === 'vamp') {
+    // slicked-back hair and a high collar standing up behind the neck
+    fillPoly(
+      [
+        hd[0] - 6,
+        hd[1] + 1,
+        hd[0] - 5,
+        hd[1] - 5,
+        hd[0] + 3,
+        hd[1] - 7,
+        hd[0] + 5,
+        hd[1] - 4,
+        hd[0] - 1,
+        hd[1] - 4
+      ],
+      fl ? '#fff' : pal.hair
+    );
+    fillPoly(
+      [sh[0] - 7, sh[1] + 1, sh[0] - 6, sh[1] - 11, sh[0] - 2, sh[1] - 4, sh[0] + 1, sh[1] + 1],
+      fl ? '#fff' : coat2
+    );
+    eye(pal.acc);
   } else if (style === 'glitch') {
     ctx.strokeStyle = '#45d2ff';
     ctx.lineWidth = 0.8;

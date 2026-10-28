@@ -171,11 +171,12 @@ click('new');
 for (const [si, w] of [
   [2, 2],
   [3, 2],
-  [4, 2]
+  [4, 2],
+  [5, 2]
 ]) {
   __api.startStage(si);
   G.wave = w;
-  G.camX = [0, 0, 740, 760, 760][si];
+  G.camX = __api.STAGES[si].waves[w].at;
   step(3);
   const r = G.ents.find(e => e.rematch);
   console.log('district', si + 1, 'rematch:', r ? `${r.name} hp ${r.hp} enraged ${r.enraged}` : 'none');

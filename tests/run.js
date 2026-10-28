@@ -55,7 +55,8 @@ const TESTS = [
     expect: [
       /final mode: trained/,
       /district 3 rematch: Gutter King, chromed/,
-      /district 5 rematch: Voss\.exe/
+      /district 4 rematch: The Hollow Saint, reborn/,
+      /district 6 rematch: Voss\.exe/
     ]
   },
   { file: 'sprawl', minPass: 28 },
@@ -70,6 +71,7 @@ const TESTS = [
   { file: 'graphics', minPass: 38 },
   { file: 'shop', minPass: 41 },
   { file: 'blackmarket', minPass: 9 },
+  { file: 'market', minPass: 15 },
   { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },
   {
     file: 'arena-bot',

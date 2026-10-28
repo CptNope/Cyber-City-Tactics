@@ -330,7 +330,7 @@ ok(
 );
 ok(
   A.STAGES[2].waves.some(w => w.spawn.includes('hound')) &&
-    A.STAGES[3].waves.some(w => w.spawn.includes('ninja')),
+    A.STAGES[4].waves.some(w => w.spawn.includes('ninja')),
   'hounds in the Undercity, shadows in the Arcology'
 );
 let drawErr = null;
