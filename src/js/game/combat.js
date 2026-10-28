@@ -131,11 +131,18 @@ function hurt(t, dmg, dir, o) {
       }
     }
   }
+  // (the *T stamps below only drive visuals: a ward ripple, a ricochet spark, a drain stream)
   if (t.elite === 'warded') {
     o.kd = false;
-    if (o.magic) dmg *= 0.4;
+    if (o.magic) {
+      dmg *= 0.4;
+      t.wardT = G.t;
+    }
   }
-  if (t.elite === 'armored' && o.bullet && !o.ap) dmg *= 0.45;
+  if (t.elite === 'armored' && o.bullet && !o.ap) {
+    dmg *= 0.45;
+    t.pingT = G.t;
+  }
   const sp = o.src && o.src.kind === 'player' ? o.src : null;
   if (sp) {
     if (o.magic) dmg *= sp.D.spellMul || 1;
@@ -292,6 +299,9 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && o.att && o.att.elite === 'vampiric' && o.att.state !== 'dead') {
     const v = o.att;
     v.hp = Math.min(v.maxHp, v.hp + Math.round(dmg * 0.6));
+    v.drainT = G.t;
+    v.drainX = t.x;
+    v.drainY = t.y - t.z;
     G.texts.push({
       x: v.x,
       y: v.y,

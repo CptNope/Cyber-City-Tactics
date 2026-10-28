@@ -954,6 +954,18 @@ function drawFig(e) {
     ctx.lineTo(sh[0] + 5, sh[1] + 13);
     ctx.stroke();
   }
+  if (e.elite === 'armored' && e.state !== 'dead') {
+    // armored elites wear it: a steel chest plate and a pauldron, catching the light along the top edge
+    const pl = fl ? '#ffffff' : '#9fb4d8',
+      pd = fl ? '#e8e8e8' : '#5d6f90';
+    fillPoly(
+      [sh[0] - 5, sh[1] + 2, sh[0] + 6, sh[1] + 2, hip[0] + 5, hip[1] - 2, hip[0] - 5, hip[1] - 2],
+      pd
+    );
+    fillPoly([sh[0] - 4, sh[1] + 3, sh[0] + 5, sh[1] + 3, sh[0] + 4, sh[1] + 9, sh[0] - 3, sh[1] + 9], pl);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fillRect(sh[0] - 4, sh[1] + 3, 9, 0.8);
+  }
   limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, -fkb), ff, pants, 4.6, fl ? null : RIM);
   ctx.fillStyle = pal.boot;
   ctx.fillRect(ff[0] - 3, ff[1] - 2.5, 7.5, 3);
@@ -1151,6 +1163,25 @@ function drawFig(e) {
   const armCol =
     style === 'runner' ? (fl ? '#fff' : cyb ? pal.cyber : cTop) : style === 'blade' ? '#c9d2e6' : coat;
   limb(shF, joint(shF, fh, 3), fh, armCol, 4.2);
+  if (e.elite === 'armored' && e.state !== 'dead')
+    fillPoly(
+      [
+        shF[0] - 3.5,
+        shF[1] - 2,
+        shF[0] + 3.5,
+        shF[1] - 2.5,
+        shF[0] + 4,
+        shF[1] + 3,
+        shF[0] - 3,
+        shF[1] + 3.5
+      ],
+      fl ? '#ffffff' : '#9fb4d8'
+    );
+  if ((e.elite === 'berserk' || e.elite === 'vampiric') && e.state !== 'dead' && !fl) {
+    // glowing eyes in the elite's colour
+    ctx.fillStyle = ELITES[e.elite].col;
+    ctx.fillRect(hd[0] + 2.5, hd[1] - 1.6, 2.4, 1.8);
+  }
   ctx.fillStyle = cyb ? '#c9f4ff' : skin;
   ctx.beginPath();
   ctx.arc(fh[0], fh[1], 2.3, 0, 7);

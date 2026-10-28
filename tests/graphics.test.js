@@ -101,3 +101,38 @@ ok(calls === 0, 'looks never use Math.random, so seeded runs replay identically'
 const boss = { kind: 'troll', d: Object.assign({}, A.DEF.troll, { boss: true }) };
 A.makeLook(boss);
 ok(!boss.extra && !boss.build, 'bosses keep their signature look');
+
+// elites: each modifier has its own look, and the hits that matter leave a visual stamp
+{
+  click('pick');
+  click('diff:1');
+  click('new');
+  click('go');
+  const mk = k => {
+    const e = A.spawnEnemy('ganger', 1);
+    e.elite = k;
+    e.inv = 0;
+    return e;
+  };
+  const ar = mk('armored'),
+    wd = mk('warded');
+  A.hurt(ar, 10, 1, { bullet: true });
+  ok(ar.pingT === G.t, 'bullets spark off an armored elite');
+  A.hurt(wd, 10, 1, { magic: true });
+  ok(wd.wardT === G.t, 'a warded elite ripples when it shrugs off a spell');
+  let threw = null;
+  try {
+    for (const k of ['armored', 'berserk', 'warded', 'vampiric']) {
+      const e = mk(k);
+      e.drainT = G.t;
+      e.drainX = e.x;
+      e.drainY = e.y;
+      A.drawAura(e);
+      A.drawFig(e);
+      A.drawEliteFront(e);
+    }
+  } catch (err) {
+    threw = err;
+  }
+  ok(!threw, 'every elite look draws cleanly' + (threw ? ': ' + threw.message : ''));
+}

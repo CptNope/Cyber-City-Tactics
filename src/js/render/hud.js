@@ -646,6 +646,7 @@ function render() {
         ctx.fill();
       }
       drawFig(o.e);
+      if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -719,22 +720,139 @@ function render() {
     ctx.fillRect(0, 0, W, VH);
   }
 }
+// Elites, readable at a glance. Each modifier has its own look, not just a coloured halo:
+//  armored  - steel plates on the body (drawn in drawFig), and bullets spark off them
+//  berserk  - red afterimages trailing its movement, steam off the head
+//  warded   - a ring of runes turning around its waist that ripples when a spell is shrugged off
+//  vampiric - a heartbeat glow, and a violet stream drawn back into it when it heals off you
+// Every elite keeps a ground ring in its colour, so the type also reads by colour alone.
 function drawAura(e) {
   const c = ELITES[e.elite].col,
     sx = e.x - G.camX,
-    sc = (e.d && e.d.scale) || 1;
-  ctx.globalAlpha = 0.35 + 0.15 * Math.sin(G.t * 0.2);
+    sy = e.y - e.z,
+    sc = (e.d && e.d.scale) || 1,
+    lite = lowFx();
+  ctx.globalAlpha = 0.45 + 0.15 * Math.sin(G.t * 0.2);
   ctx.strokeStyle = c;
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.ellipse(sx, e.y, 14 * sc, 4.5 * sc, 0, 0, 7);
   ctx.stroke();
-  ctx.globalAlpha = 0.12;
-  ctx.fillStyle = c;
-  ctx.beginPath();
-  ctx.ellipse(sx, e.y - e.z - 22 * sc, 14 * sc, 26 * sc, 0, 0, 7);
-  ctx.fill();
   ctx.globalAlpha = 1;
+  if (e.elite === 'berserk') {
+    // afterimages: where it was a few steps ago, fading
+    const tr = e._tr || (e._tr = []);
+    if (e._trT !== G.t) {
+      e._trT = G.t;
+      if (G.t % 3 === 0) {
+        tr.unshift(e.x, sy);
+        if (tr.length > 8) tr.length = 8;
+      }
+    }
+    if (!lite)
+      for (let i = 2; i < tr.length; i += 2) {
+        const d = Math.abs(tr[i] - e.x);
+        if (d > 3) glow(tr[i] - G.camX, tr[i + 1] - 22 * sc, 9 * sc, 22 * sc, c, 0.32 - i * 0.035);
+      }
+    glow(sx, sy - 22 * sc, 13 * sc, 26 * sc, c, 0.16 + 0.06 * Math.sin(G.t * 0.5));
+  } else if (e.elite === 'vampiric') {
+    // a double heartbeat every second
+    const ph = G.t % 60,
+      beat = ph < 6 ? 1 - ph / 6 : ph > 10 && ph < 16 ? (1 - (ph - 10) / 6) * 0.7 : 0;
+    glow(sx, sy - 22 * sc, 14 * sc, 27 * sc, c, 0.12 + beat * 0.25);
+  } else if (e.elite === 'armored') {
+    glow(sx, sy - 22 * sc, 12 * sc, 24 * sc, c, 0.1);
+  } else if (e.elite === 'warded') {
+    glow(sx, sy - 22 * sc, 13 * sc, 26 * sc, c, 0.12);
+    drawRunes(e, sx, sy, sc, c, true);
+  }
+}
+// The half of the rune ring behind the body (back) or in front of it
+function drawRunes(e, sx, sy, sc, c, back) {
+  const n = 6,
+    rot = G.t * 0.04,
+    wy = sy - 16 * sc;
+  ctx.fillStyle = c;
+  for (let i = 0; i < n; i++) {
+    const a = rot + (i * Math.PI * 2) / n,
+      behind = Math.sin(a) < 0;
+    if (behind !== back) continue;
+    const x = sx + Math.cos(a) * 15 * sc,
+      y = wy + Math.sin(a) * 4 * sc;
+    ctx.globalAlpha = behind ? 0.35 : 0.85;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a * 2);
+    ctx.fillRect(-1.5, -1.5, 3, 3);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+// In front of the figure: rune ring front half, ward ripples, ricochet sparks, the vampiric drain stream,
+// berserk steam
+function drawEliteFront(e) {
+  const c = ELITES[e.elite].col,
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    sc = (e.d && e.d.scale) || 1,
+    lite = lowFx();
+  if (e.elite === 'warded') {
+    drawRunes(e, sx, sy, sc, c, false);
+    const w = G.t - (e.wardT === undefined ? -99 : e.wardT);
+    if (w >= 0 && w < 14) {
+      // a hexagonal ripple as the spell slides off
+      const k = w / 14,
+        r = (14 + k * 14) * sc;
+      ctx.strokeStyle = c;
+      ctx.globalAlpha = 1 - k;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i <= 6; i++) {
+        const a = (i * Math.PI) / 3 + Math.PI / 6;
+        ctx[i ? 'lineTo' : 'moveTo'](sx + Math.cos(a) * r * 0.75, sy - 22 * sc + Math.sin(a) * r);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  } else if (e.elite === 'armored') {
+    const w = G.t - (e.pingT === undefined ? -99 : e.pingT);
+    if (w >= 0 && w < 8) {
+      const k = 1 - w / 8,
+        y = sy - 28 * sc;
+      glow(sx, y, 9, 9, '#ffffff', k * 0.9);
+      ctx.strokeStyle = '#ffe9b0';
+      ctx.globalAlpha = k;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = -0.6 - i * 0.7;
+        ctx.moveTo(sx + Math.cos(a) * 3, y + Math.sin(a) * 3);
+        ctx.lineTo(sx + Math.cos(a) * (6 + w * 1.5), y + Math.sin(a) * (6 + w * 1.5));
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  } else if (e.elite === 'vampiric') {
+    const w = G.t - (e.drainT === undefined ? -99 : e.drainT);
+    if (w >= 0 && w < 24) {
+      // motes flowing from the runner it just bit back into its chest
+      const k = w / 24,
+        x0 = e.drainX - G.camX,
+        y0 = e.drainY - 26,
+        x1 = sx,
+        y1 = sy - 26 * sc;
+      for (let i = 0; i < (lite ? 3 : 7); i++) {
+        const t = Math.min(1, k * 1.6 - i * 0.08);
+        if (t <= 0) continue;
+        const x = x0 + (x1 - x0) * t,
+          y = y0 + (y1 - y0) * t - Math.sin(t * Math.PI) * 12;
+        glow(x, y, 4, 4, c, (1 - k) * 0.9);
+      }
+    }
+  } else if (e.elite === 'berserk' && !lite && G.t % 40 < 20) {
+    const k = (G.t % 40) / 20;
+    glow(sx + e.face * -2, sy - 46 * sc - k * 10, 4 + k * 4, 4 + k * 4, '#efe9ff', 0.3 * (1 - k));
+  }
 }
 function drawFoeBar(e) {
   if (e.d.boss || e.state === 'dead' || (!e.elite && !e.name && e.hp >= e.maxHp) || e.kind === 'chest')

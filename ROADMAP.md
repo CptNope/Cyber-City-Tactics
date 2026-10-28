@@ -114,7 +114,7 @@ The guiding rules:
 
 ### Feel and presentation, round two
 Picked from what the graphics pass turned up:
-- [ ] **Elites you can read at a glance (S).** Armored elites wear visible plating, berserkers trail red, warded ones carry a shimmer, vampiric ones pulse when they heal.
+- [x] ~~**Elites you can read at a glance.**~~ Shipped: armored elites wear steel plates that bullets spark off, berserkers leave red afterimages and steam, warded ones turn a ring of runes that ripples when a spell slides off, vampiric ones have a heartbeat glow and visibly drain you.
 - [ ] **Hit reactions and deaths (M).** Knock-back poses that depend on the hit (a stagger, a spin from a heavy blow, a launch from an uppercut) and a few death animations instead of one fall.
 - [ ] **Boss entrances (S).** A name card, a short camera push and a beat of music for each boss, skippable and shown once per run.
 - [ ] **Street props with light (S).** Fire barrels, vending machines and parked spinners that cast glow on the people standing next to them.
