@@ -59,9 +59,13 @@ const goDoor = b => {
   P.y = FY0 + 20;
   G.camX = Math.max(0, Math.min(G.wd.street.len - W, b.x - W / 2));
   G.ents = G.ents.filter(e => e.team !== 1);
-  step(2);
-  tap('KeyJ');
-  step(3);
+  // hit-stop, slow motion or a busy pose left over from the last fight can swallow a single tap: knock
+  // until the door answers (a few tries at most), since this test checks the door flow, not input timing
+  for (let i = 0; i < 4 && G.mode === 'play'; i++) {
+    step(2);
+    tap('KeyJ');
+    step(3);
+  }
 };
 const crack = () => {
   let n = 0;
@@ -141,9 +145,13 @@ const goDoor2 = b => {
   p.y = FY0 + 20;
   G.camX = Math.max(0, Math.min(G.wd.street.len - W, b.x - W / 2));
   G.ents = G.ents.filter(e => e.team !== 1);
-  step(2);
-  tap('KeyJ');
-  step(3);
+  // hit-stop, slow motion or a busy pose left over from the last fight can swallow a single tap: knock
+  // until the door answers (a few tries at most), since this test checks the door flow, not input timing
+  for (let i = 0; i < 4 && G.mode === 'play'; i++) {
+    step(2);
+    tap('KeyJ');
+    step(3);
+  }
 };
 // family home: bad
 let fam = findB(b => b.type === 'home' && !b.dirty);
