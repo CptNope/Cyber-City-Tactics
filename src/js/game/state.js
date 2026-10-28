@@ -77,7 +77,8 @@ const RUNNER_KEYS = [
   'lives',
   'sk',
   'spts',
-  'coat'
+  'coat',
+  'trail'
 ];
 function newRunner(idx) {
   const p = {

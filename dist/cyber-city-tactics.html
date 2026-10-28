@@ -972,7 +972,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+f4cd989';
+const APP_VERSION = '2.0.0+9e305af';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2185,6 +2185,20 @@ const COATS = {
 const pendCoat = i =>
   ((typeof G !== 'undefined' && G.pendCoat) || (typeof LEG !== 'undefined' && LEG.pendCoat) || [])[i] ||
   'sig';
+// Weapon trails: a streak of light behind every punch, kick and swing, unlocked by feats
+const TRAILS = {
+  none: { name: 'No trail' },
+  spark: { name: 'Spark', c: '#fff3c4', feat: 'parry1' },
+  neon: { name: 'Neon', c: '#ff3d8b', feat: 'c25' },
+  ember: { name: 'Ember', c: '#ff6a3d', feat: 'b_saint' },
+  ice: { name: 'Black ICE', c: '#45d2ff', feat: 'b_blackice' },
+  karma: { name: 'Lantern', c: '#b98cff', feat: 'loreall' },
+  wyrm: { name: 'Wyrmfire', c: '#ffc63d', feat: 'b_ssareth' }
+};
+const trailOpen = k => !TRAILS[k].feat || (typeof LEG !== 'undefined' && !!LEG.feats[TRAILS[k].feat]);
+const pendTrail = i =>
+  ((typeof G !== 'undefined' && G.pendTrail) || (typeof LEG !== 'undefined' && LEG.pendTrail) || [])[i] ||
+  'none';
 const coatOpen = k => !COATS[k].feat || (typeof LEG !== 'undefined' && !!LEG.feats[COATS[k].feat]);
 function applyCoat(p) {
   const c = COATS[p.coat] || COATS.sig;
@@ -3151,6 +3165,7 @@ function applyArch(p, key) {
   p.spts = undefined;
   initSkills(p);
   p.coat = pendCoat(p.idx);
+  p.trail = trailOpen(pendTrail(p.idx)) ? pendTrail(p.idx) : 'none';
   if (!coatOpen(p.coat)) p.coat = 'sig';
   applyCoat(p);
   refresh(p);
@@ -3442,6 +3457,23 @@ const NPCS = [
 ];
 const SHOPS = { doc: 'doc', wen: 'talis', ratchet: 'fence' };
 const ALLIES = {
+  // a crew member who shows up when you're friendly with their crew; not for hire
+  crew: {
+    name: 'Crew backup',
+    hidden: true,
+    hp: 90,
+    armor: 4,
+    d: { scale: 1, style: 'mohawk' },
+    pal: {
+      skin: '#c98a6b',
+      coat: '#2a2236',
+      coat2: '#1e182a',
+      pants: '#22324a',
+      hair: '#7dffb0',
+      acc: '#7dffb0',
+      boot: '#141018'
+    }
+  },
   drone: {
     name: 'Rigger drone',
     desc: 'Hovers at your shoulder and snipes anything that lines up with it.',
@@ -3882,6 +3914,8 @@ const FEATS = [
     lp: 5,
     hidden: 1
   },
+  { id: 'friends', name: 'Friends in Low Places', desc: 'Get two crews friendly with you at once.', lp: 15 },
+  { id: 'squad', name: 'Return to Sender', desc: 'Take down a whole hit squad.', lp: 10 },
   { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
   {
     id: 'rare',
@@ -4380,7 +4414,8 @@ const RUNNER_KEYS = [
   'lives',
   'sk',
   'spts',
-  'coat'
+  'coat',
+  'trail'
 ];
 function newRunner(idx) {
   const p = {
@@ -5389,6 +5424,7 @@ function kill(t, dir, o) {
     }
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
+  if (t.squad && G.wd && !G.ents.some(e => e !== t && e.squad && e.state !== 'dead')) feat('squad');
   if (t.hunter && G.wd) {
     const v = 80 + G.wd.level * 40;
     drop('cred', t.x + 8, t.y + 6, { v });
@@ -8074,6 +8110,52 @@ const FAC = {
 };
 // A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
 const PRECINCT_CRED = 30;
+/* Street politics. Every hideout and club belongs to a crew, and black sites to Kagemori. Clean one out and
+   its owner hates you more (-25) while its rival likes you better (+15); hitting Kagemori warms every crew
+   (+5). Standing carries from block to block.
+   Hostile (-40 or worse): the faction sends hit squads after you on the street.
+   Friendly (+40 or better): when trouble starts, one of theirs turns up to fight beside you. */
+const FACTIONS = {
+  rust: { name: 'Rustline Crew', col: '#ff6a3d', rival: 'fang', match: /rustline/i },
+  fang: { name: 'Neon Fangs', col: '#ff3d8b', rival: 'rust', match: /neon fang/i },
+  hex: { name: 'Red Hex', col: '#ff3d4a', rival: 'saint', match: /red hex/i },
+  saint: { name: 'Iron Saints', col: '#9fb4d8', rival: 'hex', match: /iron saints/i },
+  kage: { name: 'Kagemori', col: '#45d2ff', rival: null, match: /kagemori/i }
+};
+const CREWS = ['rust', 'fang', 'hex', 'saint'];
+const FAC_HOSTILE = -40,
+  FAC_FRIENDLY = 40;
+const facStand = k => (G.wd && G.wd.fac ? G.wd.fac[k] || 0 : 0);
+const facLabel = v =>
+  v <= -70
+    ? 'At war'
+    : v <= FAC_HOSTILE
+      ? 'Hostile'
+      : v < -10
+        ? 'Wary'
+        : v < 10
+          ? 'Neutral'
+          : v < FAC_FRIENDLY
+            ? 'Warm'
+            : v < 70
+              ? 'Friendly'
+              : 'Allied';
+const facCol = v => (v <= FAC_HOSTILE ? 'var(--neon)' : v >= FAC_FRIENDLY ? 'var(--ok)' : 'var(--muted)');
+function facShift(k, n) {
+  if (!G.wd) return;
+  G.wd.fac = G.wd.fac || {};
+  G.wd.fac[k] = clamp((G.wd.fac[k] || 0) + n, -100, 100);
+}
+// what cleaning out a building does to street politics
+function facHit(b) {
+  const f = b.fac;
+  if (!f) return;
+  facShift(f, -25);
+  if (FACTIONS[f].rival) facShift(FACTIONS[f].rival, 15);
+  if (f === 'kage') for (const c of CREWS) facShift(c, 5);
+  const friends = CREWS.filter(c => facStand(c) >= FAC_FRIENDLY).length;
+  if (friends >= 2) feat('friends');
+}
 const pickR = (r, a) => a[Math.floor(r() * a.length)];
 // Shops on the street: the safehouse, back-alley clinics and talisman shops. You trade there; you never rob them.
 const isShop = b => b.type === 'safe' || b.type === 'clinic' || b.type === 'talisman';
@@ -8199,6 +8281,12 @@ function genStreet(level, seed) {
     });
     x += w + 16 + Math.floor(r() * 36);
   }
+  // who owns what: crews hold the hideouts and clubs, Kagemori the black sites
+  for (const b of B) {
+    if (b.type === 'hideout' || b.type === 'club')
+      b.fac = CREWS.find(c => FACTIONS[c].match.test(b.name)) || CREWS[Math.floor(r() * CREWS.length)];
+    else if (b.type === 'blacksite') b.fac = 'kage';
+  }
   // from block 2, a back-alley clinic and a talisman shop may take over two businesses
   if (level >= 2) {
     const biz = B.filter(b => b.type === 'business');
@@ -8313,6 +8401,9 @@ function newWorld(level, fixedSeed) {
     patT: 600,
     copKills: 0,
     lastX: 180,
+    fac: {},
+    squadT: 2400,
+    backT: 0,
     street: genStreet(level, seed)
   };
 }
@@ -8375,6 +8466,7 @@ function saveWorld() {
           seed: w.seed,
           heat: w.heat,
           rep: w.rep,
+          fac: w.fac,
           looted: w.looted,
           copKills: w.copKills,
           lastX: w.lastX,
@@ -8519,6 +8611,54 @@ function openDoor(b) {
     setMode('bcard');
   }
 }
+// Hit squads from hostile factions, and backup from friendly crews when a fight starts
+function factionTick(w) {
+  w.squadT = (w.squadT === undefined ? 2400 : w.squadT) - 1;
+  if (w.backT > 0) w.backT--;
+  if (w.squadT > 0) return;
+  w.squadT = ri(2400, 3300);
+  const foe = Object.keys(FACTIONS)
+    .filter(k => facStand(k) <= FAC_HOSTILE)
+    .sort((a, b) => facStand(a) - facStand(b))[0];
+  if (!foe || G.ents.some(e => e.squad && e.state !== 'dead')) return;
+  const kinds = foe === 'kage' ? ['ninja', 'sec', 'sec'] : ['ganger', 'ganger', 'orc'],
+    F = FACTIONS[foe],
+    side = Math.random() < 0.5 ? -1 : 1;
+  kinds.forEach((k, i) => {
+    const e = spawnEnemy(k, i % 2 ? -side : side);
+    e.squad = foe;
+    if (i === 0) {
+      // only the leader wears the name tag, so three tags don't pile up
+      e.name = foe === 'kage' ? 'Kagemori cleaners' : F.name + ' hit squad';
+      e.elite = 'berserk';
+    }
+  });
+  const p = alive()[0];
+  if (p)
+    say(
+      p,
+      (foe === 'kage' ? 'KAGEMORI CLEANERS' : F.name.toUpperCase() + ' HIT SQUAD') + '!',
+      F.col,
+      90,
+      100
+    );
+  tip(
+    'squad',
+    'A hit squad! Hostile factions come after you on the street. Hitting their rivals wins you friends.'
+  );
+  callBackup();
+}
+function callBackup() {
+  const w = G.wd,
+    friend = CREWS.filter(c => facStand(c) >= FAC_FRIENDLY).sort((a, b) => facStand(b) - facStand(a))[0],
+    p = alive()[0];
+  if (!friend || !p || w.backT > 0) return;
+  w.backT = 3600;
+  const e = spawnSummon('crew', p, 1800, 1);
+  e.name = FACTIONS[friend].name;
+  e.pal = Object.assign({}, e.pal, { hair: FACTIONS[friend].col, acc: FACTIONS[friend].col });
+  say(p, FACTIONS[friend].name.toUpperCase() + ' GOT YOUR BACK', '#7dffb0', 90, 90);
+}
 // Acid rain, corp parade and manhunt run here each tick, out on the street only
 function blockEventTick(w) {
   if (evOn('acidrain') && G.t % 120 === 0)
@@ -8643,12 +8783,14 @@ function worldTick() {
     }
   }
   blockEventTick(w);
+  factionTick(w);
   w.patT--;
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
     if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
       for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0); i++) spawnEnemy(pick(k), i % 2 ? -1 : 1);
+      callBackup();
     }
   }
 }
@@ -8929,6 +9071,20 @@ function lootChest(t) {
   )
     feat('captain');
   if (b.type === 'club') feat('club');
+  if (b.fac) {
+    const before = facStand(b.fac);
+    facHit(b);
+    const F = FACTIONS[b.fac];
+    G.texts.push({
+      x: t.x,
+      y: t.y,
+      z: 118,
+      s: F.name.toUpperCase() + ' ' + (facStand(b.fac) - before),
+      c: F.col,
+      life: 100,
+      sm: true
+    });
+  }
   if (t.bonus) {
     // a cracked vault: double creds, an extra Prototype item and a real shot at a legendary
     drop('cred', t.x - 30, t.y + 18, { v: c });
@@ -9584,7 +9740,7 @@ const PERKS = [
         e.hp = e.maxHp;
       } else {
         PARTY.ally = null;
-        spawnAlly(pick(Object.keys(ALLIES)));
+        spawnAlly(pick(Object.keys(ALLIES).filter(k => !ALLIES[k].hidden)));
       }
     }
   },
@@ -12172,6 +12328,41 @@ function drawHazard() {
     }
   }
 }
+// A weapon trail: an arc of light that follows the swing, fading as it goes
+const TRAIL_ARC = {
+  punch: [13, 18, 0.9],
+  upper: [20, 22, 1.6],
+  kick: [20, 24, 1.1],
+  heavy: [24, 30, 2.2],
+  dance: [26, 26, 2.6],
+  jkick: [30, 22, 1.2]
+};
+function drawTrail(p) {
+  const T = TRAILS[p.trail],
+    a = TRAIL_ARC[p.state];
+  if (!T || !T.c || !a || lowFx()) return;
+  const k = Math.min(1, p.t / a[0]);
+  if (k >= 1) return;
+  const cx = p.x - G.camX + p.face * 6,
+    cy = p.y - p.z - 28,
+    r = a[1],
+    start = -a[2] / 2 - 0.3,
+    end = start + a[2] * Math.min(1, k * 1.6);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(p.face, 1);
+  ctx.strokeStyle = T.c;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    ctx.globalAlpha = (1 - k) * (0.7 - i * 0.2);
+    ctx.lineWidth = 3 - i;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + i * 3, start, end);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
 // Nightclub rooms: a dance floor of colored tiles pulsing to the beat
 function drawDanceFloor() {
   const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
@@ -12287,6 +12478,7 @@ function render() {
         ctx.fill();
       }
       drawFig(o.e);
+      if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
       ctx.globalAlpha = 1;
@@ -12509,6 +12701,16 @@ function archHtml(n) {
         return `<button class="swatch${sel ? ' on' : ''}" ${o ? `data-a="coat:${i}:${k}"` : 'disabled'} title="${esc(c.name)}${o ? '' : ' (locked: ' + esc(FEATBY[c.feat].hidden && !LEG.feats[c.feat] ? 'a hidden feat' : FEATBY[c.feat].name) + ')'}" aria-label="${esc(c.name)} coat${o ? '' : ', locked'}" style="--c1:${c.coat || PALS[i].coat};--c2:${col}">${o ? '' : '🔒'}</button>`;
       })
       .join('')}</div>
+    <div class="row" style="gap:5px;align-items:center"><span style="color:var(--muted);font-size:12px;margin-right:4px">Trail</span>${Object.keys(
+      TRAILS
+    )
+      .map(k => {
+        const tr = TRAILS[k],
+          o = trailOpen(k),
+          sel = pendTrail(i) === k;
+        return `<button class="swatch${sel ? ' on' : ''}" ${o ? `data-a="trail:${i}:${k}"` : 'disabled'} title="${esc(tr.name)}${o ? '' : ' (locked: ' + esc(FEATBY[tr.feat].hidden && !LEG.feats[tr.feat] ? 'a hidden feat' : FEATBY[tr.feat].name) + ')'}" aria-label="${esc(tr.name)} trail${o ? '' : ', locked'}" style="--c1:#0b0812;--c2:${tr.c || '#30283f'}">${o ? '' : '🔒'}</button>`;
+      })
+      .join('')}</div>
     ${
       Object.keys(ARCH).some(archLocked)
         ? `<span style="color:var(--muted);font-size:12px">🔒 ${Object.keys(ARCH)
@@ -12640,7 +12842,10 @@ function bcardHtml(b) {
     b.type === 'secret'
       ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Off the map</b>${esc(b.owner)} Whatever's at the bottom has a real chance of being legendary.</p>`
       : '';
-  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}
+  const politics = b.fac
+    ? `<p style="font-size:13px;color:var(--muted);margin:0">Owned by <b style="color:${FACTIONS[b.fac].col}">${FACTIONS[b.fac].name}</b> (${facLabel(facStand(b.fac)).toLowerCase()}, ${Math.round(facStand(b.fac))}). Cleaning it out: ${FACTIONS[b.fac].name} −25${FACTIONS[b.fac].rival ? `, ${FACTIONS[FACTIONS[b.fac].rival].name} +15` : ', every crew +5'}.</p>`
+    : '';
+  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
@@ -13138,6 +13343,13 @@ function mapHtml() {
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
   return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div>
+  <h3>Street politics</h3><div class="list">${Object.keys(FACTIONS)
+    .map(k => {
+      const v = Math.round(facStand(k)),
+        F = FACTIONS[k];
+      return `<div class="item"><div><div class="nm" style="color:${F.col}">${F.name}</div><div class="ds">${k === 'kage' ? 'The corp. Black sites.' : 'Rivals: ' + FACTIONS[F.rival].name + '.'} ${v <= FAC_HOSTILE ? 'Sending hit squads after you.' : v >= FAC_FRIENDLY ? (k === 'kage' ? 'Looking the other way.' : 'Will back you up in a fight.') : ''}</div></div><div class="acts"><span style="color:${facCol(v)};font-variant-numeric:tabular-nums;font-size:13px">${facLabel(v)} ${v > 0 ? '+' : ''}${v}</span></div></div>`;
+    })
+    .join('')}</div>
   <h3>Share this block</h3><div class="sharebox" id="seedTxt">${esc(seedShareLine())}</div>
   <div class="row"><button class="btn" data-a="close">Back to the street</button><button class="btn sm ghost" data-a="copyseed" id="seedCopy">Copy seed</button></div></div>`;
 }
@@ -13255,6 +13467,7 @@ function npcHtml(id) {
     const cur = PARTY.ally;
     body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. If it goes down on a job, it's gone.</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
     <div class="list">${Object.keys(ALLIES)
+      .filter(k => !ALLIES[k].hidden)
       .map(k => {
         const A = ALLIES[k],
           ac = Math.round(A.cost * buyMul()),
@@ -13523,6 +13736,15 @@ ov.addEventListener('click', e => {
       }
       renderOv();
       break;
+    case 'trail':
+      if (trailOpen(parts[2])) {
+        G.pendTrail = G.pendTrail || (LEG.pendTrail || ['none', 'none']).slice();
+        G.pendTrail[+arg] = parts[2];
+        LEG.pendTrail = G.pendTrail;
+        saveLeg();
+      }
+      renderOv();
+      break;
     case 'arch':
       if (!archLocked(parts[2])) G.pendArch[+arg] = parts[2];
       renderOv();
@@ -13653,9 +13875,11 @@ ov.addEventListener('click', e => {
     }
     case 'newblock': {
       const rep = G.wd.rep,
-        ck = G.wd.copKills;
+        ck = G.wd.copKills,
+        fac = G.wd.fac;
       G.wd = newWorld(G.wd.level + 1);
       G.wd.rep = rep;
+      G.wd.fac = fac || {};
       G.wd.copKills = ck;
       G.stock = [
         randItem(G.wd.level, false),

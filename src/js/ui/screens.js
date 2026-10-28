@@ -50,6 +50,16 @@ function archHtml(n) {
         return `<button class="swatch${sel ? ' on' : ''}" ${o ? `data-a="coat:${i}:${k}"` : 'disabled'} title="${esc(c.name)}${o ? '' : ' (locked: ' + esc(FEATBY[c.feat].hidden && !LEG.feats[c.feat] ? 'a hidden feat' : FEATBY[c.feat].name) + ')'}" aria-label="${esc(c.name)} coat${o ? '' : ', locked'}" style="--c1:${c.coat || PALS[i].coat};--c2:${col}">${o ? '' : '🔒'}</button>`;
       })
       .join('')}</div>
+    <div class="row" style="gap:5px;align-items:center"><span style="color:var(--muted);font-size:12px;margin-right:4px">Trail</span>${Object.keys(
+      TRAILS
+    )
+      .map(k => {
+        const tr = TRAILS[k],
+          o = trailOpen(k),
+          sel = pendTrail(i) === k;
+        return `<button class="swatch${sel ? ' on' : ''}" ${o ? `data-a="trail:${i}:${k}"` : 'disabled'} title="${esc(tr.name)}${o ? '' : ' (locked: ' + esc(FEATBY[tr.feat].hidden && !LEG.feats[tr.feat] ? 'a hidden feat' : FEATBY[tr.feat].name) + ')'}" aria-label="${esc(tr.name)} trail${o ? '' : ', locked'}" style="--c1:#0b0812;--c2:${tr.c || '#30283f'}">${o ? '' : '🔒'}</button>`;
+      })
+      .join('')}</div>
     ${
       Object.keys(ARCH).some(archLocked)
         ? `<span style="color:var(--muted);font-size:12px">🔒 ${Object.keys(ARCH)
@@ -181,7 +191,10 @@ function bcardHtml(b) {
     b.type === 'secret'
       ? `<p class="say" style="border-color:var(--karma)"><b style="color:var(--karma)">Off the map</b>${esc(b.owner)} Whatever's at the bottom has a real chance of being legendary.</p>`
       : '';
-  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}
+  const politics = b.fac
+    ? `<p style="font-size:13px;color:var(--muted);margin:0">Owned by <b style="color:${FACTIONS[b.fac].col}">${FACTIONS[b.fac].name}</b> (${facLabel(facStand(b.fac)).toLowerCase()}, ${Math.round(facStand(b.fac))}). Cleaning it out: ${FACTIONS[b.fac].name} −25${FACTIONS[b.fac].rival ? `, ${FACTIONS[FACTIONS[b.fac].rival].name} +15` : ', every crew +5'}.</p>`
+    : '';
+  return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }

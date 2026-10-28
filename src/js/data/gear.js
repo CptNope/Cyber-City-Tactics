@@ -288,6 +288,7 @@ function applyArch(p, key) {
   p.spts = undefined;
   initSkills(p);
   p.coat = pendCoat(p.idx);
+  p.trail = trailOpen(pendTrail(p.idx)) ? pendTrail(p.idx) : 'none';
   if (!coatOpen(p.coat)) p.coat = 'sig';
   applyCoat(p);
   refresh(p);

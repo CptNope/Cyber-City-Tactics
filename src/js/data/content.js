@@ -41,6 +41,20 @@ const COATS = {
 const pendCoat = i =>
   ((typeof G !== 'undefined' && G.pendCoat) || (typeof LEG !== 'undefined' && LEG.pendCoat) || [])[i] ||
   'sig';
+// Weapon trails: a streak of light behind every punch, kick and swing, unlocked by feats
+const TRAILS = {
+  none: { name: 'No trail' },
+  spark: { name: 'Spark', c: '#fff3c4', feat: 'parry1' },
+  neon: { name: 'Neon', c: '#ff3d8b', feat: 'c25' },
+  ember: { name: 'Ember', c: '#ff6a3d', feat: 'b_saint' },
+  ice: { name: 'Black ICE', c: '#45d2ff', feat: 'b_blackice' },
+  karma: { name: 'Lantern', c: '#b98cff', feat: 'loreall' },
+  wyrm: { name: 'Wyrmfire', c: '#ffc63d', feat: 'b_ssareth' }
+};
+const trailOpen = k => !TRAILS[k].feat || (typeof LEG !== 'undefined' && !!LEG.feats[TRAILS[k].feat]);
+const pendTrail = i =>
+  ((typeof G !== 'undefined' && G.pendTrail) || (typeof LEG !== 'undefined' && LEG.pendTrail) || [])[i] ||
+  'none';
 const coatOpen = k => !COATS[k].feat || (typeof LEG !== 'undefined' && !!LEG.feats[COATS[k].feat]);
 function applyCoat(p) {
   const c = COATS[p.coat] || COATS.sig;

@@ -274,6 +274,20 @@ function lootChest(t) {
   )
     feat('captain');
   if (b.type === 'club') feat('club');
+  if (b.fac) {
+    const before = facStand(b.fac);
+    facHit(b);
+    const F = FACTIONS[b.fac];
+    G.texts.push({
+      x: t.x,
+      y: t.y,
+      z: 118,
+      s: F.name.toUpperCase() + ' ' + (facStand(b.fac) - before),
+      c: F.col,
+      life: 100,
+      sm: true
+    });
+  }
   if (t.bonus) {
     // a cracked vault: double creds, an extra Prototype item and a real shot at a legendary
     drop('cred', t.x - 30, t.y + 18, { v: c });

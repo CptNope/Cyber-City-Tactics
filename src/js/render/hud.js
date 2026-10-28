@@ -449,6 +449,41 @@ function drawHazard() {
     }
   }
 }
+// A weapon trail: an arc of light that follows the swing, fading as it goes
+const TRAIL_ARC = {
+  punch: [13, 18, 0.9],
+  upper: [20, 22, 1.6],
+  kick: [20, 24, 1.1],
+  heavy: [24, 30, 2.2],
+  dance: [26, 26, 2.6],
+  jkick: [30, 22, 1.2]
+};
+function drawTrail(p) {
+  const T = TRAILS[p.trail],
+    a = TRAIL_ARC[p.state];
+  if (!T || !T.c || !a || lowFx()) return;
+  const k = Math.min(1, p.t / a[0]);
+  if (k >= 1) return;
+  const cx = p.x - G.camX + p.face * 6,
+    cy = p.y - p.z - 28,
+    r = a[1],
+    start = -a[2] / 2 - 0.3,
+    end = start + a[2] * Math.min(1, k * 1.6);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(p.face, 1);
+  ctx.strokeStyle = T.c;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) {
+    ctx.globalAlpha = (1 - k) * (0.7 - i * 0.2);
+    ctx.lineWidth = 3 - i;
+    ctx.beginPath();
+    ctx.arc(0, 0, r + i * 3, start, end);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
 // Nightclub rooms: a dance floor of colored tiles pulsing to the beat
 function drawDanceFloor() {
   const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
@@ -564,6 +599,7 @@ function render() {
         ctx.fill();
       }
       drawFig(o.e);
+      if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
       ctx.globalAlpha = 1;

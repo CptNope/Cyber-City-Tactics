@@ -210,7 +210,7 @@ const PERKS = [
         e.hp = e.maxHp;
       } else {
         PARTY.ally = null;
-        spawnAlly(pick(Object.keys(ALLIES)));
+        spawnAlly(pick(Object.keys(ALLIES).filter(k => !ALLIES[k].hidden)));
       }
     }
   },

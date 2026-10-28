@@ -973,3 +973,107 @@ ok(fireTaken < 200 - P.hp, 'Wyrmheart: fire hurts half as much');
 P.sp = 0;
 A.spGain(P, 40);
 ok(P.sp === 50, 'Wyrmheart: the special meter fills 25% faster');
+
+// ---- street politics
+const polSt = A.genStreet(3, 4242);
+ok(
+  polSt.buildings
+    .filter(b => b.type === 'hideout' || b.type === 'club')
+    .every(b => A.CREWS.includes(b.fac)) &&
+    polSt.buildings.filter(b => b.type === 'blacksite').every(b => b.fac === 'kage'),
+  'every hideout and club has a crew, every black site is Kagemori'
+);
+ok(
+  A.genStreet(3, 4242)
+    .buildings.filter(b => b.name === 'Rustline Crew den')
+    .every(b => b.fac === 'rust'),
+  'named dens belong to their crew'
+);
+click('quit');
+click('worldpick');
+G.pendArch = ['runner', 'samurai'];
+click('world1');
+P = __PL()[0];
+const den = {
+  id: 70,
+  type: 'hideout',
+  tier: 1,
+  x: P.x,
+  w: 140,
+  name: 'Rustline Crew den',
+  fac: 'rust',
+  seed: 3
+};
+A.enterBuilding(den);
+A.lootChest({ x: P.x + 40, y: P.y, kind: 'chest' });
+ok(
+  A.facStand('rust') === -25 && A.facStand('fang') === 15,
+  'hitting the Rustline den: Rustline −25, rival Neon Fangs +15'
+);
+A.exitBuilding();
+const site = { id: 71, type: 'blacksite', tier: 1, x: P.x, w: 140, name: 'Data vault', fac: 'kage', seed: 4 };
+A.enterBuilding(site);
+A.lootChest({ x: P.x + 40, y: P.y, kind: 'chest' });
+ok(A.facStand('kage') === -25 && A.facStand('hex') === 5, 'hitting Kagemori: Kagemori −25, every crew +5');
+A.exitBuilding();
+ok(/Owned by <b[^>]*>Rustline Crew/.test(A.bcardHtml(den)), 'the building card names the owner and the cost');
+A.setMode('play');
+click('map');
+ok(/Street politics/.test(els.ov._h) && /Neon Fangs/.test(els.ov._h), 'the block map shows street politics');
+click('close');
+// hostile: hit squads
+G.wd.fac.rust = -60;
+G.wd.fac.fang = 60;
+clearFoes();
+G.wd.squadT = 1;
+G.wd.backT = 0;
+step(3);
+const sq = G.ents.filter(e => e.squad === 'rust' && e.state !== 'dead');
+ok(
+  sq.length === 3 && sq.filter(e => /Rustline Crew hit squad/.test(e.name || '')).length === 1,
+  'Rustline at −60 sends a hit squad (one name tag, on the leader)'
+);
+ok(
+  G.ents.some(e => e.ally === 'crew' && e.name === 'Neon Fangs'),
+  'and the friendly Neon Fangs send backup'
+);
+for (const e of sq) {
+  e.inv = 0;
+  A.hurt(e, 9999, 1, { src: P });
+}
+step(2);
+ok(A.LEG.feats.squad, 'Return to Sender: the whole squad down');
+G.wd.fac.hex = 50;
+A.facShift('fang', 0);
+A.facHit({ fac: 'saint' });
+ok(A.LEG.feats.friends, 'two crews friendly at once: Friends in Low Places');
+const lvl0 = G.wd.level;
+G.safeTab = 'lay';
+A.setMode('safe');
+click('newblock');
+ok(G.wd.level === lvl0 + 1 && A.facStand('rust') === -60, 'standing carries to the next block');
+ok(!/Crew backup/.test(A.npcHtml('kit')), "crew backup can't be hired from Kit");
+
+// ---- weapon trails
+click('quit');
+click('pick');
+ok(/Trail/.test(els.ov._h) && /data-a="trail:0:none"/.test(els.ov._h), 'trail picker on the start screen');
+A.LEG.feats.c25 = 1;
+click('trail:0:neon');
+click('back2title');
+P = start([]);
+ok(P.trail === 'neon', 'runner starts with the Neon trail');
+A.setS(P, 'punch');
+P.t = 4;
+let terr = null;
+try {
+  A.drawTrail(P);
+} catch (e) {
+  terr = e;
+}
+ok(!terr, 'trail draws mid-punch');
+click('quit');
+click('pick');
+click('trail:0:wyrm');
+ok((A.LEG.pendTrail || [])[0] !== 'wyrm' || A.LEG.feats.b_ssareth, 'locked trails stay locked');
+click('back2title');

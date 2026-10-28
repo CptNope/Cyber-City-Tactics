@@ -461,6 +461,7 @@ function kill(t, dir, o) {
     }
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
+  if (t.squad && G.wd && !G.ents.some(e => e !== t && e.squad && e.state !== 'dead')) feat('squad');
   if (t.hunter && G.wd) {
     const v = 80 + G.wd.level * 40;
     drop('cred', t.x + 8, t.y + 6, { v });

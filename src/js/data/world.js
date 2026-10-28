@@ -214,6 +214,23 @@ const NPCS = [
 ];
 const SHOPS = { doc: 'doc', wen: 'talis', ratchet: 'fence' };
 const ALLIES = {
+  // a crew member who shows up when you're friendly with their crew; not for hire
+  crew: {
+    name: 'Crew backup',
+    hidden: true,
+    hp: 90,
+    armor: 4,
+    d: { scale: 1, style: 'mohawk' },
+    pal: {
+      skin: '#c98a6b',
+      coat: '#2a2236',
+      coat2: '#1e182a',
+      pants: '#22324a',
+      hair: '#7dffb0',
+      acc: '#7dffb0',
+      boot: '#141018'
+    }
+  },
   drone: {
     name: 'Rigger drone',
     desc: 'Hovers at your shoulder and snipes anything that lines up with it.',

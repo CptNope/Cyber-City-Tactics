@@ -125,6 +125,52 @@ const FAC = {
 };
 // A precinct is fair game only once the street trusts you (cred +30); before that, hitting it is just a crime.
 const PRECINCT_CRED = 30;
+/* Street politics. Every hideout and club belongs to a crew, and black sites to Kagemori. Clean one out and
+   its owner hates you more (-25) while its rival likes you better (+15); hitting Kagemori warms every crew
+   (+5). Standing carries from block to block.
+   Hostile (-40 or worse): the faction sends hit squads after you on the street.
+   Friendly (+40 or better): when trouble starts, one of theirs turns up to fight beside you. */
+const FACTIONS = {
+  rust: { name: 'Rustline Crew', col: '#ff6a3d', rival: 'fang', match: /rustline/i },
+  fang: { name: 'Neon Fangs', col: '#ff3d8b', rival: 'rust', match: /neon fang/i },
+  hex: { name: 'Red Hex', col: '#ff3d4a', rival: 'saint', match: /red hex/i },
+  saint: { name: 'Iron Saints', col: '#9fb4d8', rival: 'hex', match: /iron saints/i },
+  kage: { name: 'Kagemori', col: '#45d2ff', rival: null, match: /kagemori/i }
+};
+const CREWS = ['rust', 'fang', 'hex', 'saint'];
+const FAC_HOSTILE = -40,
+  FAC_FRIENDLY = 40;
+const facStand = k => (G.wd && G.wd.fac ? G.wd.fac[k] || 0 : 0);
+const facLabel = v =>
+  v <= -70
+    ? 'At war'
+    : v <= FAC_HOSTILE
+      ? 'Hostile'
+      : v < -10
+        ? 'Wary'
+        : v < 10
+          ? 'Neutral'
+          : v < FAC_FRIENDLY
+            ? 'Warm'
+            : v < 70
+              ? 'Friendly'
+              : 'Allied';
+const facCol = v => (v <= FAC_HOSTILE ? 'var(--neon)' : v >= FAC_FRIENDLY ? 'var(--ok)' : 'var(--muted)');
+function facShift(k, n) {
+  if (!G.wd) return;
+  G.wd.fac = G.wd.fac || {};
+  G.wd.fac[k] = clamp((G.wd.fac[k] || 0) + n, -100, 100);
+}
+// what cleaning out a building does to street politics
+function facHit(b) {
+  const f = b.fac;
+  if (!f) return;
+  facShift(f, -25);
+  if (FACTIONS[f].rival) facShift(FACTIONS[f].rival, 15);
+  if (f === 'kage') for (const c of CREWS) facShift(c, 5);
+  const friends = CREWS.filter(c => facStand(c) >= FAC_FRIENDLY).length;
+  if (friends >= 2) feat('friends');
+}
 const pickR = (r, a) => a[Math.floor(r() * a.length)];
 // Shops on the street: the safehouse, back-alley clinics and talisman shops. You trade there; you never rob them.
 const isShop = b => b.type === 'safe' || b.type === 'clinic' || b.type === 'talisman';
@@ -250,6 +296,12 @@ function genStreet(level, seed) {
     });
     x += w + 16 + Math.floor(r() * 36);
   }
+  // who owns what: crews hold the hideouts and clubs, Kagemori the black sites
+  for (const b of B) {
+    if (b.type === 'hideout' || b.type === 'club')
+      b.fac = CREWS.find(c => FACTIONS[c].match.test(b.name)) || CREWS[Math.floor(r() * CREWS.length)];
+    else if (b.type === 'blacksite') b.fac = 'kage';
+  }
   // from block 2, a back-alley clinic and a talisman shop may take over two businesses
   if (level >= 2) {
     const biz = B.filter(b => b.type === 'business');
@@ -364,6 +416,9 @@ function newWorld(level, fixedSeed) {
     patT: 600,
     copKills: 0,
     lastX: 180,
+    fac: {},
+    squadT: 2400,
+    backT: 0,
     street: genStreet(level, seed)
   };
 }
@@ -426,6 +481,7 @@ function saveWorld() {
           seed: w.seed,
           heat: w.heat,
           rep: w.rep,
+          fac: w.fac,
           looted: w.looted,
           copKills: w.copKills,
           lastX: w.lastX,
@@ -570,6 +626,54 @@ function openDoor(b) {
     setMode('bcard');
   }
 }
+// Hit squads from hostile factions, and backup from friendly crews when a fight starts
+function factionTick(w) {
+  w.squadT = (w.squadT === undefined ? 2400 : w.squadT) - 1;
+  if (w.backT > 0) w.backT--;
+  if (w.squadT > 0) return;
+  w.squadT = ri(2400, 3300);
+  const foe = Object.keys(FACTIONS)
+    .filter(k => facStand(k) <= FAC_HOSTILE)
+    .sort((a, b) => facStand(a) - facStand(b))[0];
+  if (!foe || G.ents.some(e => e.squad && e.state !== 'dead')) return;
+  const kinds = foe === 'kage' ? ['ninja', 'sec', 'sec'] : ['ganger', 'ganger', 'orc'],
+    F = FACTIONS[foe],
+    side = Math.random() < 0.5 ? -1 : 1;
+  kinds.forEach((k, i) => {
+    const e = spawnEnemy(k, i % 2 ? -side : side);
+    e.squad = foe;
+    if (i === 0) {
+      // only the leader wears the name tag, so three tags don't pile up
+      e.name = foe === 'kage' ? 'Kagemori cleaners' : F.name + ' hit squad';
+      e.elite = 'berserk';
+    }
+  });
+  const p = alive()[0];
+  if (p)
+    say(
+      p,
+      (foe === 'kage' ? 'KAGEMORI CLEANERS' : F.name.toUpperCase() + ' HIT SQUAD') + '!',
+      F.col,
+      90,
+      100
+    );
+  tip(
+    'squad',
+    'A hit squad! Hostile factions come after you on the street. Hitting their rivals wins you friends.'
+  );
+  callBackup();
+}
+function callBackup() {
+  const w = G.wd,
+    friend = CREWS.filter(c => facStand(c) >= FAC_FRIENDLY).sort((a, b) => facStand(b) - facStand(a))[0],
+    p = alive()[0];
+  if (!friend || !p || w.backT > 0) return;
+  w.backT = 3600;
+  const e = spawnSummon('crew', p, 1800, 1);
+  e.name = FACTIONS[friend].name;
+  e.pal = Object.assign({}, e.pal, { hair: FACTIONS[friend].col, acc: FACTIONS[friend].col });
+  say(p, FACTIONS[friend].name.toUpperCase() + ' GOT YOUR BACK', '#7dffb0', 90, 90);
+}
 // Acid rain, corp parade and manhunt run here each tick, out on the street only
 function blockEventTick(w) {
   if (evOn('acidrain') && G.t % 120 === 0)
@@ -694,12 +798,14 @@ function worldTick() {
     }
   }
   blockEventTick(w);
+  factionTick(w);
   w.patT--;
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
     if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
       for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0); i++) spawnEnemy(pick(k), i % 2 ? -1 : 1);
+      callBackup();
     }
   }
 }

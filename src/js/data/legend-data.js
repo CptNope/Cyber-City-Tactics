@@ -362,6 +362,8 @@ const FEATS = [
     lp: 5,
     hidden: 1
   },
+  { id: 'friends', name: 'Friends in Low Places', desc: 'Get two crews friendly with you at once.', lp: 15 },
+  { id: 'squad', name: 'Return to Sender', desc: 'Take down a whole hit squad.', lp: 10 },
   { id: 'vault', name: 'Safecracker', desc: 'Crack a vault and take the whole haul.', lp: 15 },
   {
     id: 'rare',

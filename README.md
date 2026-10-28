@@ -147,6 +147,8 @@ Five archetypes are locked at first. Each is unlocked for every mode by a feat:
 
 Summoned spirits and drones don't replace a companion you've hired from Kit; they fight alongside it.
 
+**Weapon trails.** Next to the coats, pick a trail: a streak of light behind every punch, kick and swing. *Spark* (your first parry), *Neon* (a 25-hit combo), *Ember* (beat the Hollow Saint), *Black ICE* (beat Black ICE), *Lantern* (find every lore shard) and *Wyrmfire* (slay Ssareth). Trails switch off in the light graphics mode.
+
 **Coats.** Pick a coat for each runner on the start screen. You start with your signature colors, and feats unlock seven more: Chrome, Neon Fang, Ember, Black ICE, Most Wanted, Prime Gold and Lantern-bearer.
 
 ### Attributes
@@ -366,6 +368,9 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - *Unstable ceiling:* a shadow grows under falling debris near a runner, then the chunk lands with a knockdown.
 - **Vaults.** In tier-3 fair-game buildings the final cache is a vault. Clear the room, then hit it to start a lock-4 hack (five clean hits, a faster cursor). Crack it for double creds, an extra Prototype item and a 35% shot at a legendary. Fail and the vault seals, leaving only the ordinary cache.
 - **Hostages.** About a third of the non-final rooms in fair-game buildings hold a zip-tied civilian. Clear the room and they go free: karma, +5 street cred and a medkit. But anyone's stray hit can land on them, yours included, along with gang bullets and explosions. Lose one and it costs 8 cred.
+- **Street politics.** Every gang hideout and nightclub belongs to one of four crews (Rustline Crew, Neon Fangs, Red Hex, Iron Saints), and black sites belong to Kagemori. The building card says who owns it. Cleaning one out costs you 25 standing with its owner and earns 15 with its rival (Rustline and the Neon Fangs hate each other, as do Red Hex and the Iron Saints); hitting Kagemori earns 5 with every crew. Standing carries from block to block, and the block map shows where you stand.
+  - *Hostile (−40 or worse):* the faction sends a hit squad after you on the street every 40 to 55 seconds. Kagemori sends cleaners: a shadow and two security guards.
+  - *Friendly (+40 or better):* when a patrol or a hit squad shows up, one of the crew's members arrives to fight beside you for 30 seconds (at most once a minute).
 - **Challenge seeds.** Every Sprawl block and every Arena run has a seed code: *S3-K2F9QX* is block 3 of one particular street, *A-9XK2* one particular Arena run. The block map shows the current block's code with a share line and link, and Arena results include the run's code. Type a code into the *Challenge seed* box on the Sprawl or Arena start screen, or open a shared link (`?seed=S3-K2F9QX`), and you get the same street (buildings, owners, event, bounty and hidden doors) or the same waves and perk offers. Starting past block 1 brings your runners up to the level they'd have reached.
 - **Block map.** Press **M** in the Sprawl, or pick *Block map* from the pause menu, for a list of every building on the street in order: its type, tier, whether it's fair game or already cleaned out, any bounty, and how far away it is.
 - **Kagemori couriers.** Once a block, an armored courier drone crosses the street with cargo. Shoot it down before it escapes for rare gear, an icebreaker and creds.
@@ -398,7 +403,7 @@ Slaying Ssareth earns *Who Lights the Way*, the Wyrmslayer coat and the Wyrmhear
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 71 goals across every mode, for example:
+**Feats.** 74 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

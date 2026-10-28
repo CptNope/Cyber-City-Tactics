@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 11:** street politics (crew and Kagemori standing, rivalries, hit squads, crew backup) and weapon trails
 - [x] **Expansion 10:** the Wyrm's Roost and the fight with Ssareth (ground, flight and lane-breath phases), the Wyrmheart legendary and the Wyrmslayer coat
 - [x] **Expansion 9:** the Street Doc and Physical Adept archetypes, and shareable challenge seeds for Sprawl blocks and Arena runs
 - [x] **Expansion 8:** hazard rooms, vaults with a second hack, back-alley clinics with rare cyberware, and talisman shops with two rare spells
@@ -67,7 +68,7 @@ The guiding rules:
 - [x] ~~**Clinics and talisman shops.**~~ Shipped: rare cyberware and rare spells on the street.
 - [x] ~~**Hostage rooms.**~~ Shipped: clear the room without hitting the hostage.
 - [x] ~~**Hazard and vault rooms.**~~ Shipped: live wiring, unstable ceilings, and lock-4 vaults.
-- [ ] **Faction reputation (L).** Separate standing with each gang and with Kagemori. Hitting one crew makes its rivals friendlier, and they'll sell to you or send backup.
+- [x] ~~**Faction reputation.**~~ Shipped as street politics: four crews and Kagemori, rivalries, hit squads and backup.
 - [x] ~~**Bounties.**~~ Shipped: Juno posts a named target each block.
 - [ ] **Day and night (M).** At night there are fewer cops, more gangs and better loot. In the day, shops are open and break-ins are riskier.
 - [x] ~~**A block map.**~~ Shipped: press M in the Sprawl.
@@ -136,7 +137,8 @@ These are the next ways to keep "one more run" alive:
 - [x] ~~**Street Doc archetype.**~~ Shipped: heals with every hit, Triage special.
 - [x] ~~**Adept archetype.**~~ Shipped as the Physical Adept: no guns, chi blasts, Killing Hands.
 - [x] ~~**Cosmetics from feats.**~~ Shipped as eight runner coats.
-- [ ] **More cosmetics (S).** Visor colors, hair, a title under your name, and a weapon trail.
+- [x] ~~**Weapon trails.**~~ Shipped: six trails unlocked by feats.
+- [ ] **More cosmetics (S).** Visor colors, hair styles and a title under your name.
 - [ ] **Achievement-only secrets (S).** Hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
 - [x] ~~**Run history.**~~ Shipped in the Codex.
 - [x] ~~**Challenge seeds.**~~ Shipped: S3-XXXX and A-XXXX codes, share links.

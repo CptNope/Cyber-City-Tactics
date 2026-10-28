@@ -265,6 +265,13 @@ function mapHtml() {
     ? ` · <span style="color:${EVENTS[w.street.event].col}">${EVENTS[w.street.event].name}</span>`
     : '';
   return `<div class="card"><p class="eyebrow">Block ${w.level} map${ev} · heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)} · cred ${Math.round(w.rep) > 0 ? '+' : ''}${Math.round(w.rep)}</p><h2>${left ? left + ' fair-game job' + (left === 1 ? '' : 's') + ' left' : 'Block cleared'}</h2><div class="list">${rows}</div>
+  <h3>Street politics</h3><div class="list">${Object.keys(FACTIONS)
+    .map(k => {
+      const v = Math.round(facStand(k)),
+        F = FACTIONS[k];
+      return `<div class="item"><div><div class="nm" style="color:${F.col}">${F.name}</div><div class="ds">${k === 'kage' ? 'The corp. Black sites.' : 'Rivals: ' + FACTIONS[F.rival].name + '.'} ${v <= FAC_HOSTILE ? 'Sending hit squads after you.' : v >= FAC_FRIENDLY ? (k === 'kage' ? 'Looking the other way.' : 'Will back you up in a fight.') : ''}</div></div><div class="acts"><span style="color:${facCol(v)};font-variant-numeric:tabular-nums;font-size:13px">${facLabel(v)} ${v > 0 ? '+' : ''}${v}</span></div></div>`;
+    })
+    .join('')}</div>
   <h3>Share this block</h3><div class="sharebox" id="seedTxt">${esc(seedShareLine())}</div>
   <div class="row"><button class="btn" data-a="close">Back to the street</button><button class="btn sm ghost" data-a="copyseed" id="seedCopy">Copy seed</button></div></div>`;
 }
@@ -382,6 +389,7 @@ function npcHtml(id) {
     const cur = PARTY.ally;
     body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. If it goes down on a job, it's gone.</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
     <div class="list">${Object.keys(ALLIES)
+      .filter(k => !ALLIES[k].hidden)
       .map(k => {
         const A = ALLIES[k],
           ac = Math.round(A.cost * buyMul()),

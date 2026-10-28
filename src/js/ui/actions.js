@@ -188,6 +188,15 @@ ov.addEventListener('click', e => {
       }
       renderOv();
       break;
+    case 'trail':
+      if (trailOpen(parts[2])) {
+        G.pendTrail = G.pendTrail || (LEG.pendTrail || ['none', 'none']).slice();
+        G.pendTrail[+arg] = parts[2];
+        LEG.pendTrail = G.pendTrail;
+        saveLeg();
+      }
+      renderOv();
+      break;
     case 'arch':
       if (!archLocked(parts[2])) G.pendArch[+arg] = parts[2];
       renderOv();
@@ -318,9 +327,11 @@ ov.addEventListener('click', e => {
     }
     case 'newblock': {
       const rep = G.wd.rep,
-        ck = G.wd.copKills;
+        ck = G.wd.copKills,
+        fac = G.wd.fac;
       G.wd = newWorld(G.wd.level + 1);
       G.wd.rep = rep;
+      G.wd.fac = fac || {};
       G.wd.copKills = ck;
       G.stock = [
         randItem(G.wd.level, false),
