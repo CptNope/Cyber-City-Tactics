@@ -392,12 +392,23 @@ function charHtml() {
       return `<div class="item"><div><div class="ds">${SLOTN[s]}</div><div class="nm ${it ? 'r' + it.rar : ''}">${it ? esc(it.name) : s === 'weapon' ? 'Bare cyberfists' : 'Nothing'}</div>${it ? `<div class="ds">${itemLine(it)}</div>` : ''}</div><div class="acts">${it ? `<button class="btn sm ghost" data-a="unequip:${s}">Unequip</button>` : ''}</div></div>`;
     })
     .join('');
+  // grouped by slot, best first, so a big bag stays scannable
   const bag = PARTY.bag.length
-    ? PARTY.bag
-        .map(
-          it =>
-            `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button><button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button></div></div>`
-        )
+    ? ['weapon', 'gun', 'armor']
+        .map(slot => {
+          const its = PARTY.bag
+            .filter(it => it.slot === slot)
+            .sort((a, b) => b.rar - a.rar || b.price - a.price);
+          return its.length
+            ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+                its
+                  .map(
+                    it =>
+                      `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button><button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button></div></div>`
+                  )
+                  .join('')
+            : '';
+        })
         .join('')
     : '<p>The bag is empty. Gear drops from enemies and bosses, and Ratchet sells it in the Den.</p>';
   const spells = p.spells
@@ -411,7 +422,7 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   <h3>Equipped</h3><div class="list">${eq}</div>
-  <h3>Party bag · ${PARTY.bag.length}/12</h3><div class="list">${bag}</div>
+  <h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
   <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }

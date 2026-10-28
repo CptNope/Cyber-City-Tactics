@@ -137,7 +137,7 @@ const PERKS = [
     id: 'gear',
     name: 'Supply crate',
     desc: 'A Tuned or better item goes into the bag.',
-    ok: () => PARTY.bag.length < 12,
+    ok: () => PARTY.bag.length < BAG_MAX,
     go() {
       const it = randItem(G.stage + G.ng, true);
       if (!it.rar) Object.assign(it, mkItem(it.slot, it.base, 1));

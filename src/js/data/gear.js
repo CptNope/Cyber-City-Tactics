@@ -126,6 +126,8 @@ const RAR = [
   { n: 'Prototype', m: 1.55 },
   { n: 'Black-market', m: 1.9 }
 ];
+// The party bag holds this many items (it was 12). Shops buy anything in it.
+const BAG_MAX = 40;
 const RCOL = ['#efe9ff', '#45d2ff', '#ffc63d', '#ff8a3d'];
 const SPELLS = {
   fire: {

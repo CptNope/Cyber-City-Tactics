@@ -185,6 +185,35 @@ function renderOv() {
   padRestoreFocus();
 }
 // Street shops: a back-alley clinic (rare cyberware) or a talisman shop (rare spells)
+// Selling, at any counter. Ratchet is a fence and pays the full rate (and can scrap gear for parts); the clinics
+// and talisman shops will take gear off your hands too, for three quarters of that. Grouped by slot,
+// best first, each line showing how it compares with what the runner on this tab has equipped.
+const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
+const sellPrice = (it, kind) => Math.max(1, Math.round(it.price * storeRate(kind)));
+function sellHtml(kind) {
+  const p = PL[G.sheetIdx] || PL[0],
+    fence = kind === 'fence',
+    bag = PARTY.bag,
+    pct = Math.round(storeRate(kind) * 100);
+  if (!bag.length) return `<h3>Sell</h3><p>Nothing in the bag to sell.</p>`;
+  const commons = bag.filter(it => it.rar === 0),
+    cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
+  const groups = ['weapon', 'gun', 'armor']
+    .map(slot => {
+      const its = bag.filter(it => it.slot === slot).sort((a, b) => b.rar - a.rar || b.price - a.price);
+      if (!its.length) return '';
+      return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
+        .map(
+          it =>
+            `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}</div></div>`
+        )
+        .join('')}`;
+    })
+    .join('');
+  return `<h3>Sell · bag ${bag.length}/${BAG_MAX}</h3><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
+  ${commons.length >= 2 ? `<div class="row"><button class="btn sm" data-a="sellcommon:${kind}">Sell all ${commons.length} Street-grade items · ¥${cTotal}</button></div>` : ''}
+  <div class="list">${groups}</div>`;
+}
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],
     clinic = b.type === 'clinic';
@@ -211,7 +240,7 @@ function shopHtml(b) {
     ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
     : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
   return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
-  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 // The challenge-seed box on the Arena and Sprawl start screens
@@ -368,7 +397,7 @@ function npcHtml(id) {
           ok = l < 3 && PARTY.creds >= c;
         return `<div class="item"><div><div class="nm">${cy.name} <span style="color:var(--muted);font-weight:400">· ${p.name} ${l}/3</span></div><div class="ds">${cy.desc} Costs 6 max mana.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="cyber:${k}" ${ok ? '' : 'disabled'}>${l >= 3 ? 'Maxed' : '¥' + c}</button></div></div>`;
       })
-      .join('')}</div>`;
+      .join('')}</div>${sellHtml('doc')}`;
   } else if (id === 'ratchet') {
     sayTxt = 'No receipts, no refunds, no questions. Selling? I pay forty cents on the nuyen.';
     body = `${G.world ? `<div class="list"><div class="item"><div><div class="nm">Icebreaker program</div><div class="ds">Cracks one node of any lock instantly. You have ${PARTY.ice || 0}.</div></div><div class="acts"><button class="btn sm${PARTY.creds >= 40 ? '' : ' ghost'}" data-a="buyice" ${PARTY.creds >= 40 ? '' : 'disabled'}>¥40</button></div></div></div>` : ''}
@@ -377,13 +406,13 @@ function npcHtml(id) {
       G.stock.length
         ? G.stock
             .map(it => {
-              const ok = PARTY.creds >= it.price && PARTY.bag.length < 12;
+              const ok = PARTY.creds >= it.price && PARTY.bag.length < BAG_MAX;
               return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="fbuy:${it.uid}" ${ok ? '' : 'disabled'}>¥${it.price}</button></div></div>`;
             })
             .join('')
         : '<p>Sold out.</p>'
     }</div>
-    <h3>Party bag</h3><div class="list">${PARTY.bag.length ? PARTY.bag.map(it => `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm ghost" data-a="sell:${it.uid}">Sell ¥${Math.round(it.price * sellRate())}</button>${salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}</div></div>`).join('') : '<p>Nothing to sell.</p>'}</div>
+    ${sellHtml('fence')}
     ${workbenchHtml()}`;
   } else if (id === 'kit') {
     sayTxt =
@@ -413,7 +442,7 @@ function npcHtml(id) {
           ok = !have && okM && PARTY.creds >= s.price;
         return `<div class="item"><div><div class="nm">${s.name} <span style="color:var(--muted);font-weight:400">· ${s.cost} mana</span></div><div class="ds">${s.desc}${s.req ? ` Needs Magic ${s.req}.` : ''}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="learn:${sid}" ${ok ? '' : 'disabled'}>${have ? 'Known' : !okM ? 'Magic ' + s.req : '¥' + s.price}</button></div></div>`;
       })
-      .join('')}</div>`;
+      .join('')}</div>${sellHtml('talis')}`;
   }
   return `<div class="card"><p class="eyebrow">The Den · ${esc(n.role)}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(n.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>
   <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${body}

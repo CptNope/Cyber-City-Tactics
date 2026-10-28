@@ -344,7 +344,7 @@ function collect(k, p) {
     say(p, '+1 ICEBREAKER', '#45d2ff');
   }
   if (k.k === 'gear') {
-    if (PARTY.bag.length >= 12) {
+    if (PARTY.bag.length >= BAG_MAX) {
       if (k.t % 60 === 1) say(p, 'BAG FULL', '#a79dc2');
       return;
     }
@@ -482,7 +482,7 @@ function stageClear() {
     const pz = deb.prize;
     pz.rar = 2;
     pz.name = 'Prototype ' + BASES[pz.slot][pz.base].name;
-    if (PARTY.bag.length < 12) PARTY.bag.push(pz);
+    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(pz);
   }
   G.debrief = deb;
   G.texts.push({ x: G.camX + W / 2, y: 150, z: 0, s: 'DISTRICT CLEAR', c: '#ffc63d', life: 90, big: true });

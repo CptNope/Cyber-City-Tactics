@@ -500,7 +500,7 @@ ov.addEventListener('click', e => {
     }
     case 'unequip': {
       const it = p.eq[arg];
-      if (it && PARTY.bag.length < 12) {
+      if (it && PARTY.bag.length < BAG_MAX) {
         PARTY.bag.push(it);
         p.eq[arg] = null;
         refresh(p);
@@ -516,10 +516,30 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'sell': {
+      // sell:<uid>:<store kind>. The fence pays full rate; other counters pay less (storeRate)
       const i = findBag(arg);
       if (i >= 0) {
-        PARTY.creds += Math.round(PARTY.bag[i].price * sellRate());
+        PARTY.creds += sellPrice(PARTY.bag[i], parts[2]);
         PARTY.bag.splice(i, 1);
+        bump('sold');
+        sfx.coin();
+      }
+      rerender();
+      break;
+    }
+    case 'sellcommon': {
+      // clear out every Street-grade (common) item in one go
+      let got = 0,
+        n = 0;
+      PARTY.bag = PARTY.bag.filter(it => {
+        if (it.rar !== 0) return true;
+        got += sellPrice(it, arg);
+        n++;
+        return false;
+      });
+      if (n) {
+        PARTY.creds += got;
+        bump('sold', n);
         sfx.coin();
       }
       rerender();
@@ -616,7 +636,7 @@ ov.addEventListener('click', e => {
     }
     case 'fbuy': {
       const i = G.stock.findIndex(x => x.uid === arg);
-      if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < 12) {
+      if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < BAG_MAX) {
         PARTY.creds -= G.stock[i].price;
         PARTY.bag.push(G.stock[i]);
         G.stock.splice(i, 1);
