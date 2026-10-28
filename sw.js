@@ -115,8 +115,11 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // The page itself: always the precached shell (works offline, never mixes versions).
-  if (req.mode === 'navigate' && url.origin === location.origin) {
+  // The page itself: always the precached shell (works offline, never mixes versions). Only the game's own
+  // page, though: opening a file from the site directly (the trailer, a screenshot) goes to the network.
+  const last = url.pathname.split('/').pop(),
+    isPage = last === '' || last === 'index.html' || !last.includes('.');
+  if (req.mode === 'navigate' && url.origin === location.origin && isPage) {
     event.respondWith(
       (async () => {
         const shell = await caches.open(SHELL);
@@ -135,6 +138,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  if (req.mode === 'navigate') return; // a file opened directly: straight from the network, not cached
   // Game files: cache first from the shell, network as a fallback.
   if (url.origin === location.origin) {
     event.respondWith(
