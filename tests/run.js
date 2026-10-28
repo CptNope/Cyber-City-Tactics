@@ -65,7 +65,7 @@ const TESTS = [
   { file: 'content', minPass: 37 },
   { file: 'pwa', minPass: 12 },
   { file: 'expansion', minPass: 155 },
-  { file: 'timing', minPass: 21 },
+  { file: 'timing', minPass: 27 },
   { file: 'screen', minPass: 20 },
   { file: 'graphics', minPass: 19 },
   { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },

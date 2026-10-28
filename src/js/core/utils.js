@@ -92,6 +92,7 @@ const prefs = Object.assign(
     size: 'm',
     lefty: false,
     gfx: 'auto',
+    fps: false,
     rotDismissed: false
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}

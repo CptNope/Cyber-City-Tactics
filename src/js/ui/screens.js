@@ -262,6 +262,7 @@ function settingsHtml() {
       ['low', 'Low']
     ])
   )}
+  ${row('Frame rate counter', 'Shows frames per second, game speed and the quality step', onoff('fps'))}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(

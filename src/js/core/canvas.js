@@ -83,6 +83,16 @@ const lowFx = () => gfxTier() >= 2;
 function perfSample(dt) {
   if (dt <= 0 || dt > 250 || document.hidden) return;
   PERF.ema += (dt - PERF.ema) * 0.05;
+  // once a second, for the frame-rate counter: frames drawn and logic steps run in that second
+  PERF.fr = (PERF.fr || 0) + 1;
+  PERF.acc = (PERF.acc || 0) + dt;
+  if (PERF.acc >= 1000) {
+    const tk = typeof tick === 'number' ? tick : 0;
+    PERF.fps = Math.round((PERF.fr * 1000) / PERF.acc);
+    PERF.lps = Math.round(((tk - (PERF.tk0 || tk)) * 1000) / PERF.acc);
+    PERF.tk0 = tk;
+    PERF.fr = PERF.acc = 0;
+  }
   const t = gfxTier();
   if (prefs.gfx === 'high' || t >= 3) return;
   // time-based, so a very slow device (few frames) steps down as quickly as a borderline one
@@ -131,8 +141,12 @@ function fit() {
   }
   cvs.style.width = cw + 'px';
   cvs.style.height = ch + 'px';
+  // Pixel budget: a 4K monitor at 2x density would otherwise ask for a 7680x4320 canvas (33 million pixels a
+  // frame). Each tier caps the canvas's pixel count as well as its density, so big screens stay smooth.
   const tier = gfxTier(),
-    dpr = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    want = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+    budget = [2560 * 1440, 1920 * 1080, 1600 * 900, 1024 * 576][tier],
+    dpr = Math.min(want, Math.sqrt(budget / (cw * ch)));
   cvs.width = Math.round(cw * dpr);
   cvs.height = Math.round(ch * dpr);
   SCALE = cvs.width / W;

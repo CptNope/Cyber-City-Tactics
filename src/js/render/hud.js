@@ -166,6 +166,21 @@ function fogAlpha(e) {
   for (const p of alive()) dmin = Math.min(dmin, Math.hypot(p.x - e.x, (p.y - e.y) * 2));
   return clamp((140 - dmin) / 40, 0, 1);
 }
+// Settings › Frame rate counter: frames drawn per second, logic steps per second (60 means the game itself
+// runs at full speed whatever the screen manages), the quality step and the canvas's real pixel size
+function drawFpsMeter() {
+  const f = PERF.fps || Math.round(1000 / PERF.ema),
+    tierName = ['sharp', '1x', 'light', 'lean'][gfxTier()],
+    s = `${f} fps · game ${PERF.lps || 60}/s · ${tierName} · ${cvs.width}×${cvs.height}`;
+  txt(
+    s,
+    W / 2,
+    BAND + (BAND >= 46 ? -4 : 62),
+    10,
+    f >= 50 ? '#7dffb0' : f >= 30 ? '#ffc63d' : '#ff3d8b',
+    'center'
+  );
+}
 function drawHudTop() {
   // k scales the HUD up when the portrait sky band has room for it; HW is the HUD's own width
   // the HUD grows into a tall top band on touch screens, where it's read at arm's length; elsewhere it keeps its size
@@ -683,6 +698,7 @@ function render() {
     ctx.restore();
     drawHudTop();
   }
+  if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {
     ctx.save();

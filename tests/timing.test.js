@@ -101,3 +101,29 @@ runAt(60, 0.1);
 ok(G.parts.length <= 90, 'light mode caps particles (' + G.parts.length + ')');
 click('settings');
 ok(/Graphics/.test(els.ov._h) && /data-a="pref:gfx:low"/.test(els.ov._h), 'Graphics setting listed');
+
+// pixel budget: big screens never get a canvas bigger than the tier allows
+{
+  const stage = document.getElementById('stage'),
+    cv = document.getElementById('game'),
+    r0 = stage.getBoundingClientRect;
+  stage.getBoundingClientRect = () => ({ width: 3840, height: 2160, left: 0, top: 0 });
+  vmEval.runInThisContext('devicePixelRatio = 2');
+  A.prefs.gfx = 'high';
+  A.fit();
+  ok(
+    cv.width * cv.height <= 2560 * 1440 * 1.01,
+    `a 4K screen at 2x density draws ${cv.width}×${cv.height}, not 7680×4320`
+  );
+  A.prefs.gfx = 'low';
+  A.fit();
+  ok(cv.width * cv.height <= 1600 * 900 * 1.01, `Graphics: Low on that screen: ${cv.width}×${cv.height}`);
+  stage.getBoundingClientRect = r0;
+  vmEval.runInThisContext('devicePixelRatio = 1');
+  A.prefs.gfx = 'auto';
+  A.fit();
+}
+ok(
+  typeof A.drawFpsMeter === 'function' && A.prefs.fps === false,
+  'frame rate counter available, off by default'
+);

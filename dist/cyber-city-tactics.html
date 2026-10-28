@@ -1015,7 +1015,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+a824c54';
+const APP_VERSION = '2.0.0+4deed56';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1102,6 +1102,16 @@ const lowFx = () => gfxTier() >= 2;
 function perfSample(dt) {
   if (dt <= 0 || dt > 250 || document.hidden) return;
   PERF.ema += (dt - PERF.ema) * 0.05;
+  // once a second, for the frame-rate counter: frames drawn and logic steps run in that second
+  PERF.fr = (PERF.fr || 0) + 1;
+  PERF.acc = (PERF.acc || 0) + dt;
+  if (PERF.acc >= 1000) {
+    const tk = typeof tick === 'number' ? tick : 0;
+    PERF.fps = Math.round((PERF.fr * 1000) / PERF.acc);
+    PERF.lps = Math.round(((tk - (PERF.tk0 || tk)) * 1000) / PERF.acc);
+    PERF.tk0 = tk;
+    PERF.fr = PERF.acc = 0;
+  }
   const t = gfxTier();
   if (prefs.gfx === 'high' || t >= 3) return;
   // time-based, so a very slow device (few frames) steps down as quickly as a borderline one
@@ -1150,8 +1160,12 @@ function fit() {
   }
   cvs.style.width = cw + 'px';
   cvs.style.height = ch + 'px';
+  // Pixel budget: a 4K monitor at 2x density would otherwise ask for a 7680x4320 canvas (33 million pixels a
+  // frame). Each tier caps the canvas's pixel count as well as its density, so big screens stay smooth.
   const tier = gfxTier(),
-    dpr = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    want = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+    budget = [2560 * 1440, 1920 * 1080, 1600 * 900, 1024 * 576][tier],
+    dpr = Math.min(want, Math.sqrt(budget / (cw * ch)));
   cvs.width = Math.round(cw * dpr);
   cvs.height = Math.round(ch * dpr);
   SCALE = cvs.width / W;
@@ -1254,6 +1268,7 @@ const prefs = Object.assign(
     size: 'm',
     lefty: false,
     gfx: 'auto',
+    fps: false,
     rotDismissed: false
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
@@ -12650,6 +12665,21 @@ function fogAlpha(e) {
   for (const p of alive()) dmin = Math.min(dmin, Math.hypot(p.x - e.x, (p.y - e.y) * 2));
   return clamp((140 - dmin) / 40, 0, 1);
 }
+// Settings › Frame rate counter: frames drawn per second, logic steps per second (60 means the game itself
+// runs at full speed whatever the screen manages), the quality step and the canvas's real pixel size
+function drawFpsMeter() {
+  const f = PERF.fps || Math.round(1000 / PERF.ema),
+    tierName = ['sharp', '1x', 'light', 'lean'][gfxTier()],
+    s = `${f} fps · game ${PERF.lps || 60}/s · ${tierName} · ${cvs.width}×${cvs.height}`;
+  txt(
+    s,
+    W / 2,
+    BAND + (BAND >= 46 ? -4 : 62),
+    10,
+    f >= 50 ? '#7dffb0' : f >= 30 ? '#ffc63d' : '#ff3d8b',
+    'center'
+  );
+}
 function drawHudTop() {
   // k scales the HUD up when the portrait sky band has room for it; HW is the HUD's own width
   // the HUD grows into a tall top band on touch screens, where it's read at arm's length; elsewhere it keeps its size
@@ -13167,6 +13197,7 @@ function render() {
     ctx.restore();
     drawHudTop();
   }
+  if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {
     ctx.save();
@@ -13565,6 +13596,7 @@ function settingsHtml() {
       ['low', 'Low']
     ])
   )}
+  ${row('Frame rate counter', 'Shows frames per second, game speed and the quality step', onoff('fps'))}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(
