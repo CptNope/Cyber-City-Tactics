@@ -225,3 +225,32 @@ ok(!boss.extra && !boss.build, 'bosses keep their signature look');
   ok(mu === false, 'healed, it opens back up');
   AU.muffle = m0;
 }
+
+// street lights and weather
+{
+  ok(
+    A.STAGES[0].weather === 'storm' && A.STAGES[2].weather === 'fog' && A.STAGES[3].weather === 'sleet',
+    'each district has its weather: storm, rain, fog, sleet'
+  );
+  A.startStage(3);
+  ok(G.rain.length > 0 || A.RM, 'the Arcology gets sleet even though it has no rain');
+  G.mode = 'play';
+  let threw = null;
+  try {
+    for (const si of [0, 1, 2, 3, 4]) {
+      A.startStage(si);
+      G.mode = 'play';
+      for (const t of [1, 7, 40, 300]) {
+        G.t = 470 * 3 + t;
+        A.render();
+      }
+    }
+  } catch (err) {
+    threw = err;
+  }
+  ok(!threw, 'every district draws its lights and weather cleanly' + (threw ? ': ' + threw.message : ''));
+  A.startStage(0);
+  G.camX = 0;
+  A.render();
+  ok(A.LIGHTS.length > 0, 'the streets have light sources that fighters can stand in');
+}

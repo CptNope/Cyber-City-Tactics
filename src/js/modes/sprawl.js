@@ -549,6 +549,8 @@ function enterStreet(x) {
     name: 'Block ' + w.level,
     sub: 'The Sprawl',
     len: st.len,
+    // each block has its own weather, fixed by its seed so a shared block looks the same for everyone
+    weather: ['rain', 'storm', 'fog', 'rain', 'clear'][w.seed % 5],
     signs: [
       ['NOODLE', '#ff3d8b'],
       ['24H', '#45d2ff'],

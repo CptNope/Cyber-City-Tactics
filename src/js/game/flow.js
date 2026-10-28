@@ -75,7 +75,7 @@ function startStage(si) {
   G.props = S.props.map(([kind, x, y]) => ({ kind, x, y, z: 0 }));
   for (const [k, x, y] of S.passives || []) spawnPassive(k, x, y);
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
-  makeRain(S.rain);
+  makeRain(S.rain || S.weather === 'sleet');
   saveGame('play');
   musicPlay('d' + si);
   setMode('play');

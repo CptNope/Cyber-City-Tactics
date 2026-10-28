@@ -659,6 +659,8 @@ function render() {
     ctx.fillStyle = 'rgba(167,157,194,0.07)';
     ctx.fillRect(0, 0, W, VH);
   }
+  litFigures();
+  drawFog(curS());
   drawBeams();
   for (const e of G.ents) if (e.d && e.d.dragon && e.br) drawBreath(e);
   drawFx();

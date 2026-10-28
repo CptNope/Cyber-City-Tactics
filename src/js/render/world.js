@@ -21,6 +21,7 @@ function drawBg() {
     ctx.fill();
     ctx.globalAlpha = 1;
   }
+  drawLightning(S, FY0 - 14);
   if (S.grid) {
     ctx.strokeStyle = 'rgba(255,198,61,.06)';
     ctx.lineWidth = 1;
@@ -343,12 +344,20 @@ function drawRain() {
     }
     return;
   }
-  ctx.strokeStyle = evOn('acidrain') && !G.dun ? 'rgba(170,255,120,.38)' : 'rgba(170,190,255,.22)';
-  ctx.lineWidth = 1;
+  // sleet over the Arcology: shorter, brighter, driven harder by the wind
+  const sleet = weatherOf(curS()) === 'sleet' && !evOn('acidrain');
+  ctx.strokeStyle =
+    evOn('acidrain') && !G.dun
+      ? 'rgba(170,255,120,.38)'
+      : sleet
+        ? 'rgba(232,240,255,.45)'
+        : 'rgba(170,190,255,.22)';
+  ctx.lineWidth = sleet ? 1.4 : 1;
   ctx.beginPath();
   for (const r of G.rain) {
     ctx.moveTo(r.x, r.y);
-    ctx.lineTo(r.x - 2, r.y + 6);
+    if (sleet) ctx.lineTo(r.x - 4, r.y + 4);
+    else ctx.lineTo(r.x - 2, r.y + 6);
   }
   ctx.stroke();
 }

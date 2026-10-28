@@ -110,6 +110,7 @@ function bgGrads(S) {
 /* ---------- street ---------- */
 function drawWet(S, cx) {
   const lite = lowFx();
+  LIGHTS.length = 0;
   if (G.dun) return drawPools(cx);
   if (!outdoors(S)) return;
   const wet = S.rain || evOn('acidrain');
@@ -131,7 +132,8 @@ function drawWet(S, cx) {
     }
     ctx.globalAlpha = 1;
   }
-  if (lite) return; // light mode keeps the reflections and drops the rest
+  drawStreetLights(S, cx);
+  if (lite) return; // light mode keeps the reflections and the lights, and drops the rest
   drawPuddles(S, cx, wet);
   drawVents(S, cx);
   if (wet && !S.tunnel) drawSplashes();
@@ -218,5 +220,122 @@ function drawPools() {
   for (let x = 60; x < W; x += 120) {
     const fl = Math.sin(G.t * 0.07 + x) > 0.97;
     glow(x, FY0 + 14, 56, 11, T.lamp, fl ? 0.04 : 0.16);
+  }
+}
+/* ---------- street props that cast light ---------- */
+// Fire barrels and street lamps along the back of the street, fixed in the world like the puddles. Each one
+// registers in LIGHTS (screen x, ground y, colour, reach) as it draws, and after the fighters are drawn
+// anyone standing near one picks up its colour on that side (litFigures).
+const LIGHTS = [];
+function lampColor(S) {
+  return S.tunnel ? '#7dffb0' : S.grid ? '#cfe6ff' : S.win || '#ffb36b';
+}
+function drawStreetLights(S, cx) {
+  LIGHTS.length = 0;
+  if (!outdoors(S)) return;
+  const step = 260,
+    k0 = Math.floor((cx - 120) / step),
+    lamp = lampColor(S),
+    lite = lowFx();
+  for (let k = k0; k * step - cx < W + 120; k++) {
+    const h = hash01(k * 6151 + 29);
+    if (h < 0.3) continue;
+    const x = k * step + 40 + hash01(k * 37) * 150 - cx,
+      y = FY0 + 5;
+    // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
+    const barrel = !S.tunnel && !S.grid && h < 0.62;
+    if (barrel) {
+      const fl = 0.75 + 0.25 * Math.sin(G.t * 0.31 + k * 2.1) * Math.sin(G.t * 0.13 + k);
+      if (!lite) glow(x, y - 4, 42, 12, '#ff6a3d', 0.22 * fl); // light pooled on the ground
+      ctx.fillStyle = '#2a2026';
+      ctx.fillRect(x - 6, y - 14, 12, 14);
+      ctx.fillStyle = 'rgba(255,255,255,.08)';
+      ctx.fillRect(x - 6, y - 10, 12, 1);
+      ctx.fillRect(x - 6, y - 5, 12, 1);
+      for (let i = 0; i < 3; i++) {
+        const fh = 7 + Math.sin(G.t * 0.5 + i * 2.3 + k) * 3;
+        fillPoly(
+          [x - 5 + i * 3.5, y - 14, x - 3 + i * 3.5, y - 14 - fh, x - 0.5 + i * 3.5, y - 14],
+          i === 1 ? '#ffc63d' : '#ff6a3d'
+        );
+      }
+      if (!lite) glow(x, y - 20, 16, 16, '#ffc63d', 0.5 * fl);
+      LIGHTS.push(x, y, '#ff6a3d', 70 * fl);
+    } else {
+      // a lamp post: pole, head, a soft cone and a pool on the ground; one in seven flickers
+      const flick = hash01(k * 101) < 0.14 && Math.sin(G.t * 0.9 + k) > 0.6 ? 0.25 : 1,
+        top = y - 66;
+      ctx.fillStyle = '#14101c';
+      ctx.fillRect(x - 1, top, 2.5, 66);
+      ctx.fillRect(x - 1, top, 10, 2);
+      ctx.fillStyle = flick < 1 ? '#3a3448' : lamp;
+      ctx.fillRect(x + 6, top + 2, 5, 2);
+      if (!lite) glow(x + 8.5, y - 30, 16, 36, lamp, 0.12 * flick);
+      glow(x + 8.5, top + 3, 8, 5, lamp, 0.8 * flick);
+      if (!lite) glow(x + 8, y - 2, 46, 11, lamp, 0.24 * flick);
+      LIGHTS.push(x + 8, y, lamp, 76 * flick);
+    }
+  }
+}
+// After the fighters: anyone near a light picks up its colour on the side facing it
+function litFigures() {
+  if (!LIGHTS.length || lowFx()) return;
+  const op = ctx.globalCompositeOperation;
+  ctx.globalCompositeOperation = 'lighter';
+  for (const e of G.ents) {
+    if (e.state === 'dead' || (e.d && (e.d.fly || e.d.passive || e.d.dragon)) || e.cloaked) continue;
+    const ex = e.x - G.camX,
+      sc = (e.d && e.d.scale) || e.scale || 1;
+    for (let i = 0; i < LIGHTS.length; i += 4) {
+      const dx = LIGHTS[i] - ex,
+        d = Math.hypot(dx, (e.y - LIGHTS[i + 1]) * 0.8),
+        r = LIGHTS[i + 3];
+      if (d > r) continue;
+      const a = (1 - d / r) * 0.5;
+      glow(ex + Math.sign(dx) * 4 * sc, e.y - e.z - 22 * sc, 9 * sc, 22 * sc, LIGHTS[i + 2], a);
+    }
+  }
+  ctx.globalCompositeOperation = op;
+}
+/* ---------- district weather ---------- */
+// storm: rain plus lightning; rain; fog: banks rolling along the floor; sleet: fast white streaks; clear
+function weatherOf(S) {
+  if (G.dun || S.matrix) return 'clear';
+  return S.weather || (S.rain ? 'rain' : 'clear');
+}
+// Lightning, drawn into the sky behind the skyline. Never under reduced motion: no flashes for anyone who
+// asked for calm, and the flash itself is soft (sky only, a third of full white).
+function drawLightning(S, base) {
+  if (weatherOf(S) !== 'storm' || RM) return;
+  const cyc = Math.floor(G.t / 470),
+    lt = G.t % 470,
+    x = 40 + hash01(cyc * 53 + 7) * (W - 80);
+  if (lt === 40) A.noise(1.1, 0.07, 260); // the thunder, a beat after the flash
+  if (!(lt < 3 || (lt > 6 && lt < 9))) return;
+  ctx.fillStyle = 'rgba(220,214,255,.32)';
+  ctx.fillRect(0, 0, W, base);
+  ctx.strokeStyle = 'rgba(240,236,255,.9)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  let bx = x,
+    by = 0;
+  ctx.moveTo(bx, by);
+  for (let i = 1; i < 9; i++) {
+    bx += (hash01(cyc * 17 + i * 31) - 0.5) * 22;
+    by = (base - 30) * (i / 8);
+    ctx.lineTo(bx, by);
+  }
+  ctx.stroke();
+}
+// Fog banks drifting along the floor, in front of the fighters (they're half hidden in it)
+function drawFog(S) {
+  if (weatherOf(S) !== 'fog') return;
+  const n = lowFx() ? 2 : 4;
+  for (let i = 0; i < n; i++) {
+    const sp = 0.15 + i * 0.07,
+      span = W + 360,
+      x = ((((G.t * sp - G.camX * 0.3 + i * 271) % span) + span) % span) - 180,
+      y = FY0 + 30 + i * 18;
+    glow(x, y, 170, 26, '#9fb4a8', 0.16);
   }
 }

@@ -316,7 +316,7 @@ function nextArenaWave() {
   if (th !== G.theme || !G.bg) {
     G.theme = th;
     G.bg = genBg(STAGES[th], 1000 + th * 77);
-    makeRain(STAGES[th].rain);
+    makeRain(STAGES[th].rain || STAGES[th].weather === 'sleet');
   }
   const wantProps = modOn('keg') ? 4 : 2;
   while (G.props.length < wantProps) {

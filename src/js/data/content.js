@@ -509,6 +509,7 @@ const DEF = {
 const STAGES = [
   {
     name: 'Rustline Barrens',
+    weather: 'storm',
     sub: 'Gang turf under the dead monorail',
     len: 1500,
     sky: ['#1d1033', '#4a1a3a'],
@@ -547,6 +548,7 @@ const STAGES = [
   },
   {
     name: 'Neon Market',
+    weather: 'rain',
     sub: 'Black clinics and street docs, three levels deep',
     len: 1700,
     sky: ['#071a2a', '#123a4a'],
@@ -585,6 +587,7 @@ const STAGES = [
   },
   {
     name: 'Undercity Tunnels',
+    weather: 'fog',
     sub: 'The old transit lines. Something down here is hungry.',
     len: 1700,
     sky: ['#070d0b', '#13221c'],
@@ -619,6 +622,7 @@ const STAGES = [
   },
   {
     name: 'Kagemori Arcology',
+    weather: 'sleet',
     sub: 'Top floor. The Director is waiting.',
     len: 1800,
     sky: ['#120e1c', '#2a2440'],
