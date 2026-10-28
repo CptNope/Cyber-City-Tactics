@@ -1015,7 +1015,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+69209f1';
+const APP_VERSION = '2.0.0+7ce36aa';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -10089,6 +10089,8 @@ function limb(a, b, c, col, w, rim) {
   ctx.stroke();
 }
 const RIM = 'rgba(190,178,235,.32)';
+// Bend point between a and c. Positive bend pushes it to the right of the a→c direction (screen y points down),
+// which for a limb running downward means toward -x: behind a figure facing +x.
 function joint(a, c, bend) {
   const mx = (a[0] + c[0]) / 2,
     my = (a[1] + c[1]) / 2;
@@ -10192,6 +10194,13 @@ function drawDragon(e) {
   ctx.save();
   ctx.translate(sx, sy);
   ctx.scale(e.face * sc, sc);
+  if (st !== 'dead') {
+    // heavy breathing at rest, a lumbering bob on the walk, and a squash when it lands from a dive
+    const q = squash(e, st, e.t, false);
+    ctx.scale(q[0], q[1]);
+    if (e.z === 0)
+      ctx.translate(0, st === 'walk' ? -Math.abs(Math.sin(e.walk * 0.15)) * 1.5 : Math.sin(G.t * 0.05) * 0.6);
+  }
   if (st === 'dead') {
     ctx.globalAlpha = Math.max(0, 1 - e.t / 70);
     ctx.rotate(Math.min(0.4, e.t * 0.01));
@@ -10294,12 +10303,26 @@ function drawMech(e) {
   ctx.translate(sx, sy);
   ctx.scale(e.face * sc, sc);
   if (st === 'dead') ctx.rotate(Math.min(0.5, e.t * 0.02));
+  else {
+    const q = squash(e, st, e.t, false);
+    if (st === 'slam' && e.t >= 22 && e.t < 30) {
+      // the stomp lands: the whole frame sags into it
+      const s = 1 - (e.t - 22) / 8;
+      q[0] += 0.1 * s;
+      q[1] -= 0.12 * s;
+    }
+    ctx.scale(q[0], q[1]);
+  }
   const fl = e.flash > 0 && e.flash % 2,
     plate = fl ? '#ffffff' : '#3a4560',
     plate2 = fl ? '#e8e8e8' : '#26304a',
     ph = e.walk * 0.18,
-    stomp = st === 'slam' && e.t < 24 ? -Math.min(6, e.t * 0.5) : 0,
-    turning = (e.turnT || 0) > 0;
+    turning = (e.turnT || 0) > 0,
+    // the hull dips on each footfall and kicks back when the gun fires
+    bob = st === 'walk' ? -Math.abs(Math.cos(ph)) * 1.6 : 0,
+    stomp = (st === 'slam' && e.t < 24 ? -Math.min(6, e.t * 0.5) : 0) + bob,
+    kick = st === 'shoot' || (st === 'aim' && e.t % 10 < 2) ? -2 : 0;
+  ctx.translate(kick, 0);
   ctx.strokeStyle = plate2;
   ctx.lineWidth = 3.2;
   ctx.lineCap = 'round';
@@ -10361,16 +10384,29 @@ function drawHound(e) {
     run = st === 'walk' || st === 'lunge',
     ph = e.walk * 0.35,
     leap = st === 'lunge' && e.z > 0;
+  if (!lying) {
+    const q = squash(e, st, e.t, false);
+    ctx.scale(q[0], q[1]);
+    // a gallop rocks the body nose-up, nose-down; the wind-up sinks onto the haunches; the leap stretches out
+    if (run && !leap) ctx.rotate(Math.sin(ph) * 0.07);
+    else if (st === 'windup') {
+      ctx.translate(0, 1.5);
+      ctx.rotate(-0.12);
+    } else if (leap) ctx.scale(1.12, 0.92);
+  }
   // legs: two pairs, swinging opposite each other
   ctx.strokeStyle = body;
   ctx.lineWidth = 2.6;
   ctx.lineCap = 'round';
   const leg = (hx, a) => {
-    const sw = leap ? (hx > 0 ? 6 : -6) : run ? Math.sin(ph + a) * 5 : 0;
+    const sw = leap ? (hx > 0 ? 6 : -6) : run ? Math.sin(ph + a) * 5 : 0,
+      lift = run && !leap ? Math.max(0, Math.cos(ph + a)) * 2.5 : 0,
+      // a dog's hind leg breaks backward at the hock; the foreleg's wrist sits slightly forward
+      bend = hx < 0 ? -2.5 : 1;
     ctx.beginPath();
     ctx.moveTo(hx, -11);
-    ctx.lineTo(hx + sw * 0.5, -5);
-    ctx.lineTo(hx + sw, 0);
+    ctx.lineTo(hx + sw * 0.5 + bend, -5 - lift);
+    ctx.lineTo(hx + sw, -lift);
     ctx.stroke();
   };
   leg(-9, 0);
@@ -10887,12 +10923,13 @@ function drawFig(e) {
   const shF = [sh[0] + 2, sh[1] + 1],
     shB = [sh[0] - 2, sh[1] + 1];
   const isP = e.kind === 'player';
-  limb(shB, joint(shB, bh, -3), bh, coat2, 4);
+  limb(shB, joint(shB, bh, 3), bh, coat2, 4);
   ctx.fillStyle = skin;
   ctx.beginPath();
   ctx.arc(bh[0], bh[1], 2, 0, 7);
   ctx.fill();
-  limb([hip[0] - 2, hip[1]], joint([hip[0] - 2, hip[1]], bf, bkb), bf, pants, 4.6, fl ? null : RIM);
+  // knees bend forward (fkb/bkb are how far), elbows back
+  limb([hip[0] - 2, hip[1]], joint([hip[0] - 2, hip[1]], bf, -bkb), bf, pants, 4.6, fl ? null : RIM);
   ctx.fillStyle = pal.boot;
   ctx.fillRect(bf[0] - 3, bf[1] - 2.5, 7, 3);
   const armorCol =
@@ -10956,7 +10993,7 @@ function drawFig(e) {
     ctx.lineTo(sh[0] + 5, sh[1] + 13);
     ctx.stroke();
   }
-  limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, fkb), ff, pants, 4.6, fl ? null : RIM);
+  limb([hip[0] + 2, hip[1]], joint([hip[0] + 2, hip[1]], ff, -fkb), ff, pants, 4.6, fl ? null : RIM);
   ctx.fillStyle = pal.boot;
   ctx.fillRect(ff[0] - 3, ff[1] - 2.5, 7.5, 3);
   const hd = [sh[0] + 1, sh[1] - 7.5];
@@ -11151,7 +11188,7 @@ function drawFig(e) {
   const cyb = isP && e.cy.arm > 0;
   const armCol =
     style === 'runner' ? (fl ? '#fff' : cyb ? pal.cyber : cTop) : style === 'blade' ? '#c9d2e6' : coat;
-  limb(shF, joint(shF, fh, -3), fh, armCol, 4.2);
+  limb(shF, joint(shF, fh, 3), fh, armCol, 4.2);
   ctx.fillStyle = cyb ? '#c9f4ff' : skin;
   ctx.beginPath();
   ctx.arc(fh[0], fh[1], 2.3, 0, 7);
