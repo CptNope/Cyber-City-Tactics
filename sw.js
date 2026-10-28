@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '9e305af443b6';
+const VERSION = 'e21dcc1af804';
 const PRECACHE = [
   './',
   'index.html',
@@ -42,6 +42,7 @@ const PRECACHE = [
   'src/js/modes/training.js',
   'src/js/modes/arena.js',
   'src/js/render/figures.js',
+  'src/js/render/atmos.js',
   'src/js/render/world.js',
   'src/js/render/sprawl.js',
   'src/js/render/hud.js',

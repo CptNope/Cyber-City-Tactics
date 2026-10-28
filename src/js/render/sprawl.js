@@ -4,6 +4,8 @@
 'use strict';
 function drawBuildings(base) {
   const w = G.wd;
+  // the facades hide the skyline's signs, so the street reflects the shopfronts instead
+  REFL.length = 0;
   for (const b of w.street.buildings) {
     const x = b.x - b.w / 2 - G.camX;
     if (x > W || x + b.w < 0) continue;
@@ -71,10 +73,15 @@ function drawBuildings(base) {
         ctx.fillStyle = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff'][(k + (G.t >> 3)) % 4];
         ctx.fillRect(x + 2 + k * 8, base - 46, 4, 2);
       }
+      glow(x + b.w / 2, base - 45, b.w * 0.6, 10, '#ff3d8b', 0.3);
+      REFL.push(x + b.w / 2, b.w * 0.6, '#ff3d8b', 1);
     } else if (b.type === 'precinct') {
       // a siren bar on the roof
-      ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      const sc = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      glow(b.x - G.camX, base - H0 - 2, 26, 12, sc, 0.55);
+      ctx.fillStyle = sc;
       ctx.fillRect(b.x - G.camX - 8, base - H0 - 4, 16, 4);
+      REFL.push(b.x - G.camX, 16, sc, 1);
     }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
@@ -82,6 +89,8 @@ function drawBuildings(base) {
       good = shop || isGood(b);
     const frame =
       b.type === 'safe' ? '#7dffb0' : shop ? '#ffc63d' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
+    if (!looted && !lowFx()) glow(dx, base - 20, 24, 28, frame, 0.2);
+    if (!looted) REFL.push(dx, 24, frame, 1);
     ctx.fillStyle = '#07050b';
     ctx.fillRect(dx - 12, base - 40, 24, 40);
     ctx.strokeStyle = frame;
@@ -105,9 +114,11 @@ function drawBuildings(base) {
     }
     ctx.font = '600 11px Teko, Impact, sans-serif';
     const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
+    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    if (!looted && !lowFx()) glow(dx, base - 50, tw * 0.75, 14, nc, 0.22);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
-    ctx.fillStyle = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    ctx.fillStyle = nc;
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
     if (b.bounty && !w.bountyDone) {
@@ -118,6 +129,7 @@ function drawBuildings(base) {
     if (b.type === 'clinic' || b.type === 'talisman') {
       // a lit shop sign: a cross for the clinic, an eye for the talisman shop
       ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
+      glow(dx, base - 70, 16, 14, ctx.fillStyle, 0.45);
       if (b.type === 'clinic') {
         ctx.fillRect(dx - 2, base - 76, 4, 12);
         ctx.fillRect(dx - 6, base - 72, 12, 4);

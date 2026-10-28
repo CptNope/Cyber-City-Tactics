@@ -80,9 +80,16 @@ ok(G.t - t0 >= 58, 'loop keeps running after a frame error (' + (G.t - t0) + ' s
 
 // adaptive quality
 A.prefs.gfx = 'auto';
+Object.assign(A.PERF, { tier: 0, slowT: 0, ema: 16.7 });
 ok(!A.lowFx(), 'starts in full quality');
+for (let i = 0; i < 60; i++) A.perfSample(40);
+ok(A.PERF.tier === 1 && !A.lowFx(), 'a slow device first gives up pixel density, keeping every effect');
 for (let i = 0; i < 100; i++) A.perfSample(40);
-ok(A.PERF.low && A.lowFx(), 'a slow device (25 fps) drops to light mode');
+ok(A.PERF.tier === 2 && A.PERF.low && A.lowFx(), 'still slow (25 fps): steps down to light mode');
+for (let i = 0; i < 100; i++) A.perfSample(40);
+ok(A.PERF.tier === 3, 'still slow in light mode: lean (3/4 resolution) as a last resort');
+for (let i = 0; i < 400; i++) A.perfSample(40);
+ok(A.PERF.tier === 3, 'and never lower than lean');
 A.prefs.gfx = 'high';
 ok(!A.lowFx(), 'Graphics: High overrides it');
 A.prefs.gfx = 'low';

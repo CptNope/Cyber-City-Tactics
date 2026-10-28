@@ -252,7 +252,7 @@ function settingsHtml() {
   ${row(
     'Graphics',
     prefs.gfx === 'auto'
-      ? `Auto picks for your device${PERF.low ? ': running light' : ''}`
+      ? `Auto picks for your device${['', ': running at 1x sharpness', ': running light', ': running lean'][PERF.tier]}`
       : prefs.gfx === 'low'
         ? 'Lighter effects and sharpness, for older phones'
         : 'Full effects and sharpness',

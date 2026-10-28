@@ -6,18 +6,15 @@ function drawBg() {
   const S = curS(),
     B = G.bg,
     cx = G.camX;
-  let g = ctx.createLinearGradient(0, 0, 0, FY0);
+  const g = ctx.createLinearGradient(0, 0, 0, FY0);
   g.addColorStop(0, S.sky[0]);
   g.addColorStop(1, S.sky[1]);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, FY0);
   if (!S.tunnel) {
     const mx = 390 - cx * 0.04;
+    glow(mx, 52, 70, 70, S.moon, 0.3);
     ctx.fillStyle = S.moon;
-    ctx.globalAlpha = 0.18;
-    ctx.beginPath();
-    ctx.arc(mx, 52, 34, 0, 7);
-    ctx.fill();
     ctx.globalAlpha = 0.75;
     ctx.beginPath();
     ctx.arc(mx, 52, 17, 0, 7);
@@ -34,17 +31,24 @@ function drawBg() {
       ctx.stroke();
     }
   }
-  const base = FY0 - 14;
+  const base = FY0 - 14,
+    GR = bgGrads(S),
+    lite = lowFx();
   for (const b of B.far) {
     const x = b.x - cx * 0.25;
     if (x > W || x + b.w < 0) continue;
-    ctx.fillStyle = S.far;
+    ctx.fillStyle = lite ? S.far : GR.far;
     ctx.fillRect(x, base - b.h, b.w, b.h + 2);
     ctx.fillStyle = S.win;
     ctx.globalAlpha = 0.35;
     for (const w of b.wins) ctx.fillRect(x + w[0], base - b.h + w[1], 2, 3);
     ctx.globalAlpha = 1;
+    // aviation light on the tallest towers
+    if (b.h > 122 && !S.tunnel && (G.t + b.x) % 90 < 45)
+      glow(x + b.w / 2, base - b.h - 2, 4, 4, '#ff3d4a', 0.9);
   }
+  drawTraffic(S, cx);
+  REFL.length = 0;
   if (S.tunnel) {
     ctx.fillStyle = '#050a08';
     for (let i = -1; i < 6; i++) {
@@ -66,13 +70,17 @@ function drawBg() {
     const x = b.x - cx * 0.55;
     if (x > W + 60 || x + b.w < -60) continue;
     if (!S.tunnel) {
-      ctx.fillStyle = S.near;
+      ctx.fillStyle = lite ? S.near : GR.near;
       ctx.fillRect(x, base - b.h, b.w, b.h + 2);
       ctx.fillStyle = 'rgba(255,255,255,.05)';
       ctx.fillRect(x, base - b.h, b.w, 2);
       ctx.fillStyle = S.win;
       ctx.globalAlpha = 0.55;
-      for (const w of b.wins) ctx.fillRect(x + w[0], base - b.h + w[1], 3, 4);
+      // a few windows switch off and on over time, so the city feels lived in
+      const era = G.t >> 8;
+      for (const w of b.wins)
+        if (hash01(w[0] * 131 + w[1] * 977 + (b.x | 0) * 7 + era) > 0.07)
+          ctx.fillRect(x + w[0], base - b.h + w[1], 3, 4);
       ctx.globalAlpha = 1;
     }
     if (b.sign) {
@@ -84,6 +92,8 @@ function drawBg() {
         const hgt = ch.length * 11 + 6,
           sx0 = x + s.dx,
           sy0 = base - b.h + s.dy;
+        glow(sx0 + 7.5, sy0 + hgt / 2, 22, hgt * 0.75, s.c, on ? 0.38 : 0.06);
+        REFL.push(sx0 + 7.5, 15, s.c, on);
         ctx.fillStyle = '#0b0812';
         ctx.fillRect(sx0, sy0, 15, hgt);
         ctx.strokeStyle = s.c;
@@ -98,6 +108,8 @@ function drawBg() {
         const tw = ctx.measureText(s.t).width + 10,
           sx0 = x + s.dx,
           sy0 = base - b.h + s.dy;
+        glow(sx0 + tw / 2, sy0 + 7.5, tw * 0.8, 22, s.c, on ? 0.42 : 0.06);
+        REFL.push(sx0 + tw / 2, tw, s.c, on);
         ctx.fillStyle = '#0b0812';
         ctx.fillRect(sx0, sy0, tw, 15);
         ctx.globalAlpha = on ? 1 : 0.3;
@@ -106,8 +118,6 @@ function drawBg() {
         ctx.fillStyle = s.c;
         ctx.textAlign = 'left';
         ctx.fillText(s.t, sx0 + 5, sy0 + 12.5);
-        ctx.globalAlpha = on ? 0.12 : 0;
-        ctx.fillRect(sx0 - 6, sy0 - 6, tw + 12, 27);
         ctx.globalAlpha = 1;
       }
     }
@@ -154,10 +164,7 @@ function drawBg() {
         sz: 2
       });
   }
-  g = ctx.createLinearGradient(0, FY0, 0, H);
-  g.addColorStop(0, S.ground[0]);
-  g.addColorStop(1, S.ground[1]);
-  ctx.fillStyle = g;
+  ctx.fillStyle = GR.ground;
   ctx.fillRect(0, FY0, W, H - FY0);
   ctx.strokeStyle = S.line;
   ctx.lineWidth = 1;
@@ -190,6 +197,7 @@ function drawBg() {
       ctx.stroke();
     }
   }
+  drawWet(S, cx);
   if (G.exitOpen && !G.den) {
     const ex = S.len - 30 - cx;
     if (ex < W + 20) {
@@ -236,13 +244,9 @@ function drawInterior(base) {
     ctx.fillStyle = T.lamp;
     ctx.globalAlpha = fl ? 0.2 : 0.9;
     ctx.fillRect(x - 14, 14, 28, 3);
-    const g = ctx.createRadialGradient(x, 18, 2, x, 40, 90);
-    g.addColorStop(0, T.lamp);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = fl ? 0.03 : 0.12;
-    ctx.fillStyle = g;
-    ctx.fillRect(x - 90, 14, 180, base - 14);
     ctx.globalAlpha = 1;
+    glow(x, 22, 26, 12, T.lamp, fl ? 0.1 : 0.55);
+    if (!lowFx()) glow(x, 60, 80, 66, T.lamp, fl ? 0.04 : 0.17);
   }
   for (let i = 0; i < 4; i++) {
     const x = 40 + i * 110 + r() * 40,

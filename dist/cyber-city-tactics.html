@@ -972,7 +972,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9e305af';
+const APP_VERSION = '2.0.0+e21dcc1';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1036,21 +1036,38 @@ function lerpRender(a) {
     }
   }
 }
-// Adaptive quality: if the device can't hold ~45 fps for a few seconds, drop to a lighter mode (canvas at
-// 1x pixel density, half the particles and rain). Settings › Graphics can force High or Low instead.
-const PERF = { ema: 16.7, slowT: 0, low: false };
-const lowFx = () =>
-  (typeof prefs !== 'undefined' && prefs.gfx === 'low') || (prefs.gfx !== 'high' && PERF.low);
+// Adaptive quality. Slow pixels, not slow code, are what hold weak devices back (drawing a frame is ~1 ms
+// of script), so each step down trades away pixels first and looks last. If the device can't hold ~45 fps
+// for a couple of seconds it steps down one tier, waits for the change to settle, and checks again:
+//   0 full: sharp (up to 2x density), every effect
+//   1 sharp off: 1x density, every effect
+//   2 light: 1x density, lighter effects, half the particles and rain   (lowFx)
+//   3 lean: 3/4 density, light effects                                  (only when even light can't keep up)
+// Settings › Graphics: High pins tier 0; Low starts at tier 2 and may still drop to lean. No stepping back up
+// within a session, so quality never see-saws.
+const PERF = {
+  ema: 16.7,
+  slowT: 0,
+  tier: 0,
+  get low() {
+    return this.tier >= 2;
+  }
+};
+const gfxTier = () =>
+  typeof prefs === 'undefined' || prefs.gfx === 'high' ? 0 : Math.max(PERF.tier, prefs.gfx === 'low' ? 2 : 0);
+const lowFx = () => gfxTier() >= 2;
 function perfSample(dt) {
   if (dt <= 0 || dt > 250 || document.hidden) return;
   PERF.ema += (dt - PERF.ema) * 0.05;
-  if (PERF.low || prefs.gfx !== 'auto') return;
-  // time-based, so a very slow device (few frames) switches as quickly as a borderline one
-  PERF.slowT = PERF.ema > 22 ? PERF.slowT + dt : Math.max(0, PERF.slowT - dt * 2);
-  if (PERF.slowT > 2500) {
-    PERF.low = true;
+  const t = gfxTier();
+  if (prefs.gfx === 'high' || t >= 3) return;
+  // time-based, so a very slow device (few frames) steps down as quickly as a borderline one
+  PERF.slowT = PERF.ema > 22 ? PERF.slowT + dt : Math.max(Math.min(0, PERF.slowT), PERF.slowT - dt * 2);
+  if (PERF.slowT > (t === 0 ? 1500 : 2500)) {
+    PERF.tier = t + 1;
+    PERF.slowT = -1000; // give the new tier a second to show in the average before judging it
     fit();
-    if (typeof G !== 'undefined' && G.rain && G.rain.length > 35) G.rain.length = 35;
+    if (PERF.tier >= 2 && typeof G !== 'undefined' && G.rain && G.rain.length > 35) G.rain.length = 35;
   }
 }
 let SCALE = 1,
@@ -1090,7 +1107,8 @@ function fit() {
   }
   cvs.style.width = cw + 'px';
   cvs.style.height = ch + 'px';
-  const dpr = lowFx() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+  const tier = gfxTier(),
+    dpr = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   cvs.width = Math.round(cw * dpr);
   cvs.height = Math.round(ch * dpr);
   SCALE = cvs.width / W;
@@ -11350,6 +11368,229 @@ function drawFx() {
   ctx.globalAlpha = 1;
 }
 
+/* ===== src/js/render/atmos.js ===== */
+/* Cyber City Tactics · src/js/render/atmos.js
+ * Atmosphere: cached glow sprites, neon halos, wet-street reflections, puddles, rain splashes, steam vents,
+ * distant air traffic and interior light pools.
+ * Everything soft is drawn by stretching one small pre-rendered radial sprite per colour, never by building
+ * a gradient each frame: a sprite blit is far cheaper per pixel, which is what limits slow devices.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const GLOW = {};
+// '#rrggbb' + alpha -> 'rgba(...)'; anything else is returned unchanged
+function hexA(c, a) {
+  if (typeof c !== 'string' || c.length !== 7 || c[0] !== '#') return c;
+  const n = parseInt(c.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function glowSpr(c) {
+  let s = GLOW[c];
+  if (s) return s;
+  s = document.createElement('canvas');
+  s.width = s.height = 64;
+  const g = s.getContext('2d'),
+    gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, hexA(c, 1));
+  gr.addColorStop(0.3, hexA(c, 0.45));
+  gr.addColorStop(1, hexA(c, 0));
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 64, 64);
+  return (GLOW[c] = s);
+}
+// soft elliptical glow centred on x,y
+function glow(x, y, rx, ry, c, a) {
+  if (a <= 0.004 || rx <= 0 || ry <= 0) return;
+  const ga = ctx.globalAlpha;
+  ctx.globalAlpha = ga * Math.min(1, a);
+  ctx.drawImage(glowSpr(c), x - rx, y - ry, rx * 2, ry * 2);
+  ctx.globalAlpha = ga;
+}
+// cheap integer hash -> 0..1, for things that must look random but stay put
+const hash01 = n => {
+  n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d);
+  n = Math.imul(n ^ (n >>> 12), 0x297a2d39);
+  return ((n ^ (n >>> 15)) >>> 0) / 4294967296;
+};
+// Neon signs seen this frame (screen x, width, colour, lit), reflected in the wet street afterwards
+const REFL = [];
+const outdoors = S => !G.dun && !S.matrix;
+/* ---------- sky ---------- */
+// air traffic: a few spinners crossing the skyline with head and tail lights
+function drawTraffic(S, cx) {
+  if (S.tunnel || S.matrix || G.dun) return;
+  const n = lowFx() ? 2 : 4;
+  for (let i = 0; i < n; i++) {
+    const dir = i % 2 ? 1 : -1,
+      sp = 0.22 + 0.1 * i,
+      span = W + 240,
+      x = ((((G.t * sp * dir + i * 397 - cx * 0.12) % span) + span) % span) - 120,
+      y = 24 + i * 19 + Math.sin(G.t * 0.02 + i * 2) * 2;
+    ctx.fillStyle = '#07050b';
+    ctx.fillRect(x - 5, y - 1, 10, 3);
+    glow(x + dir * 6, y, 7, 3, '#ffe9b0', 0.55);
+    glow(x - dir * 6, y + 0.5, 4, 2.5, '#ff3d4a', 0.5);
+    if ((G.t + i * 23) % 50 < 4) glow(x, y - 2, 4, 4, '#45d2ff', 0.8);
+  }
+}
+// mix two '#rrggbb' colours
+function mixHex(a, b, t) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== 7 || b.length !== 7) return a;
+  const x = parseInt(a.slice(1), 16),
+    y = parseInt(b.slice(1), 16),
+    ch = s => Math.round(((x >> s) & 255) * (1 - t) + ((y >> s) & 255) * t);
+  return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+// Per-stage gradients, built once: haze and the wet-street sheen are baked into fills the scene paints
+// anyway (building faces fade into the sky colour toward their feet, the road starts with the skyline's
+// glow), so the atmosphere costs no extra pixels. Gradients live in logical space, so they survive resizes.
+function bgGrads(S) {
+  if (S._gr && S._gr.ctx === ctx) return S._gr;
+  const base = FY0 - 14,
+    hz = S.matrix ? 0 : 0.42,
+    lin = (y0, y1, stops) => {
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      for (const [o, c] of stops) g.addColorStop(o, c);
+      return g;
+    },
+    wet = S.rain ? 0.32 : 0.16;
+  const gr = {
+    ctx,
+    far: lin(base - 150, base, [
+      [0, S.far],
+      [0.6, S.far],
+      [1, mixHex(S.far, S.sky[1], hz * 0.9)]
+    ]),
+    near: lin(base - 150, base, [
+      [0, S.near],
+      [0.62, S.near],
+      [1, mixHex(S.near, S.sky[1], hz * 0.6)]
+    ]),
+    ground: lin(FY0, H, [
+      [0, S.matrix ? S.ground[0] : mixHex(S.ground[0], S.sky[1], wet)],
+      [0.3, S.ground[0]],
+      [1, S.ground[1]]
+    ])
+  };
+  try {
+    Object.defineProperty(S, '_gr', { value: gr, writable: true, configurable: true, enumerable: false });
+  } catch (e) {
+    /* frozen stage data: just rebuild next time */
+  }
+  return gr;
+}
+/* ---------- street ---------- */
+function drawWet(S, cx) {
+  const lite = lowFx();
+  if (G.dun) return drawPools(cx);
+  if (!outdoors(S)) return;
+  const wet = S.rain || evOn('acidrain');
+  // neon signs mirrored in the street: a soft column of colour plus a few rippling highlights
+  for (let i = 0; i < REFL.length; i += 4) {
+    const x = REFL[i],
+      w = REFL[i + 1],
+      c = REFL[i + 2],
+      on = REFL[i + 3];
+    if (!on && lite) continue;
+    glow(x, FY0 + 22, Math.max(8, w * 0.38), wet ? 28 : 16, c, (on ? 0.2 : 0.06) * (wet ? 1 : 0.6));
+    if (lite || !wet) continue;
+    ctx.fillStyle = c;
+    for (let k = 0; k < 4; k++) {
+      const wob = Math.sin(G.t * 0.06 + k * 1.7 + x * 0.1) * 3,
+        len = Math.max(6, w * 0.7) * (1 - k * 0.2);
+      ctx.globalAlpha = (on ? 0.3 : 0.1) * (1 - k * 0.2);
+      ctx.fillRect(x - len / 2 + wob, FY0 + 6 + k * 8, len, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (lite) return; // light mode keeps the reflections and drops the rest
+  drawPuddles(S, cx, wet);
+  drawVents(S, cx);
+  if (wet && !S.tunnel) drawSplashes();
+}
+// puddles fixed in the world; each picks up the colour of the nearest sign above it
+function drawPuddles(S, cx, wet) {
+  const step = 170,
+    k0 = Math.floor((cx - 60) / step);
+  for (let k = k0; k * step - cx < W + 60; k++) {
+    const h = hash01(k * 7919 + 13);
+    if (h < (wet ? 0.35 : 0.7)) continue;
+    const x = k * step + hash01(k * 31) * 80 - cx,
+      y = FY0 + 18 + hash01(k * 57 + 3) * 64,
+      rx = 16 + hash01(k * 91) * 20,
+      ry = 2.5 + hash01(k * 13) * 2.5;
+    ctx.fillStyle = hexA(S.ground[1], 0.75);
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, 7);
+    ctx.fill();
+    let tint = S.sky[1],
+      best = 120;
+    for (let i = 0; i < REFL.length; i += 4) {
+      const d = Math.abs(REFL[i] - x);
+      if (d < best && REFL[i + 3]) {
+        best = d;
+        tint = REFL[i + 2];
+      }
+    }
+    if (best < 120) glow(x, y, rx * 0.8, ry * 0.9, tint, 0.45);
+    ctx.fillStyle = 'rgba(255,255,255,.18)';
+    ctx.fillRect(x - rx * 0.5 + Math.sin(G.t * 0.03 + k) * 2, y - ry * 0.4, rx * 0.5, 1);
+  }
+}
+// rain landing: a handful of short-lived rings that never touch the particle budget
+function drawSplashes() {
+  const n = 9,
+    cyc = G.t >> 2,
+    age = (G.t & 3) / 4;
+  ctx.strokeStyle = evOn('acidrain') ? 'rgba(170,255,120,.5)' : 'rgba(200,215,255,.45)';
+  ctx.lineWidth = 0.7;
+  ctx.globalAlpha = 1 - age;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = hash01(cyc * 13 + i * 7) * W,
+      y = FY0 + 6 + hash01(cyc * 17 + i * 11) * (H - FY0 - 10),
+      r = 1 + age * 3;
+    ctx.moveTo(x + r, y);
+    ctx.ellipse(x, y, r, r * 0.35, 0, 0, 7);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+// steam vents in the road, each breathing a slow plume
+function drawVents(S, cx) {
+  const step = 430,
+    k0 = Math.floor((cx - 80) / step);
+  for (let k = k0; k * step - cx < W + 80; k++) {
+    if (hash01(k * 4099 + 5) < 0.45) continue;
+    const x = k * step + 120 + hash01(k * 77) * 160 - cx,
+      y = FY0 + 10 + hash01(k * 53) * 22;
+    ctx.fillStyle = '#0a0810';
+    ctx.fillRect(x - 9, y - 2, 18, 4);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    for (let j = -6; j <= 6; j += 4) ctx.fillRect(x + j, y - 2, 1, 4);
+    for (let j = 0; j < 6; j++) {
+      const ph = ((G.t * 0.6 + j * 15 + k * 37) % 90) / 90,
+        r = 6 + ph * 16;
+      glow(
+        x + Math.sin(ph * 5 + k + j) * 5 * ph,
+        y - 4 - ph * 46,
+        r,
+        r * 0.85,
+        '#c8bee6',
+        0.22 * (1 - ph) * Math.min(1, ph * 6)
+      );
+    }
+  }
+}
+/* ---------- interiors ---------- */
+// light pooling on the floor under each ceiling lamp
+function drawPools() {
+  const T = INT[facOf(G.dun.b)];
+  if (!T) return;
+  for (let x = 60; x < W; x += 120) {
+    const fl = Math.sin(G.t * 0.07 + x) > 0.97;
+    glow(x, FY0 + 14, 56, 11, T.lamp, fl ? 0.04 : 0.16);
+  }
+}
+
 /* ===== src/js/render/world.js ===== */
 /* Cyber City Tactics · src/js/render/world.js
  * Backgrounds, building interiors, Den storefronts and rain.
@@ -11358,18 +11599,15 @@ function drawBg() {
   const S = curS(),
     B = G.bg,
     cx = G.camX;
-  let g = ctx.createLinearGradient(0, 0, 0, FY0);
+  const g = ctx.createLinearGradient(0, 0, 0, FY0);
   g.addColorStop(0, S.sky[0]);
   g.addColorStop(1, S.sky[1]);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, FY0);
   if (!S.tunnel) {
     const mx = 390 - cx * 0.04;
+    glow(mx, 52, 70, 70, S.moon, 0.3);
     ctx.fillStyle = S.moon;
-    ctx.globalAlpha = 0.18;
-    ctx.beginPath();
-    ctx.arc(mx, 52, 34, 0, 7);
-    ctx.fill();
     ctx.globalAlpha = 0.75;
     ctx.beginPath();
     ctx.arc(mx, 52, 17, 0, 7);
@@ -11386,17 +11624,24 @@ function drawBg() {
       ctx.stroke();
     }
   }
-  const base = FY0 - 14;
+  const base = FY0 - 14,
+    GR = bgGrads(S),
+    lite = lowFx();
   for (const b of B.far) {
     const x = b.x - cx * 0.25;
     if (x > W || x + b.w < 0) continue;
-    ctx.fillStyle = S.far;
+    ctx.fillStyle = lite ? S.far : GR.far;
     ctx.fillRect(x, base - b.h, b.w, b.h + 2);
     ctx.fillStyle = S.win;
     ctx.globalAlpha = 0.35;
     for (const w of b.wins) ctx.fillRect(x + w[0], base - b.h + w[1], 2, 3);
     ctx.globalAlpha = 1;
+    // aviation light on the tallest towers
+    if (b.h > 122 && !S.tunnel && (G.t + b.x) % 90 < 45)
+      glow(x + b.w / 2, base - b.h - 2, 4, 4, '#ff3d4a', 0.9);
   }
+  drawTraffic(S, cx);
+  REFL.length = 0;
   if (S.tunnel) {
     ctx.fillStyle = '#050a08';
     for (let i = -1; i < 6; i++) {
@@ -11418,13 +11663,17 @@ function drawBg() {
     const x = b.x - cx * 0.55;
     if (x > W + 60 || x + b.w < -60) continue;
     if (!S.tunnel) {
-      ctx.fillStyle = S.near;
+      ctx.fillStyle = lite ? S.near : GR.near;
       ctx.fillRect(x, base - b.h, b.w, b.h + 2);
       ctx.fillStyle = 'rgba(255,255,255,.05)';
       ctx.fillRect(x, base - b.h, b.w, 2);
       ctx.fillStyle = S.win;
       ctx.globalAlpha = 0.55;
-      for (const w of b.wins) ctx.fillRect(x + w[0], base - b.h + w[1], 3, 4);
+      // a few windows switch off and on over time, so the city feels lived in
+      const era = G.t >> 8;
+      for (const w of b.wins)
+        if (hash01(w[0] * 131 + w[1] * 977 + (b.x | 0) * 7 + era) > 0.07)
+          ctx.fillRect(x + w[0], base - b.h + w[1], 3, 4);
       ctx.globalAlpha = 1;
     }
     if (b.sign) {
@@ -11436,6 +11685,8 @@ function drawBg() {
         const hgt = ch.length * 11 + 6,
           sx0 = x + s.dx,
           sy0 = base - b.h + s.dy;
+        glow(sx0 + 7.5, sy0 + hgt / 2, 22, hgt * 0.75, s.c, on ? 0.38 : 0.06);
+        REFL.push(sx0 + 7.5, 15, s.c, on);
         ctx.fillStyle = '#0b0812';
         ctx.fillRect(sx0, sy0, 15, hgt);
         ctx.strokeStyle = s.c;
@@ -11450,6 +11701,8 @@ function drawBg() {
         const tw = ctx.measureText(s.t).width + 10,
           sx0 = x + s.dx,
           sy0 = base - b.h + s.dy;
+        glow(sx0 + tw / 2, sy0 + 7.5, tw * 0.8, 22, s.c, on ? 0.42 : 0.06);
+        REFL.push(sx0 + tw / 2, tw, s.c, on);
         ctx.fillStyle = '#0b0812';
         ctx.fillRect(sx0, sy0, tw, 15);
         ctx.globalAlpha = on ? 1 : 0.3;
@@ -11458,8 +11711,6 @@ function drawBg() {
         ctx.fillStyle = s.c;
         ctx.textAlign = 'left';
         ctx.fillText(s.t, sx0 + 5, sy0 + 12.5);
-        ctx.globalAlpha = on ? 0.12 : 0;
-        ctx.fillRect(sx0 - 6, sy0 - 6, tw + 12, 27);
         ctx.globalAlpha = 1;
       }
     }
@@ -11506,10 +11757,7 @@ function drawBg() {
         sz: 2
       });
   }
-  g = ctx.createLinearGradient(0, FY0, 0, H);
-  g.addColorStop(0, S.ground[0]);
-  g.addColorStop(1, S.ground[1]);
-  ctx.fillStyle = g;
+  ctx.fillStyle = GR.ground;
   ctx.fillRect(0, FY0, W, H - FY0);
   ctx.strokeStyle = S.line;
   ctx.lineWidth = 1;
@@ -11542,6 +11790,7 @@ function drawBg() {
       ctx.stroke();
     }
   }
+  drawWet(S, cx);
   if (G.exitOpen && !G.den) {
     const ex = S.len - 30 - cx;
     if (ex < W + 20) {
@@ -11588,13 +11837,9 @@ function drawInterior(base) {
     ctx.fillStyle = T.lamp;
     ctx.globalAlpha = fl ? 0.2 : 0.9;
     ctx.fillRect(x - 14, 14, 28, 3);
-    const g = ctx.createRadialGradient(x, 18, 2, x, 40, 90);
-    g.addColorStop(0, T.lamp);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = fl ? 0.03 : 0.12;
-    ctx.fillStyle = g;
-    ctx.fillRect(x - 90, 14, 180, base - 14);
     ctx.globalAlpha = 1;
+    glow(x, 22, 26, 12, T.lamp, fl ? 0.1 : 0.55);
+    if (!lowFx()) glow(x, 60, 80, 66, T.lamp, fl ? 0.04 : 0.17);
   }
   for (let i = 0; i < 4; i++) {
     const x = 40 + i * 110 + r() * 40,
@@ -11707,6 +11952,8 @@ function drawRain() {
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 function drawBuildings(base) {
   const w = G.wd;
+  // the facades hide the skyline's signs, so the street reflects the shopfronts instead
+  REFL.length = 0;
   for (const b of w.street.buildings) {
     const x = b.x - b.w / 2 - G.camX;
     if (x > W || x + b.w < 0) continue;
@@ -11774,10 +12021,15 @@ function drawBuildings(base) {
         ctx.fillStyle = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff'][(k + (G.t >> 3)) % 4];
         ctx.fillRect(x + 2 + k * 8, base - 46, 4, 2);
       }
+      glow(x + b.w / 2, base - 45, b.w * 0.6, 10, '#ff3d8b', 0.3);
+      REFL.push(x + b.w / 2, b.w * 0.6, '#ff3d8b', 1);
     } else if (b.type === 'precinct') {
       // a siren bar on the roof
-      ctx.fillStyle = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      const sc = (G.t >> 4) % 2 ? '#ff3d4a' : '#45d2ff';
+      glow(b.x - G.camX, base - H0 - 2, 26, 12, sc, 0.55);
+      ctx.fillStyle = sc;
       ctx.fillRect(b.x - G.camX - 8, base - H0 - 4, 16, 4);
+      REFL.push(b.x - G.camX, 16, sc, 1);
     }
     const looted = w.looted.includes(b.id),
       dx = b.x - G.camX,
@@ -11785,6 +12037,8 @@ function drawBuildings(base) {
       good = shop || isGood(b);
     const frame =
       b.type === 'safe' ? '#7dffb0' : shop ? '#ffc63d' : ['#efe9ff', '#efe9ff', '#45d2ff', '#ffc63d'][b.tier];
+    if (!looted && !lowFx()) glow(dx, base - 20, 24, 28, frame, 0.2);
+    if (!looted) REFL.push(dx, 24, frame, 1);
     ctx.fillStyle = '#07050b';
     ctx.fillRect(dx - 12, base - 40, 24, 40);
     ctx.strokeStyle = frame;
@@ -11808,9 +12062,11 @@ function drawBuildings(base) {
     }
     ctx.font = '600 11px Teko, Impact, sans-serif';
     const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
+    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    if (!looted && !lowFx()) glow(dx, base - 50, tw * 0.75, 14, nc, 0.22);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
-    ctx.fillStyle = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    ctx.fillStyle = nc;
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
     if (b.bounty && !w.bountyDone) {
@@ -11821,6 +12077,7 @@ function drawBuildings(base) {
     if (b.type === 'clinic' || b.type === 'talisman') {
       // a lit shop sign: a cross for the clinic, an eye for the talisman shop
       ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
+      glow(dx, base - 70, 16, 14, ctx.fillStyle, 0.45);
       if (b.type === 'clinic') {
         ctx.fillRect(dx - 2, base - 76, 4, 12);
         ctx.fillRect(dx - 6, base - 72, 12, 4);
@@ -12903,7 +13160,7 @@ function settingsHtml() {
   ${row(
     'Graphics',
     prefs.gfx === 'auto'
-      ? `Auto picks for your device${PERF.low ? ': running light' : ''}`
+      ? `Auto picks for your device${['', ': running at 1x sharpness', ': running light', ': running lean'][PERF.tier]}`
       : prefs.gfx === 'low'
         ? 'Lighter effects and sharpness, for older phones'
         : 'Full effects and sharpness',

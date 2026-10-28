@@ -60,21 +60,38 @@ function lerpRender(a) {
     }
   }
 }
-// Adaptive quality: if the device can't hold ~45 fps for a few seconds, drop to a lighter mode (canvas at
-// 1x pixel density, half the particles and rain). Settings › Graphics can force High or Low instead.
-const PERF = { ema: 16.7, slowT: 0, low: false };
-const lowFx = () =>
-  (typeof prefs !== 'undefined' && prefs.gfx === 'low') || (prefs.gfx !== 'high' && PERF.low);
+// Adaptive quality. Slow pixels, not slow code, are what hold weak devices back (drawing a frame is ~1 ms
+// of script), so each step down trades away pixels first and looks last. If the device can't hold ~45 fps
+// for a couple of seconds it steps down one tier, waits for the change to settle, and checks again:
+//   0 full: sharp (up to 2x density), every effect
+//   1 sharp off: 1x density, every effect
+//   2 light: 1x density, lighter effects, half the particles and rain   (lowFx)
+//   3 lean: 3/4 density, light effects                                  (only when even light can't keep up)
+// Settings › Graphics: High pins tier 0; Low starts at tier 2 and may still drop to lean. No stepping back up
+// within a session, so quality never see-saws.
+const PERF = {
+  ema: 16.7,
+  slowT: 0,
+  tier: 0,
+  get low() {
+    return this.tier >= 2;
+  }
+};
+const gfxTier = () =>
+  typeof prefs === 'undefined' || prefs.gfx === 'high' ? 0 : Math.max(PERF.tier, prefs.gfx === 'low' ? 2 : 0);
+const lowFx = () => gfxTier() >= 2;
 function perfSample(dt) {
   if (dt <= 0 || dt > 250 || document.hidden) return;
   PERF.ema += (dt - PERF.ema) * 0.05;
-  if (PERF.low || prefs.gfx !== 'auto') return;
-  // time-based, so a very slow device (few frames) switches as quickly as a borderline one
-  PERF.slowT = PERF.ema > 22 ? PERF.slowT + dt : Math.max(0, PERF.slowT - dt * 2);
-  if (PERF.slowT > 2500) {
-    PERF.low = true;
+  const t = gfxTier();
+  if (prefs.gfx === 'high' || t >= 3) return;
+  // time-based, so a very slow device (few frames) steps down as quickly as a borderline one
+  PERF.slowT = PERF.ema > 22 ? PERF.slowT + dt : Math.max(Math.min(0, PERF.slowT), PERF.slowT - dt * 2);
+  if (PERF.slowT > (t === 0 ? 1500 : 2500)) {
+    PERF.tier = t + 1;
+    PERF.slowT = -1000; // give the new tier a second to show in the average before judging it
     fit();
-    if (typeof G !== 'undefined' && G.rain && G.rain.length > 35) G.rain.length = 35;
+    if (PERF.tier >= 2 && typeof G !== 'undefined' && G.rain && G.rain.length > 35) G.rain.length = 35;
   }
 }
 let SCALE = 1,
@@ -114,7 +131,8 @@ function fit() {
   }
   cvs.style.width = cw + 'px';
   cvs.style.height = ch + 'px';
-  const dpr = lowFx() ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+  const tier = gfxTier(),
+    dpr = tier >= 3 ? 0.75 : tier >= 1 ? 1 : Math.min(window.devicePixelRatio || 1, 2);
   cvs.width = Math.round(cw * dpr);
   cvs.height = Math.round(ch * dpr);
   SCALE = cvs.width / W;

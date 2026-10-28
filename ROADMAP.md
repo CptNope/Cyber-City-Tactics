@@ -122,7 +122,7 @@ The guiding rules:
 - [ ] **Cloud save (M).** Optional sync of the save backup through a file the player picks (File System Access API) or a share code.
 - [x] ~~**Full-screen on any device.**~~ The canvas fills every screen shape; wider views see more street, taller ones get HUD and control bands.
 - [x] ~~**Frame timing.**~~ Fixed-timestep logic with interpolated rendering, stall recovery, a crash-proof loop and adaptive graphics quality.
-- [ ] **Performance pass (S).** Cache static background layers to an offscreen canvas for low-end phones.
+- [x] ~~**Performance pass.**~~ Profiled: pixels, not script, limit slow devices, so caching layers wouldn't help. Shipped instead: a four-step quality ladder (sharpness, then effects, then ¾ resolution), sprite-based glows and atmosphere baked into existing fills.
 
 ### Discovery and replayability
 These are the next ways to keep "one more run" alive:
