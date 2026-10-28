@@ -1,18 +1,74 @@
+<p align="center">
+  <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img src="docs/store/social-1200x630.png" alt="Cyber City Tactics: a neon brawler RPG for one or two players" width="100%"></a>
+</p>
+
+<h3 align="center">A neon brawler RPG for one or two players, on one keyboard or online.<br>Free in your browser. No install, no account, and it plays offline.</h3>
+
+<p align="center">
+  <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img alt="Play now in your browser" src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-in%20your%20browser-ff3d8b?style=for-the-badge&labelColor=0c0a14"></a>
+  <a href="https://cptnope.github.io/Cyber-City-Tactics/docs/store/trailer.mp4"><img alt="Watch the trailer" src="https://img.shields.io/badge/%E2%96%B6%20TRAILER-22%20seconds-45d2ff?style=for-the-badge&labelColor=0c0a14"></a>
+</p>
+<p align="center">
+  <a href="https://github.com/CptNope/Cyber-City-Tactics/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CptNope/Cyber-City-Tactics/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="No dependencies" src="https://img.shields.io/badge/dependencies-none-7dffb0?labelColor=0c0a14">
+  <img alt="Installable PWA, works offline" src="https://img.shields.io/badge/PWA-installable%20%C2%B7%20offline-b98cff?labelColor=0c0a14">
+  <img alt="Online co-op" src="https://img.shields.io/badge/co--op-couch%20%C2%B7%20online-ffc63d?labelColor=0c0a14">
+</p>
+
 # Cyber City Tactics
 
-**Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG for one or two players. It's set in a cyberpunk sprawl where magic is real: street samurai, combat mages, gunslingers, deckers, shamans and riggers fighting gangs, corps, spirits and ICE.
+Seattle, 2079. Magic came back, dragons came with it, and the corps bought the sky.
 
-It's plain JavaScript with no framework and no runtime dependencies, split into small files by system. It runs in any modern browser and installs as an app (PWA) that plays fully offline.
+**Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG set in a cyberpunk sprawl where magic is real. Street samurai, combat mages, gunslingers, deckers, shamans and riggers fight gangs, corps, spirits and ICE across six districts, an open-world street and an endless Arena. You and a friend punch, kick, shoot, cast, grab and throw your way from the gang turf under the dead monorail to the Kagemori host itself.
+
+It's plain JavaScript with no framework and no runtime dependencies, split into small files by system. It runs in any modern browser on phones, tablets, laptops and TVs, and it installs as an app (PWA) that plays fully offline.
 
 - **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
-- **What's next:** see [ROADMAP.md](ROADMAP.md)
+- **What's next:** [ROADMAP.md](ROADMAP.md)
+- **Store kit** (trailer, screenshots, cover art, itch.io copy): [`docs/store/`](docs/store/README.md)
 - **Brand and design:** the [Brand Book](https://claude.ai/artifact/SJeAWr27Fua7MpdYEhZqS7) (story, voice, logo, color, type) and the [Design System](https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q) (tokens, components, icons), plus the [Design Panels](https://claude.ai/artifact/QRGJ2rzUJLrJbqcxjpcKoc) (key art, store and social art, annotated screens). Copies of all three live in [`docs/design/`](docs/design/); the live values are in `src/css/game.css`.
 
 ---
 
+## Trailer
+
+<p align="center">
+  <a href="https://cptnope.github.io/Cyber-City-Tactics/docs/store/trailer.mp4"><img src="docs/media/trailer-preview.gif" alt="Trailer preview: two runners fighting through the districts" width="100%"></a>
+  <br><sub>A few seconds of the trailer. Click it for the full 22-second video.</sub>
+</p>
+
+## At a glance
+
+- **Six districts, six bosses**, from the Gutter King under the dead monorail to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
+- **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
+- **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
+- **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
+- **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
+- **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Two runners brawling through a storm on Rustline](docs/store/shot-street-storm.png)<br><sub>**Rustline Barrens.** Rain, burning barrels and the Gutter King's crew.</sub> | ![Razor Mei's boss entrance in the Neon Market](docs/store/shot-neon-market-boss.png)<br><sub>**Boss entrances.** Razor Mei makes hers in the Neon Market.</sub> |
+| ![Mother Vesper's night market under the city](docs/store/shot-undercity-market.png)<br><sub>**The Undercity Market.** Mother Vesper sells what Kagemori throws away.</sub> | ![Armored and warded elites with a mech walker in the Arcology](docs/store/shot-arcology-elites.png)<br><sub>**Elites.** Armored, berserk and warded foes, each with a tell.</sub> |
+| ![Sable's black-market cart on a Sprawl block](docs/store/shot-sprawl-black-market.png)<br><sub>**The Sprawl.** Pick a door, or haggle with Sable at her cart.</sub> | ![The Den, the street hub between districts](docs/media/den.png)<br><sub>**The Den.** Fixers, docs, talismongers and a fence between jobs.</sub> |
+| ![The Mage skill tree on the character sheet](docs/media/skills.png)<br><sub>**Four skill trees** to mix freely, plus attributes, gear and cyberware.</sub> | ![The Codex of feats, legendaries, enemies and lore](docs/media/codex.png)<br><sub>**The Codex** keeps your legend across every run.</sub> |
+
+<p align="center">
+  <img src="screenshots/narrow-play.png" alt="Playing on a phone in portrait, with touch controls" width="30%">
+  &nbsp;
+  <img src="screenshots/narrow-codex.png" alt="The Codex on a phone" width="30%">
+  <br><sub>It plays on phones too, with touch controls that relabel themselves for what you can do.</sub>
+</p>
+
+---
+
 ## Contents
+- [Trailer](#trailer) · [At a glance](#at-a-glance) · [Screenshots](#screenshots)
 - [Quick start](#quick-start)
 - [Game modes](#game-modes)
+- [Online co-op](#online-co-op)
 - [Your runner](#your-runner)
 - [Skill trees](#skill-trees)
 - [Gear](#gear)
@@ -118,11 +174,30 @@ A second runner joins with their own archetype, level, stats, skills and gear. C
 - add Runner 2 from the pause menu, or
 - press Start on a second gamepad.
 
-**Online co-op.** Play with a friend in another browser, on another device, anywhere: **Online co-op** on the title screen. One of you hosts and gets a five-letter room code (or an invite link); the other picks **Join a game** and types it in. Once you're connected, the host picks what to play: the Arena and its daily and weekly challenges, a new or continued campaign, or the Sprawl. The friend joins it as Runner 2 with the archetype and coat they chose. The host runs the menus, shops and briefings while the friend sees what's going on, and the friend can open their own character sheet (C) to spend points and change gear. No accounts. The two browsers talk directly; when a network blocks that, Cloudflare relays the game. If the lobby is ever unreachable, the game falls back to swapping two long codes by hand. The lobby is a small Cloudflare Worker in [`server/`](server/README.md).
+Want to play from two different places? See [Online co-op](#online-co-op).
 
 **Team attacks.** When both runners land a hit on the same enemy within half a second, it triggers a combined finisher: a big knockdown hit with a moment of slow motion. Each enemy can take one every two seconds.
 
 **Revive.** When a runner loses their last life, they leave a green marker where they fell. Their partner stands next to it for about two and a half seconds, without getting knocked around, to bring them back with 40% health and no spare lives. The marker goes away when you leave the scene, and then they're back next district as before.
+
+---
+
+## Online co-op
+
+Play with a friend in another browser, on another device, anywhere. No accounts and nothing to install.
+
+| Host | Friend |
+|---|---|
+| ![The host's room code card](docs/media/online-room.png) | ![The friend typing the room code](docs/media/online-join.png) |
+| 1. **Online co-op › Host a game.** You get a five-letter room code, and a **Copy invite link** button. | 2. **Online co-op › Join a game**, type the code (or just open the invite link), and press **Join**. |
+
+3. You're connected. The host picks what to play: the **Arena** (and its daily and weekly challenges), a **new or continued campaign**, or **the Sprawl**. Whatever the host starts, the friend joins it as Runner 2 with the archetype and coat they picked.
+4. The host runs the briefings, shops and Den menus, and the friend sees what's going on ("your partner is shopping…"). The friend opens their own **character sheet (C)** any time to spend attribute and skill points, change spells and swap gear.
+5. Quitting a run takes the host back to the online menu, so you can switch modes without reconnecting. **End online game** when you're done.
+
+**How it connects.** The two browsers talk directly (WebRTC). A small Cloudflare Worker in [`server/`](server/README.md) only swaps the connection details behind the room code and, on networks that block direct connections (many offices and schools), hands out passes for Cloudflare's relay. The game itself never goes through a server of ours. If the lobby is ever unreachable, the game falls back to swapping two long codes by hand.
+
+**Good to know.** Training stays solo. If the connection drops, start a new online game; if the friend leaves mid-campaign, the host carries on solo. The host's game is the real one: saves, unlocks and high scores land on the host's device.
 
 ---
 

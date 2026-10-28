@@ -16,7 +16,7 @@ Everything needed for an itch.io page (or any store listing), captured from the 
 | `shot-sprawl-black-market.png` | 1920×1080 | Sable's cart on a Sprawl block |
 | `shot-title.png` | 1920×1080 | Title screen |
 
-The install-dialog screenshots listed in `manifest.webmanifest` live in `/screenshots` and come from the same script.
+The install-dialog screenshots listed in `manifest.webmanifest` live in `/screenshots`, and the README's pictures and trailer preview GIF live in `/docs/media`. All of them come from the same script.
 
 ## Regenerate
 
@@ -24,7 +24,7 @@ The install-dialog screenshots listed in `manifest.webmanifest` live in `/screen
 NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 ```
 
-`--no-video` skips the trailer; `--video-only` makes just the trailer. The trailer needs `ffmpeg` on your PATH. The game runs frame by frame under the script, with a small autopilot driving both runners, so each run comes out nearly the same.
+`--no-video` skips the trailer; `--video-only` makes just the trailer; `--only=stills,cards,readme,video` picks any mix (`readme` cuts the preview GIF from the existing trailer). The trailer needs `ffmpeg` on your PATH. The game runs frame by frame under the script, with a small autopilot driving both runners, so each run comes out nearly the same.
 
 ## itch.io page copy
 

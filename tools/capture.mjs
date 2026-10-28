@@ -2,7 +2,7 @@
 /* Cyber City Tactics store kit: screenshots, cover art, a social card and a short trailer, all captured from
  * the game itself so they never drift from what players see.
  *
- *   NODE_PATH=<dir with playwright> node tools/capture.mjs [--no-video | --video-only]
+ *   NODE_PATH=<dir with playwright> node tools/capture.mjs [--no-video | --video-only | --only=stills,cards,readme,video]
  *
  * Writes:
  *   screenshots/*.png             install-dialog screenshots listed in manifest.webmanifest
@@ -10,6 +10,8 @@
  *   docs/store/cover-630x500.png   itch.io cover
  *   docs/store/social-1200x630.png link preview / og:image
  *   docs/store/trailer.mp4         about 30 seconds, 1280x720, H.264 (needs ffmpeg on PATH)
+ *   docs/media/*.png               README pictures: the Den, the skill tree, the Codex, online co-op
+ *   docs/media/trailer-preview.gif a short looping cut of the trailer for the README (needs ffmpeg)
  *
  * The game runs frame by frame under this script's control (the real loop is paused), and the runners are
  * driven by a tiny autopilot, so every capture is the same every time apart from the game's own dice.
@@ -25,9 +27,16 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'docs/store');
-const VIDEO = !process.argv.includes('--no-video'),
-  ONLY_VIDEO = process.argv.includes('--video-only');
+const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
+const want = k =>
+  ONLY.length
+    ? ONLY.includes(k)
+    : k === 'video'
+      ? !process.argv.includes('--no-video')
+      : !process.argv.includes('--video-only');
+const MEDIA = join(ROOT, 'docs/media');
 mkdirSync(OUT, { recursive: true });
+mkdirSync(MEDIA, { recursive: true });
 
 // ---------- in-page helpers (serialized into the page) ----------
 const HELPERS = () => {
@@ -254,7 +263,18 @@ async function cards() {
     await pg.evaluate(() => __cap.scene(3, ['thrall', 'ghoul', 'thrall', 'vesper']));
     // key art: the same street, without the HUD (render skips it on the title screen)
     await pg.evaluate(() => {
-      __cap.step(140);
+      // the runners stay on their feet for the key art
+      for (let i = 0; i < 28; i++) {
+        for (const p of PL) {
+          p.inv = 20;
+          p.hp = p.maxHp;
+        }
+        __cap.step(5);
+      }
+      // frame the fight right of centre, clear of the wordmark
+      const mid = PL.reduce((t, p) => t + p.x, 0) / PL.length;
+      for (const p of PL) p.inv = 0; // invulnerable runners blink; show them solid
+      G.camX = mid - W * 0.6;
       G.mode = 'title';
       G.texts = [];
       render();
@@ -281,7 +301,7 @@ async function cards() {
       .tag{position:absolute;left:${Math.round(w * 0.06)}px;bottom:${Math.round(h * 0.08)}px;color:#a79dc2;font-size:${Math.round(big * 0.24)}px}
       </style></head><body><div class="bg"></div><div class="shade"></div>
       <div class="wm"><div class="city">Cyber City</div><div class="bar">Tactics</div></div>
-      <div class="tag">Neon brawler RPG · 1–2 players · free in your browser</div></body></html>`);
+      <div class="tag">Neon brawler RPG · 1–2 players, couch or online · free in your browser</div></body></html>`);
     await card.evaluate(() => document.fonts.ready);
     await card.waitForTimeout(200);
     await card.screenshot({ path: join(OUT, file) });
@@ -392,9 +412,113 @@ async function trailer() {
   console.log('trailer', n, 'frames');
 }
 
-if (!ONLY_VIDEO) {
-  await stills();
-  await cards();
+// ---------- README pictures ----------
+async function readme() {
+  const pg = await page(1280, 720);
+  await pg.evaluate(() => __cap.freeze());
+  const snap = async (name, menu) => {
+    await pg.evaluate(menu => {
+      document.getElementById('ov').style.display = menu ? '' : 'none';
+      render();
+    }, menu);
+    await pg.waitForTimeout(250);
+    await pg.screenshot({ path: join(MEDIA, name + '.png') });
+    console.log('readme', name);
+  };
+  // the Den between districts, both runners and the locals
+  await pg.evaluate(() => {
+    G.pendArch = ['samurai', 'mage'];
+    newRun(true);
+    G.stage = 1;
+    enterDen();
+    setMode('den');
+    G.fade = 0;
+    G.banner = 0;
+    PL.forEach((p, i) => {
+      p.x = G.camX + 560 + i * 60;
+      p.y = 222 + i * 16;
+      p.face = i ? -1 : 1;
+    });
+    __cap.step(40);
+    G.toasts = [];
+    G.tip = null;
+    render();
+  });
+  await snap('den');
+  // the character sheet: Runner 2's skill trees
+  await pg.evaluate(() => {
+    for (const p of PL) {
+      p.lvl = 6;
+      p.spts = 3;
+      p.pts = 2;
+    }
+    G.sheetIdx = 1;
+    G.sheetTab = 'skills';
+    G.ret = 'den';
+    setMode('sheet');
+  });
+  await snap('skills', true);
+  await pg.evaluate(() => {
+    G.sheetTab = 'char';
+    renderOv();
+  });
+  await snap('sheet', true);
+  // the Codex
+  await pg.evaluate(() => {
+    G.ret = 'title';
+    setMode('codex');
+  });
+  await snap('codex', true);
+  // online co-op: the host's room code (a made-up one; the real ones come from the lobby)
+  await pg.evaluate(() => {
+    attract();
+    netClose();
+    NET.role = 'host';
+    NET.status = 'offer';
+    NET.room = 'K7Q2X';
+    NET.code = 'CCT1z' + 'x'.repeat(400);
+    setMode('online');
+    __cap.step(30);
+  });
+  await snap('online-room', true);
+  // and the friend's side: typing the code
+  await pg.evaluate(() => {
+    netClose();
+    NET.role = 'guest';
+    NET.status = 'paste';
+    NET.draft = 'K7Q2X';
+    renderOv();
+  });
+  await snap('online-join', true);
+  await pg.close();
+  // a looping cut of the trailer: the fights in the middle, small enough for a README
+  const mp4 = join(OUT, 'trailer.mp4'),
+    gif = join(MEDIA, 'trailer-preview.gif');
+  try {
+    execFileSync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-ss',
+      '3.2',
+      '-t',
+      '9',
+      '-i',
+      mp4,
+      '-vf',
+      'fps=12,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle',
+      '-loop',
+      '0',
+      gif
+    ]);
+    console.log('readme trailer-preview.gif');
+  } catch (e) {
+    console.log('readme: no ffmpeg, skipped the trailer preview');
+  }
 }
-if (VIDEO) await trailer();
+
+if (want('stills')) await stills();
+if (want('cards')) await cards();
+if (want('video')) await trailer();
+if (want('readme')) await readme();
 await browser.close();

@@ -919,11 +919,11 @@ function netHtml(m) {
     <textarea class="netcode" data-net="draft" rows="3" placeholder="Paste the reply code here" aria-label="Reply code">${esc(NET.draft)}</textarea>
     <div class="row"><button class="btn" data-a="netconnect"${busy ? ' disabled' : ''}>${st === 'connecting' ? 'Connecting…' : 'Connect'}</button></div>`;
   if (!NET.role || st === 'error' || st === '') {
-    body = `<p>Play the Arena with a friend in another browser, on another device, anywhere. One of you hosts; the other joins${lob ? ' with a five-letter room code' : ' by swapping two codes over chat or text'}. No accounts.</p>
+    body = `<p>Play with a friend in another browser, on another device, anywhere: the Arena, the campaign or the Sprawl. One of you hosts; the other joins${lob ? ' with a five-letter room code' : ' by swapping two codes over chat or text'}. No accounts.</p>
     ${err}
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="nethost">Host a game</button><button class="btn ghost" data-a="netjoin">Join a game</button><button class="btn ghost" data-a="netback">Back</button></div>
-    <p style="color:var(--muted);font-size:12.5px">The host plays as Runner 1 and picks perks; the friend plays as Runner 2 with the archetype and coat chosen above. ${lob ? 'The two browsers connect directly; when a network blocks that, the game is relayed through Cloudflare.' : 'Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.'}</p>`;
+    <p style="color:var(--muted);font-size:12.5px">The host plays as Runner 1 and runs the menus; the friend plays as Runner 2 with the archetype and coat chosen above. ${lob ? 'The two browsers connect directly; when a network blocks that, the game is relayed through Cloudflare.' : 'Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.'}</p>`;
   } else if (NET.role === 'host') {
     const link = netInviteLink();
     if (st === 'making') body = '<p>Opening a room…</p>';
@@ -954,7 +954,7 @@ function netHtml(m) {
     <textarea class="netcode${lob ? ' short' : ''}" data-net="draft" rows="${lob ? 1 : 3}" placeholder="${lob ? 'K7Q2X' : 'Paste the invite code here'}" aria-label="${lob ? 'Room code or invite code' : 'Invite code'}" autocapitalize="characters" spellcheck="false">${esc(NET.draft)}</textarea>
     <div class="row"><button class="btn" data-a="netanswer">${lob ? 'Join' : 'Make my reply code'}</button><button class="btn ghost" data-a="netcancel">Cancel</button></div>`;
   }
-  return `<div class="card"><p class="eyebrow">Online co-op · Arena</p><h2>${NET.role === 'host' ? 'Host a game' : NET.role === 'guest' ? 'Join a game' : 'Play online'}</h2>${body}</div>`;
+  return `<div class="card"><p class="eyebrow">Online co-op</p><h2>${NET.role === 'host' ? 'Host a game' : NET.role === 'guest' ? 'Join a game' : 'Play online'}</h2>${body}</div>`;
 }
 function netCopy(text, btn) {
   const done = () => {

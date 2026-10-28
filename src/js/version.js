@@ -1,4 +1,4 @@
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
 'use strict';
-const APP_VERSION = '2.0.0+5a3b52d';
+const APP_VERSION = '2.0.0+31e193f';
