@@ -140,17 +140,19 @@ function bcardHtml(b) {
   const good = isGood(b),
     lo = G.wd.looted.includes(b.id),
     lock = b.lockUntil && b.lockUntil > Date.now();
-  const kind = b.final
-    ? 'The final job'
-    : {
-        home: b.dirty ? 'Residence · dirty money' : 'Residence',
-        business: 'Business',
-        hideout: 'Gang hideout',
-        blacksite: 'Corporate black site',
-        club: 'Gang nightclub',
-        precinct: 'Lone Star precinct',
-        secret: 'Hidden door'
-      }[b.type];
+  const kind = b.roost
+    ? 'The last door'
+    : b.final
+      ? 'The final job'
+      : {
+          home: b.dirty ? 'Residence · dirty money' : 'Residence',
+          business: 'Business',
+          hideout: 'Gang hideout',
+          blacksite: 'Corporate black site',
+          club: 'Gang nightclub',
+          precinct: 'Lone Star precinct',
+          secret: 'Hidden door'
+        }[b.type];
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
     rooms = roomsOf(b),
     f = FAC[facOf(b)];

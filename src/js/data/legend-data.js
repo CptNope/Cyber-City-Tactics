@@ -125,6 +125,8 @@ const BEST = {
   blade: "Razor Mei dashes through you, then chains three dashes when she's enraged.",
   saint: 'The Hollow Saint summons spirits and slams the floor. Keep moving.',
   archmage: 'Director Voss teleports and fires hexes, five at a time when enraged.',
+  dragon:
+    'Ssareth, who lights the way. On the ground it claws and sweeps its tail; in the air you can only shoot it, cast at it or jump-kick it, while it breathes fire down whole lanes. Find the lane it leaves dark.',
   avatar:
     "Ssareth's avatar: a vessel of chrome and bound fire. It summons spirits, lunges and slams. The great dragon is watching through its eyes."
 };
@@ -182,6 +184,12 @@ const LEGS = {
     base: 'launcher',
     name: 'The Lantern',
     fx: 'Every takedown heals 5% HP and restores 5 mana for the whole team.'
+  },
+  wyrmheart: {
+    slot: 'armor',
+    base: 'exo',
+    name: 'Wyrmheart',
+    fx: '+40 max HP, fire hurts you half as much, and your special meter fills 25% faster.'
   }
 };
 const FEATS = [
@@ -294,6 +302,14 @@ const FEATS = [
     stat: 'couriers',
     n: 3,
     arch: 'rigger'
+  },
+  {
+    id: 'b_ssareth',
+    name: 'Who Lights the Way',
+    desc: "Slay Ssareth in the Wyrm's Roost.",
+    lp: 120,
+    hidden: 1,
+    leg: 'wyrmheart'
   },
   {
     id: 'b_avatar',

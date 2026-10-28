@@ -26,9 +26,12 @@ function enterRoom(i) {
   const r = D0.rng,
     last = i === D0.rooms - 1,
     pool = D0.fac.pool.concat(b.tier >= 3 ? D0.fac.t3 : []);
-  const n = pool.length
-    ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
-    : 0;
+  const n =
+    b.roost && last
+      ? 0
+      : pool.length
+        ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+        : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
@@ -74,10 +77,20 @@ function enterRoom(i) {
   if (last) {
     const bk = D0.fac.boss[b.tier];
     if (b.final) {
-      const e = spawnEnemy('avatar', 1);
-      e.x = W - 70;
+      const e = spawnEnemy(b.roost ? 'dragon' : 'avatar', 1);
+      e.x = W - (b.roost ? 110 : 70);
       e.y = (FY0 + FY1) / 2;
       e.inv = 60;
+      if (b.roost) {
+        // a fixed fight rather than scaled by block: tough at any level, beatable with the right tactics
+        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (G.coop ? 1.3 : 1));
+        e.dmg = Math.round(22 * DIFF[G.diff].dmg);
+        e.flyCD = 600;
+        tip(
+          'dragon',
+          'Ssareth! On the ground, stay out of its claws. In the air, find the lane its breath leaves dark.'
+        );
+      }
       G.banner = -160;
       musicPlay('boss');
     } else if (bk) {

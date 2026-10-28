@@ -36,7 +36,7 @@ function physics(e) {
 function spGain(p, n) {
   if (!p || p.team !== 0 || G.den) return;
   const was = p.sp || 0;
-  p.sp = Math.min(100, was + n);
+  p.sp = Math.min(100, was + n * (legOf(p, 'armor') === 'wyrmheart' ? 1.25 : 1));
   if (was < 100 && p.sp >= 100) {
     say(p, '★ SPECIAL READY', '#ffc63d', 80, 60);
     sfx.loot();

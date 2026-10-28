@@ -68,6 +68,7 @@ function upEnemy(e) {
   if (e.inv > 0) e.inv--;
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
     // shadows cloak whenever they aren't attacking, and drop the cloak for a while when hit
     if (e.recloakT > 0) e.recloakT--;
@@ -421,6 +422,180 @@ function upEnemy(e) {
   } else if (e.state !== 'idle') setS(e, 'idle');
 }
 
+/* Ssareth. Two phases, run on e.ph rather than the animation state:
+ *  ground  - stalks you, claws in front (both claws at once), sweeps its tail into shockwaves behind and ahead
+ *  takeoff - rises over 40 frames; when enraged, two fire spirits come with it
+ *  air     - hovers out of reach (bullets, spells and jump-kicks still land) and breathes fire down lanes:
+ *            a lane flickers orange for a second, then burns for 0.75 s; it always leaves one lane dark
+ *  dive    - after its breaths it dives at a runner and lands with a shockwave, back to the ground phase
+ * It takes off every 12 s on the ground, and straight away when it drops below 70% and 40% health. */
+const DRAGON_Z = 46;
+function dragonTick(e, cd) {
+  const p = (e.tgt = pickTarget(e));
+  e.ph = e.ph || 'ground';
+  e.pt = (e.pt || 0) + 1;
+  if (e.ph === 'ground') {
+    e.flyCD = (e.flyCD === undefined ? 720 : e.flyCD) - 1;
+    const frac = e.hp / e.maxHp,
+      mark = frac < 0.4 ? 2 : frac < 0.7 ? 1 : 0;
+    if ((e.flyCD <= 0 || mark > (e.marks || 0)) && e.state !== 'swipe' && e.state !== 'tail') {
+      e.marks = Math.max(e.marks || 0, mark);
+      e.ph = 'takeoff';
+      e.pt = 0;
+      setS(e, 'idle');
+      sfx.boom();
+      G.shake = Math.max(G.shake, 6);
+      if (e.enraged) for (let i = 0; i < 2; i++) spawnEnemy('spirit', i ? -1 : 1);
+      return;
+    }
+    if (!p) return;
+    const dx = p.x - e.x,
+      adx = Math.abs(dx),
+      ady = Math.abs(p.y - e.y);
+    if (e.state === 'swipe') {
+      if (e.t === 18) {
+        if (!strike(e, d0(e).reach, e.dmg, { kd: true, kb: 8, big: true })) sfx.whiff();
+        G.shake = Math.max(G.shake, 4);
+      }
+      if (e.t >= 34) {
+        setS(e, 'idle');
+        e.cool = cd * rand(0.7, 1.2);
+      }
+      return;
+    }
+    if (e.state === 'tail') {
+      if (e.t === 26) {
+        for (const s of [-1, 1])
+          G.projs.push({
+            k: 'wave',
+            team: 1,
+            x: e.x + s * 30,
+            y: e.y,
+            z: 3,
+            vx: s * 3.4,
+            dmg: e.dmg * 0.8,
+            life: 110,
+            wide: true
+          });
+        sfx.boom();
+        G.shake = 9;
+      }
+      if (e.t >= 44) {
+        setS(e, 'idle');
+        e.cool = cd * rand(0.8, 1.3);
+      }
+      return;
+    }
+    e.face = dx >= 0 ? 1 : -1;
+    if (e.cool > 0) e.cool--;
+    if (e.cool <= 0 && adx < 74 && ady < 22) {
+      setS(e, 'swipe');
+      sfx.heavy();
+      return;
+    }
+    if (e.cool <= 0 && Math.random() < 0.012) {
+      setS(e, 'tail');
+      sfx.spell();
+      return;
+    }
+    const s = d0(e).spd * e.spdMul,
+      tx = p.x - e.face * 58;
+    const mx = clamp(tx - e.x, -s, s),
+      my = clamp(p.y - e.y, -s * 0.6, s * 0.6);
+    e.x = clamp(e.x + mx, G.camX + 40, G.camX + W - 40);
+    e.y = clamp(e.y + my, FY0 + 10, FY1 - 4);
+    if (Math.abs(mx) > 0.1 || Math.abs(my) > 0.1) {
+      if (e.state !== 'walk') setS(e, 'walk');
+      e.walk += 1;
+    } else if (e.state !== 'idle') setS(e, 'idle');
+    return;
+  }
+  if (e.ph === 'takeoff') {
+    e.z = Math.min(DRAGON_Z, e.z + DRAGON_Z / 40);
+    e.x += clamp(G.camX + W / 2 - e.x, -1.5, 1.5);
+    if (e.pt >= 40) {
+      e.ph = 'air';
+      e.pt = 0;
+      e.breaths = 0;
+    }
+    return;
+  }
+  if (e.ph === 'air') {
+    e.z = DRAGON_Z + Math.sin(G.t * 0.06) * 3;
+    if (p) e.face = p.x >= e.x ? 1 : -1;
+    e.x += clamp(G.camX + W / 2 + Math.sin(G.t * 0.01) * 60 - e.x, -0.8, 0.8);
+    const br = e.br;
+    if (!br && e.pt > 30) {
+      // pick the burning lanes: two of three, or all but one when enraged and late in the fight
+      const safe = Math.floor(Math.random() * LANES);
+      e.br = { t: 0, lanes: [0, 1, 2].filter(l => l !== safe) };
+      setS(e, 'breath');
+      sfx.spell();
+      return;
+    }
+    if (br) {
+      br.t++;
+      const warn = e.enraged ? 48 : 60;
+      if (br.t === warn) sfx.boom();
+      if (br.t >= warn && br.t < warn + 45 && (br.t - warn) % 10 === 0) {
+        for (const q of G.ents) {
+          if (q.state === 'dead' || q.out || q.team === 1 || q.z > 22) continue;
+          if (q.team === 0 && q.state === 'roll' && q.t < 15) continue;
+          const lane = Math.min(
+            LANES - 1,
+            Math.max(0, Math.floor(((q.y - FY0 - 6) * LANES) / (FY1 - FY0 - 6)))
+          );
+          if (br.lanes.includes(lane))
+            hurt(q, e.dmg * 0.45, q.x >= e.x ? 1 : -1, { col: '#ff6a3d', fire: true, kb: 2, ax: e.x });
+        }
+      }
+      if (br.t >= warn + 45) {
+        e.br = null;
+        e.pt = 0;
+        e.breaths++;
+        setS(e, 'idle');
+        if (e.breaths >= (e.enraged ? 4 : 3)) {
+          e.ph = 'dive';
+          e.pt = 0;
+          e.diveX = p ? p.x : e.x;
+          e.diveY = p ? p.y : e.y;
+        }
+      }
+    }
+    return;
+  }
+  if (e.ph === 'dive') {
+    e.x += clamp(e.diveX - e.x, -4, 4);
+    e.y += clamp(e.diveY - e.y, -2, 2);
+    e.z = Math.max(0, e.z - DRAGON_Z / 28);
+    if (e.z <= 0) {
+      for (const q of alive())
+        if (Math.abs(q.x - e.x) < 46 && Math.abs(q.y - e.y) < 16)
+          hurt(q, e.dmg * 0.8, q.x >= e.x ? 1 : -1, { kd: true, big: true, col: '#ffc63d', ax: e.x });
+      for (const s of [-1, 1])
+        G.projs.push({
+          k: 'wave',
+          team: 1,
+          x: e.x + s * 30,
+          y: e.y,
+          z: 3,
+          vx: s * 3,
+          dmg: e.dmg * 0.6,
+          life: 90,
+          wide: true
+        });
+      G.shake = 12;
+      sfx.boom();
+      burst(e.x, e.y, 4, '#ff6a3d', 24);
+      e.ph = 'ground';
+      e.pt = 0;
+      e.flyCD = 720;
+      e.cool = 70;
+      setS(e, 'idle');
+    }
+  }
+}
+const d0 = e => e.d;
 // A feral spirit's echo of the last spell any runner cast
 const ECHO_NAME = {
   fire: 'FIREBALL',

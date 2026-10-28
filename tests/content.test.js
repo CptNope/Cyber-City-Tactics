@@ -277,7 +277,11 @@ for (let i = 0; i < 24; i++) if (!L.lore.includes(i)) L.lore.push(i);
     L.feats.b_avatar && G.picks.some(k => k.item && k.item.leg === 'lantern'),
     'Lights Out + The Lantern drops'
   );
-  ok(!A.genStreet(2, 999).buildings.some(b => b.final), 'vault gone after the avatar falls');
+  ok(
+    !A.genStreet(2, 999).buildings.some(b => b.final && !b.roost) &&
+      A.genStreet(2, 999).buildings.some(b => b.roost),
+    "vault gone after the avatar falls; the Wyrm's Roost appears"
+  );
 }
 {
   P = fresh();

@@ -190,7 +190,17 @@ const BOUNTY_N = [
   'Iron Juniper'
 ];
 const roomsOf = b =>
-  b.type === 'home' && !b.dirty ? 1 : b.final ? 4 : b.type === 'secret' ? (b.vault ? 3 : 2) : b.tier + 1;
+  b.type === 'home' && !b.dirty
+    ? 1
+    : b.roost
+      ? 3
+      : b.final
+        ? 4
+        : b.type === 'secret'
+          ? b.vault
+            ? 3
+            : 2
+          : b.tier + 1;
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
@@ -310,6 +320,26 @@ function genStreet(level, seed) {
       w: 36,
       name: 'The Lantern Vault',
       owner: "Ssareth's vault. The door is warm, and a lantern burns above it.",
+      seed: Math.floor(r() * 1e9),
+      hidden: false
+    });
+  }
+  // the Wyrm's Roost, once the Avatar has fallen
+  if (typeof LEG !== 'undefined' && LEG.feats.b_avatar && !LEG.feats.b_ssareth) {
+    const i = 2 + Math.floor(r() * (B.length - 4)),
+      a = B[i],
+      c = B[i + 1];
+    B.push({
+      id: 97,
+      type: 'secret',
+      vault: true,
+      final: true,
+      roost: true,
+      tier: 3,
+      x: (a.x + a.w / 2 + c.x - c.w / 2) / 2,
+      w: 36,
+      name: "The Wyrm's Roost",
+      owner: 'The door is hot to the touch. Something enormous breathes on the other side.',
       seed: Math.floor(r() * 1e9),
       hidden: false
     });

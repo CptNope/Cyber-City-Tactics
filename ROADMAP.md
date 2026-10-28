@@ -28,6 +28,7 @@ The guiding rules:
 - [x] **Content drop:** Shaman and Rigger archetypes with summons, campaign mutators, eight runner coats, Sprawl block events (gang war, blackout, lockdown, night market), the Lantern Vault final job with the Avatar of Ssareth, a ninth legendary and run history
 - [x] **Replayability layer:** 42 feats (some hidden), legend ranks with a starting-creds bonus, 8 legendaries unlocked by feats, a bestiary, 24 lore shards telling the Project LANTERN story, the Codex screen, an unlockable Decker archetype, a daily challenge with streaks, and Sprawl bounties, hidden doors and courier drones
 - [x] **Design and brand:** a brand book, a design system with tokens and 16 components, and design panels (key art, store and social art, annotated screens), all in `docs/design/`
+- [x] **Expansion 10:** the Wyrm's Roost and the fight with Ssareth (ground, flight and lane-breath phases), the Wyrmheart legendary and the Wyrmslayer coat
 - [x] **Expansion 9:** the Street Doc and Physical Adept archetypes, and shareable challenge seeds for Sprawl blocks and Arena runs
 - [x] **Expansion 8:** hazard rooms, vaults with a second hack, back-alley clinics with rare cyberware, and talisman shops with two rare spells
 - [x] **Expansion 7:** co-op team attacks, mech walkers, feral spirits and hostage rooms
@@ -125,7 +126,7 @@ The guiding rules:
 ### Discovery and replayability
 These are the next ways to keep "one more run" alive:
 - [x] ~~**Lore that changes the game.**~~ Shipped as the Lantern Vault.
-- [ ] **Lantern Vault, part two (L).** A real dragon fight: Ssareth itself, with a flight phase and breath attacks across lanes, unlocked after beating the Avatar on Prime.
+- [x] ~~**Lantern Vault, part two.**~~ Shipped as the Wyrm's Roost: Ssareth with a flight phase and lane breath. It opens after the Avatar falls on any difficulty, not only Prime, so more players get to see it.
 - [x] ~~**Rotating Sprawl events.**~~ Shipped: gang war, blackout, lockdown and night market.
 - [x] ~~**More block events.**~~ Shipped: acid rain, corp parade and manhunt.
 - [x] ~~**Spirit storm.**~~ Shipped.

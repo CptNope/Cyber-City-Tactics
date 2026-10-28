@@ -153,6 +153,7 @@ function hurt(t, dmg, dir, o) {
   if (o.src && o.src.buffT > 0) dmg *= 1.5;
   let crit = false;
   if (t.team === 0) dmg = (dmg * 20) / (20 + t.D.armor);
+  if (t.team === 0 && o.fire && legOf(t, 'armor') === 'wyrmheart') dmg *= 0.5;
   if (t.shield > 0) {
     const a = Math.min(t.shield, dmg);
     t.shield = Math.max(0, Math.round(t.shield - a));
@@ -533,7 +534,7 @@ function kill(t, dir, o) {
   }
 }
 function inZ(att, t) {
-  const tz = t.d && t.d.fly ? t.z - 12 : t.z;
+  const tz = t.d && t.d.fly ? t.z - 12 : t.d && t.d.dragon ? t.z - 30 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
 }
 // Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
@@ -607,6 +608,7 @@ function strike(att, reach, dmg, o) {
 }
 function hitbox(t) {
   const sc = (t.d && t.d.scale) || 1;
+  if (t.d && t.d.dragon) return [t.z - 30, t.z + 80];
   if (t.d && t.d.fly) return [t.z - 10, t.z + 12];
   return [t.z + 2, t.z + 46 * sc];
 }

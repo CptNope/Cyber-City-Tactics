@@ -172,7 +172,12 @@ function refresh(p) {
   };
   if (typeof G !== 'undefined' && modOn('brawl')) p.D.melee *= 1.4;
   if (p.arch === 'adept') p.D.melee *= 1.3;
-  p.maxHp = 70 + a.bod * 14 + (p.lvl - 1) * 5 + (ar && ar.mod === 'padded' ? 25 : 0);
+  p.maxHp =
+    70 +
+    a.bod * 14 +
+    (p.lvl - 1) * 5 +
+    (ar && ar.mod === 'padded' ? 25 : 0) +
+    (ar && ar.leg === 'wyrmheart' ? 40 : 0);
   p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);

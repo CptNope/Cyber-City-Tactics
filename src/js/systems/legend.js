@@ -164,6 +164,17 @@ function onKill(t, ks) {
     shardDrop(t.x - 20, t.y + 8, 0.5);
   }
   if (t.bounty) payBounty(t);
+  if (t.kind === 'dragon') {
+    feat('b_ssareth');
+    if (!LEG.legs.includes('wyrmheart')) drop('gear', t.x, t.y + 10, { item: mkLegend('wyrmheart') });
+    G.slow = Math.max(G.slow, 120);
+    (G.toasts = G.toasts || []).push({
+      s: 'Ssareth falls',
+      d: 'Juno: "Every lantern in the city just went out. Nobody is lighting the way anymore. Good."',
+      life: 480,
+      lore: true
+    });
+  }
   if (t.kind === 'avatar') {
     feat('b_avatar');
     if (!LEG.legs.includes('lantern')) drop('gear', t.x, t.y + 10, { item: mkLegend('lantern') });

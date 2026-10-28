@@ -69,6 +69,111 @@ function drawDrone(e) {
   ctx.fillRect(2, 6, 9, 2);
   ctx.restore();
 }
+// Ssareth: a long-necked wyrm in violet-black scale with a burning throat, lantern-gold eyes and great wings
+function drawDragon(e) {
+  const sc = e.d.scale,
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    st = e.state,
+    air = e.ph === 'air' || e.ph === 'takeoff' || e.ph === 'dive';
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(sx, e.y, 34 * sc * (air ? 0.7 : 1), 6 * sc * (air ? 0.7 : 1), 0, 0, 7);
+  ctx.fill();
+  if (e.inv > 0 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  if (st === 'dead') {
+    ctx.globalAlpha = Math.max(0, 1 - e.t / 70);
+    ctx.rotate(Math.min(0.4, e.t * 0.01));
+  }
+  const fl = e.flash > 0 && e.flash % 2,
+    scale1 = fl ? '#ffffff' : '#2a1236',
+    scale2 = fl ? '#eeeeee' : '#1a0b24',
+    belly = fl ? '#ffffff' : '#7a5a1a',
+    flap = air ? Math.sin(G.t * 0.22) : Math.sin(G.t * 0.04) * 0.25,
+    breath = st === 'breath' || (e.br && e.br.t > 0),
+    swipe = st === 'swipe' && e.t >= 12 && e.t <= 22,
+    walk = st === 'walk' ? Math.sin(e.walk * 0.15) : 0,
+    lift = Math.round(flap * 10);
+  // far wing
+  fillPoly([-4, -30, -30, -52 - lift * 1.4, -46, -38 - lift, -38, -30, -24, -26], scale2);
+  // tail
+  const tw = Math.sin(G.t * 0.07) * 4 + (st === 'tail' && e.t > 16 && e.t < 30 ? -10 : 0);
+  fillPoly(
+    [-14, -18, -34, -14 + tw * 0.4, -52, -8 + tw, -58, -10 + tw, -36, -20 + tw * 0.4, -14, -25],
+    scale1
+  );
+  fillPoly([-56, -9 + tw, -62, -16 + tw, -60, -6 + tw], '#ffc63d');
+  // legs
+  ctx.strokeStyle = scale2;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  if (!air) {
+    for (const [hx, ph] of [
+      [-10, 0],
+      [8, Math.PI]
+    ]) {
+      const sw = walk ? Math.sin(e.walk * 0.15 + ph) * 3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(hx, -16);
+      ctx.lineTo(hx + 2 + sw * 0.5, -8);
+      ctx.lineTo(hx + sw, 0);
+      ctx.stroke();
+    }
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-8, -16);
+    ctx.lineTo(-12, -8);
+    ctx.moveTo(8, -16);
+    ctx.lineTo(4, -8);
+    ctx.stroke();
+  }
+  // body
+  fillPoly([-18, -30, 6, -34, 18, -26, 16, -16, -16, -14, -22, -22], scale1);
+  fillPoly([-14, -16, 14, -17, 12, -13, -12, -12], belly);
+  for (let k = 0; k < 5; k++)
+    fillPoly([-14 + k * 6, -33 + (k % 2), -11 + k * 6, -38, -8 + k * 6, -33], scale2);
+  // neck and head, rearing back to breathe, lunging forward to claw
+  const hx = breath ? 26 : swipe ? 34 : 28,
+    hy = breath ? -52 : swipe ? -34 : -46;
+  fillPoly([10, -30, 18, -34, hx - 2, hy + 4, hx - 6, hy + 10, 12, -24], scale1);
+  fillPoly([hx - 6, hy - 4, hx + 8, hy - 2, hx + 14, hy + 3, hx + 6, hy + 7, hx - 6, hy + 6], scale1);
+  fillPoly([hx - 4, hy - 4, hx - 9, hy - 12, hx, hy - 5], scale2);
+  fillPoly([hx + 1, hy - 3, hx - 2, hy - 11, hx + 5, hy - 3], scale2);
+  ctx.fillStyle = '#ffc63d';
+  ctx.fillRect(hx + 3, hy - 1, 3, 1.6);
+  if (breath) {
+    ctx.fillStyle = `rgba(255,106,61,${0.6 + 0.4 * Math.sin(G.t * 0.6)})`;
+    ctx.beginPath();
+    ctx.arc(hx + 14, hy + 4, 3 + Math.sin(G.t * 0.5), 0, 7);
+    ctx.fill();
+  }
+  // claws
+  if (swipe) {
+    ctx.strokeStyle = '#efe9ff';
+    ctx.lineWidth = 1.2;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      ctx.moveTo(30 + k * 4, -30);
+      ctx.lineTo(44 + k * 4, -8);
+      ctx.stroke();
+    }
+  }
+  // near wing
+  fillPoly([2, -32, -8, -64 - lift * 2, -34, -54 - lift * 1.4, -24, -40, -10, -30], fl ? '#fff' : '#3a1a4a');
+  ctx.strokeStyle = fl ? '#fff' : '#5a2a6a';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-8, -64 - lift * 2);
+  ctx.lineTo(-14, -34);
+  ctx.moveTo(-8, -64 - lift * 2);
+  ctx.lineTo(-24, -42);
+  ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
 // Mech walker: a plated cockpit on two reverse-jointed legs, gun forward, a glowing vent on its back
 function drawMech(e) {
   const sc = e.d.scale * (e.mini ? 0.7 : 1),
@@ -429,6 +534,7 @@ function drawFig(e) {
   if (e.d && e.d.fly) return drawDrone(e);
   if (e.d && e.d.quad) return drawHound(e);
   if (e.d && e.d.mech) return drawMech(e);
+  if (e.d && e.d.dragon) return drawDragon(e);
   const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),

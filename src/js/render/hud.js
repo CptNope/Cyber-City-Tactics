@@ -367,6 +367,34 @@ function drawHud() {
     }
   }
 }
+// Ssareth's breath: orange outlines on the lanes about to burn, then a wall of fire down each one
+function drawBreath(e) {
+  const br = e.br,
+    warn = e.enraged ? 48 : 60;
+  for (const l of br.lanes) {
+    const y0 = laneY(l),
+      y1 = laneY(l + 1);
+    if (br.t < warn) {
+      if ((G.t >> 2) % 2) {
+        ctx.fillStyle = 'rgba(255,106,61,0.10)';
+        ctx.fillRect(0, y0, W, y1 - y0);
+        ctx.strokeStyle = 'rgba(255,106,61,0.7)';
+        ctx.strokeRect(1, y0 + 0.5, W - 2, y1 - y0 - 1);
+      }
+    } else {
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgba(255,198,61,0.25)');
+      g.addColorStop(1, 'rgba(255,61,26,0.45)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y0, W, y1 - y0);
+      for (let k = 0; k < W / 12; k++) {
+        const fx = k * 12 + ((G.t * 5 + k * 7) % 12),
+          fh = 8 + ((k * 31 + G.t * 3) % 14);
+        fillPoly([fx - 5, y1, fx, y1 - fh, fx + 5, y1], k % 2 ? '#ff6a3d' : '#ffc63d');
+      }
+    }
+  }
+}
 // Hazard rooms: a flickering warning, then a live lane of current; or growing shadows under falling debris
 function drawHazard() {
   const h = G.hazard;
@@ -546,6 +574,7 @@ function render() {
     ctx.fillRect(0, 0, W, VH);
   }
   drawBeams();
+  for (const e of G.ents) if (e.d && e.d.dragon && e.br) drawBreath(e);
   drawFx();
   drawCompare();
   drawRevive();

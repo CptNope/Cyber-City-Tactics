@@ -855,3 +855,121 @@ click('quit');
 click('arenapick');
 click('arena1');
 ok(/^A-[0-9A-Z]+$/.test(G.arenaSeed), 'open Arena runs get a shareable seed too (' + G.arenaSeed + ')');
+
+// ---- Ssareth, the Wyrm's Roost
+delete A.LEG.feats.b_avatar;
+delete A.LEG.feats.b_ssareth;
+ok(!A.genStreet(3, 555).buildings.some(b => b.roost), "no Wyrm's Roost before the Avatar falls");
+A.LEG.feats.b_avatar = 1;
+const roost = A.genStreet(3, 555).buildings.find(b => b.roost);
+ok(
+  roost && A.roomsOf(roost) === 3 && A.isGood(roost),
+  "after the Avatar: the Wyrm's Roost, three rooms deep"
+);
+click('quit');
+click('worldpick');
+G.pendArch = ['runner', 'samurai'];
+click('world1');
+P = __PL()[0];
+A.enterBuilding(roost);
+A.enterRoom(2);
+let dr = G.ents.find(e => e.kind === 'dragon');
+ok(
+  dr && dr.maxHp === Math.round(1800 * A.DIFF[G.diff].hp),
+  'Ssareth waits in the last room (' + (dr && dr.maxHp) + ' HP)'
+);
+ok(G.ents.filter(e => e.team === 1 && !e.d.passive).length === 1, 'the last room is a one-on-one fight');
+G.ents = G.ents.filter(e => e.team !== 1 || e === dr || e.kind === 'chest');
+// claws
+P.inv = 0;
+P.hp = P.maxHp;
+dr.inv = 0;
+dr.x = P.x + 50;
+dr.y = P.y;
+dr.cool = 0;
+dr.flyCD = 9999;
+step(2);
+ok(dr.state === 'swipe', 'up close, it rears back to claw');
+let hpb = P.hp;
+step(30);
+ok(P.hp < hpb, 'the claws land (' + hpb + '→' + P.hp + ')');
+// take off and the air phase
+P.inv = 999;
+dr.flyCD = 1;
+dr.state = 'idle';
+step(45);
+ok(dr.ph === 'air' && dr.z > 40, 'it takes off (z ' + Math.round(dr.z) + ')');
+dr.inv = 0;
+let dh = dr.hp;
+P.x = dr.x - 30;
+P.y = dr.y;
+P.face = 1;
+A.strike(P, 60, 30, { melee: true });
+ok(dr.hp === dh, "in the air, ground punches can't reach it");
+P.ammo = 30;
+P.eq.gun = A.mkItem('gun', 'heavy', 0);
+A.refresh(P);
+A.fireBullet(P, 20, P.z + 27);
+for (let i = 0; i < 30 && dr.hp === dh; i++) step(1);
+ok(dr.hp < dh, 'but bullets do');
+// breath
+P.inv = 0;
+P.hp = P.maxHp;
+dr.br = { t: 0, lanes: [0, 1] };
+dr.breaths = 0;
+for (let i = 0; i < 70; i++) {
+  P.y = A.laneY(0) + 5;
+  P.state = 'idle';
+  step(1);
+}
+ok(P.hp < P.maxHp, 'its breath burns the marked lanes');
+P.hp = P.maxHp;
+dr.br = { t: 0, lanes: [0, 1] };
+for (let i = 0; i < 110; i++) {
+  P.y = A.laneY(2) + 5;
+  P.state = 'idle';
+  step(1);
+}
+ok(P.hp === P.maxHp, 'the lane it leaves dark is safe');
+// a full simulated fight: every phase cycles and the fight ends
+P.inv = 999;
+const seen = new Set();
+let ticks = 0;
+while (dr.state !== 'dead' && ticks < 20000) {
+  seen.add(dr.ph);
+  if (ticks % 12 === 0) {
+    dr.inv = 0;
+    A.hurt(dr, 9, 1, { src: P, bullet: true, ax: dr.x - 40 });
+  }
+  P.hp = P.maxHp;
+  step(1);
+  ticks++;
+}
+ok(
+  dr.state === 'dead' && ['ground', 'takeoff', 'air', 'dive'].every(k => seen.has(k)),
+  `simulated fight: all four phases, Ssareth falls after ${Math.round(ticks / 60)} s`
+);
+step(4);
+ok(
+  A.LEG.feats.b_ssareth && G.picks.some(k => k.item && k.item.leg === 'wyrmheart'),
+  'Who Lights the Way, and Wyrmheart drops'
+);
+ok(!A.genStreet(3, 555).buildings.some(b => b.roost), 'the Roost is gone once Ssareth is dead');
+const wh = A.mkLegend('wyrmheart');
+const mh0 = P.maxHp;
+P.eq.armor = wh;
+A.refresh(P);
+ok(P.maxHp - mh0 >= 40 - 14, 'Wyrmheart: +40 max HP (' + mh0 + '→' + P.maxHp + ')');
+P.inv = 0;
+P.hp = 200;
+P.maxHp = 400;
+A.hurt(P, 20, 1, { fire: true });
+const fireTaken = 200 - P.hp;
+P.inv = 0;
+P.hp = 200;
+P.state = 'idle';
+A.hurt(P, 20, 1, {});
+ok(fireTaken < 200 - P.hp, 'Wyrmheart: fire hurts half as much');
+P.sp = 0;
+A.spGain(P, 40);
+ok(P.sp === 50, 'Wyrmheart: the special meter fills 25% faster');

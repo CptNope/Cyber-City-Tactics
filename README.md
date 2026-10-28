@@ -385,6 +385,14 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 **The Lantern Vault.** Find all 24 lore shards and Juno tells you the rest. From then on, every block has a lantern-lit door: the Lantern Vault. It's four rooms deep, and at the bottom waits the Avatar of Ssareth, the hardest fight in the game. Beating it earns the *Lights Out* feat and a unique legendary, The Lantern.
 
+**The Wyrm's Roost.** Once the Avatar falls, a last door appears on every block: the Wyrm's Roost, three rooms deep, with Ssareth itself at the bottom. It's a one-on-one fight in phases:
+- *On the ground* it stalks you, claws everything in front of it, and sweeps its tail into shockwaves you have to jump.
+- *Every 12 seconds, and as it drops below 70% and 40% health,* it takes off. In the air, ground punches can't reach it; bullets, spells and jump-kicks can. It breathes fire down two of the three lanes: the lanes flicker orange for a second first, so move to the one it leaves dark (a well-timed roll also gets you through).
+- *After three breaths* (four when enraged) it dives at a runner and lands with a shockwave, then the cycle starts again.
+- *Enraged,* below half health, it breathes faster and brings two fire spirits with it each time it takes off.
+
+Slaying Ssareth earns *Who Lights the Way*, the Wyrmslayer coat and the Wyrmheart legendary (exo-frame armor: +40 max HP, fire hurts half as much, and the special meter fills 25% faster). Then the Roost closes for good.
+
 ---
 
 ## Your legend: feats, legendaries and the Codex

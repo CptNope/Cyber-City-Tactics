@@ -35,7 +35,8 @@ const COATS = {
   ice: { name: 'Black ICE', feat: 'b_blackice', coat: '#0b1a26', coat2: '#07121a', acc: '#45d2ff' },
   wanted: { name: 'Most Wanted', feat: 'wanted', coat: '#1d2f5a', coat2: '#16244a', acc: '#ff3d4a' },
   gold: { name: 'Prime Gold', feat: 'win', coat: '#5a4a1a', coat2: '#46380f', acc: '#ffc63d' },
-  lantern: { name: 'Lantern-bearer', feat: 'loreall', coat: '#2a1a3a', coat2: '#1e1229', acc: '#b98cff' }
+  lantern: { name: 'Lantern-bearer', feat: 'loreall', coat: '#2a1a3a', coat2: '#1e1229', acc: '#b98cff' },
+  wyrm: { name: 'Wyrmslayer', feat: 'b_ssareth', coat: '#3a1414', coat2: '#2a0e0e', acc: '#ffc63d' }
 };
 const pendCoat = i =>
   ((typeof G !== 'undefined' && G.pendCoat) || (typeof LEG !== 'undefined' && LEG.pendCoat) || [])[i] ||
@@ -450,6 +451,20 @@ const DEF = {
       acc: '#b98cff',
       boot: '#120a18'
     }
+  },
+  dragon: {
+    name: 'Ssareth',
+    hp: 1500,
+    spd: 0.55,
+    dmg: 20,
+    reach: 62,
+    cool: 80,
+    scale: 2.2,
+    boss: true,
+    dragon: true,
+    heavy: true,
+    creds: [600, 800],
+    karma: 2400
   },
   archmage: {
     name: 'Director Voss',

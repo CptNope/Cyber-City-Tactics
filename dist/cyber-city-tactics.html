@@ -972,7 +972,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+5a82f4c';
+const APP_VERSION = '2.0.0+f4cd989';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2179,7 +2179,8 @@ const COATS = {
   ice: { name: 'Black ICE', feat: 'b_blackice', coat: '#0b1a26', coat2: '#07121a', acc: '#45d2ff' },
   wanted: { name: 'Most Wanted', feat: 'wanted', coat: '#1d2f5a', coat2: '#16244a', acc: '#ff3d4a' },
   gold: { name: 'Prime Gold', feat: 'win', coat: '#5a4a1a', coat2: '#46380f', acc: '#ffc63d' },
-  lantern: { name: 'Lantern-bearer', feat: 'loreall', coat: '#2a1a3a', coat2: '#1e1229', acc: '#b98cff' }
+  lantern: { name: 'Lantern-bearer', feat: 'loreall', coat: '#2a1a3a', coat2: '#1e1229', acc: '#b98cff' },
+  wyrm: { name: 'Wyrmslayer', feat: 'b_ssareth', coat: '#3a1414', coat2: '#2a0e0e', acc: '#ffc63d' }
 };
 const pendCoat = i =>
   ((typeof G !== 'undefined' && G.pendCoat) || (typeof LEG !== 'undefined' && LEG.pendCoat) || [])[i] ||
@@ -2594,6 +2595,20 @@ const DEF = {
       acc: '#b98cff',
       boot: '#120a18'
     }
+  },
+  dragon: {
+    name: 'Ssareth',
+    hp: 1500,
+    spd: 0.55,
+    dmg: 20,
+    reach: 62,
+    cool: 80,
+    scale: 2.2,
+    boss: true,
+    dragon: true,
+    heavy: true,
+    creds: [600, 800],
+    karma: 2400
   },
   archmage: {
     name: 'Director Voss',
@@ -3630,6 +3645,8 @@ const BEST = {
   blade: "Razor Mei dashes through you, then chains three dashes when she's enraged.",
   saint: 'The Hollow Saint summons spirits and slams the floor. Keep moving.',
   archmage: 'Director Voss teleports and fires hexes, five at a time when enraged.',
+  dragon:
+    'Ssareth, who lights the way. On the ground it claws and sweeps its tail; in the air you can only shoot it, cast at it or jump-kick it, while it breathes fire down whole lanes. Find the lane it leaves dark.',
   avatar:
     "Ssareth's avatar: a vessel of chrome and bound fire. It summons spirits, lunges and slams. The great dragon is watching through its eyes."
 };
@@ -3687,6 +3704,12 @@ const LEGS = {
     base: 'launcher',
     name: 'The Lantern',
     fx: 'Every takedown heals 5% HP and restores 5 mana for the whole team.'
+  },
+  wyrmheart: {
+    slot: 'armor',
+    base: 'exo',
+    name: 'Wyrmheart',
+    fx: '+40 max HP, fire hurts you half as much, and your special meter fills 25% faster.'
   }
 };
 const FEATS = [
@@ -3799,6 +3822,14 @@ const FEATS = [
     stat: 'couriers',
     n: 3,
     arch: 'rigger'
+  },
+  {
+    id: 'b_ssareth',
+    name: 'Who Lights the Way',
+    desc: "Slay Ssareth in the Wyrm's Roost.",
+    lp: 120,
+    hidden: 1,
+    leg: 'wyrmheart'
   },
   {
     id: 'b_avatar',
@@ -4106,6 +4137,17 @@ function onKill(t, ks) {
     shardDrop(t.x - 20, t.y + 8, 0.5);
   }
   if (t.bounty) payBounty(t);
+  if (t.kind === 'dragon') {
+    feat('b_ssareth');
+    if (!LEG.legs.includes('wyrmheart')) drop('gear', t.x, t.y + 10, { item: mkLegend('wyrmheart') });
+    G.slow = Math.max(G.slow, 120);
+    (G.toasts = G.toasts || []).push({
+      s: 'Ssareth falls',
+      d: 'Juno: "Every lantern in the city just went out. Nobody is lighting the way anymore. Good."',
+      life: 480,
+      lore: true
+    });
+  }
   if (t.kind === 'avatar') {
     feat('b_avatar');
     if (!LEG.legs.includes('lantern')) drop('gear', t.x, t.y + 10, { item: mkLegend('lantern') });
@@ -4433,7 +4475,12 @@ function refresh(p) {
   };
   if (typeof G !== 'undefined' && modOn('brawl')) p.D.melee *= 1.4;
   if (p.arch === 'adept') p.D.melee *= 1.3;
-  p.maxHp = 70 + a.bod * 14 + (p.lvl - 1) * 5 + (ar && ar.mod === 'padded' ? 25 : 0);
+  p.maxHp =
+    70 +
+    a.bod * 14 +
+    (p.lvl - 1) * 5 +
+    (ar && ar.mod === 'padded' ? 25 : 0) +
+    (ar && ar.leg === 'wyrmheart' ? 40 : 0);
   p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
@@ -5034,6 +5081,7 @@ function hurt(t, dmg, dir, o) {
   if (o.src && o.src.buffT > 0) dmg *= 1.5;
   let crit = false;
   if (t.team === 0) dmg = (dmg * 20) / (20 + t.D.armor);
+  if (t.team === 0 && o.fire && legOf(t, 'armor') === 'wyrmheart') dmg *= 0.5;
   if (t.shield > 0) {
     const a = Math.min(t.shield, dmg);
     t.shield = Math.max(0, Math.round(t.shield - a));
@@ -5414,7 +5462,7 @@ function kill(t, dir, o) {
   }
 }
 function inZ(att, t) {
-  const tz = t.d && t.d.fly ? t.z - 12 : t.z;
+  const tz = t.d && t.d.fly ? t.z - 12 : t.d && t.d.dragon ? t.z - 30 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
 }
 // Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
@@ -5488,6 +5536,7 @@ function strike(att, reach, dmg, o) {
 }
 function hitbox(t) {
   const sc = (t.d && t.d.scale) || 1;
+  if (t.d && t.d.dragon) return [t.z - 30, t.z + 80];
   if (t.d && t.d.fly) return [t.z - 10, t.z + 12];
   return [t.z + 2, t.z + 46 * sc];
 }
@@ -5667,7 +5716,7 @@ function physics(e) {
 function spGain(p, n) {
   if (!p || p.team !== 0 || G.den) return;
   const was = p.sp || 0;
-  p.sp = Math.min(100, was + n);
+  p.sp = Math.min(100, was + n * (legOf(p, 'armor') === 'wyrmheart' ? 1.25 : 1));
   if (was < 100 && p.sp >= 100) {
     say(p, '★ SPECIAL READY', '#ffc63d', 80, 60);
     sfx.loot();
@@ -6792,6 +6841,7 @@ function upEnemy(e) {
   if (e.inv > 0) e.inv--;
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
     // shadows cloak whenever they aren't attacking, and drop the cloak for a while when hit
     if (e.recloakT > 0) e.recloakT--;
@@ -7145,6 +7195,180 @@ function upEnemy(e) {
   } else if (e.state !== 'idle') setS(e, 'idle');
 }
 
+/* Ssareth. Two phases, run on e.ph rather than the animation state:
+ *  ground  - stalks you, claws in front (both claws at once), sweeps its tail into shockwaves behind and ahead
+ *  takeoff - rises over 40 frames; when enraged, two fire spirits come with it
+ *  air     - hovers out of reach (bullets, spells and jump-kicks still land) and breathes fire down lanes:
+ *            a lane flickers orange for a second, then burns for 0.75 s; it always leaves one lane dark
+ *  dive    - after its breaths it dives at a runner and lands with a shockwave, back to the ground phase
+ * It takes off every 12 s on the ground, and straight away when it drops below 70% and 40% health. */
+const DRAGON_Z = 46;
+function dragonTick(e, cd) {
+  const p = (e.tgt = pickTarget(e));
+  e.ph = e.ph || 'ground';
+  e.pt = (e.pt || 0) + 1;
+  if (e.ph === 'ground') {
+    e.flyCD = (e.flyCD === undefined ? 720 : e.flyCD) - 1;
+    const frac = e.hp / e.maxHp,
+      mark = frac < 0.4 ? 2 : frac < 0.7 ? 1 : 0;
+    if ((e.flyCD <= 0 || mark > (e.marks || 0)) && e.state !== 'swipe' && e.state !== 'tail') {
+      e.marks = Math.max(e.marks || 0, mark);
+      e.ph = 'takeoff';
+      e.pt = 0;
+      setS(e, 'idle');
+      sfx.boom();
+      G.shake = Math.max(G.shake, 6);
+      if (e.enraged) for (let i = 0; i < 2; i++) spawnEnemy('spirit', i ? -1 : 1);
+      return;
+    }
+    if (!p) return;
+    const dx = p.x - e.x,
+      adx = Math.abs(dx),
+      ady = Math.abs(p.y - e.y);
+    if (e.state === 'swipe') {
+      if (e.t === 18) {
+        if (!strike(e, d0(e).reach, e.dmg, { kd: true, kb: 8, big: true })) sfx.whiff();
+        G.shake = Math.max(G.shake, 4);
+      }
+      if (e.t >= 34) {
+        setS(e, 'idle');
+        e.cool = cd * rand(0.7, 1.2);
+      }
+      return;
+    }
+    if (e.state === 'tail') {
+      if (e.t === 26) {
+        for (const s of [-1, 1])
+          G.projs.push({
+            k: 'wave',
+            team: 1,
+            x: e.x + s * 30,
+            y: e.y,
+            z: 3,
+            vx: s * 3.4,
+            dmg: e.dmg * 0.8,
+            life: 110,
+            wide: true
+          });
+        sfx.boom();
+        G.shake = 9;
+      }
+      if (e.t >= 44) {
+        setS(e, 'idle');
+        e.cool = cd * rand(0.8, 1.3);
+      }
+      return;
+    }
+    e.face = dx >= 0 ? 1 : -1;
+    if (e.cool > 0) e.cool--;
+    if (e.cool <= 0 && adx < 74 && ady < 22) {
+      setS(e, 'swipe');
+      sfx.heavy();
+      return;
+    }
+    if (e.cool <= 0 && Math.random() < 0.012) {
+      setS(e, 'tail');
+      sfx.spell();
+      return;
+    }
+    const s = d0(e).spd * e.spdMul,
+      tx = p.x - e.face * 58;
+    const mx = clamp(tx - e.x, -s, s),
+      my = clamp(p.y - e.y, -s * 0.6, s * 0.6);
+    e.x = clamp(e.x + mx, G.camX + 40, G.camX + W - 40);
+    e.y = clamp(e.y + my, FY0 + 10, FY1 - 4);
+    if (Math.abs(mx) > 0.1 || Math.abs(my) > 0.1) {
+      if (e.state !== 'walk') setS(e, 'walk');
+      e.walk += 1;
+    } else if (e.state !== 'idle') setS(e, 'idle');
+    return;
+  }
+  if (e.ph === 'takeoff') {
+    e.z = Math.min(DRAGON_Z, e.z + DRAGON_Z / 40);
+    e.x += clamp(G.camX + W / 2 - e.x, -1.5, 1.5);
+    if (e.pt >= 40) {
+      e.ph = 'air';
+      e.pt = 0;
+      e.breaths = 0;
+    }
+    return;
+  }
+  if (e.ph === 'air') {
+    e.z = DRAGON_Z + Math.sin(G.t * 0.06) * 3;
+    if (p) e.face = p.x >= e.x ? 1 : -1;
+    e.x += clamp(G.camX + W / 2 + Math.sin(G.t * 0.01) * 60 - e.x, -0.8, 0.8);
+    const br = e.br;
+    if (!br && e.pt > 30) {
+      // pick the burning lanes: two of three, or all but one when enraged and late in the fight
+      const safe = Math.floor(Math.random() * LANES);
+      e.br = { t: 0, lanes: [0, 1, 2].filter(l => l !== safe) };
+      setS(e, 'breath');
+      sfx.spell();
+      return;
+    }
+    if (br) {
+      br.t++;
+      const warn = e.enraged ? 48 : 60;
+      if (br.t === warn) sfx.boom();
+      if (br.t >= warn && br.t < warn + 45 && (br.t - warn) % 10 === 0) {
+        for (const q of G.ents) {
+          if (q.state === 'dead' || q.out || q.team === 1 || q.z > 22) continue;
+          if (q.team === 0 && q.state === 'roll' && q.t < 15) continue;
+          const lane = Math.min(
+            LANES - 1,
+            Math.max(0, Math.floor(((q.y - FY0 - 6) * LANES) / (FY1 - FY0 - 6)))
+          );
+          if (br.lanes.includes(lane))
+            hurt(q, e.dmg * 0.45, q.x >= e.x ? 1 : -1, { col: '#ff6a3d', fire: true, kb: 2, ax: e.x });
+        }
+      }
+      if (br.t >= warn + 45) {
+        e.br = null;
+        e.pt = 0;
+        e.breaths++;
+        setS(e, 'idle');
+        if (e.breaths >= (e.enraged ? 4 : 3)) {
+          e.ph = 'dive';
+          e.pt = 0;
+          e.diveX = p ? p.x : e.x;
+          e.diveY = p ? p.y : e.y;
+        }
+      }
+    }
+    return;
+  }
+  if (e.ph === 'dive') {
+    e.x += clamp(e.diveX - e.x, -4, 4);
+    e.y += clamp(e.diveY - e.y, -2, 2);
+    e.z = Math.max(0, e.z - DRAGON_Z / 28);
+    if (e.z <= 0) {
+      for (const q of alive())
+        if (Math.abs(q.x - e.x) < 46 && Math.abs(q.y - e.y) < 16)
+          hurt(q, e.dmg * 0.8, q.x >= e.x ? 1 : -1, { kd: true, big: true, col: '#ffc63d', ax: e.x });
+      for (const s of [-1, 1])
+        G.projs.push({
+          k: 'wave',
+          team: 1,
+          x: e.x + s * 30,
+          y: e.y,
+          z: 3,
+          vx: s * 3,
+          dmg: e.dmg * 0.6,
+          life: 90,
+          wide: true
+        });
+      G.shake = 12;
+      sfx.boom();
+      burst(e.x, e.y, 4, '#ff6a3d', 24);
+      e.ph = 'ground';
+      e.pt = 0;
+      e.flyCD = 720;
+      e.cool = 70;
+      setS(e, 'idle');
+    }
+  }
+}
+const d0 = e => e.d;
 // A feral spirit's echo of the last spell any runner cast
 const ECHO_NAME = {
   fire: 'FIREBALL',
@@ -7915,7 +8139,17 @@ const BOUNTY_N = [
   'Iron Juniper'
 ];
 const roomsOf = b =>
-  b.type === 'home' && !b.dirty ? 1 : b.final ? 4 : b.type === 'secret' ? (b.vault ? 3 : 2) : b.tier + 1;
+  b.type === 'home' && !b.dirty
+    ? 1
+    : b.roost
+      ? 3
+      : b.final
+        ? 4
+        : b.type === 'secret'
+          ? b.vault
+            ? 3
+            : 2
+          : b.tier + 1;
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
@@ -8035,6 +8269,26 @@ function genStreet(level, seed) {
       w: 36,
       name: 'The Lantern Vault',
       owner: "Ssareth's vault. The door is warm, and a lantern burns above it.",
+      seed: Math.floor(r() * 1e9),
+      hidden: false
+    });
+  }
+  // the Wyrm's Roost, once the Avatar has fallen
+  if (typeof LEG !== 'undefined' && LEG.feats.b_avatar && !LEG.feats.b_ssareth) {
+    const i = 2 + Math.floor(r() * (B.length - 4)),
+      a = B[i],
+      c = B[i + 1];
+    B.push({
+      id: 97,
+      type: 'secret',
+      vault: true,
+      final: true,
+      roost: true,
+      tier: 3,
+      x: (a.x + a.w / 2 + c.x - c.w / 2) / 2,
+      w: 36,
+      name: "The Wyrm's Roost",
+      owner: 'The door is hot to the touch. Something enormous breathes on the other side.',
       seed: Math.floor(r() * 1e9),
       hidden: false
     });
@@ -8427,9 +8681,12 @@ function enterRoom(i) {
   const r = D0.rng,
     last = i === D0.rooms - 1,
     pool = D0.fac.pool.concat(b.tier >= 3 ? D0.fac.t3 : []);
-  const n = pool.length
-    ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
-    : 0;
+  const n =
+    b.roost && last
+      ? 0
+      : pool.length
+        ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+        : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
@@ -8475,10 +8732,20 @@ function enterRoom(i) {
   if (last) {
     const bk = D0.fac.boss[b.tier];
     if (b.final) {
-      const e = spawnEnemy('avatar', 1);
-      e.x = W - 70;
+      const e = spawnEnemy(b.roost ? 'dragon' : 'avatar', 1);
+      e.x = W - (b.roost ? 110 : 70);
       e.y = (FY0 + FY1) / 2;
       e.inv = 60;
+      if (b.roost) {
+        // a fixed fight rather than scaled by block: tough at any level, beatable with the right tactics
+        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (G.coop ? 1.3 : 1));
+        e.dmg = Math.round(22 * DIFF[G.diff].dmg);
+        e.flyCD = 600;
+        tip(
+          'dragon',
+          'Ssareth! On the ground, stay out of its claws. In the air, find the lane its breath leaves dark.'
+        );
+      }
       G.banner = -160;
       musicPlay('boss');
     } else if (bk) {
@@ -9633,6 +9900,111 @@ function drawDrone(e) {
   ctx.fillRect(2, 6, 9, 2);
   ctx.restore();
 }
+// Ssareth: a long-necked wyrm in violet-black scale with a burning throat, lantern-gold eyes and great wings
+function drawDragon(e) {
+  const sc = e.d.scale,
+    sx = e.x - G.camX,
+    sy = e.y - e.z,
+    st = e.state,
+    air = e.ph === 'air' || e.ph === 'takeoff' || e.ph === 'dive';
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(sx, e.y, 34 * sc * (air ? 0.7 : 1), 6 * sc * (air ? 0.7 : 1), 0, 0, 7);
+  ctx.fill();
+  if (e.inv > 0 && (G.t >> 2) % 2) return;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(e.face * sc, sc);
+  if (st === 'dead') {
+    ctx.globalAlpha = Math.max(0, 1 - e.t / 70);
+    ctx.rotate(Math.min(0.4, e.t * 0.01));
+  }
+  const fl = e.flash > 0 && e.flash % 2,
+    scale1 = fl ? '#ffffff' : '#2a1236',
+    scale2 = fl ? '#eeeeee' : '#1a0b24',
+    belly = fl ? '#ffffff' : '#7a5a1a',
+    flap = air ? Math.sin(G.t * 0.22) : Math.sin(G.t * 0.04) * 0.25,
+    breath = st === 'breath' || (e.br && e.br.t > 0),
+    swipe = st === 'swipe' && e.t >= 12 && e.t <= 22,
+    walk = st === 'walk' ? Math.sin(e.walk * 0.15) : 0,
+    lift = Math.round(flap * 10);
+  // far wing
+  fillPoly([-4, -30, -30, -52 - lift * 1.4, -46, -38 - lift, -38, -30, -24, -26], scale2);
+  // tail
+  const tw = Math.sin(G.t * 0.07) * 4 + (st === 'tail' && e.t > 16 && e.t < 30 ? -10 : 0);
+  fillPoly(
+    [-14, -18, -34, -14 + tw * 0.4, -52, -8 + tw, -58, -10 + tw, -36, -20 + tw * 0.4, -14, -25],
+    scale1
+  );
+  fillPoly([-56, -9 + tw, -62, -16 + tw, -60, -6 + tw], '#ffc63d');
+  // legs
+  ctx.strokeStyle = scale2;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  if (!air) {
+    for (const [hx, ph] of [
+      [-10, 0],
+      [8, Math.PI]
+    ]) {
+      const sw = walk ? Math.sin(e.walk * 0.15 + ph) * 3 : 0;
+      ctx.beginPath();
+      ctx.moveTo(hx, -16);
+      ctx.lineTo(hx + 2 + sw * 0.5, -8);
+      ctx.lineTo(hx + sw, 0);
+      ctx.stroke();
+    }
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-8, -16);
+    ctx.lineTo(-12, -8);
+    ctx.moveTo(8, -16);
+    ctx.lineTo(4, -8);
+    ctx.stroke();
+  }
+  // body
+  fillPoly([-18, -30, 6, -34, 18, -26, 16, -16, -16, -14, -22, -22], scale1);
+  fillPoly([-14, -16, 14, -17, 12, -13, -12, -12], belly);
+  for (let k = 0; k < 5; k++)
+    fillPoly([-14 + k * 6, -33 + (k % 2), -11 + k * 6, -38, -8 + k * 6, -33], scale2);
+  // neck and head, rearing back to breathe, lunging forward to claw
+  const hx = breath ? 26 : swipe ? 34 : 28,
+    hy = breath ? -52 : swipe ? -34 : -46;
+  fillPoly([10, -30, 18, -34, hx - 2, hy + 4, hx - 6, hy + 10, 12, -24], scale1);
+  fillPoly([hx - 6, hy - 4, hx + 8, hy - 2, hx + 14, hy + 3, hx + 6, hy + 7, hx - 6, hy + 6], scale1);
+  fillPoly([hx - 4, hy - 4, hx - 9, hy - 12, hx, hy - 5], scale2);
+  fillPoly([hx + 1, hy - 3, hx - 2, hy - 11, hx + 5, hy - 3], scale2);
+  ctx.fillStyle = '#ffc63d';
+  ctx.fillRect(hx + 3, hy - 1, 3, 1.6);
+  if (breath) {
+    ctx.fillStyle = `rgba(255,106,61,${0.6 + 0.4 * Math.sin(G.t * 0.6)})`;
+    ctx.beginPath();
+    ctx.arc(hx + 14, hy + 4, 3 + Math.sin(G.t * 0.5), 0, 7);
+    ctx.fill();
+  }
+  // claws
+  if (swipe) {
+    ctx.strokeStyle = '#efe9ff';
+    ctx.lineWidth = 1.2;
+    for (let k = 0; k < 3; k++) {
+      ctx.beginPath();
+      ctx.moveTo(30 + k * 4, -30);
+      ctx.lineTo(44 + k * 4, -8);
+      ctx.stroke();
+    }
+  }
+  // near wing
+  fillPoly([2, -32, -8, -64 - lift * 2, -34, -54 - lift * 1.4, -24, -40, -10, -30], fl ? '#fff' : '#3a1a4a');
+  ctx.strokeStyle = fl ? '#fff' : '#5a2a6a';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(-8, -64 - lift * 2);
+  ctx.lineTo(-14, -34);
+  ctx.moveTo(-8, -64 - lift * 2);
+  ctx.lineTo(-24, -42);
+  ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
 // Mech walker: a plated cockpit on two reverse-jointed legs, gun forward, a glowing vent on its back
 function drawMech(e) {
   const sc = e.d.scale * (e.mini ? 0.7 : 1),
@@ -9993,6 +10365,7 @@ function drawFig(e) {
   if (e.d && e.d.fly) return drawDrone(e);
   if (e.d && e.d.quad) return drawHound(e);
   if (e.d && e.d.mech) return drawMech(e);
+  if (e.d && e.d.dragon) return drawDragon(e);
   const sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
@@ -11717,6 +12090,34 @@ function drawHud() {
     }
   }
 }
+// Ssareth's breath: orange outlines on the lanes about to burn, then a wall of fire down each one
+function drawBreath(e) {
+  const br = e.br,
+    warn = e.enraged ? 48 : 60;
+  for (const l of br.lanes) {
+    const y0 = laneY(l),
+      y1 = laneY(l + 1);
+    if (br.t < warn) {
+      if ((G.t >> 2) % 2) {
+        ctx.fillStyle = 'rgba(255,106,61,0.10)';
+        ctx.fillRect(0, y0, W, y1 - y0);
+        ctx.strokeStyle = 'rgba(255,106,61,0.7)';
+        ctx.strokeRect(1, y0 + 0.5, W - 2, y1 - y0 - 1);
+      }
+    } else {
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, 'rgba(255,198,61,0.25)');
+      g.addColorStop(1, 'rgba(255,61,26,0.45)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y0, W, y1 - y0);
+      for (let k = 0; k < W / 12; k++) {
+        const fx = k * 12 + ((G.t * 5 + k * 7) % 12),
+          fh = 8 + ((k * 31 + G.t * 3) % 14);
+        fillPoly([fx - 5, y1, fx, y1 - fh, fx + 5, y1], k % 2 ? '#ff6a3d' : '#ffc63d');
+      }
+    }
+  }
+}
 // Hazard rooms: a flickering warning, then a live lane of current; or growing shadows under falling debris
 function drawHazard() {
   const h = G.hazard;
@@ -11896,6 +12297,7 @@ function render() {
     ctx.fillRect(0, 0, W, VH);
   }
   drawBeams();
+  for (const e of G.ents) if (e.d && e.d.dragon && e.br) drawBreath(e);
   drawFx();
   drawCompare();
   drawRevive();
@@ -12197,17 +12599,19 @@ function bcardHtml(b) {
   const good = isGood(b),
     lo = G.wd.looted.includes(b.id),
     lock = b.lockUntil && b.lockUntil > Date.now();
-  const kind = b.final
-    ? 'The final job'
-    : {
-        home: b.dirty ? 'Residence · dirty money' : 'Residence',
-        business: 'Business',
-        hideout: 'Gang hideout',
-        blacksite: 'Corporate black site',
-        club: 'Gang nightclub',
-        precinct: 'Lone Star precinct',
-        secret: 'Hidden door'
-      }[b.type];
+  const kind = b.roost
+    ? 'The last door'
+    : b.final
+      ? 'The final job'
+      : {
+          home: b.dirty ? 'Residence · dirty money' : 'Residence',
+          business: 'Business',
+          hideout: 'Gang hideout',
+          blacksite: 'Corporate black site',
+          club: 'Gang nightclub',
+          precinct: 'Lone Star precinct',
+          secret: 'Hidden door'
+        }[b.type];
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
     rooms = roomsOf(b),
     f = FAC[facOf(b)];
