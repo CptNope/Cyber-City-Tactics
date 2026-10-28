@@ -535,6 +535,8 @@ src/js/ui/             menus and buttons
 src/js/pwa.js          install, updates, backups, shortcuts
 src/js/main.js         game loop and boot
 icons/, screenshots/   app icons and install-dialog screenshots
+docs/store/            store kit: trailer, cover, social card, screenshots and itch.io copy (tools/capture.mjs)
+src/fonts/             Teko and Chakra Petch, self-hosted (SIL OFL)
 dist/                  generated single-file build
 tools/                 build, local server, screenshot generator
 tests/                 headless tests and browser tests

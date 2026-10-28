@@ -10,12 +10,16 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = 'cf9783aa11f9';
+const VERSION = 'c51744d54883';
 const PRECACHE = [
   './',
   'index.html',
   'manifest.webmanifest',
   'src/css/game.css',
+  'src/fonts/teko-500.woff',
+  'src/fonts/teko-600.woff',
+  'src/fonts/chakra-petch-400.woff',
+  'src/fonts/chakra-petch-600.woff',
   'src/js/version.js',
   'src/js/core/canvas.js',
   'src/js/core/utils.js',

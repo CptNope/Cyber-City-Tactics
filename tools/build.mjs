@@ -36,11 +36,16 @@ const manifest = JSON.parse(read('manifest.webmanifest'));
 const icons = new Set(['icons/apple-touch-icon.png', 'icons/favicon-32.png']);
 for (const i of manifest.icons || []) icons.add(i.src);
 for (const s of manifest.shortcuts || []) for (const i of s.icons || []) icons.add(i.src);
-for (const f of [...scripts, ...styles, ...icons])
+// fonts the stylesheets use (url('../fonts/...')), resolved against each stylesheet
+const fonts = [];
+for (const s of styles)
+  for (const m of read(s).matchAll(/url\('(\.\.\/fonts\/[^']+)'\)/g))
+    fonts.push(join(dirname(s), m[1]).replace(/\\/g, '/'));
+for (const f of [...scripts, ...styles, ...icons, ...fonts])
   if (!existsSync(join(ROOT, f))) throw new Error('missing file: ' + f);
 
 // ---- version: a hash of everything the service worker precaches (except version.js, which holds it) ----
-const precache = ['./', 'index.html', 'manifest.webmanifest', ...styles, ...scripts, ...icons];
+const precache = ['./', 'index.html', 'manifest.webmanifest', ...styles, ...fonts, ...scripts, ...icons];
 const h = createHash('sha256');
 for (const f of precache) {
   if (f === './' || f === 'src/js/version.js') continue;
@@ -77,7 +82,15 @@ const js = scripts
     return `/* ===== ${f} ===== */\n` + src.replace(/^'use strict';\n/m, '');
   })
   .join('\n');
-const css = styles.map(f => read(f)).join('\n');
+// the single file can't fetch font files, so they ride along as data URIs
+const css = styles
+  .map(f =>
+    read(f).replace(/url\('(\.\.\/fonts\/[^']+)'\)/g, (_, rel) => {
+      const p = join(dirname(f), rel);
+      return `url('data:font/woff;base64,${readFileSync(join(ROOT, p)).toString('base64')}')`;
+    })
+  )
+  .join('\n');
 const head = index.slice(index.indexOf('<head>') + 6, index.indexOf('</head>'));
 const bodyStart = index.indexOf('<body>') + 6;
 const markup = index.slice(bodyStart, index.indexOf('<!-- Game scripts.')).trim();

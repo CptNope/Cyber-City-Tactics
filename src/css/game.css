@@ -1,3 +1,29 @@
+/* Brand fonts, self-hosted (SIL Open Font License, see src/fonts/): Teko for display, Chakra Petch for text.
+   Bundled with the game so it looks right offline and nothing loads from a third party. Latin subset. */
+@font-face {
+  font-family: 'Teko';
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/teko-500.woff') format('woff');
+}
+@font-face {
+  font-family: 'Teko';
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/teko-600.woff') format('woff');
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/chakra-petch-400.woff') format('woff');
+}
+@font-face {
+  font-family: 'Chakra Petch';
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/chakra-petch-600.woff') format('woff');
+}
 /* Cyber City Tactics · src/css/game.css — all styles for the page, menus and touch controls. */
 /* Layout: one-screen arcade cabinet — canvas fills the stage, touch pad below (portrait) or over the stage (landscape). Single dark look by design. */
 :root {

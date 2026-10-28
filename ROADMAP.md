@@ -131,7 +131,7 @@ Picked from what the graphics pass turned up:
 ### Reach and onboarding
 - [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now eleven, with a new parry drill), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.
 - [x] ~~**Real-device performance reports.**~~ Shipped: Settings › Performance report copies the version, browser, screen and canvas size, quality step, frame rate and game speed.
-- [ ] **Store listing kit (S).** Screenshots and a short trailer captured from the game itself for itch.io and the PWA install sheet.
+- [x] ~~**Store listing kit.**~~ Shipped in `docs/store/`: a 22-second trailer, six 1920×1080 shots, an itch.io cover, a social card (now the page's link preview) and page copy, plus fresh install-dialog screenshots, all made by `tools/capture.mjs` from the live game. The brand fonts are now bundled with the game, so it looks right offline too.
 
 ### Engineering
 - [x] ~~**Check in the test bots.**~~ `tests/` with `npm test`, plus Playwright browser checks.

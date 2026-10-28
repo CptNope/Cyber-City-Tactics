@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Cyber City Tactics",
   "short_name": "Cyber City",
-  "description": "A vector brawler RPG for one or two players: a five-district campaign, an open-world Sprawl, Arena waves, skill trees, legendaries and secrets. Plays offline.",
+  "description": "A vector brawler RPG for one or two players: a six-district campaign, an open-world Sprawl, Arena waves, skill trees, legendaries and secrets. Plays offline.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./?source=pwa",
@@ -51,26 +51,9 @@
     }
   ],
   "screenshots": [
-    {
-      "src": "screenshots/wide-sprawl.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Night market on a Sprawl block"
-    },
-    {
-      "src": "screenshots/narrow-codex.png",
-      "sizes": "780x1688",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "The Codex: feats, legendaries and lore"
-    },
-    {
-      "src": "screenshots/narrow-play.png",
-      "sizes": "780x1688",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Touch controls in portrait"
-    }
+    {"src": "screenshots/wide-market.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Mother Vesper's night market under the tunnels"},
+    {"src": "screenshots/wide-street.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Two runners in a storm on Rustline"},
+    {"src": "screenshots/narrow-play.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "Touch controls in portrait"},
+    {"src": "screenshots/narrow-codex.png", "sizes": "780x1688", "type": "image/png", "form_factor": "narrow", "label": "The Codex: feats, legendaries and lore"}
   ]
 }
