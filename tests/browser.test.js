@@ -220,7 +220,8 @@ const { pathToFileURL } = require('url');
       ok((await focused()) === 'new', 'D-pad reaches Start solo');
       await press('A');
       if ((await mode()) === 'trainoffer') {
-        for (let i = 0; i < 6 && (await focused()) !== 'trainskip'; i++) await press(i % 2 ? 'Down' : 'Right');
+        for (let i = 0; i < 6 && (await focused()) !== 'trainskip'; i++)
+          await press(i % 2 ? 'Down' : 'Right');
         ok(
           (await focused()) === 'trainskip',
           'the D-pad reaches "Skip, start the run" on the first-run training offer'
