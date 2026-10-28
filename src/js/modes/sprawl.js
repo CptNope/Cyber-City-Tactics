@@ -739,9 +739,11 @@ function worldTick() {
     return;
   }
   G.doorPrompt = null;
+  G.traderPrompt = false;
   for (const p of alive()) {
     const b = nearDoor(p);
     if (b) G.doorPrompt = b;
+    else if (nearTrader(p)) G.traderPrompt = true;
   }
   if (PL[0]) w.lastX = PL[0].x;
   for (const b of w.street.buildings)

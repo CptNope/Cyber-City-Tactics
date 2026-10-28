@@ -148,6 +148,12 @@ function drawBuildings(base) {
     }
   }
 }
+function drawMinimapTrader(x0, mw, y) {
+  const t = traderOf(G.wd);
+  if (!t) return;
+  ctx.fillStyle = '#b98cff';
+  ctx.fillRect(x0 + (t.x / G.wd.street.len) * mw - 2, y - 3, 4, 4);
+}
 function drawMinimap() {
   const w = G.wd,
     st = w.street,
@@ -180,6 +186,7 @@ function drawMinimap() {
       ctx.fillStyle = (G.t >> 3) % 2 ? '#45d2ff' : '#ff3d4a';
       ctx.fillRect(x0 + (e.x / st.len) * mw - 1, y + 1, 2, 2);
     }
+  drawMinimapTrader(x0, mw, y);
   for (const p of alive()) {
     ctx.fillStyle = '#efe9ff';
     ctx.fillRect(x0 + (p.x / st.len) * mw - 1, y - 4, 2, 8);

@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '95c21ead3c6c';
+const VERSION = '04e8069632ae';
 const PRECACHE = [
   './',
   'index.html',
@@ -37,6 +37,7 @@ const PRECACHE = [
   'src/js/game/enemies.js',
   'src/js/game/update.js',
   'src/js/modes/sprawl.js',
+  'src/js/modes/blackmarket.js',
   'src/js/modes/dungeons.js',
   'src/js/modes/hacking.js',
   'src/js/modes/training.js',

@@ -124,7 +124,7 @@ Picked from what the graphics pass turned up:
 ### Inventory and economy
 - [x] ~~**Stash.**~~ Shipped: 60 slots, shared between Ratchet's locker in the Den and the Sprawl safehouse's Stash tab. Stashed gear can't be sold by accident; it belongs to the save, so a new run starts empty.
 - [x] ~~**New-item markers and sorting.**~~ Shipped: a NEW tag on gear until you close the character sheet, and a Best / Value / Newest toggle on every bag list.
-- [ ] **Rotating black market (M).** A trader who appears on random Sprawl blocks with one rare item, a price that drops each block you ignore it, and a cred requirement.
+- [x] ~~**Rotating black market.**~~ Shipped: Sable sets up her cart between buildings on about two in five Sprawl blocks (fixed by the block's seed, marked on the minimap) with one Black-market item. Her offer follows you; every block you walk past it, the price drops 15%, down to half. She only deals at cred +15 or with the Fence skill.
 - [ ] **Haggling (S).** A Face-style skill in the Decker tree, or a street-cred perk, that improves buy and sell prices.
 - [ ] **Item sets (L)** stay planned under Gear and loot.
 

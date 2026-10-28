@@ -351,7 +351,13 @@ ov.addEventListener('click', e => {
       const rep = G.wd.rep,
         ck = G.wd.copKills,
         fac = G.wd.fac;
+      const bm = G.wd.bm;
       G.wd = newWorld(G.wd.level + 1);
+      // Sable's offer follows you, a little cheaper for every block you walked past it
+      if (bm) {
+        bm.skips = (bm.skips || 0) + 1;
+        G.wd.bm = bm;
+      }
       G.wd.rep = rep;
       G.wd.fac = fac || {};
       G.wd.copKills = ck;
@@ -553,6 +559,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'bmbuy':
+      bmBuy();
+      rerender();
+      break;
     case 'locker':
       setMode('locker');
       break;

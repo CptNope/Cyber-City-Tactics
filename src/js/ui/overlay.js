@@ -51,6 +51,7 @@ function renderOv() {
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
+  if (m === 'trader') h = traderHtml();
   if (m === 'locker') {
     h = `<div class="card"><p class="eyebrow">The Den · Ratchet's back room</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Your locker</h2><span class="wallet">¥${PARTY.creds}</span></div>${stashHtml()}
     <div class="row"><button class="btn" data-a="lockerback">Back to Ratchet</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;

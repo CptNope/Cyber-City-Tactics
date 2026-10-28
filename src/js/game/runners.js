@@ -433,6 +433,13 @@ function upRunner(p) {
         openDoor(door);
         return;
       }
+      if (
+        nearTrader(p) &&
+        !G.ents.some(e => e.team === 1 && e.state !== 'dead' && !e.d.passive && Math.abs(e.x - p.x) < 70)
+      ) {
+        openTrader();
+        return;
+      }
       const prop = !G.den && G.props.find(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9);
       const foeNear = G.ents.some(
         e =>

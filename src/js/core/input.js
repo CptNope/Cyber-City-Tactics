@@ -283,6 +283,7 @@ function updateTouchUI() {
     kick = 'KICK';
   if (G.mode === 'den' && nearNPC(p)) punch = 'TALK';
   else if (G.world && !G.dun && nearDoor(p)) punch = 'ENTER';
+  else if (G.world && !G.dun && nearTrader(p)) punch = 'TRADE';
   else if (p.state === 'grab') {
     punch = 'KNEE';
     kick = 'THROW';

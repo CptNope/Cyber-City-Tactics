@@ -233,6 +233,12 @@ function lampColor(S) {
 function drawStreetLights(S, cx) {
   LIGHTS.length = 0;
   if (!outdoors(S)) return;
+  // Sable's holo-sign lights whoever comes to deal
+  const tr = G.world && G.wd ? traderOf(G.wd) : null;
+  if (tr) {
+    drawTrader(FY0 - 6);
+    LIGHTS.push(tr.x + 9 - cx, FY0 + 6, '#b98cff', 60);
+  }
   const step = 260,
     k0 = Math.floor((cx - 120) / step),
     lamp = lampColor(S),
@@ -242,6 +248,7 @@ function drawStreetLights(S, cx) {
     if (h < 0.3) continue;
     const x = k * step + 40 + hash01(k * 37) * 150 - cx,
       y = FY0 + 5;
+    if (tr && Math.abs(x + cx - tr.x) < 50) continue; // leave Sable's corner to her own sign
     // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
     const barrel = !S.tunnel && !S.grid && h < 0.62;
     if (barrel) {

@@ -385,6 +385,14 @@ function drawHud() {
   }
   if (G.world && !G.dun && G.wd) {
     drawMinimap();
+    if (G.traderPrompt && !G.doorPrompt) {
+      const t = traderOf(G.wd);
+      txt('▼ SABLE · BLACK MARKET', t.x - G.camX, 140, 13, '#b98cff', 'center');
+      ctx.font = '10px "Chakra Petch", sans-serif';
+      ctx.fillStyle = '#efe9ff';
+      ctx.textAlign = 'center';
+      ctx.fillText(ctl('Tap TRADE', 'J to trade'), t.x - G.camX, 152);
+    }
     if (G.doorPrompt) {
       const b = G.doorPrompt,
         sx = b.x - G.camX,
