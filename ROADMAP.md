@@ -115,7 +115,7 @@ The guiding rules:
 ### Feel and presentation, round two
 Picked from what the graphics pass turned up:
 - [x] ~~**Elites you can read at a glance.**~~ Shipped: armored elites wear steel plates that bullets spark off, berserkers leave red afterimages and steam, warded ones turn a ring of runes that ripples when a spell slides off, vampiric ones have a heartbeat glow and visibly drain you.
-- [ ] **Hit reactions and deaths (M).** Knock-back poses that depend on the hit (a stagger, a spin from a heavy blow, a launch from an uppercut) and a few death animations instead of one fall.
+- [x] ~~**Hit reactions and deaths.**~~ Shipped: punches alternate a head snap and a doubled-over flinch, bullets jolt, shocks lock the body rigid, heavy blows spin them through the air, uppercuts tip them over backward with flailing limbs. A finishing jab drops them face-down where they stand; fire kills char and smoke, shock kills twitch and spark, magic kills dissolve into rising motes.
 - [ ] **Boss entrances (S).** A name card, a short camera push and a beat of music for each boss, skippable and shown once per run.
 - [ ] **Street props with light (S).** Fire barrels, vending machines and parked spinners that cast glow on the people standing next to them.
 - [ ] **District weather (S).** Fog banks in the Tunnels, sleet over the Arcology, lightning flashes that light the whole street for a frame.

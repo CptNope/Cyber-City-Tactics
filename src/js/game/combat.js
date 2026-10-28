@@ -312,6 +312,17 @@ function hurt(t, dmg, dir, o) {
       sm: true
     });
   }
+  // How the hit should look (visual only): the motion it causes and any element it carries
+  t.react =
+    o.src && o.src.state === 'upper'
+      ? 'launch'
+      : o.big || (o.kb || 0) >= 8
+        ? 'spin'
+        : o.bullet
+          ? 'gun'
+          : 'light';
+  t.elem = o.fire || o.col === '#ff6a3d' ? 'fire' : o.col === '#45d2ff' ? 'shock' : o.magic ? 'magic' : null;
+  t.reactN = (t.reactN || 0) + 1;
   if (t.d && t.d.boss && !t.enraged && t.hp > 0 && t.hp < t.maxHp * 0.5) enrage(t);
   if (t.team === 0) {
     if (t.holding) dropProp(t);
@@ -418,8 +429,10 @@ function kill(t, dir, o) {
     }
   }
   setS(t, 'dead');
-  t.vz = 3.2;
-  t.vx = dir * 2.6;
+  // a finishing jab drops them where they stand (a small hop, then face-down); anything bigger sends them flying
+  const crumple = t.react === 'light' && !t.elem && t.z === 0;
+  t.vz = crumple ? 1.4 : 3.2;
+  t.vx = dir * (crumple ? 0.6 : 2.6);
   t.hp = 0;
   if (t.team === 0) {
     t.dead = true;

@@ -136,3 +136,53 @@ ok(!boss.extra && !boss.build, 'bosses keep their signature look');
   }
   ok(!threw, 'every elite look draws cleanly' + (threw ? ': ' + threw.message : ''));
 }
+
+// hit reactions and deaths: the hit decides how it looks
+{
+  const mk = () => {
+    const e = A.spawnEnemy('ganger', 1);
+    e.elite = null;
+    e.inv = 0;
+    e.hp = 999;
+    return e;
+  };
+  const g = mk();
+  A.hurt(g, 5, 1, { bullet: true });
+  ok(g.react === 'gun', 'a bullet hit jolts');
+  const h = mk();
+  A.hurt(h, 5, 1, { big: true, kd: true, kb: 10 });
+  ok(h.react === 'spin', 'a heavy blow spins them');
+  const f = mk();
+  A.hurt(f, 5, 1, { col: '#ff6a3d', big: true });
+  ok(f.elem === 'fire', 'fire hits are remembered for a burning death');
+  const j = mk();
+  j.hp = 3;
+  A.hurt(j, 10, 1, { melee: true });
+  ok(j.state === 'dead' && j.vz <= 1.4 && j.react === 'light', 'a finishing jab drops them where they stand');
+  const k = mk();
+  k.hp = 3;
+  A.hurt(k, 10, 1, { big: true, kd: true, kb: 10 });
+  ok(k.state === 'dead' && k.vz > 3, 'a finishing heavy blow sends them flying');
+  let threw = null;
+  try {
+    for (const el of [null, 'fire', 'shock', 'magic'])
+      for (const rk of ['light', 'gun', 'spin', 'launch']) {
+        const e = mk();
+        e.react = rk;
+        e.elem = el;
+        for (const st of ['hurt', 'down', 'dead']) {
+          A.setS(e, st);
+          for (const z of [0, 12]) {
+            e.z = z;
+            for (const tt of [2, 30, 50]) {
+              e.t = tt;
+              A.drawFig(e);
+            }
+          }
+        }
+      }
+  } catch (err) {
+    threw = err;
+  }
+  ok(!threw, 'every reaction and death draws cleanly' + (threw ? ': ' + threw.message : ''));
+}

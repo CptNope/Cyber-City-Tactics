@@ -39,6 +39,39 @@ function joint(a, c, bend) {
   const L = Math.hypot(dx, dy) || 1;
   return [mx - (dy / L) * bend, my + (dx / L) * bend];
 }
+// Elemental deaths, drawn in screen space around the body: embers and smoke for fire, sparks for shock,
+// motes rising as a magical death dissolves the body
+function deathFx(e, sx, sc) {
+  const t = e.t,
+    y = e.y - e.z - (e.z > 0 ? 20 : 6) * sc,
+    lite = lowFx();
+  if (e.elem === 'fire') {
+    for (let i = 0; i < (lite ? 2 : 5); i++) {
+      const ph = ((t * 1.3 + i * 17) % 40) / 40;
+      glow(
+        sx + Math.sin(i * 2.1 + ph * 3) * 8,
+        y - ph * 30,
+        3 + ph * 7,
+        3 + ph * 7,
+        '#2a2236',
+        0.5 * (1 - ph)
+      );
+      if (t < 50) glow(sx + Math.sin(i * 1.3) * 10, y - ph * 18, 2, 2, '#ff6a3d', 0.9 * (1 - ph));
+    }
+  } else if (e.elem === 'shock') {
+    if (t < 50 && t % 7 < 3) {
+      const k = hash01(t * 13 + (e.x | 0));
+      glow(sx - 8 + k * 16, y - k * 6, 5, 5, '#45d2ff', 0.9);
+      glow(sx - 8 + k * 16, y - k * 6, 1.5, 1.5, '#ffffff', 1);
+    }
+  } else if (e.elem === 'magic') {
+    for (let i = 0; i < (lite ? 3 : 7); i++) {
+      const ph = ((t * 1.1 + i * 9) % 36) / 36;
+      if (t < 12 && ph > t / 12) continue;
+      glow(sx + Math.sin(i * 2.7) * 9 * sc, y - ph * 34, 2.5, 2.5, '#b98cff', 0.85 * (1 - ph));
+    }
+  }
+}
 // Pose easing: limbs glide toward each new key pose instead of snapping to it. Rates are per logic step, so
 // motion looks the same at any refresh rate; strikes use a fast rate so hits stay snappy, everything else a
 // softer one, which gives wind-ups their anticipation and recoveries their follow-through.
@@ -642,18 +675,36 @@ function drawFig(e) {
     sy = e.y - e.z;
   shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
   if (e.inv > 0 && e.state !== 'down' && e.state !== 'roll' && (G.t >> 2) % 2) return;
-  if (e.state === 'dead' && e.t > 40 && (G.t >> 2) % 2) return;
+  // Deaths: physical ones blink out the classic way; elemental ones burn, short out or dissolve instead
+  const dead = e.state === 'dead',
+    elem = dead ? e.elem : null;
+  if (dead && !elem && e.t > 40 && (G.t >> 2) % 2) return;
+  if (dead && elem) deathFx(e, sx, sc);
   ctx.save();
+  if (dead && elem) ctx.globalAlpha *= Math.max(0, 1 - Math.max(0, e.t - (elem === 'magic' ? 18 : 32)) / 34);
   ctx.translate(sx, sy);
   ctx.scale(e.face * sc, sc);
   const st = e.state,
     t = e.t,
-    lying = st === 'down' || st === 'dead';
+    lying = st === 'down' || st === 'dead',
+    rk = e.react,
+    // a finishing jab: they fold forward and land face-down
+    fwd = dead && rk === 'light' && !elem;
   if (lying) {
-    if (e.z > 0) ctx.rotate(-Math.min(1.5, t * 0.12));
-    else {
+    if (e.z > 0) {
+      if (rk === 'spin')
+        ctx.rotate(-t * 0.42); // a heavy blow spins them through the air
+      else if (rk === 'launch')
+        ctx.rotate(-Math.min(2.4, t * 0.09)); // an uppercut tips them over backward
+      else ctx.rotate((fwd ? 1 : -1) * Math.min(1.5, t * 0.12));
+    } else if (fwd) {
+      ctx.translate(6, -4);
+      ctx.rotate(Math.PI / 2);
+    } else {
       ctx.translate(-6, -4);
       ctx.rotate(-Math.PI / 2);
+      // shorted out: the body jolts now and then where it lies
+      if (elem === 'shock' && t % 14 < 2) ctx.rotate(0.06);
     }
   }
   if (st === 'roll') {
@@ -664,11 +715,14 @@ function drawFig(e) {
   if (st === 'grabbed') {
     ctx.rotate(0.15);
   }
-  const fl = e.flash > 0 && e.flash % 2;
-  const skin = fl ? '#ffffff' : pal.skin,
-    coat = fl ? '#ffffff' : pal.coat,
-    coat2 = fl ? '#e8e8e8' : pal.coat2,
-    pants = fl ? '#ffffff' : pal.pants;
+  const fl = e.flash > 0 && e.flash % 2,
+    // burned: the colours char toward ash as the body cools
+    ch = elem === 'fire' ? Math.min(0.8, t / 30) : 0,
+    burnt = c => (ch ? mixHex(c, '#1a1418', ch) : c);
+  const skin = fl ? '#ffffff' : burnt(pal.skin),
+    coat = fl ? '#ffffff' : burnt(pal.coat),
+    coat2 = fl ? '#e8e8e8' : burnt(pal.coat2),
+    pants = fl ? '#ffffff' : burnt(pal.pants);
   const ws = Math.sin(e.walk * 0.2),
     wc = Math.cos(e.walk * 0.2);
   let hip = [0, -20],
@@ -804,6 +858,38 @@ function drawFig(e) {
     lean = -6;
     fh = [2, -38];
     bh = [-10, -36];
+    if (st === 'hurt' && e.elem === 'shock') {
+      // locked rigid, arms thrown out, buzzing
+      lean = t % 4 < 2 ? -2 : 2;
+      fh = [12, -40];
+      bh = [-12, -41];
+      ff = [6, 0];
+      bf = [-7, 0];
+    } else if (st === 'hurt' && rk === 'gun') {
+      // a round lands: a sharp jolt back, arms flung
+      lean = -4;
+      fh = [5, -35];
+      bh = [-11, -30];
+    } else if (st === 'hurt' && rk === 'light' && (e.reactN || 0) % 2) {
+      // every other punch: doubled over, hands to the gut
+      lean = 5;
+      hip = [0, -19];
+      sh = [2, -31];
+      fh = [8, -23];
+      bh = [5, -22];
+      ff = [5, 0];
+      bf = [-5, 0];
+    }
+  }
+  if (lying && e.z > 0 && (rk === 'launch' || rk === 'spin')) {
+    // airborne: limbs flail
+    const w = Math.sin(G.t * 0.9);
+    fh = [8 + w * 4, -42];
+    bh = [-8 - w * 4, -40];
+    ff = [6, -6 + w * 3];
+    bf = [-6, -4 - w * 3];
+    fkb = 6;
+    bkb = 6;
   }
   if (st === 'grab') {
     fh = [13, -30];
