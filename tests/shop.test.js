@@ -152,3 +152,43 @@ ok(!PARTY.bag.includes(keep), 'unlocked, it drops normally');
   click('new');
   ok(PARTY.stash.length === 0, 'a new run starts with an empty stash (it belongs to the save)');
 }
+
+// haggling: once per counter per visit, win or lose
+{
+  A.enterDen();
+  A.openNPC('doc');
+  ok(/data-a="haggle"/.test(els.ov._h), 'every counter offers a haggle');
+  const base = A.buyMul();
+  const r0 = Math.random;
+  Math.random = () => 0; // a sure win
+  click('haggle');
+  Math.random = r0;
+  ok(
+    Math.abs(A.buyMul() - base * 0.85) < 1e-9 && /talked them down/.test(els.ov._h),
+    'winning takes 15% off this visit'
+  );
+  click('haggle');
+  ok(Math.abs(A.buyMul() - base * 0.85) < 1e-9, 'one try per visit');
+  A.openNPC('ratchet');
+  ok(Math.abs(A.buyMul() - base) < 1e-9, 'the next counter starts fresh');
+  Math.random = () => 0.999; // a sure loss
+  click('haggle');
+  Math.random = r0;
+  ok(
+    A.sellRate() < 0.4 * 0.95 && /dug in/.test(els.ov._h),
+    'losing makes their prices 10% worse until you leave'
+  );
+  A.openNPC('juno');
+  ok(!/data-a="haggle"/.test(els.ov._h), 'Juno is a fixer, not a shop: no haggling');
+}
+// performance report
+{
+  click('leave');
+  click('quit');
+  click('settings');
+  click('perfreport');
+  ok(
+    /Cyber City Tactics/.test(A.G.perfTxt) && /fps/.test(A.G.perfTxt) && /Graphics:/.test(A.G.perfTxt),
+    'Settings copies a performance report'
+  );
+}

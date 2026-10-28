@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '04e8069632ae';
+const VERSION = 'e50037315fb7';
 const PRECACHE = [
   './',
   'index.html',
@@ -28,6 +28,7 @@ const PRECACHE = [
   'src/js/data/legend-data.js',
   'src/js/systems/legend.js',
   'src/js/systems/skills.js',
+  'src/js/systems/haggle.js',
   'src/js/game/state.js',
   'src/js/game/flow.js',
   'src/js/game/combat.js',

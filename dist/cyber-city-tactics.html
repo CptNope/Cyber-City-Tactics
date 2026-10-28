@@ -1033,7 +1033,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+04e8069';
+const APP_VERSION = '2.0.0+e500373';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -4460,6 +4460,54 @@ function respec(p) {
 }
 const spellCost = (p, sp) =>
   Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1) * (evOn('spiritstorm') ? 0.5 : 1)));
+
+/* ===== src/js/systems/haggle.js ===== */
+/* Cyber City Tactics · src/js/systems/haggle.js
+ * Haggling: once per visit to any counter you can try to talk the price down. The odds come from the party's
+ * best Hacking attribute (reading the seller is the same skill as reading a lock). Win, and for the rest of
+ * the visit you buy for 15% less and sell for 15% more. Lose, and they dig in: 10% worse both ways.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const HAGGLE = { win: [0.85, 1.15], lose: [1.1, 0.9] };
+let haggle = null; // { at: counter id, won: bool } for the visit in progress
+// Which counter is open right now (one haggle per counter per visit)
+function counterId() {
+  const m = G.mode;
+  if (m === 'npc') return 'den:' + G.npc;
+  if (m === 'locker') return 'den:ratchet';
+  if (m === 'safe') return 'safe:' + G.safeTab;
+  if (m === 'shop') return 'shop:' + (G.shop && G.shop.id);
+  if (m === 'trader') return 'sable';
+  return null;
+}
+const haggleOdds = () =>
+  clamp(0.3 + 0.07 * Math.max(...active().map(p => (p.D && p.D.a.hak) || 1)), 0.3, 0.85);
+// price multipliers for the open counter: [buy, sell]
+function haggleMul() {
+  const id = counterId();
+  if (!haggle || !id || haggle.at !== id) return [1, 1];
+  return haggle.won ? HAGGLE.win : HAGGLE.lose;
+}
+function tryHaggle() {
+  const id = counterId();
+  if (!id || (haggle && haggle.at === id)) return;
+  haggle = { at: id, won: Math.random() < haggleOdds() };
+  bump(haggle.won ? 'haggled' : 'haggleLost');
+  (haggle.won ? sfx.coin : sfx.clank)();
+}
+// a fresh visit: forget the last haggle when a counter opens
+function haggleReset() {
+  haggle = null;
+}
+function haggleHtml() {
+  const id = counterId();
+  if (!id || id === 'safe:lay' || id === 'safe:stash' || id === 'den:juno') return '';
+  if (haggle && haggle.at === id)
+    return haggle.won
+      ? `<div class="job" style="border-color:var(--ok)"><b style="color:var(--ok)">You talked them down</b><span style="color:var(--muted);font-size:13px">For this visit: 15% off everything, and 15% more for anything you sell.</span></div>`
+      : `<div class="job" style="border-color:var(--neon)"><b style="color:var(--neon)">They dug in</b><span style="color:var(--muted);font-size:13px">Prices are 10% worse both ways until you leave. Come back later and try again.</span></div>`;
+  const pct = Math.round(haggleOdds() * 100);
+  return `<div class="row" style="align-items:center"><button class="btn sm ghost" data-a="haggle">Haggle · ${pct}% chance</button><span style="color:var(--muted);font-size:13px">Win: 15% better prices this visit. Lose: 10% worse. Better Hacking, better odds.</span></div>`;
+}
 
 /* ===== src/js/game/state.js ===== */
 /* Cyber City Tactics · src/js/game/state.js
@@ -8404,8 +8452,12 @@ const roomsOf = b =>
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
-  (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
-const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
+  (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) *
+  (anyHas('fence') ? 0.9 : 1) *
+  (evOn('festival') ? 0.8 : 1) *
+  haggleMul()[0];
+const sellRate = () =>
+  ((G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0)) * haggleMul()[1];
 function genStreet(level, seed) {
   // (shop buildings are converted from businesses below)
   const r = srng(seed),
@@ -8776,9 +8828,11 @@ function nearDoor(p) {
 function openDoor(b) {
   sfx.talk();
   if (b.type === 'safe') {
+    haggleReset();
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
   } else if (b.type === 'clinic' || b.type === 'talisman') {
+    haggleReset();
     G.shop = b;
     G.sheetIdx = 0;
     setMode('shop');
@@ -9018,10 +9072,16 @@ function bmOffer() {
   return w.bm;
 }
 const bmPrice = o =>
-  Math.round(o.base * Math.max(BM.floor, Math.pow(BM.drop, o.skips || 0)) * (anyHas('fence') ? 0.9 : 1));
+  Math.round(
+    o.base *
+      Math.max(BM.floor, Math.pow(BM.drop, o.skips || 0)) *
+      (anyHas('fence') ? 0.9 : 1) *
+      haggleMul()[0]
+  );
 const bmTrusted = () => G.wd.rep >= BM.cred || anyHas('fence');
 function openTrader() {
   bmOffer();
+  haggleReset();
   sfx.talk();
   setMode('trader');
 }
@@ -9043,6 +9103,7 @@ function traderHtml() {
   <p class="say"><b>Sable · black-market trader</b>${say}</p>
   <div class="list"><div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)} · ${cmp(it, p)}</div>${off > 0 ? `<div class="ds" style="color:var(--ok)">${off}% off her first price of ¥${o.base}</div>` : ''}</div>
   <div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="bmbuy" ${ok ? '' : 'disabled'}>${!trust ? `Cred +${BM.cred}` : !room ? 'Bag full' : '¥' + price}</button></div></div></div>
+  ${trust ? haggleHtml() : ''}
   <p style="color:var(--muted);font-size:13px">She turns up on some blocks, not all. Every block you move on without buying, her price drops ${Math.round((1 - BM.drop) * 100)}%, down to half.</p>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
@@ -14353,6 +14414,18 @@ function safeHtml() {
     <div class="row"><button class="btn sm" data-a="newblock">Go to block ${w.level + 1}</button></div></div>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
+// Plain-text snapshot for bug reports: what the game sees about the device and how fast it's running
+function perfReport() {
+  const tier = ['sharp (up to 2x)', '1x', 'light', 'lean (3/4 res)'][gfxTier()];
+  return [
+    `Cyber City Tactics ${typeof APP_VERSION === 'string' ? APP_VERSION : ''}`,
+    `Browser: ${navigator.userAgent}`,
+    `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
+    `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
+    `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
+    `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
+  ].join('\n');
+}
 function settingsHtml() {
   const row = (n, d, ctl) =>
     `<div class="setrow"><div><div class="nm" style="font-weight:600">${n}</div>${d ? `<div class="ds">${d}</div>` : ''}</div>${ctl}</div>`;
@@ -14377,6 +14450,11 @@ function settingsHtml() {
     ])
   )}
   ${row('Frame rate counter', 'Shows frames per second, game speed and the quality step', onoff('fps'))}
+  ${row(
+    'Performance report',
+    'Copies your device, browser, quality step and frame rate, to paste into a bug report',
+    `<button class="btn sm ghost" data-a="perfreport" id="perfBtn">Copy report</button>`
+  )}${G.perfTxt ? `<pre class="share" id="shareTxt" style="white-space:pre-wrap;font-size:12px">${esc(G.perfTxt)}</pre>` : ''}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(
@@ -14772,6 +14850,8 @@ const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name) + newTag(it);
 const lockBtn = it =>
   `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
+// Ratchet's shelf: list price adjusted like everything else you buy (cred, Fence Contacts, haggling)
+const stockPrice = it => Math.max(1, Math.round(it.price * buyMul()));
 const sellPrice = (it, kind) => Math.max(1, Math.round(it.price * storeRate(kind)));
 function sellHtml(kind) {
   const p = PL[G.sheetIdx] || PL[0],
@@ -14850,7 +14930,7 @@ function shopHtml(b) {
     ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
     : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
   return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
-  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 // The challenge-seed box on the Arena and Sprawl start screens
@@ -15016,8 +15096,9 @@ function npcHtml(id) {
       G.stock.length
         ? G.stock
             .map(it => {
-              const ok = PARTY.creds >= it.price && PARTY.bag.length < BAG_MAX;
-              return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="fbuy:${it.uid}" ${ok ? '' : 'disabled'}>¥${it.price}</button></div></div>`;
+              const pr = stockPrice(it),
+                ok = PARTY.creds >= pr && PARTY.bag.length < BAG_MAX;
+              return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="fbuy:${it.uid}" ${ok ? '' : 'disabled'}>¥${pr}</button></div></div>`;
             })
             .join('')
         : '<p>Sold out.</p>'
@@ -15056,11 +15137,12 @@ function npcHtml(id) {
       .join('')}</div>${sellHtml('talis')}`;
   }
   return `<div class="card"><p class="eyebrow">The Den · ${esc(n.role)}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(n.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>
-  <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${body}
+  <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${haggleHtml()}${body}
   <div class="row"><button class="btn" data-a="leave">Leave</button>${id === 'juno' ? '<button class="btn ghost" data-a="nextjob">Take the next job</button>' : ''}<button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 function openNPC(id) {
   G.npc = id;
+  haggleReset();
   sfx.talk();
   setMode('npc');
 }
@@ -15202,6 +15284,27 @@ ov.addEventListener('click', e => {
       startArena(true, true);
       keep = false;
       break;
+    case 'perfreport': {
+      G.perfTxt = perfReport();
+      renderOv();
+      const btn = document.getElementById('perfBtn'),
+        done = ok => {
+          if (btn) btn.textContent = ok ? 'Copied' : 'Select the text below to copy';
+        };
+      try {
+        navigator.clipboard.writeText(G.perfTxt).then(
+          () => done(true),
+          () => {
+            selectShare();
+            done(false);
+          }
+        );
+      } catch (err) {
+        selectShare();
+        done(false);
+      }
+      break;
+    }
     case 'copyshare': {
       const t = shareLine(),
         btn = document.getElementById('copyBtn');
@@ -15678,6 +15781,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'haggle':
+      tryHaggle();
+      rerender();
+      break;
     case 'bmbuy':
       bmBuy();
       rerender();
@@ -15825,8 +15932,8 @@ ov.addEventListener('click', e => {
     }
     case 'fbuy': {
       const i = G.stock.findIndex(x => x.uid === arg);
-      if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < BAG_MAX) {
-        PARTY.creds -= G.stock[i].price;
+      if (i >= 0 && PARTY.creds >= stockPrice(G.stock[i]) && PARTY.bag.length < BAG_MAX) {
+        PARTY.creds -= stockPrice(G.stock[i]);
         PARTY.bag.push(gotItem(G.stock[i]));
         G.stock.splice(i, 1);
         sfx.loot();

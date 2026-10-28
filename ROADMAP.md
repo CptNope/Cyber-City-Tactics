@@ -125,12 +125,12 @@ Picked from what the graphics pass turned up:
 - [x] ~~**Stash.**~~ Shipped: 60 slots, shared between Ratchet's locker in the Den and the Sprawl safehouse's Stash tab. Stashed gear can't be sold by accident; it belongs to the save, so a new run starts empty.
 - [x] ~~**New-item markers and sorting.**~~ Shipped: a NEW tag on gear until you close the character sheet, and a Best / Value / Newest toggle on every bag list.
 - [x] ~~**Rotating black market.**~~ Shipped: Sable sets up her cart between buildings on about two in five Sprawl blocks (fixed by the block's seed, marked on the minimap) with one Black-market item. Her offer follows you; every block you walk past it, the price drops 15%, down to half. She only deals at cred +15 or with the Fence skill.
-- [ ] **Haggling (S).** A Face-style skill in the Decker tree, or a street-cred perk, that improves buy and sell prices.
+- [x] ~~**Haggling.**~~ Shipped as a gamble at every counter, once per visit: odds from the party's best Hacking (30–85%). Win and prices are 15% better both ways for the visit; lose and they're 10% worse. Ratchet's shelf now also honours cred, Fence Contacts and haggling.
 - [ ] **Item sets (L)** stay planned under Gear and loot.
 
 ### Reach and onboarding
 - [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now eleven, with a new parry drill), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.
-- [ ] **Real-device performance reports (S).** A "Copy performance report" button next to the frame rate counter (device, browser, tier, fps) that players can paste into an issue.
+- [x] ~~**Real-device performance reports.**~~ Shipped: Settings › Performance report copies the version, browser, screen and canvas size, quality step, frame rate and game speed.
 - [ ] **Store listing kit (S).** Screenshots and a short trailer captured from the game itself for itch.io and the PWA install sheet.
 
 ### Engineering

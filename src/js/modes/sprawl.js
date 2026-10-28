@@ -250,8 +250,12 @@ const roomsOf = b =>
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
-  (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) * (anyHas('fence') ? 0.9 : 1) * (evOn('festival') ? 0.8 : 1);
-const sellRate = () => (G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0);
+  (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) *
+  (anyHas('fence') ? 0.9 : 1) *
+  (evOn('festival') ? 0.8 : 1) *
+  haggleMul()[0];
+const sellRate = () =>
+  ((G.world && G.wd && G.wd.rep <= -30 ? 0.6 : 0.4) + (anyHas('fence') ? 0.15 : 0)) * haggleMul()[1];
 function genStreet(level, seed) {
   // (shop buildings are converted from businesses below)
   const r = srng(seed),
@@ -622,9 +626,11 @@ function nearDoor(p) {
 function openDoor(b) {
   sfx.talk();
   if (b.type === 'safe') {
+    haggleReset();
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
   } else if (b.type === 'clinic' || b.type === 'talisman') {
+    haggleReset();
     G.shop = b;
     G.sheetIdx = 0;
     setMode('shop');

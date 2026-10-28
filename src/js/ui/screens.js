@@ -243,6 +243,18 @@ function safeHtml() {
     <div class="row"><button class="btn sm" data-a="newblock">Go to block ${w.level + 1}</button></div></div>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
+// Plain-text snapshot for bug reports: what the game sees about the device and how fast it's running
+function perfReport() {
+  const tier = ['sharp (up to 2x)', '1x', 'light', 'lean (3/4 res)'][gfxTier()];
+  return [
+    `Cyber City Tactics ${typeof APP_VERSION === 'string' ? APP_VERSION : ''}`,
+    `Browser: ${navigator.userAgent}`,
+    `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
+    `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
+    `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
+    `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
+  ].join('\n');
+}
 function settingsHtml() {
   const row = (n, d, ctl) =>
     `<div class="setrow"><div><div class="nm" style="font-weight:600">${n}</div>${d ? `<div class="ds">${d}</div>` : ''}</div>${ctl}</div>`;
@@ -267,6 +279,11 @@ function settingsHtml() {
     ])
   )}
   ${row('Frame rate counter', 'Shows frames per second, game speed and the quality step', onoff('fps'))}
+  ${row(
+    'Performance report',
+    'Copies your device, browser, quality step and frame rate, to paste into a bug report',
+    `<button class="btn sm ghost" data-a="perfreport" id="perfBtn">Copy report</button>`
+  )}${G.perfTxt ? `<pre class="share" id="shareTxt" style="white-space:pre-wrap;font-size:12px">${esc(G.perfTxt)}</pre>` : ''}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row(

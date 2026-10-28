@@ -83,6 +83,27 @@ ov.addEventListener('click', e => {
       startArena(true, true);
       keep = false;
       break;
+    case 'perfreport': {
+      G.perfTxt = perfReport();
+      renderOv();
+      const btn = document.getElementById('perfBtn'),
+        done = ok => {
+          if (btn) btn.textContent = ok ? 'Copied' : 'Select the text below to copy';
+        };
+      try {
+        navigator.clipboard.writeText(G.perfTxt).then(
+          () => done(true),
+          () => {
+            selectShare();
+            done(false);
+          }
+        );
+      } catch (err) {
+        selectShare();
+        done(false);
+      }
+      break;
+    }
     case 'copyshare': {
       const t = shareLine(),
         btn = document.getElementById('copyBtn');
@@ -559,6 +580,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'haggle':
+      tryHaggle();
+      rerender();
+      break;
     case 'bmbuy':
       bmBuy();
       rerender();
@@ -706,8 +731,8 @@ ov.addEventListener('click', e => {
     }
     case 'fbuy': {
       const i = G.stock.findIndex(x => x.uid === arg);
-      if (i >= 0 && PARTY.creds >= G.stock[i].price && PARTY.bag.length < BAG_MAX) {
-        PARTY.creds -= G.stock[i].price;
+      if (i >= 0 && PARTY.creds >= stockPrice(G.stock[i]) && PARTY.bag.length < BAG_MAX) {
+        PARTY.creds -= stockPrice(G.stock[i]);
         PARTY.bag.push(gotItem(G.stock[i]));
         G.stock.splice(i, 1);
         sfx.loot();

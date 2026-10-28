@@ -43,10 +43,16 @@ function bmOffer() {
   return w.bm;
 }
 const bmPrice = o =>
-  Math.round(o.base * Math.max(BM.floor, Math.pow(BM.drop, o.skips || 0)) * (anyHas('fence') ? 0.9 : 1));
+  Math.round(
+    o.base *
+      Math.max(BM.floor, Math.pow(BM.drop, o.skips || 0)) *
+      (anyHas('fence') ? 0.9 : 1) *
+      haggleMul()[0]
+  );
 const bmTrusted = () => G.wd.rep >= BM.cred || anyHas('fence');
 function openTrader() {
   bmOffer();
+  haggleReset();
   sfx.talk();
   setMode('trader');
 }
@@ -68,6 +74,7 @@ function traderHtml() {
   <p class="say"><b>Sable · black-market trader</b>${say}</p>
   <div class="list"><div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)} · ${cmp(it, p)}</div>${off > 0 ? `<div class="ds" style="color:var(--ok)">${off}% off her first price of ¥${o.base}</div>` : ''}</div>
   <div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="bmbuy" ${ok ? '' : 'disabled'}>${!trust ? `Cred +${BM.cred}` : !room ? 'Bag full' : '¥' + price}</button></div></div></div>
+  ${trust ? haggleHtml() : ''}
   <p style="color:var(--muted);font-size:13px">She turns up on some blocks, not all. Every block you move on without buying, her price drops ${Math.round((1 - BM.drop) * 100)}%, down to half.</p>
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }

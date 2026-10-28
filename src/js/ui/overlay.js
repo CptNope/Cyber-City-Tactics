@@ -208,6 +208,8 @@ const lockName = it => (it.lock ? '🔒 ' : '') + esc(it.name) + newTag(it);
 const lockBtn = it =>
   `<button class="btn sm ghost" data-a="lock:${it.uid}" aria-pressed="${!!it.lock}" aria-label="${it.lock ? 'Unlock' : 'Lock'} ${esc(it.name)}">${it.lock ? 'Unlock' : 'Lock'}</button>`;
 const storeRate = kind => sellRate() * (kind === 'fence' ? 1 : 0.75);
+// Ratchet's shelf: list price adjusted like everything else you buy (cred, Fence Contacts, haggling)
+const stockPrice = it => Math.max(1, Math.round(it.price * buyMul()));
 const sellPrice = (it, kind) => Math.max(1, Math.round(it.price * storeRate(kind)));
 function sellHtml(kind) {
   const p = PL[G.sheetIdx] || PL[0],
@@ -286,7 +288,7 @@ function shopHtml(b) {
     ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
     : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
   return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
-  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p><div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 // The challenge-seed box on the Arena and Sprawl start screens
@@ -452,8 +454,9 @@ function npcHtml(id) {
       G.stock.length
         ? G.stock
             .map(it => {
-              const ok = PARTY.creds >= it.price && PARTY.bag.length < BAG_MAX;
-              return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="fbuy:${it.uid}" ${ok ? '' : 'disabled'}>¥${it.price}</button></div></div>`;
+              const pr = stockPrice(it),
+                ok = PARTY.creds >= pr && PARTY.bag.length < BAG_MAX;
+              return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${SLOTN[it.slot]} · ${itemLine(it)}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="fbuy:${it.uid}" ${ok ? '' : 'disabled'}>¥${pr}</button></div></div>`;
             })
             .join('')
         : '<p>Sold out.</p>'
@@ -492,11 +495,12 @@ function npcHtml(id) {
       .join('')}</div>${sellHtml('talis')}`;
   }
   return `<div class="card"><p class="eyebrow">The Den · ${esc(n.role)}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(n.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>
-  <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${body}
+  <p class="say"><b>${esc(n.name)}</b>${esc(sayTxt)}</p>${haggleHtml()}${body}
   <div class="row"><button class="btn" data-a="leave">Leave</button>${id === 'juno' ? '<button class="btn ghost" data-a="nextjob">Take the next job</button>' : ''}<button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 function openNPC(id) {
   G.npc = id;
+  haggleReset();
   sfx.talk();
   setMode('npc');
 }
