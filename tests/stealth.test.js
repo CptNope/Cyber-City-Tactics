@@ -189,6 +189,79 @@ const p2 = __PL()[1],
   z2 = p2.z;
 hold('ArrowUp', 20);
 ok(p2.z > z2 + 8, "runner 2's keys fly runner 2's drone");
+// overwatch co-op: runner 2 on the network with a reticle, runner 1 flies
+click('jobs');
+ok(/stealth:arcology:ow/.test(els.ov._h), 'the Jobs board offers Overwatch co-op');
+click('stealth:arcology:ow');
+const S2 = G.stealth,
+  d1 = __PL()[0],
+  ow = __PL()[1];
+ok(
+  S2.ow && d1.drone && !ow.drone && !G.ents.includes(ow),
+  'overwatch: one drone on the floor, runner 2 off it'
+);
+S2.cams = [];
+S2.lasers = [];
+S2.walls = [];
+G.ents = G.ents.filter(e => !e.guard);
+const ox = G.owX;
+hold('ArrowRight', 10);
+ok(G.owX > ox + 20, "runner 2's arrows move the reticle");
+hold('ArrowLeft', 10);
+// loop a camera that's watching the drone
+const cam2 = { x: Math.round(G.camX + G.owX), amp: 0, spd: 0, ph: 0 };
+S2.cams = [cam2];
+put(d1, cam2.x);
+d1.z = 40;
+d1.drone.vx = 0;
+step(10);
+ok(d1.drone.seenNow, 'the camera sees the drone');
+G.owX = cam2.x - G.camX; // the reticle over it
+tap('Comma');
+step(2);
+ok(cam2.offT > 0 && G.owLoops === 2, 'comma loops the camera under the reticle (a loop spent)');
+d1.drone.seen = 0;
+step(20);
+ok(!d1.drone.seenNow && d1.drone.seen === 0, 'a looped camera sees nothing');
+// and a laser (with the floor calm again)
+S2.cams = [];
+G.salarm = 0;
+G.ents = G.ents.filter(e => !e.guard);
+d1.drone.seen = 0;
+const las = { x: Math.round(d1.x + 60), per: 100, on: 100, ph: 0 }; // ahead of the drone
+S2.lasers = [las];
+G.owX = las.x - G.camX;
+tap('Comma');
+step(2);
+ok(las.offT > 0 && !A.laserOn(las), 'a looped laser is off');
+step(430);
+ok(A.laserOn(las), 'the loop runs out and the laser comes back');
+S2.lasers = [];
+// ping: pull a guard to the reticle (the drone cloaked, so this is only about the guard)
+d1.drone.cloak = 9999;
+const g2 = A.stealthGuard({ x1: G.camX + G.owX + 60, x2: G.camX + G.owX + 140 });
+g2.x = G.camX + G.owX + 110;
+g2.face = 1;
+const px = G.camX + G.owX;
+G.owX = px - G.camX;
+tap('Period');
+step(2);
+ok(g2.lure && G.owPings === 2, 'period pings: the guard is pulled off the patrol');
+step(150);
+ok(Math.abs(g2.x - px) < 10 && g2.face === -1, 'the guard walks over to the noise');
+// a guard darted frees up a loop
+put(d1, g2.x + 25);
+d1.drone.dartT = 0;
+d1.z = 40;
+const l0 = G.owLoops;
+tap('KeyK');
+step(2);
+ok(g2.state === 'down' && G.owLoops === l0 + 1, 'a guard down gives overwatch a loop back');
+// overwatch can't keep the job alive alone
+d1.drone.cloak = 0;
+d1.out = true;
+step(5);
+ok(S2.done && !S2.win, 'the only drone down: SIGNAL LOST');
 // leaving resets everything for other modes
 click('arenapick');
 click('arena1');

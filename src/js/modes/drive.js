@@ -790,7 +790,7 @@ function jobsHtml() {
         r = srec[k];
       return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:var(--mana)">Drone · ${STAGES[J.stage].name}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(J.sub)}.${r && r.best ? ` Your best: ${fmtTime(r.best)}${r.ghost ? ', ghosted' : ''}.` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="stealth:${k}:1">Fly solo</button><button class="btn sm ghost" data-a="stealth:${k}:2">Fly co-op</button></div></div>`;
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="stealth:${k}:1">Fly solo</button><button class="btn sm ghost" data-a="stealth:${k}:2">Fly co-op</button><button class="btn sm ghost" data-a="stealth:${k}:ow">Overwatch co-op</button></div></div>`;
     })
     .join('');
   return `<div class="card"><p class="eyebrow">Jobs · Juno's side work</p><h2>Jobs</h2>

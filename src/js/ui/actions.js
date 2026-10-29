@@ -87,11 +87,11 @@ ov.addEventListener('click', e => {
       break;
     case 'stealth':
       cjobClear();
-      startStealth(arg, parts[2] === '2');
+      startStealth(arg, parts[2] !== '1', parts[2] === 'ow');
       keep = false;
       break;
     case 'stealthagain':
-      startStealth((G.stealth && G.stealth.id) || 'arcology', G.coop);
+      startStealth((G.stealth && G.stealth.id) || 'arcology', G.coop, G.stealth && G.stealth.ow);
       keep = false;
       break;
     case 'driveagain':

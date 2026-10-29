@@ -192,6 +192,8 @@ A rigger's job: each runner flies a small drone through a corp floor seen in cro
 
 Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. Pull the files, then leave through the vent at the far end; dart the job's target for a bonus, and get out with no alarms at all to ghost it.
 
+**Overwatch co-op.** Pick **Overwatch co-op** on the Jobs board and runner 2 stays off the floor, on the building's network: their stick moves a reticle over the floor, **PUNCH** (comma on the keyboard) loops the camera or laser under it for seven seconds, and **KICK** (period) pings a noise that pulls nearby guards off their patrols to look, which turns their backs for a dart. Overwatch starts with three loops and three pings, and gets a loop back for every guard the drone drops. Online, your friend (runner 2) runs overwatch.
+
 | Job | Where | Target |
 |---|---|---|
 | Ghost in the Arcology | Kagemori Arcology | Aide Morrow |

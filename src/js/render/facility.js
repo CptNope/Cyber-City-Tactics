@@ -99,7 +99,7 @@ function drawFacility() {
       glow(x, (top + SF.floor) / 2, 8, (SF.floor - top) / 2, '#ff3d4a', 0.35);
     } else {
       // about to switch on: a warning flicker
-      const soon = (G.t + l.ph) % l.per > l.per - 24;
+      const soon = !(l.offT > 0) && (G.t + l.ph) % l.per > l.per - 24;
       if (soon && (G.t >> 2) % 2) {
         ctx.fillStyle = 'rgba(255,61,74,.35)';
         ctx.fillRect(x - 0.5, top + 6, 1, SF.floor - top - 12);
@@ -132,10 +132,17 @@ function drawStealthCones() {
   for (const c of S.cams) {
     const x = c.x - cx;
     if (x < -SF.camLen || x > W + SF.camLen) continue;
-    cone(x, top + 6, camAngle(c), SF.camHalf, SF.camLen, alert ? '#ff3d4a' : '#ffc63d', 0.13);
+    const looped = c.offT > 0;
+    if (!looped) cone(x, top + 6, camAngle(c), SF.camHalf, SF.camLen, alert ? '#ff3d4a' : '#ffc63d', 0.13);
     ctx.fillStyle = '#2a2436';
     ctx.fillRect(x - 6, top, 12, 6);
-    ctx.fillStyle = alert || (G.t >> 4) % 2 ? '#ff3d4a' : '#3a1a1a';
+    ctx.fillStyle = looped
+      ? (G.t >> 3) % 2
+        ? '#45d2ff'
+        : '#1a3a4a'
+      : alert || (G.t >> 4) % 2
+        ? '#ff3d4a'
+        : '#3a1a1a';
     ctx.fillRect(x - 1.5, top + 6, 3, 3);
   }
   for (const e of G.ents) {
@@ -155,6 +162,49 @@ function drawStealthCones() {
     );
   }
   ctx.restore();
+  if (S.ow) drawOverwatch(S);
+}
+// overwatch's reticle: brackets over the floor, the camera or laser a loop would take, and the ping's reach
+function drawOverwatch(S) {
+  const ow = owOf();
+  if (!ow) return;
+  const x = G.owX,
+    y = sfY(G.owZ),
+    col = '#45d2ff',
+    s = 9;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (const [dx, dy] of [
+    [-1, -1],
+    [1, -1],
+    [1, 1],
+    [-1, 1]
+  ]) {
+    ctx.moveTo(x + dx * s, y + dy * (s - 4));
+    ctx.lineTo(x + dx * s, y + dy * s);
+    ctx.lineTo(x + dx * (s - 4), y + dy * s);
+  }
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.fillRect(x - 1, y - 1, 2, 2);
+  // the ping's reach along the floor
+  ctx.strokeStyle = 'rgba(255,198,61,.25)';
+  ctx.setLineDash([3, 4]);
+  ctx.beginPath();
+  ctx.moveTo(x - OW.pingR, SF.floor - 2);
+  ctx.lineTo(x + OW.pingR, SF.floor - 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // what a loop would take
+  const o = owPick(G.camX + x, S);
+  if (o && G.owLoops > 0) {
+    const ox = o.x - G.camX,
+      ot = sfY(SF.ceil);
+    ctx.strokeStyle = 'rgba(69,210,255,.7)';
+    ctx.strokeRect(ox - 9, ot - 2, 18, 12);
+  }
+  txt('OVERWATCH', x, y - s - 4, 8, col, 'center');
 }
 // a runner's drone: four rotors, a light in their colour, and its detection meter
 function drawDroneP(p) {
@@ -220,6 +270,14 @@ function drawStealthHud() {
   line(by + 8, S.data, 'Pull the files from the terminal');
   line(by + 20, S.aide, 'Dart ' + J.target + ' from behind (bonus)', S.aide ? null : '#a79dc2');
   line(by + 32, S.done && S.win, 'Out through the vent at the far end', S.data ? '#efe9ff' : '#6b6280');
+  if (S.ow && owOf()) {
+    ctx.fillStyle = 'rgba(11,8,18,.75)';
+    ctx.fillRect(bx, by + 44, bw, 14);
+    ctx.font = '10px "Chakra Petch", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#45d2ff';
+    ctx.fillText(`OVERWATCH · LOOPS ${G.owLoops} · PINGS ${G.owPings}`, bx + bw / 2, by + 54);
+  }
   // the alarm: three pips down the right edge
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = i < G.salarm ? '#ff3d4a' : '#3a3150';

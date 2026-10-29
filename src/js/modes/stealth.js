@@ -51,11 +51,16 @@ const SF = {
   sightLen: 130,
   sightHalf: 0.42
 };
+// overwatch co-op: runner 2 doesn't fly. They sit on the building's network with a reticle over the floor,
+// looping cameras and lasers and pinging noises to pull guards off their patrols
+const OW = { loops: 3, pings: 3, loopT: 420, lureT: 240, pingR: 170, pickR: 40, maxLoops: 5 };
+const owOf = () => (G.stealth && G.stealth.ow && PL[1] && !PL[1].out ? PL[1] : null);
 const stealthJob = () => (G.stealth && STEALTH_JOBS[G.stealth.id]) || STEALTH_JOBS.arcology;
 
-function startStealth(id, coop) {
+function startStealth(id, coop, ow) {
   const J = STEALTH_JOBS[id] || STEALTH_JOBS.arcology;
   if (NET.role === 'host' && NET.live) coop = true;
+  if (ow) coop = true;
   jobCrew(coop);
   G.arena = false;
   G.den = false;
@@ -79,10 +84,19 @@ function startStealth(id, coop) {
     { id: STEALTH_JOBS[id] ? id : 'arcology', S, done: false, win: false, endT: 0 },
     stealthLayout(J)
   );
+  G.stealth.ow = !!ow && PL.length > 1;
+  G.owX = W * 0.6;
+  G.owZ = 60;
+  G.owLoops = OW.loops;
+  G.owPings = OW.pings;
   G.salarm = 0;
   G.stime = 0;
   G.bg = genBg(S, 3300 + J.stage * 17);
   PL.forEach((p, i) => {
+    if (G.stealth.ow && i === 1) {
+      p.drone = null; // on the network, not on the floor
+      return;
+    }
     stealthMount(p);
     p.x = 50 + i * 26;
     p.z = 60 + i * 18;
@@ -94,6 +108,12 @@ function startStealth(id, coop) {
   G.banner = 150;
   musicPlay('d' + Math.min(J.stage, 5));
   setMode('play');
+  if (G.stealth.ow)
+    tip(
+      'overwatch',
+      'Runner 2 is overwatch: move the reticle, PUNCH loops a camera or laser under it, KICK pings a noise that pulls guards to it.',
+      'Runner 2 is overwatch: arrows move the reticle, comma loops a camera or laser under it, period pings a noise that pulls guards to it.'
+    );
   tip(
     'stealth',
     'Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind, DODGE cloaks.',
@@ -176,16 +196,20 @@ function stealthUpdate() {
   const S = G.stealth,
     J = stealthJob();
   for (const p of PL)
-    if (!p.drone) {
+    if (!p.drone && !(S.ow && p === PL[1])) {
       stealthMount(p);
       p.x = G.camX + 60;
       if (!G.ents.includes(p)) G.ents.push(p);
     }
   if (!S.done) G.stime++;
   for (const p of PL) stealthDrone(p, S);
+  const ow = owOf();
+  if (ow) stealthOverwatch(ow, S);
+  for (const c of S.cams) if (c.offT > 0) c.offT--;
+  for (const l of S.lasers) if (l.offT > 0) l.offT--;
   for (const e of G.ents) if (e.guard) stealthPatrol(e, S);
   // the camera follows the drones along the floor
-  const a = PL.filter(p => !p.out);
+  const a = PL.filter(p => !p.out && p.drone);
   if (a.length) {
     const mean = a.reduce((t, p) => t + p.x, 0) / a.length;
     G.camX = clamp(G.camX + (mean - W * 0.4 - G.camX) * 0.1, 0, Math.max(0, J.len - W));
@@ -269,6 +293,7 @@ function stealthDrone(p, S) {
   if (d.seen >= 100) stealthAlarm(p);
 }
 function laserOn(l) {
+  if (l.offT > 0) return false; // looped by overwatch
   return (G.t + l.ph) % l.per < l.on;
 }
 function camAngle(c) {
@@ -286,6 +311,7 @@ function stealthBlocked(S, x0, z0, x1, z1) {
   return false;
 }
 function stealthCamSees(c, p, S) {
+  if (c.offT > 0) return false;
   const dx = p.x - c.x,
     dz = SF.ceil - p.z; // downward from the ceiling
   if (Math.hypot(dx, dz) > SF.camLen) return false;
@@ -326,6 +352,22 @@ function stealthPatrol(e, S) {
       stealthHurt(tgt, 20);
     }
     return;
+  }
+  // pulled off the patrol by a ping: walk over to it, look around, then go back
+  if (e.lure) {
+    if (--e.lure.t <= 0) {
+      e.lure = null;
+      e.pauseT = 40;
+    } else {
+      const dx = e.lure.x - e.x;
+      if (Math.abs(dx) > 6) {
+        e.face = Math.sign(dx);
+        if (e.state !== 'walk') setS(e, 'walk');
+        e.x += e.face * 0.75;
+        e.walk += 1.5;
+      } else if (e.state !== 'idle') setS(e, 'idle');
+      return;
+    }
   }
   if (e.pauseT > 0) {
     if (e.state !== 'idle') setS(e, 'idle');
@@ -390,12 +432,67 @@ function stealthHackDone() {
     G.texts.push({ x: T.x, y: SF.floor, z: 80, s: 'FILES PULLED', c: '#7dffb0', life: 80 });
   } else {
     T.vaultDone = false; // locked for a moment, then try again
-    const p = active()[0];
+    const p = active().find(q => q.drone);
     if (p) {
       p.drone.seen = 100;
       stealthAlarm(p);
     }
   }
+}
+/* ---------- overwatch ---------- */
+function stealthOverwatch(p, S) {
+  const I = INP[p.idx] || { held: {}, pressed: {} };
+  p.t++;
+  if (S.done) return;
+  if (I.held.right) G.owX += 3.2;
+  if (I.held.left) G.owX -= 3.2;
+  if (I.held.up) G.owZ += 2.4;
+  if (I.held.down) G.owZ -= 2.4;
+  G.owX = Math.round(clamp(G.owX, 10, W - 10) * 10) / 10;
+  G.owZ = Math.round(clamp(G.owZ, 4, SF.ceil - 6) * 10) / 10;
+  const wx = G.camX + G.owX;
+  if (I.pressed.punch) owLoop(wx, S);
+  if (I.pressed.kick) owPing(wx, S);
+}
+// what a loop would take: the nearest live camera or laser to the reticle
+function owPick(wx, S) {
+  let best = null,
+    bd = OW.pickR;
+  for (const o of S.cams.concat(S.lasers)) {
+    const d = Math.abs(o.x - wx);
+    if (d < bd && !(o.offT > 0)) {
+      bd = d;
+      best = o;
+    }
+  }
+  return best;
+}
+function owLoop(wx, S) {
+  const o = owPick(wx, S);
+  if (!o) return;
+  if (G.owLoops <= 0) {
+    G.texts.push({ x: wx, y: SF.floor, z: G.owZ + 14, s: 'NO LOOPS LEFT', c: '#a79dc2', life: 40, sm: true });
+    return;
+  }
+  G.owLoops--;
+  o.offT = OW.loopT;
+  sfx.zap();
+  G.texts.push({ x: o.x, y: SF.floor, z: SF.ceil - 18, s: 'LOOPED', c: '#45d2ff', life: 50, sm: true });
+}
+function owPing(wx, S) {
+  if (G.owPings <= 0) {
+    G.texts.push({ x: wx, y: SF.floor, z: G.owZ + 14, s: 'NO PINGS LEFT', c: '#a79dc2', life: 40, sm: true });
+    return;
+  }
+  G.owPings--;
+  sfx.clank();
+  G.texts.push({ x: wx, y: SF.floor, z: 24, s: 'PING', c: '#ffc63d', life: 45, sm: true });
+  for (const e of G.ents)
+    if (e.guard && e.state !== 'down' && Math.abs(e.x - wx) < OW.pingR) {
+      e.lure = { x: clamp(wx, 20, S.S.len - 20), t: OW.lureT };
+      e.pauseT = 0;
+      G.texts.push({ x: e.x, y: SF.floor, z: 62, s: '?', c: '#ffc63d', life: 40 });
+    }
 }
 // a shock dart: from behind it drops anyone; from the front it just tells them you're there
 function stealthDart(p) {
@@ -433,6 +530,7 @@ function stealthDart(p) {
       jobKarma(40);
     } else G.texts.push({ x: best.x, y: SF.floor, z: 60, s: 'LIGHTS OUT', c: '#45d2ff', life: 50, sm: true });
     if (G.run) G.run.kills++;
+    if (S.ow) G.owLoops = Math.min(OW.maxLoops, G.owLoops + 1); // a guard down frees up a loop
     sfx.hit();
   } else {
     p.drone.seen = Math.min(100, p.drone.seen + 50);
