@@ -210,7 +210,7 @@ A VTOL run over the skyline as a side-scrolling shooter. The city scrolls by on 
 | Flare | **O**: missiles chase it instead, and you jink clear | |
 | Patch the hull | **H** | |
 
-Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunships hold the right of the screen and fire spreads, and the towers stand up into your flight path. Searchlights on the towers lock on if you sit in their beam, and flak follows (a red ring closes on where you were). Shot-down drones leave salvage floating in the air; fly through it. At the end the **Raijin** gunship guards the drop zone: bring it down and the team drops onto the roof.
+Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunships hold the right of the screen and fire spreads, and the towers stand up into your flight path. Searchlights on the towers lock on if you sit in their beam, and flak follows (a red ring closes on where you were). Shot-down drones leave salvage floating in the air; fly through it. At the end the **Raijin** gunship guards the drop zone: bring it down and the team drops onto the roof. On **Over the Skyline** that's not the end: the runners jump off the ramp onto the Arcology roof and fight it out on foot, three waves of Kagemori security coming up the stairwells. Clear the roof for a bonus; get overrun and the flight still pays, but the job is blown.
 
 | Job | Over | |
 |---|---|---|

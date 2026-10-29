@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9470e0b';
+const APP_VERSION = '2.0.0+c1b3089';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -6886,6 +6886,10 @@ function respawn(p) {
     }
     G.ents = G.ents.filter(e => e !== p);
     if (!active().length) {
+      if (G.flight && G.flight.roof) {
+        roofEnd(false);
+        return;
+      }
       if (G.arena) {
         arenaOver();
         return;
@@ -8043,7 +8047,7 @@ function update() {
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
-  if (G.flight) return flightUpdate(); // and flight jobs (modes/flight.js)
+  if (G.flight && !G.flight.roof) return flightUpdate(); // and flight jobs (modes/flight.js), until they land on a roof
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
     if (p.chiT > 0) p.chiT--;
@@ -8289,6 +8293,7 @@ function update() {
   else if (G.den) denTick();
   else if (G.arena) arenaTick();
   else if (G.training) trainTick();
+  else if (G.flight) roofTick();
   else waves();
   camera();
   if (G.shake > 0) G.shake *= 0.85;
@@ -8420,6 +8425,10 @@ function camera() {
   let target = Math.min((minX + maxX) / 2 - W * 0.42, minX - 14);
   if (G.den || (G.world && !G.dun)) {
     G.camX += (clamp(target, 0, Math.max(0, S.len - W)) - G.camX) * 0.12;
+    return;
+  }
+  if (G.flight) {
+    G.camX = G.flight.roof.x; // the roof is one screen
     return;
   }
   if (G.arena || G.training || G.dun) {
@@ -12375,7 +12384,13 @@ const FLIGHT_JOBS = {
     len: 9000,
     drones: 1,
     pay: 300,
-    karma: 140
+    karma: 140,
+    // the drop: off the ramp onto the Arcology roof, and Kagemori security comes up the stairwells
+    roof: [
+      ['sec', 'sec', 'drone'],
+      ['riot', 'sec', 'ninja', 'drone'],
+      ['mech', 'sec', 'ninja']
+    ]
   },
   storm: {
     name: 'Into the Storm',
@@ -12513,7 +12528,10 @@ function flightUpdate() {
     if (F.bossDown) flightEnd(true, 'DROP ZONE');
     else if (G.fhull <= 0) flightEnd(false, 'GOING DOWN');
   }
-  if (F.done && --F.endT <= 0 && G.mode === 'play') flightFinish();
+  if (F.done && --F.endT <= 0 && G.mode === 'play') {
+    if (F.win && J.roof) roofStart();
+    else flightFinish();
+  }
   tickFx();
   if (G.shake > 0) G.shake *= 0.85;
   if (G.shake < 0.3) G.shake = 0;
@@ -12886,11 +12904,104 @@ function flightEnd(win, msg) {
   });
   (win ? sfx.level : sfx.boom)();
 }
+/* ---------- the drop: a rooftop brawl ----------
+ * When a job has a roof, a won flight doesn't end at the drop zone: the runners jump off the ramp onto the
+ * roof and fight it out on foot, wave by wave, with the ordinary brawler step (update() hands a flight with a
+ * roof back to it, and roofTick() runs the waves). Clear the roof and the job is done; lose everyone and the
+ * flight still pays, but the job is blown. */
+function roofStart() {
+  const F = G.flight;
+  F.roof = {
+    x: Math.round(G.camX),
+    wave: 0,
+    live: false,
+    nextT: 110,
+    over: false,
+    win: false,
+    endT: 0,
+    k0: G.run.kills
+  };
+  F.S.name = 'The Arcology roof';
+  F.S.sub = 'Hold the pad until security stops coming up the stairs';
+  G.ents = [];
+  G.projs = [];
+  G.picks = [];
+  G.waveLive = false;
+  G.lock = null;
+  // on the job board the crew is level 4, so the roof hits like the Neon Market; on Juno's side job, like your district
+  G.stage = G.cjob ? G.cjob.stage : 1;
+  placeRunners(F.roof.x + 80);
+  for (const p of PL)
+    if (!p.out) {
+      p.z = 70; // off the ramp
+      p.hp = Math.max(p.hp, Math.round(p.maxHp * 0.8));
+      G.ents.push(p);
+    }
+  G.props = [
+    { kind: 'crate', x: F.roof.x + 300, y: FY0 + 26, z: 0 },
+    { kind: 'drum', x: F.roof.x + 200, y: FY1 - 14, z: 0 }
+  ];
+  G.texts.push({ x: F.roof.x + W / 2, y: 150, z: 0, s: 'ON THE ROOF', c: '#ffc63d', life: 90, big: true });
+  G.banner = 150;
+  G.shake = 6;
+  sfx.boom();
+  musicPlay('d4');
+  tip('roof', 'Out of the VTOL and onto the roof: clear three waves of Kagemori security to finish the job.');
+}
+function roofTick() {
+  const F = G.flight,
+    R = F.roof,
+    J = flightJob();
+  G.camX = R.x;
+  if (R.over) {
+    if (--R.endT <= 0 && G.mode === 'play') flightFinish();
+    return;
+  }
+  const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
+  if (R.live && !foes) {
+    R.live = false;
+    R.wave++;
+    if (R.wave >= J.roof.length) return roofEnd(true);
+    G.texts.push({ x: R.x + W / 2, y: 150, z: 0, s: 'STAIRWELL CLEAR', c: '#7dffb0', life: 80, big: true });
+    sfx.loot();
+    R.nextT = 120;
+  }
+  if (!R.live && --R.nextT <= 0) {
+    R.live = true;
+    G.waveLive = true;
+    J.roof[R.wave].forEach((k, i) => {
+      const e = spawnEnemy(k, i % 2 ? -1 : 1);
+      e.x += (i >> 1) * (i % 2 ? -18 : 18);
+    });
+    if (R.wave === J.roof.length - 1) musicPlay('boss');
+  }
+}
+function roofEnd(win) {
+  const F = G.flight,
+    R = F.roof;
+  R.over = true;
+  R.win = win;
+  R.live = G.waveLive = false;
+  R.endT = 120;
+  R.kills = G.run.kills - R.k0;
+  G.texts.push({
+    x: R.x + W / 2,
+    y: 150,
+    z: 0,
+    s: win ? 'ROOF CLEAR' : 'OVERRUN',
+    c: win ? '#7dffb0' : '#ff3d4a',
+    life: 110,
+    big: true
+  });
+  (win ? sfx.level : sfx.boom)();
+}
 function flightFinish() {
   const F = G.flight,
-    J = flightJob();
-  const pay = F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3,
-    karma = F.win ? J.karma + F.kills * 2 : 0;
+    J = flightJob(),
+    R = F.roof;
+  const roofPay = R ? (R.win ? 220 : 0) + (R.kills || 0) * 8 : 0,
+    pay = (F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3) + roofPay,
+    karma = F.win ? J.karma + F.kills * 2 + (R && R.win ? 90 : 0) : 0;
   PARTY.creds += pay;
   if (karma) jobKarma(karma);
   const rec = store.load('cs_flight') || {},
@@ -12902,9 +13013,19 @@ function flightFinish() {
     };
   store.set('cs_flight', rec);
   if (F.win) bump('flights');
-  logRun('Job', J.name, F.win ? 'Dropped, hull ' + Math.round((G.fhull / FL.hull) * 100) : 'Shot down');
+  logRun(
+    'Job',
+    J.name,
+    !F.win
+      ? 'Shot down'
+      : R && !R.win
+        ? 'Overrun on the roof'
+        : 'Dropped, hull ' + Math.round((G.fhull / FL.hull) * 100)
+  );
   G.fresult = {
-    win: F.win,
+    win: F.win && (!R || R.win),
+    flew: F.win,
+    roof: R ? { win: R.win, kills: R.kills || 0 } : null,
     kills: F.kills,
     hull: Math.round((G.fhull / FL.hull) * 100),
     pay,
@@ -12918,11 +13039,12 @@ function flightFinish() {
 function flightOverHtml() {
   const r = G.fresult || {},
     J = flightJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Team dropped' : 'Shot down'}</h1>
-    <p>${r.win ? `The Raijin went down and the team hit the roof with the hull at ${r.hull}%.` : 'The VTOL went down over the city. Everyone walked away, which is more than the VTOL did.'}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? (r.roof ? 'Roof taken' : 'Team dropped') : r.flew ? 'Overrun' : 'Shot down'}</h1>
+    <p>${r.win ? `The Raijin went down and the team hit the roof with the hull at ${r.hull}%.${r.roof ? ' Kagemori security stopped coming up the stairs.' : ''}` : r.flew ? 'The flight got you there, but Kagemori held the roof. The VTOL pulled the team out.' : 'The VTOL went down over the city. Everyone walked away, which is more than the VTOL did.'}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Shot down</div></div><div class="acts">${r.kills || 0}</div></div>
       <div class="item"><div><div class="nm">Hull</div></div><div class="acts">${r.hull || 0}%</div></div>
+      ${r.roof ? `<div class="item"><div><div class="nm">The roof</div></div><div class="acts">${r.roof.win ? 'Cleared (+¥220)' : 'Overrun'} · ${r.roof.kills} down</div></div>` : ''}
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
     ${jobEndHtml(r.take, '<button class="btn" data-a="flightagain">Fly it again</button>')}</div>`;
@@ -17275,6 +17397,51 @@ function drawFlightHud() {
     }
   }
 }
+// the Arcology roof after the drop: the city far below, a parapet, the landing pad and the stairwell heads
+function drawRoof() {
+  const R = G.flight.roof,
+    cx = G.camX,
+    C = curS();
+  // the street is a long way down: drown it, then lay the roof deck over the floor band
+  ctx.fillStyle = 'rgba(5,4,10,.75)';
+  ctx.fillRect(0, FY0 - 40, W, H - FY0 + 80);
+  const top = FY0 - 16;
+  ctx.fillStyle = '#1b1a26';
+  ctx.fillRect(0, top, W, H - top);
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  for (let x = -((cx * 1) % 48); x < W; x += 48) ctx.fillRect(x, top, 1, H - top);
+  for (let y = top + 22; y < H; y += 22) ctx.fillRect(0, y, W, 1);
+  // the parapet along the back, with the stairwell heads and a vent stack
+  ctx.fillStyle = '#262536';
+  ctx.fillRect(0, top - 10, W, 10);
+  ctx.fillStyle = C.win || '#ffb36b';
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(0, top - 10, W, 1);
+  ctx.globalAlpha = 1;
+  for (const sx of [30, W - 92]) {
+    ctx.fillStyle = '#2c2a3c';
+    ctx.fillRect(sx, top - 46, 62, 40);
+    ctx.fillStyle = '#0d0b14';
+    ctx.fillRect(sx + 20, top - 34, 22, 28);
+    const live = R.live && G.t % 40 < 20;
+    glow(sx + 31, top - 40, 6, 4, live ? '#ff3d4a' : '#7dffb0', 0.8);
+  }
+  ctx.fillStyle = '#23222f';
+  ctx.fillRect(W * 0.42, top - 30, 40, 24);
+  ctx.fillStyle = 'rgba(255,255,255,.07)';
+  for (let i = 0; i < 4; i++) ctx.fillRect(W * 0.42 + 4, top - 26 + i * 5, 32, 2);
+  // the pad, painted on the deck
+  const px = W * 0.5,
+    py = (FY0 + FY1) / 2 + 4;
+  ctx.strokeStyle = 'rgba(255,198,61,.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(px, py, 92, 34, 0, 0, 7);
+  ctx.stroke();
+  txt('H', px, py + 9, 26, 'rgba(255,198,61,.3)', 'center');
+  // the edge lights blink along the front
+  for (let x = 12; x < W; x += 40) if ((G.t + x) % 90 < 45) glow(x, H - 6, 4, 3, '#ff3d4a', 0.6);
+}
 
 /* ===== src/js/render/world.js ===== */
 /* Cyber City Tactics · src/js/render/world.js
@@ -18058,7 +18225,10 @@ function drawHudTop() {
     line2 = 'TAKEDOWNS ' + G.drive.takedowns;
     col2 = '#ff3d8b';
   } else if (G.flight) {
-    line2 = 'SHOT DOWN ' + G.flight.kills;
+    const R = G.flight.roof;
+    line2 = R
+      ? 'ROOF · WAVE ' + Math.min(R.wave + 1, flightJob().roof.length) + '/' + flightJob().roof.length
+      : 'SHOT DOWN ' + G.flight.kills;
     col2 = '#ffc63d';
   } else if (G.stealth) {
     line2 = G.salarm ? 'ALARM ' + G.salarm + '/3' : 'UNSEEN';
@@ -18483,7 +18653,7 @@ function render() {
   } else {
     drawBg();
     if (G.drive) drawRoad();
-    if (G.flight) drawTowers();
+    if (G.flight) G.flight.roof ? drawRoof() : drawTowers();
   }
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
@@ -18586,7 +18756,7 @@ function render() {
   if (!noHud) drawIntro();
   if (G.drive && G.mode !== 'title') drawDriveHud();
   if (G.stealth && G.mode !== 'title') drawStealthHud();
-  if (G.flight && G.mode !== 'title') drawFlightHud();
+  if (G.flight && !G.flight.roof && G.mode !== 'title') drawFlightHud();
   netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();

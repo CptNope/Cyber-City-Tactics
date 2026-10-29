@@ -18,7 +18,13 @@ const FLIGHT_JOBS = {
     len: 9000,
     drones: 1,
     pay: 300,
-    karma: 140
+    karma: 140,
+    // the drop: off the ramp onto the Arcology roof, and Kagemori security comes up the stairwells
+    roof: [
+      ['sec', 'sec', 'drone'],
+      ['riot', 'sec', 'ninja', 'drone'],
+      ['mech', 'sec', 'ninja']
+    ]
   },
   storm: {
     name: 'Into the Storm',
@@ -156,7 +162,10 @@ function flightUpdate() {
     if (F.bossDown) flightEnd(true, 'DROP ZONE');
     else if (G.fhull <= 0) flightEnd(false, 'GOING DOWN');
   }
-  if (F.done && --F.endT <= 0 && G.mode === 'play') flightFinish();
+  if (F.done && --F.endT <= 0 && G.mode === 'play') {
+    if (F.win && J.roof) roofStart();
+    else flightFinish();
+  }
   tickFx();
   if (G.shake > 0) G.shake *= 0.85;
   if (G.shake < 0.3) G.shake = 0;
@@ -529,11 +538,104 @@ function flightEnd(win, msg) {
   });
   (win ? sfx.level : sfx.boom)();
 }
+/* ---------- the drop: a rooftop brawl ----------
+ * When a job has a roof, a won flight doesn't end at the drop zone: the runners jump off the ramp onto the
+ * roof and fight it out on foot, wave by wave, with the ordinary brawler step (update() hands a flight with a
+ * roof back to it, and roofTick() runs the waves). Clear the roof and the job is done; lose everyone and the
+ * flight still pays, but the job is blown. */
+function roofStart() {
+  const F = G.flight;
+  F.roof = {
+    x: Math.round(G.camX),
+    wave: 0,
+    live: false,
+    nextT: 110,
+    over: false,
+    win: false,
+    endT: 0,
+    k0: G.run.kills
+  };
+  F.S.name = 'The Arcology roof';
+  F.S.sub = 'Hold the pad until security stops coming up the stairs';
+  G.ents = [];
+  G.projs = [];
+  G.picks = [];
+  G.waveLive = false;
+  G.lock = null;
+  // on the job board the crew is level 4, so the roof hits like the Neon Market; on Juno's side job, like your district
+  G.stage = G.cjob ? G.cjob.stage : 1;
+  placeRunners(F.roof.x + 80);
+  for (const p of PL)
+    if (!p.out) {
+      p.z = 70; // off the ramp
+      p.hp = Math.max(p.hp, Math.round(p.maxHp * 0.8));
+      G.ents.push(p);
+    }
+  G.props = [
+    { kind: 'crate', x: F.roof.x + 300, y: FY0 + 26, z: 0 },
+    { kind: 'drum', x: F.roof.x + 200, y: FY1 - 14, z: 0 }
+  ];
+  G.texts.push({ x: F.roof.x + W / 2, y: 150, z: 0, s: 'ON THE ROOF', c: '#ffc63d', life: 90, big: true });
+  G.banner = 150;
+  G.shake = 6;
+  sfx.boom();
+  musicPlay('d4');
+  tip('roof', 'Out of the VTOL and onto the roof: clear three waves of Kagemori security to finish the job.');
+}
+function roofTick() {
+  const F = G.flight,
+    R = F.roof,
+    J = flightJob();
+  G.camX = R.x;
+  if (R.over) {
+    if (--R.endT <= 0 && G.mode === 'play') flightFinish();
+    return;
+  }
+  const foes = G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length;
+  if (R.live && !foes) {
+    R.live = false;
+    R.wave++;
+    if (R.wave >= J.roof.length) return roofEnd(true);
+    G.texts.push({ x: R.x + W / 2, y: 150, z: 0, s: 'STAIRWELL CLEAR', c: '#7dffb0', life: 80, big: true });
+    sfx.loot();
+    R.nextT = 120;
+  }
+  if (!R.live && --R.nextT <= 0) {
+    R.live = true;
+    G.waveLive = true;
+    J.roof[R.wave].forEach((k, i) => {
+      const e = spawnEnemy(k, i % 2 ? -1 : 1);
+      e.x += (i >> 1) * (i % 2 ? -18 : 18);
+    });
+    if (R.wave === J.roof.length - 1) musicPlay('boss');
+  }
+}
+function roofEnd(win) {
+  const F = G.flight,
+    R = F.roof;
+  R.over = true;
+  R.win = win;
+  R.live = G.waveLive = false;
+  R.endT = 120;
+  R.kills = G.run.kills - R.k0;
+  G.texts.push({
+    x: R.x + W / 2,
+    y: 150,
+    z: 0,
+    s: win ? 'ROOF CLEAR' : 'OVERRUN',
+    c: win ? '#7dffb0' : '#ff3d4a',
+    life: 110,
+    big: true
+  });
+  (win ? sfx.level : sfx.boom)();
+}
 function flightFinish() {
   const F = G.flight,
-    J = flightJob();
-  const pay = F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3,
-    karma = F.win ? J.karma + F.kills * 2 : 0;
+    J = flightJob(),
+    R = F.roof;
+  const roofPay = R ? (R.win ? 220 : 0) + (R.kills || 0) * 8 : 0,
+    pay = (F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3) + roofPay,
+    karma = F.win ? J.karma + F.kills * 2 + (R && R.win ? 90 : 0) : 0;
   PARTY.creds += pay;
   if (karma) jobKarma(karma);
   const rec = store.load('cs_flight') || {},
@@ -545,9 +647,19 @@ function flightFinish() {
     };
   store.set('cs_flight', rec);
   if (F.win) bump('flights');
-  logRun('Job', J.name, F.win ? 'Dropped, hull ' + Math.round((G.fhull / FL.hull) * 100) : 'Shot down');
+  logRun(
+    'Job',
+    J.name,
+    !F.win
+      ? 'Shot down'
+      : R && !R.win
+        ? 'Overrun on the roof'
+        : 'Dropped, hull ' + Math.round((G.fhull / FL.hull) * 100)
+  );
   G.fresult = {
-    win: F.win,
+    win: F.win && (!R || R.win),
+    flew: F.win,
+    roof: R ? { win: R.win, kills: R.kills || 0 } : null,
     kills: F.kills,
     hull: Math.round((G.fhull / FL.hull) * 100),
     pay,
@@ -561,11 +673,12 @@ function flightFinish() {
 function flightOverHtml() {
   const r = G.fresult || {},
     J = flightJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Team dropped' : 'Shot down'}</h1>
-    <p>${r.win ? `The Raijin went down and the team hit the roof with the hull at ${r.hull}%.` : 'The VTOL went down over the city. Everyone walked away, which is more than the VTOL did.'}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? (r.roof ? 'Roof taken' : 'Team dropped') : r.flew ? 'Overrun' : 'Shot down'}</h1>
+    <p>${r.win ? `The Raijin went down and the team hit the roof with the hull at ${r.hull}%.${r.roof ? ' Kagemori security stopped coming up the stairs.' : ''}` : r.flew ? 'The flight got you there, but Kagemori held the roof. The VTOL pulled the team out.' : 'The VTOL went down over the city. Everyone walked away, which is more than the VTOL did.'}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Shot down</div></div><div class="acts">${r.kills || 0}</div></div>
       <div class="item"><div><div class="nm">Hull</div></div><div class="acts">${r.hull || 0}%</div></div>
+      ${r.roof ? `<div class="item"><div><div class="nm">The roof</div></div><div class="acts">${r.roof.win ? 'Cleared (+¥220)' : 'Overrun'} · ${r.roof.kills} down</div></div>` : ''}
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
     ${jobEndHtml(r.take, '<button class="btn" data-a="flightagain">Fly it again</button>')}</div>`;

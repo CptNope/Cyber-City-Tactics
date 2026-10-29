@@ -201,3 +201,48 @@ function drawFlightHud() {
     }
   }
 }
+// the Arcology roof after the drop: the city far below, a parapet, the landing pad and the stairwell heads
+function drawRoof() {
+  const R = G.flight.roof,
+    cx = G.camX,
+    C = curS();
+  // the street is a long way down: drown it, then lay the roof deck over the floor band
+  ctx.fillStyle = 'rgba(5,4,10,.75)';
+  ctx.fillRect(0, FY0 - 40, W, H - FY0 + 80);
+  const top = FY0 - 16;
+  ctx.fillStyle = '#1b1a26';
+  ctx.fillRect(0, top, W, H - top);
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  for (let x = -((cx * 1) % 48); x < W; x += 48) ctx.fillRect(x, top, 1, H - top);
+  for (let y = top + 22; y < H; y += 22) ctx.fillRect(0, y, W, 1);
+  // the parapet along the back, with the stairwell heads and a vent stack
+  ctx.fillStyle = '#262536';
+  ctx.fillRect(0, top - 10, W, 10);
+  ctx.fillStyle = C.win || '#ffb36b';
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(0, top - 10, W, 1);
+  ctx.globalAlpha = 1;
+  for (const sx of [30, W - 92]) {
+    ctx.fillStyle = '#2c2a3c';
+    ctx.fillRect(sx, top - 46, 62, 40);
+    ctx.fillStyle = '#0d0b14';
+    ctx.fillRect(sx + 20, top - 34, 22, 28);
+    const live = R.live && G.t % 40 < 20;
+    glow(sx + 31, top - 40, 6, 4, live ? '#ff3d4a' : '#7dffb0', 0.8);
+  }
+  ctx.fillStyle = '#23222f';
+  ctx.fillRect(W * 0.42, top - 30, 40, 24);
+  ctx.fillStyle = 'rgba(255,255,255,.07)';
+  for (let i = 0; i < 4; i++) ctx.fillRect(W * 0.42 + 4, top - 26 + i * 5, 32, 2);
+  // the pad, painted on the deck
+  const px = W * 0.5,
+    py = (FY0 + FY1) / 2 + 4;
+  ctx.strokeStyle = 'rgba(255,198,61,.35)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.ellipse(px, py, 92, 34, 0, 0, 7);
+  ctx.stroke();
+  txt('H', px, py + 9, 26, 'rgba(255,198,61,.3)', 'center');
+  // the edge lights blink along the front
+  for (let x = 12; x < W; x += 40) if ((G.t + x) % 90 < 45) glow(x, H - 6, 4, 3, '#ff3d4a', 0.6);
+}

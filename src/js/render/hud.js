@@ -220,7 +220,10 @@ function drawHudTop() {
     line2 = 'TAKEDOWNS ' + G.drive.takedowns;
     col2 = '#ff3d8b';
   } else if (G.flight) {
-    line2 = 'SHOT DOWN ' + G.flight.kills;
+    const R = G.flight.roof;
+    line2 = R
+      ? 'ROOF · WAVE ' + Math.min(R.wave + 1, flightJob().roof.length) + '/' + flightJob().roof.length
+      : 'SHOT DOWN ' + G.flight.kills;
     col2 = '#ffc63d';
   } else if (G.stealth) {
     line2 = G.salarm ? 'ALARM ' + G.salarm + '/3' : 'UNSEEN';
@@ -645,7 +648,7 @@ function render() {
   } else {
     drawBg();
     if (G.drive) drawRoad();
-    if (G.flight) drawTowers();
+    if (G.flight) G.flight.roof ? drawRoof() : drawTowers();
   }
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
@@ -748,7 +751,7 @@ function render() {
   if (!noHud) drawIntro();
   if (G.drive && G.mode !== 'title') drawDriveHud();
   if (G.stealth && G.mode !== 'title') drawStealthHud();
-  if (G.flight && G.mode !== 'title') drawFlightHud();
+  if (G.flight && !G.flight.roof && G.mode !== 'title') drawFlightHud();
   netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();

@@ -14,7 +14,7 @@ function update() {
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
-  if (G.flight) return flightUpdate(); // and flight jobs (modes/flight.js)
+  if (G.flight && !G.flight.roof) return flightUpdate(); // and flight jobs (modes/flight.js), until they land on a roof
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
     if (p.chiT > 0) p.chiT--;
@@ -260,6 +260,7 @@ function update() {
   else if (G.den) denTick();
   else if (G.arena) arenaTick();
   else if (G.training) trainTick();
+  else if (G.flight) roofTick();
   else waves();
   camera();
   if (G.shake > 0) G.shake *= 0.85;
@@ -391,6 +392,10 @@ function camera() {
   let target = Math.min((minX + maxX) / 2 - W * 0.42, minX - 14);
   if (G.den || (G.world && !G.dun)) {
     G.camX += (clamp(target, 0, Math.max(0, S.len - W)) - G.camX) * 0.12;
+    return;
+  }
+  if (G.flight) {
+    G.camX = G.flight.roof.x; // the roof is one screen
     return;
   }
   if (G.arena || G.training || G.dun) {

@@ -141,11 +141,31 @@ for (let i = 0; i < 200 && !F.bossDown; i++) {
 }
 key('KeyJ', false);
 ok(F.bossDown && F.done && F.win, 'Raijin down: DROP ZONE');
-step(400); // a moment of slow motion, then the drop
+for (let i = 0; i < 600 && !F.roof; i++) step(1); // a moment of slow motion, then the drop
+const p1 = __PL()[0];
 ok(
-  G.mode === 'flightover' && G.fresult.win && G.fresult.pay >= 300,
-  `results: team dropped, paid ¥${G.fresult.pay}`
+  F.roof && G.mode === 'play' && G.ents.includes(p1) && !A.vtolOf(),
+  'the drop: the team lands on the roof, on foot'
 );
+for (let i = 0; i < 200 && !F.roof.live; i++) step(1);
+ok(
+  F.roof.live && G.ents.some(e => e.team === 1 && e.kind === 'sec'),
+  'Kagemori security comes up the stairs'
+);
+// clear the waves (this test is about the flow, not the fight)
+for (let w = 0; w < 3; w++) {
+  for (let i = 0; i < 300 && !F.roof.live && !F.roof.over; i++) step(1);
+  for (const e of G.ents) if (e.team === 1) ((e.hp = 0), A.setS(e, 'dead'));
+  for (let i = 0; i < 5; i++) step(1);
+  p1.hp = p1.maxHp;
+}
+ok(F.roof.over && F.roof.win, `three waves down: ROOF CLEAR (wave ${F.roof.wave})`);
+step(200);
+ok(
+  G.mode === 'flightover' && G.fresult.win && G.fresult.roof && G.fresult.roof.win && G.fresult.pay >= 520,
+  `results: roof taken, paid ¥${G.fresult.pay}`
+);
+ok(/Roof taken/.test(els.ov._h) && /The roof/.test(els.ov._h), 'the results card has the roof');
 ok(/flightagain/.test(els.ov._h), 'Fly it again on the results card');
 
 // shot down
@@ -154,6 +174,24 @@ ok(G.flight && !G.flight.done, 'Fly it again starts a new flight');
 G.fhull = 0;
 step(140);
 ok(G.mode === 'flightover' && !G.fresult.win, 'hull at zero: shot down');
+// overrun on the roof: the flight pays, the job is blown
+click('flightagain');
+G.flight.done = true;
+G.flight.win = true;
+G.flight.endT = 1;
+step(2);
+ok(G.flight.roof, 'straight to the roof');
+for (const q of __PL()) q.lives = 0;
+for (let i = 0; i < 400 && !G.flight.roof.over; i++) {
+  for (const q of __PL()) if (!q.out && q.state !== 'dead') q.hp = 0;
+  step(1);
+}
+ok(G.flight.roof.over && !G.flight.roof.win, 'everyone down on the roof: OVERRUN');
+step(200);
+ok(
+  G.mode === 'flightover' && !G.fresult.win && G.fresult.flew && /Overrun/.test(els.ov._h),
+  'results: overrun'
+);
 
 // pilot and gunner
 click('jobs');

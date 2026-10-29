@@ -667,6 +667,10 @@ function respawn(p) {
     }
     G.ents = G.ents.filter(e => e !== p);
     if (!active().length) {
+      if (G.flight && G.flight.roof) {
+        roofEnd(false);
+        return;
+      }
       if (G.arena) {
         arenaOver();
         return;
