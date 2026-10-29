@@ -128,8 +128,8 @@ function startFlight(id, coop) {
   setMode('play');
   tip(
     'flight',
-    'Stick to fly. PUNCH fires the cannon, SPELL a rocket, DODGE drops a flare. Runner 2 swings the door gun with up and down.',
-    'WASD to fly, J (or U) fires, I fires a rocket, O drops a flare. Runner 2: arrows swing the door gun, comma fires.'
+    'Stick to fly. PUNCH fires the cannon, SPELL a rocket, DODGE drops a flare (three a flight) that clears incoming missiles. Runner 2 swings the door gun with up and down and fires with PUNCH.',
+    'WASD to fly, J (or U) fires, I fires a rocket, O drops a flare (three a flight) that clears incoming missiles. Runner 2 swings the door gun with up and down and fires with PUNCH (arrows and comma on a shared keyboard, your usual keys online).'
   );
 }
 const vtolOf = () => G.ents.find(e => e.kind === 'vtol');

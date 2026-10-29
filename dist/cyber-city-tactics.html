@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Cyber City Tactics</title>
-<meta name="description" content="A vector brawler RPG for one or two players: a six-district campaign, an open-world Sprawl, Arena waves, skill trees, legendaries and secrets. Plays offline.">
+<meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
 <meta property="og:description" content="A neon brawler RPG for one or two players, couch or online. Six districts, an open-world Sprawl, and every job a choice. Free in your browser; plays offline.">
 <meta property="og:type" content="website">
@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+c177a70';
+const APP_VERSION = '2.0.0+d6ee9df';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3666,12 +3666,12 @@ const TECH = {
   },
   grip: {
     name: 'Grip actuators',
-    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and knees hit 40% harder.',
+    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and grab punches and knees hit 40% harder.',
     cost: 300
   },
   gyro: {
     name: 'Gyro spine',
-    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way.',
+    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way; body slams, pile drivers and Grand slam hit 50% harder.',
     cost: 340
   },
   spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },
@@ -4701,7 +4701,12 @@ const SKILLS = {
     name: 'Guard Breaker',
     desc: 'Punches and uppercuts break riot shields, like kicks do.'
   },
-  brute: { t: 'brawler', row: 1, name: 'Brute', desc: 'Knees and throws deal 50% more damage.' },
+  brute: {
+    t: 'brawler',
+    row: 1,
+    name: 'Brute',
+    desc: 'Everything you do to a grabbed foe deals 50% more damage: punches, knees, throws, slams and pile drivers.'
+  },
   leech: {
     t: 'brawler',
     row: 2,
@@ -5134,7 +5139,14 @@ function gainKarma(n) {
   if (p0) G.texts.push({ x: p0.x, y: p0.y, z: 74, s: '+' + n + ' KARMA', c: '#b98cff', life: 40, sm: true });
 }
 function tip(id, touchTxt, keyTxt) {
-  if (G.training || !prefs.tips || prefs.seen[id]) return;
+  if (G.training || !prefs.tips) return;
+  // online, the friend sees the host's tips: show each once per online session too, even if the host knows it
+  const online = typeof NET !== 'undefined' && NET.role === 'host' && NET.live;
+  if (online) {
+    NET.tipsSeen = NET.tipsSeen || {};
+    if (NET.tipsSeen[id]) return;
+    NET.tipsSeen[id] = 1;
+  } else if (prefs.seen[id]) return;
   prefs.seen[id] = 1;
   savePrefs();
   const t = { s: ctl(touchTxt, keyTxt), life: 330 };
@@ -6339,7 +6351,11 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1) * (e.hardLand || 1);
+          const dmg =
+            (8 + src.D.melee * 0.7) *
+            (hasTech(src, 'gyro') ? 2 : 1) *
+            (has(src, 'brute') ? 1.5 : 1) *
+            (e.hardLand || 1);
           e.hardLand = 1;
           e.laneV = 0;
           e.state = 'down';
@@ -10868,8 +10884,8 @@ const TRAIN = [
     done: p => p.parryT > 0
   },
   {
-    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. Let go, then push a direction and tap KICK to throw him that way.',
-    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. Let go, then push a direction and press K to throw him that way.',
+    t: 'Punch the ganger twice until stars circle his head (that gives you time), then walk into him to grab. Let go, then push a direction and tap KICK to throw him that way.',
+    k: 'Punch the ganger twice (J, J) until stars circle his head (that gives you time), then walk into him to grab. Let go, then push a direction and press K to throw him that way.',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });
@@ -10877,8 +10893,8 @@ const TRAIN = [
     done: () => G.tf.threw
   },
   {
-    t: 'Stars again, grab him, then tap JUMP: you leap with him. Land without pushing a direction for a body slam.',
-    k: 'Stars again (J, J), grab him, then press Space: you leap with him. Land without pushing a direction for a body slam.',
+    t: 'Stars again, grab him, then tap JUMP: you leap with him. Land without pushing a direction for a body slam (street samurai and adepts pile drive).',
+    k: 'Stars again (J, J), grab him, then press Space: you leap with him. Land without pushing a direction for a body slam (street samurai and adepts pile drive).',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });
@@ -11686,7 +11702,7 @@ function sideJobHtml() {
     ${isObj(d) ? `<span style="color:var(--muted);font-size:13px">+¥${d.creds}${d.items ? ` · ${d.items} gear to the bag` : ''}${d.karma ? ` · +${d.karma} karma` : ''}</span>` : ''}</div>`;
   const what = { drive: 'A driving job', stealth: 'A drone job', flight: 'A flight job' }[c.kind];
   return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st">Optional</span></div>
-    <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here.</span>
+    <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here, win or lose (quit midway and it's still on offer).</span>
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="cjob">Take the side job</button></div></div>`;
 }
 
@@ -11712,7 +11728,9 @@ const DRIVE_JOBS = {
     bikers: 1,
     traffic: 1,
     pay: 260,
-    karma: 120
+    karma: 120,
+    fail: 'BRIDGE CLOSED',
+    failTxt: 'Kagemori shut the causeway before you made it across. Juno only pays for the takedowns.'
   },
   market: {
     name: 'Neon Market Getaway',
@@ -11723,7 +11741,9 @@ const DRIVE_JOBS = {
     bikers: 1.45,
     traffic: 1.35,
     pay: 340,
-    karma: 160
+    karma: 160,
+    fail: 'BOXED IN',
+    failTxt: 'The crews boxed you in before you cleared the market. Juno only pays for the takedowns.'
   }
 };
 const DRIVE = {
@@ -12407,7 +12427,7 @@ function driveEnd(win) {
     x: G.camX + W / 2,
     y: 150,
     z: 0,
-    s: win ? 'DELIVERED' : 'BRIDGE CLOSED',
+    s: win ? 'DELIVERED' : driveJob().fail || 'TOO LATE',
     c: win ? '#ffc63d' : '#ff3d4a',
     life: 110,
     big: true
@@ -12432,7 +12452,11 @@ function driveFinish() {
     };
   store.set('cs_drive', rec);
   if (D.win) bump('drives');
-  logRun('Job', J.name, D.win ? fmtTime(G.dtime) : 'Bridge closed');
+  logRun(
+    'Job',
+    J.name,
+    D.win ? fmtTime(G.dtime) : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'
+  );
   G.dresult = {
     win: D.win,
     time: G.dtime,
@@ -12491,22 +12515,22 @@ function jobsHtml() {
     <p style="font-size:13px">Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead (or behind), <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
     ${drive}
     <h3>Drone stealth</h3>
-    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind), <b>dodge</b> cloaks for a moment. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
+    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind; dart the job's target for a bonus), <b>dodge</b> cloaks for a moment. <b>Overwatch co-op</b> keeps runner 2 off the floor with a reticle: punch loops a camera or laser, kick pings a noise that pulls guards over. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
     ${stealth}
     <h3>Flight</h3>
-    <p style="font-size:13px">A VTOL run over the city that scrolls by on its own. Runner 1 flies: <b>hold punch</b> (or gun) for the nose cannon, <b>spell</b> fires a rocket, <b>dodge</b> drops a flare that shakes missiles. Runner 2 works the <b>door gun</b>: up and down to swing it, hold punch to fire (solo, it fires on its own). Watch the towers' searchlights: hold still in one and flak comes for you.</p>
+    <p style="font-size:13px">A VTOL run over the city that scrolls by on its own. Runner 1 flies: <b>hold punch</b> (or gun) for the nose cannon, <b>spell</b> fires a rocket, <b>dodge</b> drops a flare that clears incoming missiles (three a flight). Runner 2 works the <b>door gun</b>: up and down to swing it, hold punch to fire (solo, it fires on its own). Watch the towers' searchlights: hold still in one and flak comes for you.</p>
     ${flight}
     <div class="row"><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
 }
 function driveOverHtml() {
   const r = G.dresult || {},
     J = driveJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : 'Bridge closed'}</h1>
-    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : "Kagemori shut the causeway before you made it across. Juno's not paying for a package that's still on this side."}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
+    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc(J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Takedowns</div></div><div class="acts">${r.takedowns || 0}</div></div>
       <div class="item"><div><div class="nm">Crashes</div></div><div class="acts">${r.crashes || 0}</div></div>
-      <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
+      <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? (r.win ? 'Wrecked (+¥150)' : 'Wrecked') : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
     ${jobEndHtml(r.take, '<button class="btn" data-a="driveagain">Ride it again</button>')}</div>`;
@@ -12626,12 +12650,12 @@ function startStealth(id, coop, ow) {
     tip(
       'overwatch',
       'Runner 2 is overwatch: move the reticle, PUNCH loops a camera or laser under it, KICK pings a noise that pulls guards to it.',
-      'Runner 2 is overwatch: arrows move the reticle, comma loops a camera or laser under it, period pings a noise that pulls guards to it.'
+      'Runner 2 is overwatch: move the reticle (arrows on a shared keyboard, your usual keys online), PUNCH loops a camera or laser under it, KICK pings a noise that pulls nearby guards to it.'
     );
   tip(
     'stealth',
-    'Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind, DODGE cloaks.',
-    'A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind, O cloaks.'
+    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks.",
+    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks."
   );
 }
 // the floor's layout from a fresh seed: cameras, walls with vents, laser gates, guard patrols, the terminal,
@@ -13245,8 +13269,8 @@ function startFlight(id, coop) {
   setMode('play');
   tip(
     'flight',
-    'Stick to fly. PUNCH fires the cannon, SPELL a rocket, DODGE drops a flare. Runner 2 swings the door gun with up and down.',
-    'WASD to fly, J (or U) fires, I fires a rocket, O drops a flare. Runner 2: arrows swing the door gun, comma fires.'
+    'Stick to fly. PUNCH fires the cannon, SPELL a rocket, DODGE drops a flare (three a flight) that clears incoming missiles. Runner 2 swings the door gun with up and down and fires with PUNCH.',
+    'WASD to fly, J (or U) fires, I fires a rocket, O drops a flare (three a flight) that clears incoming missiles. Runner 2 swings the door gun with up and down and fires with PUNCH (arrows and comma on a shared keyboard, your usual keys online).'
   );
 }
 const vtolOf = () => G.ents.find(e => e.kind === 'vtol');
@@ -13803,12 +13827,13 @@ function flightOverHtml() {
 
 /* ===== src/js/modes/net.js ===== */
 /* Cyber City Tactics · src/js/modes/net.js
- * Online co-op: two browsers, any mode (the Arena, the campaign, the Sprawl).
+ * Online co-op: two browsers, any mode (the Arena, the campaign, the Sprawl, jobs; training to watch).
  *
- * Connecting: WebRTC peer to peer. The host makes an invite code (its connection offer, compressed and
- * base64'd); the friend pastes it and gets a reply code to send back; the host pastes that and the data
- * channel opens. Codes travel however the players like: chat, text, email. A public STUN server helps the
- * two find each other across the internet; on one Wi-Fi network it isn't needed at all.
+ * Connecting: WebRTC peer to peer. Normally through the lobby (server/, a Cloudflare Worker): the host
+ * posts its connection offer and gets a five-letter room code, the friend fetches the offer by code and
+ * posts an answer, and the host polls for it. The lobby also hands out TURN relay passes for networks that
+ * block direct connections. With no lobby (?lobby=off, or it can't be reached) the two swap long codes by
+ * hand instead: the offer and answer compressed and base64'd. Either way the game itself is peer to peer.
  *
  * Playing: the host's game is the real one. It runs the simulation as usual with the friend as runner 2:
  * the friend's browser sends its buttons (held flags plus a press counter per button, so a quick tap is
@@ -14798,7 +14823,7 @@ function netHtml(m) {
   }
   if (m === 'nethub')
     return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
-    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
+    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued), the Sprawl or a job; or they can watch you train. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
     <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')
@@ -19973,7 +19998,7 @@ function attractStep() {
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab</span>
+<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer. A grab lasts under two seconds</span>
 <b>· Punch</b><span>Punches only: jab, jab, then a hook that knocks them down</span>
 <b>· Kick</b><span>Legs only: knee, knee, then a knee lift that launches them</span>
 <b>· Direction + either</b><span>A throw that way: forward, back (over the shoulder, lands harder), up or down (into another lane). The direction you walked in with counts once you let go of it</span>
@@ -19989,7 +20014,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
-<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers throw cans, crates and drums.</p>`;
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
   const cy = Object.keys(CYBER)

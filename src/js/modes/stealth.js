@@ -112,12 +112,12 @@ function startStealth(id, coop, ow) {
     tip(
       'overwatch',
       'Runner 2 is overwatch: move the reticle, PUNCH loops a camera or laser under it, KICK pings a noise that pulls guards to it.',
-      'Runner 2 is overwatch: arrows move the reticle, comma loops a camera or laser under it, period pings a noise that pulls guards to it.'
+      'Runner 2 is overwatch: move the reticle (arrows on a shared keyboard, your usual keys online), PUNCH loops a camera or laser under it, KICK pings a noise that pulls nearby guards to it.'
     );
   tip(
     'stealth',
-    'Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind, DODGE cloaks.',
-    'A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind, O cloaks.'
+    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks.",
+    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks."
   );
 }
 // the floor's layout from a fresh seed: cameras, walls with vents, laser gates, guard patrols, the terminal,

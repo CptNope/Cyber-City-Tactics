@@ -39,12 +39,12 @@ const TECH = {
   },
   grip: {
     name: 'Grip actuators',
-    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and knees hit 40% harder.',
+    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and grab punches and knees hit 40% harder.',
     cost: 300
   },
   gyro: {
     name: 'Gyro spine',
-    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way.',
+    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way; body slams, pile drivers and Grand slam hit 50% harder.',
     cost: 340
   },
   spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Cyber City Tactics",
   "short_name": "Cyber City",
-  "description": "A vector brawler RPG for one or two players: a six-district campaign, an open-world Sprawl, Arena waves, skill trees, legendaries and secrets. Plays offline.",
+  "description": "A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.",
   "lang": "en",
   "dir": "ltr",
   "start_url": "./?source=pwa",

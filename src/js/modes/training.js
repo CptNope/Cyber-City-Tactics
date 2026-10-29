@@ -86,8 +86,8 @@ const TRAIN = [
     done: p => p.parryT > 0
   },
   {
-    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. Let go, then push a direction and tap KICK to throw him that way.',
-    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. Let go, then push a direction and press K to throw him that way.',
+    t: 'Punch the ganger twice until stars circle his head (that gives you time), then walk into him to grab. Let go, then push a direction and tap KICK to throw him that way.',
+    k: 'Punch the ganger twice (J, J) until stars circle his head (that gives you time), then walk into him to grab. Let go, then push a direction and press K to throw him that way.',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });
@@ -95,8 +95,8 @@ const TRAIN = [
     done: () => G.tf.threw
   },
   {
-    t: 'Stars again, grab him, then tap JUMP: you leap with him. Land without pushing a direction for a body slam.',
-    k: 'Stars again (J, J), grab him, then press Space: you leap with him. Land without pushing a direction for a body slam.',
+    t: 'Stars again, grab him, then tap JUMP: you leap with him. Land without pushing a direction for a body slam (street samurai and adepts pile drive).',
+    k: 'Stars again (J, J), grab him, then press Space: you leap with him. Land without pushing a direction for a body slam (street samurai and adepts pile drive).',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });

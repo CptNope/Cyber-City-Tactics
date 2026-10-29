@@ -166,6 +166,6 @@ function sideJobHtml() {
     ${isObj(d) ? `<span style="color:var(--muted);font-size:13px">+¥${d.creds}${d.items ? ` · ${d.items} gear to the bag` : ''}${d.karma ? ` · +${d.karma} karma` : ''}</span>` : ''}</div>`;
   const what = { drive: 'A driving job', stealth: 'A drone job', flight: 'A flight job' }[c.kind];
   return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st">Optional</span></div>
-    <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here.</span>
+    <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here, win or lose (quit midway and it's still on offer).</span>
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="cjob">Take the side job</button></div></div>`;
 }

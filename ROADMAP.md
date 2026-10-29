@@ -41,7 +41,7 @@ The guiding rules:
 - [x] **Expansion 3:** Turbo, Fog, Split and Pacifist mutators; acid rain, corp parade and manhunt block events; co-op revive; Doc's neural reset; five new feats; GitHub Actions CI
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
-- [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), eleven chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
 ---
@@ -110,9 +110,9 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Corp ninjas and hellhounds.**~~ Shipped as Kagemori shadows and hellhound packs.
 - [x] ~~**Mech walkers and feral spirits.**~~ Shipped: a plated walker with a weak back, and a spirit that echoes your last spell.
 - [x] ~~**A parry.**~~ Shipped: a perfect dodge staggers the attacker and sets up a guaranteed crit.
-- [x] ~~**Grabs you can actually find.**~~ Shipped: two hits in a row daze a foe for a second (stars over its head), so there's time to walk in and grab; the help screen lists every move.
+- [x] ~~**Grabs you can actually find.**~~ Shipped: any hit makes a foe flinch long enough to grab, and two in a row daze it for a second (stars over its head), so there's time to walk in; the help screen lists every move.
 - [x] ~~**Chrome techniques.**~~ Shipped: six one-off implants from Doc, River City Ransom books in chrome: faster punches, faster kicks, longer grabs, harder throws, higher jumps, faster get-ups.
-- [x] ~~**Chrome moves.**~~ Shipped: five more from Doc that add moves: Mach fists and Dragon feet (mash for a punch or kick flurry), Grand slam (swing a grabbed foe through the crowd), Heel spikes (stomp the downed) and Turbo calves (double-tap to sprint; shoulder charge and slide).
+- [x] ~~**Chrome moves.**~~ Shipped: six more from Doc that add moves: Mach fists and Dragon feet (mash for a punch or kick flurry), Grand slam (swing a grabbed foe through the crowd), the Pile driver rig (street samurai and adepts know it already), Heel spikes (stomp the downed) and Turbo calves (double-tap to sprint; shoulder charge and slide).
 - [x] ~~**Double Dragon grabs.**~~ Shipped: from a grab, punch only punches (jab, jab, hook) and kick only knees (knee, knee, knee lift); a direction plus either throws that way (forward, over the shoulder, into another lane); jump leaps with them, throwing in any direction pushed in the air, or landing in a body slam, or a pile driver for street samurai, adepts and anyone with the Pile driver rig.
 - [x] ~~**Foes who fight like runners.**~~ Shipped: grabs you mash out of (gangers, orcs, the Gutter King), flurries with a tell (Razor Mei, Kagemori shadows), and gangers and orcs picking up and throwing props.
 - [ ] **Street weapons (M).** River City Ransom's pickups: pipes, chains and bats that foes drop, to swing for a few hits or throw; foes pick them up too.
@@ -152,7 +152,7 @@ Picked from what the graphics pass turned up:
 - [ ] **Item sets (L)** stay planned under Gear and loot.
 
 ### Reach and onboarding
-- [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now eleven, with a new parry drill), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.
+- [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now thirteen, with parry, jump-slam and break-free drills), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.
 - [x] ~~**Real-device performance reports.**~~ Shipped: Settings › Performance report copies the version, browser, screen and canvas size, quality step, frame rate and game speed.
 - [x] ~~**Store listing kit.**~~ Shipped in `docs/store/`: a 22-second trailer, six 1920×1080 shots, an itch.io cover, a social card (now the page's link preview) and page copy, plus fresh install-dialog screenshots, all made by `tools/capture.mjs` from the live game. The brand fonts are now bundled with the game, so it looks right offline too.
 

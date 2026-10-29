@@ -18,7 +18,11 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1) * (e.hardLand || 1);
+          const dmg =
+            (8 + src.D.melee * 0.7) *
+            (hasTech(src, 'gyro') ? 2 : 1) *
+            (has(src, 'brute') ? 1.5 : 1) *
+            (e.hardLand || 1);
           e.hardLand = 1;
           e.laneV = 0;
           e.state = 'down';

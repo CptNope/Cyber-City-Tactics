@@ -7,7 +7,7 @@
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab</span>
+<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer. A grab lasts under two seconds</span>
 <b>· Punch</b><span>Punches only: jab, jab, then a hook that knocks them down</span>
 <b>· Kick</b><span>Legs only: knee, knee, then a knee lift that launches them</span>
 <b>· Direction + either</b><span>A throw that way: forward, back (over the shoulder, lands harder), up or down (into another lane). The direction you walked in with counts once you let go of it</span>
@@ -23,7 +23,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
-<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers throw cans, crates and drums.</p>`;
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
   const cy = Object.keys(CYBER)

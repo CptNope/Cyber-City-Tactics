@@ -20,7 +20,9 @@ const DRIVE_JOBS = {
     bikers: 1,
     traffic: 1,
     pay: 260,
-    karma: 120
+    karma: 120,
+    fail: 'BRIDGE CLOSED',
+    failTxt: 'Kagemori shut the causeway before you made it across. Juno only pays for the takedowns.'
   },
   market: {
     name: 'Neon Market Getaway',
@@ -31,7 +33,9 @@ const DRIVE_JOBS = {
     bikers: 1.45,
     traffic: 1.35,
     pay: 340,
-    karma: 160
+    karma: 160,
+    fail: 'BOXED IN',
+    failTxt: 'The crews boxed you in before you cleared the market. Juno only pays for the takedowns.'
   }
 };
 const DRIVE = {
@@ -715,7 +719,7 @@ function driveEnd(win) {
     x: G.camX + W / 2,
     y: 150,
     z: 0,
-    s: win ? 'DELIVERED' : 'BRIDGE CLOSED',
+    s: win ? 'DELIVERED' : driveJob().fail || 'TOO LATE',
     c: win ? '#ffc63d' : '#ff3d4a',
     life: 110,
     big: true
@@ -740,7 +744,11 @@ function driveFinish() {
     };
   store.set('cs_drive', rec);
   if (D.win) bump('drives');
-  logRun('Job', J.name, D.win ? fmtTime(G.dtime) : 'Bridge closed');
+  logRun(
+    'Job',
+    J.name,
+    D.win ? fmtTime(G.dtime) : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'
+  );
   G.dresult = {
     win: D.win,
     time: G.dtime,
@@ -799,22 +807,22 @@ function jobsHtml() {
     <p style="font-size:13px">Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead (or behind), <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
     ${drive}
     <h3>Drone stealth</h3>
-    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind), <b>dodge</b> cloaks for a moment. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
+    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind; dart the job's target for a bonus), <b>dodge</b> cloaks for a moment. <b>Overwatch co-op</b> keeps runner 2 off the floor with a reticle: punch loops a camera or laser, kick pings a noise that pulls guards over. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
     ${stealth}
     <h3>Flight</h3>
-    <p style="font-size:13px">A VTOL run over the city that scrolls by on its own. Runner 1 flies: <b>hold punch</b> (or gun) for the nose cannon, <b>spell</b> fires a rocket, <b>dodge</b> drops a flare that shakes missiles. Runner 2 works the <b>door gun</b>: up and down to swing it, hold punch to fire (solo, it fires on its own). Watch the towers' searchlights: hold still in one and flak comes for you.</p>
+    <p style="font-size:13px">A VTOL run over the city that scrolls by on its own. Runner 1 flies: <b>hold punch</b> (or gun) for the nose cannon, <b>spell</b> fires a rocket, <b>dodge</b> drops a flare that clears incoming missiles (three a flight). Runner 2 works the <b>door gun</b>: up and down to swing it, hold punch to fire (solo, it fires on its own). Watch the towers' searchlights: hold still in one and flak comes for you.</p>
     ${flight}
     <div class="row"><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
 }
 function driveOverHtml() {
   const r = G.dresult || {},
     J = driveJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : 'Bridge closed'}</h1>
-    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : "Kagemori shut the causeway before you made it across. Juno's not paying for a package that's still on this side."}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
+    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc(J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Takedowns</div></div><div class="acts">${r.takedowns || 0}</div></div>
       <div class="item"><div><div class="nm">Crashes</div></div><div class="acts">${r.crashes || 0}</div></div>
-      <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
+      <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? (r.win ? 'Wrecked (+¥150)' : 'Wrecked') : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
     ${jobEndHtml(r.take, '<button class="btn" data-a="driveagain">Ride it again</button>')}</div>`;

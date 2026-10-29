@@ -1,10 +1,11 @@
 /* Cyber City Tactics · src/js/modes/net.js
- * Online co-op: two browsers, any mode (the Arena, the campaign, the Sprawl).
+ * Online co-op: two browsers, any mode (the Arena, the campaign, the Sprawl, jobs; training to watch).
  *
- * Connecting: WebRTC peer to peer. The host makes an invite code (its connection offer, compressed and
- * base64'd); the friend pastes it and gets a reply code to send back; the host pastes that and the data
- * channel opens. Codes travel however the players like: chat, text, email. A public STUN server helps the
- * two find each other across the internet; on one Wi-Fi network it isn't needed at all.
+ * Connecting: WebRTC peer to peer. Normally through the lobby (server/, a Cloudflare Worker): the host
+ * posts its connection offer and gets a five-letter room code, the friend fetches the offer by code and
+ * posts an answer, and the host polls for it. The lobby also hands out TURN relay passes for networks that
+ * block direct connections. With no lobby (?lobby=off, or it can't be reached) the two swap long codes by
+ * hand instead: the offer and answer compressed and base64'd. Either way the game itself is peer to peer.
  *
  * Playing: the host's game is the real one. It runs the simulation as usual with the friend as runner 2:
  * the friend's browser sends its buttons (held flags plus a press counter per button, so a quick tap is
@@ -995,7 +996,7 @@ function netHtml(m) {
   }
   if (m === 'nethub')
     return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
-    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
+    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued), the Sprawl or a job; or they can watch you train. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
     <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')

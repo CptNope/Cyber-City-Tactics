@@ -17,7 +17,12 @@ const SKILLS = {
     name: 'Guard Breaker',
     desc: 'Punches and uppercuts break riot shields, like kicks do.'
   },
-  brute: { t: 'brawler', row: 1, name: 'Brute', desc: 'Knees and throws deal 50% more damage.' },
+  brute: {
+    t: 'brawler',
+    row: 1,
+    name: 'Brute',
+    desc: 'Everything you do to a grabbed foe deals 50% more damage: punches, knees, throws, slams and pile drivers.'
+  },
   leech: {
     t: 'brawler',
     row: 2,

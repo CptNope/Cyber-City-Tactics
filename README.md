@@ -191,9 +191,9 @@ A rigger's job: each runner flies a small drone through a corp floor seen in cro
 | Cloak | **O** or Left Shift | A couple of seconds unseen, from the battery under the drone |
 | Repair | **H** | 30 HP from the shared medkits |
 
-Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. Pull the files, then leave through the vent at the far end; dart the job's target for a bonus, and get out with no alarms at all to ghost it.
+Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. Pull the files, then leave through the vent at the far end; dart the job's target from behind for a bonus (¥200 and 40 karma), and get out with no alarms at all to ghost it (another ¥150).
 
-**Overwatch co-op.** Pick **Overwatch co-op** on the Jobs board and runner 2 stays off the floor, on the building's network: their stick moves a reticle over the floor, **PUNCH** (comma on the keyboard) loops the camera or laser under it for seven seconds, and **KICK** (period) pings a noise that pulls nearby guards off their patrols to look, which turns their backs for a dart. Overwatch starts with three loops and three pings, and gets a loop back for every guard the drone drops. Online, your friend (runner 2) runs overwatch.
+**Overwatch co-op.** Pick **Overwatch co-op** on the Jobs board and runner 2 stays off the floor, on the building's network: their stick moves a reticle over the floor, **PUNCH** (comma on the keyboard) loops the camera or laser under it for seven seconds, and **KICK** (period) pings a noise that pulls nearby guards off their patrols to look, which turns their backs for a dart. Overwatch starts with three loops and three pings, and gets a loop back (up to five) for every guard the drone drops. A ping pulls guards within about a third of the screen of the reticle. Online, your friend (runner 2) runs overwatch.
 
 | Job | Where | Target |
 |---|---|---|
@@ -210,7 +210,7 @@ A VTOL run over the skyline as a side-scrolling shooter. The city scrolls by on 
 | Fly | **WASD** | |
 | Fire | hold **J** or **U**: the nose cannon | **↑ ↓** swing the door gun, hold **,** to fire |
 | Rocket | **I**: costs mana, splashes | |
-| Flare | **O**: missiles chase it instead, and you jink clear | |
+| Flare | **O**: clears every incoming missile and gives a moment's cover. Three per flight (the HUD counts them) | |
 | Patch the hull | **H** | |
 
 Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunships hold the right of the screen and fire spreads, and the towers stand up into your flight path. Searchlights on the towers lock on if you sit in their beam, and flak follows (a red ring closes on where you were). Shot-down drones leave salvage floating in the air; fly through it. At the end the **Raijin** gunship guards the drop zone: bring it down and the team drops onto the roof. On **Over the Skyline** that's not the end: the runners jump off the ramp onto the Arcology roof and fight it out on foot, three waves of Kagemori security coming up the stairwells. Clear the roof for a bonus; get overrun and the flight still pays, but the job is blown.
@@ -267,7 +267,7 @@ Play with a friend in another browser, on another device, anywhere. No accounts 
 | ![The host's room code card](docs/media/online-room.png) | ![The friend typing the room code](docs/media/online-join.png) |
 | 1. **Online co-op › Host a game.** You get a five-letter room code, and a **Copy invite link** button. | 2. **Online co-op › Join a game**, type the code (or just open the invite link), and press **Join**. |
 
-3. You're connected. The host picks what to play: the **Arena** (and its daily and weekly challenges), a **new or continued campaign**, or **the Sprawl**. Whatever the host starts, the friend joins it as Runner 2 with the archetype and coat they picked.
+3. You're connected. The host picks what to play: the **Arena** (and its daily and weekly challenges), a **new or continued campaign**, **the Sprawl**, or a **job** from the Jobs board; **Training** is solo, so the friend watches. Whatever the host starts, the friend joins it as Runner 2 with the archetype and coat they picked.
 4. The host runs the briefings, shops and Den menus, and the friend sees what's going on ("your partner is shopping…"). The friend opens their own **character sheet (C)** any time to spend attribute and skill points, change spells and swap gear.
 5. Quitting a run takes the host back to the online menu, so you can switch modes without reconnecting. **End online game** when you're done.
 
@@ -480,7 +480,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
-- **Grabs (Double Dragon style):** two hits in a row daze a foe (stars circle its head). Walk into it while it's dazed to grab it, then:
+- **Grabs (Double Dragon style):** walk into a foe while it's flinching from a hit to grab it. Two hits in a row daze it (stars circle its head) for about a second, so you have time to walk in. A grab lasts under two seconds (three with Grip actuators). While you hold it:
   - **Punch:** punches only. A jab, a jab, then a hook that knocks them down.
   - **Kick:** legs only. A knee, a knee, then a knee lift that launches them (catch them with a jump kick).
   - **A direction plus punch or kick:** a throw that way. Forward; back for an over-the-shoulder slam behind you (it lands harder); up or down to throw them into another lane, bowling over whoever stands there. The direction you were already holding when you walked in doesn't throw until you let go of it or change it, so walking in never throws by accident.
@@ -488,7 +488,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - **Dodge:** Grand slam, with the implant.
 
   Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen, and Training has drills for grabs, throws, the jump slam and breaking free.
-- **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button to break free, and they reel, dazed, ready to be grabbed back. Don't, and you're kneed and thrown. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
+- **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button (or change direction) to break free, and they reel, dazed, ready to be grabbed back. Gangers take 4 presses, orcs 6, bosses 10; a meter over your head fills as you mash. Don't, and you're kneed, then thrown after a couple of seconds. A foe's flurry never knocks you down until its last hit. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
 - **Throwables:** trash cans, crates and explosive drums.
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.
@@ -647,7 +647,7 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Hack (in the minigame) | Space or J | , | A or X (Y uses an icebreaker, B backs off) |
 | Menus | Mouse, touch or Tab | | D-pad/stick, A select, B back, LB/RB tabs |
 
-**Grabs.** Hit a foe twice to daze it (stars), then walk into it. While holding it:
+**Grabs.** Walk into a foe that's flinching from a hit; two hits in a row daze it (stars) so you have longer. While holding it:
 
 | Do this | And you |
 |---|---|
@@ -656,7 +656,7 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | A direction + punch or kick | Throw that way: forward, back (over the shoulder), up or down (into another lane) |
 | Jump | Leap with them: push a direction in the air to throw, or land for a body slam (a pile driver for street samurai, adepts or with the Pile driver rig) |
 | Dodge | Grand slam (with the implant) |
-| Grabbed by a foe | Mash any button to break free |
+| Grabbed by a foe | Mash any button, or change direction, to break free: 4 presses for a ganger, 6 for an orc, 10 for a boss. Take too long and you're kneed, then thrown |
 
 **With Doc's chrome:** mash punch or kick after two quick hits for a flurry (Mach fists, Dragon feet); double-tap a direction to sprint (Turbo calves), then punch to charge or kick to slide; kick beside a foe on the ground to stomp it (Heel spikes).
 

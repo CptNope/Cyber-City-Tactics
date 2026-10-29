@@ -269,7 +269,14 @@ function gainKarma(n) {
   if (p0) G.texts.push({ x: p0.x, y: p0.y, z: 74, s: '+' + n + ' KARMA', c: '#b98cff', life: 40, sm: true });
 }
 function tip(id, touchTxt, keyTxt) {
-  if (G.training || !prefs.tips || prefs.seen[id]) return;
+  if (G.training || !prefs.tips) return;
+  // online, the friend sees the host's tips: show each once per online session too, even if the host knows it
+  const online = typeof NET !== 'undefined' && NET.role === 'host' && NET.live;
+  if (online) {
+    NET.tipsSeen = NET.tipsSeen || {};
+    if (NET.tipsSeen[id]) return;
+    NET.tipsSeen[id] = 1;
+  } else if (prefs.seen[id]) return;
   prefs.seen[id] = 1;
   savePrefs();
   const t = { s: ctl(touchTxt, keyTxt), life: 330 };
