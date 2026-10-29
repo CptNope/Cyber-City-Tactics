@@ -103,7 +103,8 @@ const NET_WAIT = {
   wiped: 'Wiped out. Your partner can retry or head back.',
   win: 'The campaign is done. Nice work.',
   jobs: 'Your partner is picking a job.',
-  driveover: 'The run is over. Your partner can ride it again or pick another job.'
+  driveover: 'The run is over. Your partner can ride it again or pick another job.',
+  stealthover: 'The job is over. Your partner can fly it again or pick another job.'
 };
 const NET = {
   role: null, // 'host' | 'guest' | null
@@ -980,7 +981,8 @@ function netHtml(m) {
       NET.hm === 'over' ||
       NET.hm === 'wiped' ||
       NET.hm === 'win' ||
-      NET.hm === 'driveover';
+      NET.hm === 'driveover' ||
+      NET.hm === 'stealthover';
     const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
     const txt =
       NET.hm === 'arenaover'

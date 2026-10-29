@@ -120,7 +120,8 @@ function hackWin() {
     G.hack = null;
     sfx.level();
     setMode('play');
-    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
+    if (G.stealth) stealthHackDone();
+    else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
     return;
   }
   if (b.tier >= 3 && G.hack.miss === 0) feat('zero');
@@ -141,7 +142,8 @@ function hackFail() {
     G.hack = null;
     sfx.hurt();
     setMode('play');
-    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
+    if (G.stealth) stealthHackDone();
+    else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
     return;
   }
   G.hack = null;

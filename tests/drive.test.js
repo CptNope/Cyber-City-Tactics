@@ -201,6 +201,28 @@ ok(
   `crossing the finish line delivers the package (${A.fmtTime(G.dresult.time)})`
 );
 ok(G.dresult.pay >= 260 && /Delivered/.test(els.ov._h), `paid ¥${G.dresult.pay}, results card shown`);
+// banking the take into a save: with no save there's nothing to bank to
+ok(
+  /Start a campaign or a Sprawl run/.test(els.ov._h) || !G.dresult.take.creds,
+  'no save yet: the card says where pay could go'
+);
+A.store.set('cs_world', {
+  v: 1,
+  party: { creds: 100, stash: [] },
+  runners: [{ arch: 'runner' }],
+  wd: { level: 1, seed: 7 }
+});
+A.renderOv();
+ok(/jobbank:world/.test(els.ov._h), 'with a Sprawl save, the card offers to bank the take there');
+const take = G.dresult.take;
+take.items.push(A.randItem(1));
+click('jobbank:world');
+const sw = A.store.load('cs_world');
+ok(
+  sw.party.creds === 100 + take.creds && sw.party.stash.length === take.items.length,
+  `banked ¥${take.creds} and ${take.items.length} gear to the Sprawl stash`
+);
+ok(/Banked/.test(els.ov._h) && !/jobbank:/.test(els.ov._h), 'banked once, and the buttons go away');
 const rec = A.store.load('cs_drive');
 ok(rec && rec.causeway && rec.causeway.best === G.dresult.time, 'best time saved on the device');
 

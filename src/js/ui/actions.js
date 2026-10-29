@@ -61,6 +61,20 @@ ov.addEventListener('click', e => {
       startDrive(arg, parts[2] === '2');
       keep = false;
       break;
+    case 'jobbank': {
+      const res = G.mode === 'stealthover' ? G.sresult : G.dresult;
+      if (res && jobBank(res.take, arg)) renderOv();
+      keep = false;
+      break;
+    }
+    case 'stealth':
+      startStealth(arg, parts[2] === '2');
+      keep = false;
+      break;
+    case 'stealthagain':
+      startStealth((G.stealth && G.stealth.id) || 'arcology', G.coop);
+      keep = false;
+      break;
     case 'driveagain':
       startDrive((G.drive && G.drive.id) || G.lastDrive || 'causeway', G.coop);
       keep = false;

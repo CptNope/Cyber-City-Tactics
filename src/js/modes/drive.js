@@ -765,7 +765,8 @@ function driveFinish() {
     pay,
     karma,
     best,
-    coop: G.coop
+    coop: G.coop,
+    take: jobTake()
   };
   musicPlay('title');
   setMode('driveover');
@@ -777,8 +778,9 @@ const fmtTime = f => {
 
 /* ---------- screens ---------- */
 function jobsHtml() {
-  const rec = store.load('cs_drive') || {};
-  const rows = Object.keys(DRIVE_JOBS)
+  const rec = store.load('cs_drive') || {},
+    srec = store.load('cs_stealth') || {};
+  const drive = Object.keys(DRIVE_JOBS)
     .map(k => {
       const J = DRIVE_JOBS[k],
         r = rec[k];
@@ -787,10 +789,24 @@ function jobsHtml() {
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="drive:${k}:1">Ride solo</button><button class="btn sm ghost" data-a="drive:${k}:2">Ride co-op</button></div></div>`;
     })
     .join('');
+  const stealth = Object.keys(STEALTH_JOBS)
+    .map(k => {
+      const J = STEALTH_JOBS[k],
+        r = srec[k];
+      return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:var(--mana)">Drone · ${STAGES[J.stage].name}</span></div>
+    <span style="color:var(--muted);font-size:13px">${esc(J.sub)}.${r && r.best ? ` Your best: ${fmtTime(r.best)}${r.ghost ? ', ghosted' : ''}.` : ''}</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="stealth:${k}:1">Fly solo</button><button class="btn sm ghost" data-a="stealth:${k}:2">Fly co-op</button></div></div>`;
+    })
+    .join('');
   return `<div class="card"><p class="eyebrow">Jobs · Juno's side work</p><h2>Jobs</h2>
-    <p>Quick jobs that aren't a brawl. Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead, <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
-    ${rows}
-    <p style="color:var(--muted);font-size:12.5px">More kinds of job are on the way: a drone you sneak through a corp site, and a VTOL flight over the skyline.</p>
+    <p>Quick jobs that aren't a brawl. Pay and gear from a job can be banked to your campaign or Sprawl save afterwards.</p>
+    <h3>Driving</h3>
+    <p style="font-size:13px">Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead (or behind), <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
+    ${drive}
+    <h3>Drone stealth</h3>
+    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind), <b>dodge</b> cloaks for a moment. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
+    ${stealth}
+    <p style="color:var(--muted);font-size:12.5px">Coming next: a VTOL flight over the skyline.</p>
     <div class="row"><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
 }
 function driveOverHtml() {
@@ -804,5 +820,6 @@ function driveOverHtml() {
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
+    ${jobBankHtml(r.take)}
     <div class="row"><button class="btn" data-a="driveagain">Ride it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
 }

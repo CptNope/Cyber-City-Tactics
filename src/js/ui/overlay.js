@@ -55,6 +55,7 @@ function renderOv() {
   if (m === 'trader') h = traderHtml();
   if (m === 'jobs') h = jobsHtml();
   if (m === 'driveover') h = driveOverHtml();
+  if (m === 'stealthover') h = stealthOverHtml();
   if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost' || m === 'nethub')
     h = netHtml(m);
   if (m === 'locker') {

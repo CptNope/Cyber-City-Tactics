@@ -483,6 +483,25 @@ async function readme() {
     G.tip = null;
   });
   await snap('drive');
+  // a drone job: two drones in the dark, a camera sweeping, a guard on patrol
+  await pg.evaluate(() => {
+    G.pendArch = ['samurai', 'mage'];
+    startStealth('arcology', true);
+    G.fade = 0;
+    G.banner = 0;
+    for (let i = 0; i < 260; i++) {
+      for (const p of PL) {
+        INP[p.idx].held.right = i < 200;
+        INP[p.idx].held.up = p.z < 76 + p.idx * 14;
+        p.drone.seen = 0;
+      }
+      __cap.step(1);
+    }
+    G.salarm = 0;
+    G.toasts = [];
+    G.tip = null;
+  });
+  await snap('stealth');
   // the Codex
   await pg.evaluate(() => {
     G.ret = 'title';

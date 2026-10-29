@@ -347,6 +347,27 @@ const { pathToFileURL } = require('url');
     await fr.waitForTimeout(500);
     await fr.keyboard.up('KeyW');
     ok((await host.evaluate(() => PL[1].y)) < dy0 - 8, "the friend's keys steer their bike on the host");
+    // ---- a drone job: two drones, the friend flying their own ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await host.click('[data-a="jobs"]');
+    await host.click('[data-a="stealth:arcology:1"]');
+    await host.waitForFunction(() => G.mode === 'play' && G.stealth && PL.length === 2 && PL[1].drone, null, {
+      timeout: 10000
+    });
+    await fr.waitForFunction(
+      () => G.mode === 'play' && G.stealth && G.stealth.cams && PL.length === 2 && PL.every(p => p.drone),
+      null,
+      { timeout: 10000 }
+    );
+    ok(true, 'drone job online: the friend flies as runner 2, and sees the floor');
+    await fr.waitForTimeout(400);
+    const sz0 = await host.evaluate(() => PL[1].z);
+    await fr.keyboard.down('KeyW');
+    await fr.waitForTimeout(500);
+    await fr.keyboard.up('KeyW');
+    ok((await host.evaluate(() => PL[1].z)) > sz0 + 8, "the friend's keys fly their drone on the host");
     // ---- training: solo, the friend watches ----
     await host.keyboard.press('Escape');
     await host.click('[data-a="quit"]');

@@ -321,14 +321,16 @@ function genBg(S, seed) {
 const curS = () =>
   G.drive
     ? G.drive.S
-    : G.world
-      ? G.dun
-        ? G.dunStage
-        : G.streetStage
-      : G.den
-        ? DEN
-        : G.arena
-          ? STAGES[G.theme]
-          : G.training
-            ? TRAIN_STAGE
-            : STAGES[G.stage];
+    : G.stealth
+      ? G.stealth.S
+      : G.world
+        ? G.dun
+          ? G.dunStage
+          : G.streetStage
+        : G.den
+          ? DEN
+          : G.arena
+            ? STAGES[G.theme]
+            : G.training
+              ? TRAIN_STAGE
+              : STAGES[G.stage];

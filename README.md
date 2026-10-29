@@ -45,7 +45,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 - **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
 - **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
-- **Jobs:** driving missions on the causeway, Road Rash style, with drone stealth and VTOL flights on the way.
+- **Jobs:** driving missions on the causeway, Road Rash style, and drone stealth through corp floors, with VTOL flights on the way.
 
 ## Screenshots
 
@@ -55,7 +55,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 | ![Mother Vesper's night market under the city](docs/store/shot-undercity-market.png)<br><sub>**The Undercity Market.** Mother Vesper sells what Kagemori throws away.</sub> | ![Armored and warded elites with a mech walker in the Arcology](docs/store/shot-arcology-elites.png)<br><sub>**Elites.** Armored, berserk and warded foes, each with a tell.</sub> |
 | ![Sable's black-market cart on a Sprawl block](docs/store/shot-sprawl-black-market.png)<br><sub>**The Sprawl.** Pick a door, or haggle with Sable at her cart.</sub> | ![The Den, the street hub between districts](docs/media/den.png)<br><sub>**The Den.** Fixers, docs, talismongers and a fence between jobs.</sub> |
 | ![The Mage skill tree on the character sheet](docs/media/skills.png)<br><sub>**Four skill trees** to mix freely, plus attributes, gear and cyberware.</sub> | ![The Codex of feats, legendaries, enemies and lore](docs/media/codex.png)<br><sub>**The Codex** keeps your legend across every run.</sub> |
-| ![Two runners on bikes on the causeway, a car ahead](docs/media/drive.png)<br><sub>**Driving jobs.** Throttle, nitro and a boot for anyone alongside.</sub> | ![The host's online room code](docs/media/online-room.png)<br><sub>**Online co-op** with a five-letter room code.</sub> |
+| ![Two runners on bikes on the causeway, a car ahead](docs/media/drive.png)<br><sub>**Driving jobs.** Throttle, nitro and a boot for anyone alongside.</sub> | ![Two drones in a dark corp floor, a camera sweeping](docs/media/stealth.png)<br><sub>**Drone jobs.** Stay out of the light, hack the terminal, get out.</sub> |
 
 <p align="center">
   <img src="screenshots/narrow-play.png" alt="Playing on a phone in portrait, with touch controls" width="30%">
@@ -177,6 +177,28 @@ Gang bikers pull alongside and swing chains; shove one into a civilian car and t
 | Neon Market Getaway | Neon Market | 1:35, more bikers and traffic |
 
 Co-op works the same way on one keyboard, two pads or online: Runner 2 gets their own bike.
+
+### Jobs: drone stealth
+A rigger's job: each runner flies a small drone through a corp floor seen in cross-section.
+
+| Do this | Keyboard (Runner 1) | What it does |
+|---|---|---|
+| Fly / climb | **A D** / **W S** | Along the floor, and up and down between the floor and the ceiling |
+| Hack | **J** at the terminal | The usual lock-cracking minigame; win it to pull the files |
+| Shock dart | **K** | Drops anyone you hit **from behind**; from the front it just gives you away |
+| Cloak | **O** or Left Shift | A couple of seconds unseen, from the battery under the drone |
+| Repair | **H** | 30 HP from the shared medkits |
+
+Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. Pull the files, then leave through the vent at the far end; dart the job's target for a bonus, and get out with no alarms at all to ghost it.
+
+| Job | Where | Target |
+|---|---|---|
+| Ghost in the Arcology | Kagemori Arcology | Aide Morrow |
+| The Night Clinic | Neon Market | Doc Varga |
+
+The floor is laid out fresh every time you fly it.
+
+**Banking the take.** Jobs are standalone runs, so when one ends its results card offers to bank the creds and any gear you picked up to a save: the Sprawl's safehouse stash, or Ratchet's locker in your campaign's Den. Online, the host banks for the team.
 
 ### Training
 Ten drills in Juno's back alley with harmless sparring partners:

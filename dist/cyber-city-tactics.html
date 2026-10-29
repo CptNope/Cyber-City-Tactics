@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+26af835';
+const APP_VERSION = '2.0.0+21736d6';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -5103,17 +5103,19 @@ function genBg(S, seed) {
 const curS = () =>
   G.drive
     ? G.drive.S
-    : G.world
-      ? G.dun
-        ? G.dunStage
-        : G.streetStage
-      : G.den
-        ? DEN
-        : G.arena
-          ? STAGES[G.theme]
-          : G.training
-            ? TRAIN_STAGE
-            : STAGES[G.stage];
+    : G.stealth
+      ? G.stealth.S
+      : G.world
+        ? G.dun
+          ? G.dunStage
+          : G.streetStage
+        : G.den
+          ? DEN
+          : G.arena
+            ? STAGES[G.theme]
+            : G.training
+              ? TRAIN_STAGE
+              : STAGES[G.stage];
 
 /* ===== src/js/game/flow.js ===== */
 /* Cyber City Tactics · src/js/game/flow.js
@@ -5144,6 +5146,7 @@ function placeRunners(x0) {
 function resetWorld() {
   G.hazard = null;
   G.drive = null;
+  G.stealth = null;
   // a downed partner's revive marker belongs to the scene they fell in
   for (const p of PL) p.outX = null;
   G.zaps = [];
@@ -8034,6 +8037,7 @@ function update() {
   G.comboT++;
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
+  if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
     if (p.chiT > 0) p.chiT--;
@@ -10106,7 +10110,8 @@ function hackWin() {
     G.hack = null;
     sfx.level();
     setMode('play');
-    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
+    if (G.stealth) stealthHackDone();
+    else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
     return;
   }
   if (b.tier >= 3 && G.hack.miss === 0) feat('zero');
@@ -10127,7 +10132,8 @@ function hackFail() {
     G.hack = null;
     sfx.hurt();
     setMode('play');
-    G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
+    if (G.stealth) stealthHackDone();
+    else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
     return;
   }
   G.hack = null;
@@ -10842,6 +10848,57 @@ function scoreTable(hl) {
   const list = store.load('cs_arena') || [];
   if (!list.length) return '<p>No runs yet. Your best scores show up here.</p>';
   return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : DIFF[e.diff].name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
+}
+
+/* ===== src/js/modes/jobs.js ===== */
+/* Cyber City Tactics · src/js/modes/jobs.js
+ * What every job (driving, and the missions to come) shares: banking the take. A job is a standalone run with
+ * its own wallet and bag, so when it ends the creds and any gear found can be sent to a save: the Sprawl's
+ * stash, or the campaign's (Ratchet's locker in the Den). The host's device holds the saves, so online the
+ * host banks for the team.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const JOB_SAVES = [
+  { id: 'world', key: 'cs_world', name: 'the Sprawl', where: 'your safehouse stash' },
+  { id: 'camp', key: 'cs_save3', name: 'your campaign', where: "Ratchet's locker in the Den" }
+];
+// the take from the run that just ended: everything in the job's wallet and bag
+function jobTake() {
+  return { creds: Math.max(0, Math.round(PARTY.creds || 0)), items: (PARTY.bag || []).slice(), banked: null };
+}
+const jobSavesFound = () => JOB_SAVES.filter(s => store.load(s.key));
+// add the take to a save; gear past the stash's 60 slots is sold to the fence at its fence price instead
+function jobBank(take, id) {
+  const S = JOB_SAVES.find(s => s.id === id),
+    save = S && store.load(S.key);
+  if (!save || !take || take.banked) return false;
+  const party = (save.party = save.party || {});
+  party.creds = (party.creds || 0) + take.creds;
+  party.stash = party.stash || [];
+  let sold = 0;
+  for (const it of take.items) {
+    if (party.stash.length < STASH_MAX) party.stash.push(Object.assign({}, it, { fresh: true }));
+    else sold += sellPrice(it, 'fence');
+  }
+  party.creds += sold;
+  store.set(S.key, save);
+  take.banked = { id, name: S.name, where: S.where, sold };
+  sfx.coin();
+  return true;
+}
+function jobBankHtml(take) {
+  if (!take) return '';
+  const n = take.items.length,
+    what = `¥${take.creds}${n ? ` and ${n} piece${n === 1 ? '' : 's'} of gear` : ''}`;
+  if (!take.creds && !n) return '';
+  if (take.banked)
+    return `<p style="color:var(--ok)">Banked ${what} to ${esc(take.banked.name)}: ${esc(take.banked.where)}${take.banked.sold ? ` (the stash was full, so some gear was sold for ¥${take.banked.sold})` : ''}.</p>`;
+  if (NET.role === 'guest' && NET.live)
+    return `<p style="color:var(--muted)">Your partner banks the take on their device.</p>`;
+  const saves = jobSavesFound();
+  if (!saves.length)
+    return `<p style="color:var(--muted)">The take: ${what}. Start a campaign or a Sprawl run and job pay can be banked there.</p>`;
+  return `<p>The take: <b style="color:var(--gold)">${what}</b>. Send it to a save:</p>
+    <div class="row">${saves.map((s, i) => `<button class="btn sm${i ? ' ghost' : ''}" data-a="jobbank:${s.id}">Bank to ${esc(s.name)}</button>`).join('')}</div>`;
 }
 
 /* ===== src/js/modes/drive.js ===== */
@@ -11611,7 +11668,8 @@ function driveFinish() {
     pay,
     karma,
     best,
-    coop: G.coop
+    coop: G.coop,
+    take: jobTake()
   };
   musicPlay('title');
   setMode('driveover');
@@ -11623,8 +11681,9 @@ const fmtTime = f => {
 
 /* ---------- screens ---------- */
 function jobsHtml() {
-  const rec = store.load('cs_drive') || {};
-  const rows = Object.keys(DRIVE_JOBS)
+  const rec = store.load('cs_drive') || {},
+    srec = store.load('cs_stealth') || {};
+  const drive = Object.keys(DRIVE_JOBS)
     .map(k => {
       const J = DRIVE_JOBS[k],
         r = rec[k];
@@ -11633,10 +11692,24 @@ function jobsHtml() {
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="drive:${k}:1">Ride solo</button><button class="btn sm ghost" data-a="drive:${k}:2">Ride co-op</button></div></div>`;
     })
     .join('');
+  const stealth = Object.keys(STEALTH_JOBS)
+    .map(k => {
+      const J = STEALTH_JOBS[k],
+        r = srec[k];
+      return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:var(--mana)">Drone · ${STAGES[J.stage].name}</span></div>
+    <span style="color:var(--muted);font-size:13px">${esc(J.sub)}.${r && r.best ? ` Your best: ${fmtTime(r.best)}${r.ghost ? ', ghosted' : ''}.` : ''}</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="stealth:${k}:1">Fly solo</button><button class="btn sm ghost" data-a="stealth:${k}:2">Fly co-op</button></div></div>`;
+    })
+    .join('');
   return `<div class="card"><p class="eyebrow">Jobs · Juno's side work</p><h2>Jobs</h2>
-    <p>Quick jobs that aren't a brawl. Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead, <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
-    ${rows}
-    <p style="color:var(--muted);font-size:12.5px">More kinds of job are on the way: a drone you sneak through a corp site, and a VTOL flight over the skyline.</p>
+    <p>Quick jobs that aren't a brawl. Pay and gear from a job can be banked to your campaign or Sprawl save afterwards.</p>
+    <h3>Driving</h3>
+    <p style="font-size:13px">Each runner gets a bike: <b>hold right to throttle</b>, left to brake, up and down to change lanes. Punch and kick riders alongside you, shoot what's ahead (or behind), <b>dodge for nitro</b> and <b>jump over oil</b>. Stay off the civilian cars, and watch for the Kagemori Interceptor on the last stretch.</p>
+    ${drive}
+    <h3>Drone stealth</h3>
+    <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind), <b>dodge</b> cloaks for a moment. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
+    ${stealth}
+    <p style="color:var(--muted);font-size:12.5px">Coming next: a VTOL flight over the skyline.</p>
     <div class="row"><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
 }
 function driveOverHtml() {
@@ -11650,7 +11723,527 @@ function driveOverHtml() {
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
+    ${jobBankHtml(r.take)}
     <div class="row"><button class="btn" data-a="driveagain">Ride it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+}
+
+/* ===== src/js/modes/stealth.js ===== */
+/* Cyber City Tactics · src/js/modes/stealth.js
+ * Drone stealth jobs: a rigger's run through a corp floor seen in cross-section. Each runner flies a small
+ * drone: left and right to fly, up and down to climb and drop, dodge to cloak for a moment. Ceiling cameras
+ * sweep cones of light and guards walk patrols with a cone of sight ahead of them; walls only let you through
+ * at their vents, and laser gates blink on and off. Being seen fills your drone's detection meter; fill it and
+ * the alarm goes up a level (three and the floor locks down). Punch at the terminal to hack it (the usual
+ * minigame), kick to fire a shock dart into someone from behind, and leave through the vent at the far end.
+ *
+ * Like the driving jobs, everything lives in G.ents and plain G fields (the layout in G.stealth; camera sweeps
+ * and laser timing come from G.t), so couch and online co-op need nothing extra: each runner flies a drone.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const STEALTH_JOBS = {
+  arcology: {
+    name: 'Ghost in the Arcology',
+    sub: 'Fly a drone into Kagemori research, pull the LANTERN files, get out unseen',
+    stage: 4,
+    len: 3400,
+    cams: 6,
+    guards: 4,
+    lasers: 3,
+    walls: 4,
+    pay: 320,
+    karma: 150,
+    target: 'Aide Morrow'
+  },
+  clinic: {
+    name: 'The Night Clinic',
+    sub: 'Into a black clinic under the Neon Market for a patient list somebody wants back',
+    stage: 1,
+    len: 2800,
+    cams: 4,
+    guards: 3,
+    lasers: 2,
+    walls: 3,
+    pay: 240,
+    karma: 110,
+    target: 'Doc Varga'
+  }
+};
+const SF = {
+  floor: FY1 - 30, // everything stands on one plane; height is z
+  ceil: 128, // the ceiling, in z
+  zMin: 10,
+  zMax: 118,
+  vMax: 2.4,
+  climb: 1.7,
+  camLen: 150,
+  camHalf: 0.3,
+  eye: 44,
+  sightLen: 130,
+  sightHalf: 0.42
+};
+const stealthJob = () => (G.stealth && STEALTH_JOBS[G.stealth.id]) || STEALTH_JOBS.arcology;
+
+function startStealth(id, coop) {
+  const J = STEALTH_JOBS[id] || STEALTH_JOBS.arcology;
+  if (NET.role === 'host' && NET.live) coop = true;
+  G.challenge = null;
+  G.rngW = G.rngP = null;
+  G.diff = G.pendDiff;
+  G.ng = 0;
+  G.coop = !!coop;
+  newRunStats();
+  PL = [newRunner(0)];
+  if (coop) PL.push(newRunner(1));
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
+  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
+  for (const p of PL) {
+    p.lvl = 4;
+    refresh(p);
+  }
+  G.arena = false;
+  G.den = false;
+  G.training = false;
+  G.world = false;
+  G.dun = null;
+  G.stage = J.stage;
+  G.score = 0;
+  resetWorld();
+  const S = Object.assign({}, STAGES[J.stage], {
+    name: J.name,
+    sub: J.sub,
+    len: J.len,
+    waves: [],
+    props: [],
+    passives: [],
+    rain: false,
+    weather: 'clear'
+  });
+  G.stealth = Object.assign(
+    { id: STEALTH_JOBS[id] ? id : 'arcology', S, done: false, win: false, endT: 0 },
+    stealthLayout(J)
+  );
+  G.salarm = 0;
+  G.stime = 0;
+  G.bg = genBg(S, 3300 + J.stage * 17);
+  PL.forEach((p, i) => {
+    stealthMount(p);
+    p.x = 50 + i * 26;
+    p.z = 60 + i * 18;
+    G.ents.push(p);
+  });
+  for (const g of G.stealth.guardSpecs) stealthGuard(g);
+  G.rain = [];
+  G.fade = 1;
+  G.banner = 150;
+  musicPlay('d' + Math.min(J.stage, 5));
+  setMode('play');
+  tip(
+    'stealth',
+    'Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind, DODGE cloaks.',
+    'A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind, O cloaks.'
+  );
+}
+// the floor's layout from a fresh seed: cameras, walls with vents, laser gates, guard patrols, the terminal,
+// the target's office and the exit vent
+function stealthLayout(J) {
+  const seed = (Math.random() * 1e9) | 0,
+    r = srng(seed),
+    L = J.len;
+  const cams = [],
+    walls = [],
+    lasers = [],
+    guardSpecs = [];
+  // obstacles spread through the middle of the floor, never on top of each other
+  const slots = [];
+  for (let x = 260; x < L - 260; x += 120) slots.push(x + Math.floor(r() * 50));
+  const take = () => slots.splice(Math.floor(r() * slots.length), 1)[0];
+  for (let i = 0; i < J.walls && slots.length; i++) {
+    const x = take(),
+      low = r() < 0.5,
+      h = 34 + Math.floor(r() * 10);
+    walls.push({ x, w: 14, gap: low ? [SF.zMin, SF.zMin + h] : [SF.ceil - 10 - h, SF.ceil - 10] });
+  }
+  for (let i = 0; i < J.lasers && slots.length; i++)
+    lasers.push({
+      x: take(),
+      per: 150 + Math.floor(r() * 60),
+      on: 70 + Math.floor(r() * 30),
+      ph: Math.floor(r() * 200)
+    });
+  for (let i = 0; i < J.cams && slots.length; i++)
+    cams.push({ x: take(), amp: 0.45 + r() * 0.35, spd: 0.012 + r() * 0.012, ph: r() * 6.28 });
+  for (let i = 0; i < J.guards; i++) {
+    const x = 380 + ((L - 900) * (i + 0.5)) / J.guards + (r() - 0.5) * 80;
+    guardSpecs.push({ x1: x - 70 - r() * 40, x2: x + 70 + r() * 40 });
+  }
+  const term = { x: Math.round(L * 0.55), y: SF.floor, z: 30, done: false, vaultDone: false, bonus: false };
+  const tx = Math.round(L * 0.82);
+  guardSpecs.push({ x1: tx - 80, x2: tx + 80, target: J.target });
+  return { seed, cams, walls, lasers, guardSpecs, term, exit: L - 70, data: false, aide: false, tries: 0 };
+}
+function stealthMount(p) {
+  p.drone = { vx: 0, vz: 0, cloak: 0, batt: 100, seen: 0, shotT: 0, dartT: 0 };
+  p.maxHp = 60;
+  p.hp = 60;
+  p.y = SF.floor;
+  p.z = Math.max(p.z || 0, 50);
+  p.face = 1;
+  setS(p, 'idle');
+}
+function stealthGuard(spec) {
+  const e = spawnEnemy('sec', 1);
+  e.elite = null;
+  e.x = (spec.x1 + spec.x2) / 2;
+  e.y = SF.floor;
+  e.z = 0;
+  e.patrol = [spec.x1, spec.x2];
+  e.face = Math.random() < 0.5 ? 1 : -1;
+  e.pauseT = 0;
+  e.guard = true;
+  if (spec.target) {
+    e.name = spec.target;
+    e.target = true;
+    e.pal = Object.assign({}, e.pal, {
+      coat: '#e9e4f2',
+      coat2: '#c9c2d8',
+      pants: '#2a2436',
+      hair: '#3a2d48'
+    });
+  }
+  setS(e, 'walk');
+  return e;
+}
+
+/* ---------- the step ---------- */
+function stealthUpdate() {
+  const S = G.stealth,
+    J = stealthJob();
+  for (const p of PL)
+    if (!p.drone) {
+      stealthMount(p);
+      p.x = G.camX + 60;
+      if (!G.ents.includes(p)) G.ents.push(p);
+    }
+  if (!S.done) G.stime++;
+  for (const p of PL) stealthDrone(p, S);
+  for (const e of G.ents) if (e.guard) stealthPatrol(e, S);
+  // the camera follows the drones along the floor
+  const a = PL.filter(p => !p.out);
+  if (a.length) {
+    const mean = a.reduce((t, p) => t + p.x, 0) / a.length;
+    G.camX = clamp(G.camX + (mean - W * 0.4 - G.camX) * 0.1, 0, Math.max(0, J.len - W));
+    for (const p of a) p.x = clamp(p.x, Math.max(8, G.camX + 8), Math.min(J.len - 8, G.camX + W - 8));
+  }
+  // out through the vent with the data, or the floor locks down, or every drone is down
+  if (!S.done) {
+    if (S.data && a.some(p => p.x >= S.exit - 10)) stealthEnd(true, 'OUT CLEAN');
+    else if (G.salarm >= 3) stealthEnd(false, 'LOCKDOWN');
+    else if (!a.length) stealthEnd(false, 'SIGNAL LOST');
+  }
+  if (S.done && --S.endT <= 0 && G.mode === 'play') stealthFinish();
+  tickFx();
+  if (G.shake > 0) G.shake *= 0.85;
+  if (G.shake < 0.3) G.shake = 0;
+}
+function stealthDrone(p, S) {
+  const I = INP[p.idx] || { held: {}, pressed: {} },
+    d = p.drone;
+  if (!d) return;
+  p.t++;
+  if (p.flash > 0) p.flash--;
+  if (p.out) {
+    // a downed drone drops to the floor and sparks
+    p.z = Math.max(0, p.z - 2);
+    return;
+  }
+  if (S.done) return;
+  if (I.held.right) d.vx = Math.min(SF.vMax, d.vx + 0.18);
+  else if (I.held.left) d.vx = Math.max(-SF.vMax, d.vx - 0.18);
+  else d.vx *= 0.86;
+  if (I.held.up) d.vz = Math.min(SF.climb, d.vz + 0.16);
+  else if (I.held.down) d.vz = Math.max(-SF.climb, d.vz - 0.16);
+  else d.vz *= 0.82;
+  if (Math.abs(d.vx) > 0.2) p.face = d.vx > 0 ? 1 : -1;
+  const nx = p.x + d.vx,
+    nz = clamp(p.z + d.vz, SF.zMin, SF.zMax);
+  // walls: through the vent or not at all
+  let blocked = false;
+  for (const w of S.walls)
+    if (Math.abs(nx - w.x) < w.w / 2 + 6 && !(nz > w.gap[0] + 4 && nz < w.gap[1] - 4)) blocked = true;
+  if (blocked) d.vx = 0;
+  else p.x = nx;
+  p.z = nz;
+  p.walk += Math.abs(d.vx) + 1;
+  // cloak: a short spell of invisibility from the battery
+  if (d.cloak > 0) d.cloak--;
+  else d.batt = Math.min(100, d.batt + 0.12);
+  if (I.pressed.dodge && d.batt >= 50 && !d.cloak) {
+    d.batt -= 50;
+    d.cloak = 120;
+    sfx.zap();
+  }
+  if (d.dartT > 0) d.dartT--;
+  if (d.tripT > 0) d.tripT--;
+  if (d.shotT > 0) d.shotT--;
+  // punch: the terminal; kick: a shock dart
+  if (I.pressed.punch) stealthInteract(p, S);
+  if (I.pressed.kick && !d.dartT) stealthDart(p);
+  if (I.pressed.item && PARTY.med > 0 && p.hp < p.maxHp) {
+    PARTY.med--;
+    p.hp = Math.min(p.maxHp, p.hp + 30);
+    say(p, 'REPAIRED', '#7dffb0');
+    sfx.heal();
+  }
+  // being seen: by a camera, a guard, or a laser you flew through
+  let seen = 0;
+  if (!d.cloak) {
+    for (const c of S.cams) if (stealthCamSees(c, p, S)) seen = Math.max(seen, 2.2 * (1 + G.salarm * 0.4));
+    for (const e of G.ents) if (e.guard && stealthGuardSees(e, p, S)) seen = Math.max(seen, 3);
+    // a live laser trips the alarm once per crossing
+    for (const l of S.lasers)
+      if (laserOn(l) && Math.abs(p.x - l.x) < 5 && !d.tripT) {
+        seen = 100;
+        d.tripT = 60;
+        G.texts.push({ x: l.x, y: SF.floor, z: p.z + 20, s: 'TRIPPED', c: '#ff3d4a', life: 40, sm: true });
+      }
+  }
+  d.seenNow = seen > 0;
+  d.seen = clamp(d.seen + (seen || -0.7), 0, 100);
+  if (d.seen >= 100) stealthAlarm(p);
+}
+function laserOn(l) {
+  return (G.t + l.ph) % l.per < l.on;
+}
+function camAngle(c) {
+  return Math.PI / 2 + Math.sin(G.t * c.spd * (1 + G.salarm * 0.4) + c.ph) * c.amp;
+}
+const angDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
+// does a wall stand between two points (a wall blocks unless the sight line passes through its vent)?
+function stealthBlocked(S, x0, z0, x1, z1) {
+  for (const w of S.walls) {
+    if ((w.x - x0) * (w.x - x1) > 0) continue;
+    const k = (w.x - x0) / (x1 - x0 || 1),
+      z = z0 + (z1 - z0) * k;
+    if (!(z > w.gap[0] && z < w.gap[1])) return true;
+  }
+  return false;
+}
+function stealthCamSees(c, p, S) {
+  const dx = p.x - c.x,
+    dz = SF.ceil - p.z; // downward from the ceiling
+  if (Math.hypot(dx, dz) > SF.camLen) return false;
+  if (Math.abs(angDiff(Math.atan2(dz, dx), camAngle(c))) > SF.camHalf) return false;
+  return !stealthBlocked(S, c.x, SF.ceil, p.x, p.z);
+}
+function stealthGuardSees(e, p, S) {
+  if (e.state === 'down' || e.state === 'dead') return false;
+  const dx = (p.x - e.x) * e.face,
+    dz = p.z - SF.eye;
+  const len = SF.sightLen * (1 + G.salarm * 0.25);
+  if (dx <= 0 || dx > len) return false;
+  if (Math.abs(Math.atan2(dz, dx)) > SF.sightHalf * (1 + G.salarm * 0.2)) return false;
+  return !stealthBlocked(S, e.x, SF.eye, p.x, p.z);
+}
+function stealthPatrol(e, S) {
+  e.t++;
+  if (e.flash > 0) e.flash--;
+  if (e.state === 'down') return; // tased: out cold for the rest of the job
+  // on alert, a guard who can see a drone stops and shoots at it
+  const tgt = G.salarm > 0 && PL.find(p => !p.out && p.drone && !p.drone.cloak && stealthGuardSees(e, p, S));
+  if (tgt) {
+    if (e.state !== 'shoot') setS(e, 'shoot');
+    if (e.t % 40 === 20) {
+      sfx.shot();
+      for (let i = 0; i < 5; i++)
+        G.parts.push({
+          x: e.x + ((tgt.x - e.x) * i) / 5,
+          y: SF.floor,
+          z: SF.eye - 10 + ((tgt.z - SF.eye + 10) * i) / 5,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          life: 6 + i,
+          c: '#ffe28a',
+          sz: 1.5
+        });
+      stealthHurt(tgt, 20);
+    }
+    return;
+  }
+  if (e.pauseT > 0) {
+    if (e.state !== 'idle') setS(e, 'idle');
+    if (--e.pauseT === 0) {
+      e.face = -e.face;
+      setS(e, 'walk');
+    }
+    return;
+  }
+  if (e.state !== 'walk') setS(e, 'walk');
+  const sp = 0.55 * (1 + G.salarm * 0.3);
+  e.x += e.face * sp;
+  e.walk += sp * 2;
+  if ((e.face > 0 && e.x >= e.patrol[1]) || (e.face < 0 && e.x <= e.patrol[0])) e.pauseT = 70;
+}
+function stealthHurt(p, dmg) {
+  p.hp -= dmg;
+  p.flash = 8;
+  G.shake = Math.max(G.shake, 3);
+  sfx.hurt();
+  if (p.hp <= 0) {
+    p.hp = 0;
+    p.out = true;
+    say(p, 'DRONE DOWN', '#ff3d4a', 70, 60);
+    sfx.boom();
+  }
+}
+function stealthAlarm(p) {
+  p.drone.seen = 40;
+  G.salarm = Math.min(3, G.salarm + 1);
+  G.flash = 0.3;
+  sfx.clank();
+  G.texts.push({
+    x: G.camX + W / 2,
+    y: 150,
+    z: 0,
+    s: G.salarm >= 3 ? 'LOCKDOWN' : 'ALARM ' + G.salarm,
+    c: '#ff3d4a',
+    life: 80,
+    big: true
+  });
+  // reinforcements walk in ahead of you
+  if (G.salarm < 3) stealthGuard({ x1: p.x + 140, x2: p.x + 300 });
+}
+function stealthInteract(p, S) {
+  const T = S.term;
+  if (!T.done && Math.abs(p.x - T.x) < 38 && p.z < 70) {
+    S.tries++;
+    startHack({ tier: 3 }, T);
+    return;
+  }
+  if (!S.data && Math.abs(p.x - S.exit) < 60) say(p, 'GET THE DATA FIRST', '#a79dc2', 60, 40, true);
+}
+// after the hacking minigame: the files are yours, or the terminal locks and the alarm goes up a notch
+function stealthHackDone() {
+  const S = G.stealth,
+    T = S && S.term;
+  if (!T || !T.vaultDone || T.done) return;
+  if (T.bonus) {
+    T.done = true;
+    S.data = true;
+    G.texts.push({ x: T.x, y: SF.floor, z: 80, s: 'FILES PULLED', c: '#7dffb0', life: 80 });
+  } else {
+    T.vaultDone = false; // locked for a moment, then try again
+    const p = active()[0];
+    if (p) {
+      p.drone.seen = 100;
+      stealthAlarm(p);
+    }
+  }
+}
+// a shock dart: from behind it drops anyone; from the front it just tells them you're there
+function stealthDart(p) {
+  p.drone.dartT = 50;
+  sfx.zap();
+  let best = null;
+  for (const e of G.ents) {
+    if (!e.guard || e.state === 'down') continue;
+    const dx = e.x - p.x;
+    if (Math.abs(dx) > 40 || p.z > 90) continue;
+    if (!best || Math.abs(dx) < Math.abs(best.x - p.x)) best = e;
+  }
+  if (!best) return;
+  for (let i = 0; i < 5; i++)
+    G.parts.push({
+      x: p.x + ((best.x - p.x) * i) / 5,
+      y: SF.floor,
+      z: p.z + ((32 - p.z) * i) / 5,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      life: 6 + i,
+      c: '#45d2ff',
+      sz: 1.6
+    });
+  const behind = best.face * (p.x - best.x) < 0;
+  if (behind) {
+    setS(best, 'down');
+    best.elem = 'shock';
+    best.react = 'light';
+    const S = G.stealth;
+    if (best.target) {
+      S.aide = true;
+      G.texts.push({ x: best.x, y: SF.floor, z: 70, s: 'TARGET DOWN', c: '#ffc63d', life: 80 });
+      gainKarma(40);
+    } else G.texts.push({ x: best.x, y: SF.floor, z: 60, s: 'LIGHTS OUT', c: '#45d2ff', life: 50, sm: true });
+    if (G.run) G.run.kills++;
+    sfx.hit();
+  } else {
+    p.drone.seen = Math.min(100, p.drone.seen + 50);
+    best.face = Math.sign(p.x - best.x) || 1;
+    G.texts.push({ x: best.x, y: SF.floor, z: 60, s: '?!', c: '#ff3d4a', life: 40 });
+  }
+}
+function stealthEnd(win, msg) {
+  const S = G.stealth;
+  S.done = true;
+  S.win = win;
+  S.endT = 100;
+  G.texts.push({
+    x: G.camX + W / 2,
+    y: 150,
+    z: 0,
+    s: msg,
+    c: win ? '#7dffb0' : '#ff3d4a',
+    life: 100,
+    big: true
+  });
+  (win ? sfx.level : sfx.hurt)();
+}
+function stealthFinish() {
+  const S = G.stealth,
+    J = stealthJob(),
+    ghost = S.win && G.salarm === 0;
+  const pay = S.win ? J.pay + (S.aide ? 200 : 0) + (ghost ? 150 : 0) : 0,
+    karma = S.win ? J.karma + (ghost ? 60 : 0) : 0;
+  PARTY.creds += pay;
+  if (karma) gainKarma(karma);
+  const rec = store.load('cs_stealth') || {},
+    prev = rec[S.id] || {};
+  if (S.win)
+    rec[S.id] = {
+      best: !prev.best || G.stime < prev.best ? G.stime : prev.best,
+      ghost: prev.ghost || ghost,
+      aide: prev.aide || S.aide
+    };
+  store.set('cs_stealth', rec);
+  if (S.win) bump('stealths');
+  logRun('Job', J.name, S.win ? (ghost ? 'Ghost' : 'Out, alarm ' + G.salarm) : 'Failed');
+  G.sresult = {
+    win: S.win,
+    time: G.stime,
+    alarm: G.salarm,
+    ghost,
+    aide: S.aide,
+    pay,
+    karma,
+    coop: G.coop,
+    take: jobTake()
+  };
+  musicPlay('title');
+  setMode('stealthover');
+}
+function stealthOverHtml() {
+  const r = G.sresult || {},
+    J = stealthJob();
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? (r.ghost ? 'Ghosted it' : 'Got out') : 'Busted'}</h1>
+    <p>${r.win ? `In and out in ${fmtTime(r.time)}${r.ghost ? ', and nobody ever knew you were there.' : `, with the alarm at ${r.alarm}.`}` : 'The floor locked down, or your drone went dark. The files stay where they are.'}</p>
+    <div class="list">
+      <div class="item"><div><div class="nm">The files</div></div><div class="acts">${r.win ? 'Pulled' : 'Left behind'}</div></div>
+      <div class="item"><div><div class="nm">${esc(J.target)}</div></div><div class="acts">${r.aide ? 'Darted (+¥200)' : 'Untouched'}</div></div>
+      <div class="item"><div><div class="nm">Ghost bonus</div></div><div class="acts">${r.ghost ? 'No alarms (+¥150)' : 'Alarm ' + (r.alarm || 0)}</div></div>
+      <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
+    </div>
+    ${jobBankHtml(r.take)}
+    <div class="row"><button class="btn" data-a="stealthagain">Fly it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
 }
 
 /* ===== src/js/modes/net.js ===== */
@@ -11758,7 +12351,8 @@ const NET_WAIT = {
   wiped: 'Wiped out. Your partner can retry or head back.',
   win: 'The campaign is done. Nice work.',
   jobs: 'Your partner is picking a job.',
-  driveover: 'The run is over. Your partner can ride it again or pick another job.'
+  driveover: 'The run is over. Your partner can ride it again or pick another job.',
+  stealthover: 'The job is over. Your partner can fly it again or pick another job.'
 };
 const NET = {
   role: null, // 'host' | 'guest' | null
@@ -12635,7 +13229,8 @@ function netHtml(m) {
       NET.hm === 'over' ||
       NET.hm === 'wiped' ||
       NET.hm === 'win' ||
-      NET.hm === 'driveover';
+      NET.hm === 'driveover' ||
+      NET.hm === 'stealthover';
     const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
     const txt =
       NET.hm === 'arenaover'
@@ -14944,7 +15539,14 @@ function litFigures() {
   const op = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = 'lighter';
   for (const e of G.ents) {
-    if (e.state === 'dead' || e.veh || (e.d && (e.d.fly || e.d.passive || e.d.dragon)) || e.cloaked) continue;
+    if (
+      e.state === 'dead' ||
+      e.veh ||
+      e.drone ||
+      (e.d && (e.d.fly || e.d.passive || e.d.dragon)) ||
+      e.cloaked
+    )
+      continue;
     const ex = e.x - G.camX,
       sc = (e.d && e.d.scale) || e.scale || 1;
     for (let i = 0; i < LIGHTS.length; i += 4) {
@@ -15536,6 +16138,235 @@ function drawDriveHud() {
     left < 15 && (G.t >> 3) % 2 ? '#ff3d4a' : '#efe9ff',
     'center'
   );
+}
+
+/* ===== src/js/render/facility.js ===== */
+/* Cyber City Tactics · src/js/render/facility.js
+ * Drone stealth jobs on screen: a corp floor in cross-section (ceiling, back wall, floor), walls with vents,
+ * laser gates, sweeping ceiling cameras and guards' sight cones, the terminal, the exit vent, the drones, and
+ * the objectives and alarm in the HUD.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const sfY = z => SF.floor - z; // screen y of a height above the floor
+function drawFacility() {
+  const S = G.stealth,
+    C = curS(),
+    cx = G.camX,
+    top = sfY(SF.ceil);
+  // the slab above, the back wall, the floor
+  ctx.fillStyle = '#07060b';
+  ctx.fillRect(0, 0, W, top);
+  const g = ctx.createLinearGradient(0, top, 0, SF.floor);
+  g.addColorStop(0, '#10121b');
+  g.addColorStop(1, '#191c28');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, top, W, SF.floor - top);
+  ctx.fillStyle = '#0b0d13';
+  ctx.fillRect(0, SF.floor, W, H - SF.floor + 40);
+  ctx.fillStyle = 'rgba(255,255,255,.07)';
+  ctx.fillRect(0, SF.floor, W, 1);
+  ctx.fillStyle = (C.signs && C.signs[0] && C.signs[0][1]) || '#45d2ff';
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(0, top, W, 2);
+  ctx.globalAlpha = 1;
+  // wall panels and a strip of dim office lights, scrolling slower than the floor for a little depth
+  ctx.strokeStyle = 'rgba(255,255,255,.04)';
+  ctx.lineWidth = 1;
+  for (let x = -((cx * 0.9) % 80); x < W; x += 80) {
+    ctx.beginPath();
+    ctx.moveTo(x, top + 4);
+    ctx.lineTo(x, SF.floor);
+    ctx.stroke();
+  }
+  for (let x = -((cx * 0.9) % 160) + 40; x < W; x += 160) glow(x, top + 18, 40, 16, '#9fe9ff', 0.08);
+  // the city through a long window, now and then
+  for (let k = 0; k < 6; k++) {
+    const wx = 300 + k * 560 - cx * 0.9;
+    if (wx < -200 || wx > W + 40) continue;
+    ctx.fillStyle = C.sky ? C.sky[0] : '#1d1033';
+    ctx.fillRect(wx, top + 34, 160, 46);
+    ctx.fillStyle = C.win || '#ffb36b';
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 18; i++) ctx.fillRect(wx + 6 + ((i * 37) % 150), top + 50 + ((i * 13) % 26), 2, 3);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#2a2d3a';
+    ctx.strokeRect(wx + 0.5, top + 34.5, 160, 46);
+  }
+  // the terminal
+  const T = S.term,
+    tx = T.x - cx;
+  if (tx > -40 && tx < W + 40) {
+    ctx.fillStyle = '#20232f';
+    ctx.fillRect(tx - 13, SF.floor - 30, 26, 30);
+    ctx.fillStyle = T.done ? '#7dffb0' : '#45d2ff';
+    ctx.globalAlpha = T.done ? 0.9 : 0.55 + 0.3 * Math.sin(G.t * 0.1);
+    ctx.fillRect(tx - 9, SF.floor - 27, 18, 11);
+    ctx.globalAlpha = 1;
+    glow(tx, SF.floor - 22, 26, 16, T.done ? '#7dffb0' : '#45d2ff', 0.25);
+    txt(T.done ? 'DONE' : 'TERMINAL', tx, SF.floor - 34, 10, T.done ? '#7dffb0' : '#9fe9ff', 'center');
+  }
+  // the exit vent at the far end
+  const ex = S.exit - cx;
+  if (ex > -60 && ex < W + 60) {
+    const col = S.data ? '#7dffb0' : '#4a4256';
+    ctx.fillStyle = '#0d0f16';
+    ctx.fillRect(ex - 16, sfY(100), 32, 60);
+    ctx.strokeStyle = col;
+    ctx.strokeRect(ex - 15.5, sfY(100) + 0.5, 31, 59);
+    for (let i = 1; i < 6; i++) ctx.fillRect(ex - 14, sfY(100) + i * 10, 28, 1);
+    if (S.data) glow(ex, sfY(70), 34, 40, '#7dffb0', 0.25);
+    txt('EXIT', ex, sfY(104), 11, col, 'center');
+  }
+  // walls, open only at their vents
+  for (const w of S.walls) {
+    const x = w.x - cx;
+    if (x < -30 || x > W + 30) continue;
+    ctx.fillStyle = '#262a38';
+    ctx.fillRect(x - w.w / 2, top, w.w, sfY(w.gap[1]) - top);
+    ctx.fillRect(x - w.w / 2, sfY(w.gap[0]), w.w, SF.floor - sfY(w.gap[0]));
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    ctx.fillRect(x - w.w / 2, top, 1, SF.floor - top);
+    ctx.strokeStyle = 'rgba(159,233,255,.25)';
+    ctx.strokeRect(x - w.w / 2 + 0.5, sfY(w.gap[1]) + 0.5, w.w - 1, sfY(w.gap[0]) - sfY(w.gap[1]) - 1);
+  }
+  // laser gates
+  for (const l of S.lasers) {
+    const x = l.x - cx;
+    if (x < -20 || x > W + 20) continue;
+    ctx.fillStyle = '#2a2436';
+    ctx.fillRect(x - 4, top, 8, 6);
+    ctx.fillRect(x - 4, SF.floor - 6, 8, 6);
+    if (laserOn(l)) {
+      ctx.fillStyle = '#ff3d4a';
+      ctx.fillRect(x - 0.75, top + 6, 1.5, SF.floor - top - 12);
+      glow(x, (top + SF.floor) / 2, 8, (SF.floor - top) / 2, '#ff3d4a', 0.35);
+    } else {
+      // about to switch on: a warning flicker
+      const soon = (G.t + l.ph) % l.per > l.per - 24;
+      if (soon && (G.t >> 2) % 2) {
+        ctx.fillStyle = 'rgba(255,61,74,.35)';
+        ctx.fillRect(x - 0.5, top + 6, 1, SF.floor - top - 12);
+      }
+    }
+  }
+}
+function cone(x, y, a, half, len, col, alpha) {
+  ctx.fillStyle = col;
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + Math.cos(a - half) * len, y + Math.sin(a - half) * len);
+  ctx.lineTo(x + Math.cos(a + half) * len, y + Math.sin(a + half) * len);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+// what can see: the ceiling cameras' sweeps and the guards' sight, red once the alarm is up
+function drawStealthCones() {
+  const S = G.stealth,
+    cx = G.camX,
+    alert = G.salarm > 0,
+    top = sfY(SF.ceil);
+  // light stays inside the room
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, top, W, SF.floor - top);
+  ctx.clip();
+  for (const c of S.cams) {
+    const x = c.x - cx;
+    if (x < -SF.camLen || x > W + SF.camLen) continue;
+    cone(x, top + 6, camAngle(c), SF.camHalf, SF.camLen, alert ? '#ff3d4a' : '#ffc63d', 0.13);
+    ctx.fillStyle = '#2a2436';
+    ctx.fillRect(x - 6, top, 12, 6);
+    ctx.fillStyle = alert || (G.t >> 4) % 2 ? '#ff3d4a' : '#3a1a1a';
+    ctx.fillRect(x - 1.5, top + 6, 3, 3);
+  }
+  for (const e of G.ents) {
+    if (!e.guard || e.state === 'down') continue;
+    const x = e.x - cx;
+    if (x < -SF.sightLen || x > W + SF.sightLen) continue;
+    const len = SF.sightLen * (1 + G.salarm * 0.25),
+      half = SF.sightHalf * (1 + G.salarm * 0.2);
+    cone(
+      x + e.face * 6,
+      sfY(SF.eye),
+      e.face > 0 ? 0 : Math.PI,
+      half,
+      len,
+      alert ? '#ff3d4a' : '#9fe9ff',
+      0.09
+    );
+  }
+  ctx.restore();
+}
+// a runner's drone: four rotors, a light in their colour, and its detection meter
+function drawDroneP(p) {
+  const d = p.drone,
+    sx = p.x - G.camX,
+    sy = sfY(p.z);
+  shadow(sx, SF.floor, 10 * Math.max(0.3, 1 - p.z / 140));
+  ctx.save();
+  if (d && d.cloak) ctx.globalAlpha = 0.28 + 0.1 * Math.sin(G.t * 0.5);
+  ctx.translate(sx, sy);
+  ctx.rotate(p.out ? 0.6 : clamp((d ? d.vx : 0) * 0.08, -0.2, 0.2));
+  const col = p.idx ? '#ffc63d' : '#ff3d8b';
+  ctx.fillStyle = p.flash > 0 && p.flash % 2 ? '#ffffff' : '#1a1c26';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 9, 4, 0, 0, 7);
+  ctx.fill();
+  ctx.strokeStyle = '#3a3e50';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-12, -3);
+  ctx.lineTo(12, -3);
+  ctx.stroke();
+  for (const rx of [-12, 12]) {
+    const w = p.out ? 4 : 5 + Math.sin(G.t * 1.7 + rx) * 2;
+    ctx.fillStyle = 'rgba(200,210,240,.35)';
+    ctx.fillRect(rx - w, -5, w * 2, 1.5);
+  }
+  if (!p.out) {
+    ctx.fillStyle = col;
+    ctx.fillRect(4, -1, 3, 2);
+    glow(6, 0, 10, 6, col, 0.5);
+  } else if (G.t % 9 < 3) glow(0, 0, 8, 6, '#ffc63d', 0.6);
+  ctx.restore();
+  // detection: a meter that fills while something sees you
+  if (d && !p.out && (d.seen > 1 || d.seenNow)) {
+    const k = d.seen / 100;
+    ctx.fillStyle = 'rgba(11,8,18,.75)';
+    ctx.fillRect(sx - 12, sy - 14, 24, 4);
+    ctx.fillStyle = k > 0.66 ? '#ff3d4a' : k > 0.33 ? '#ff9f6b' : '#ffc63d';
+    ctx.fillRect(sx - 11, sy - 13, 22 * k, 2);
+    if (d.seenNow && (G.t >> 2) % 2) txt('!', sx, sy - 16, 13, '#ff3d4a', 'center');
+  }
+  // the cloak's battery under it
+  if (d && !p.out) {
+    ctx.fillStyle = d.batt >= 50 ? 'rgba(69,210,255,.8)' : 'rgba(69,210,255,.3)';
+    ctx.fillRect(sx - 8, sy + 7, (16 * d.batt) / 100, 1.5);
+  }
+}
+function drawStealthHud() {
+  const S = G.stealth,
+    J = stealthJob(),
+    bw = 236,
+    bx = (W - bw) / 2,
+    by = BAND + (G.coop ? 50 : 8);
+  ctx.fillStyle = 'rgba(11,8,18,.75)';
+  ctx.fillRect(bx, by - 4, bw, 46);
+  const line = (y, done, s, col) => {
+    ctx.font = '11px "Chakra Petch", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = done ? '#7dffb0' : col || '#efe9ff';
+    ctx.fillText((done ? '✓ ' : '○ ') + s, bx + 8, y);
+  };
+  line(by + 8, S.data, 'Pull the files from the terminal');
+  line(by + 20, S.aide, 'Dart ' + J.target + ' from behind (bonus)', S.aide ? null : '#a79dc2');
+  line(by + 32, S.done && S.win, 'Out through the vent at the far end', S.data ? '#efe9ff' : '#6b6280');
+  // the alarm: three pips down the right edge
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = i < G.salarm ? '#ff3d4a' : '#3a3150';
+    ctx.fillRect(bx + bw - 10, by + i * 12, 5, 8);
+  }
 }
 
 /* ===== src/js/render/world.js ===== */
@@ -16319,6 +17150,9 @@ function drawHudTop() {
   } else if (G.drive) {
     line2 = 'TAKEDOWNS ' + G.drive.takedowns;
     col2 = '#ff3d8b';
+  } else if (G.stealth) {
+    line2 = G.salarm ? 'ALARM ' + G.salarm + '/3' : 'UNSEEN';
+    col2 = G.salarm ? '#ff3d4a' : '#7dffb0';
   } else if (G.world && G.wd) {
     const rp = Math.round(G.wd.rep);
     line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp;
@@ -16438,7 +17272,7 @@ function drawHud() {
         ? G.dun.b.name.toUpperCase()
         : G.world
           ? 'BLOCK ' + G.wd.level + ' — THE SPRAWL'
-          : G.drive
+          : G.drive || G.stealth
             ? S.name.toUpperCase()
             : G.arena
               ? 'WAVE ' + G.awave
@@ -16447,7 +17281,7 @@ function drawHud() {
         ? 'Room ' + (G.dun.room + 1) + ' of ' + G.dun.rooms
         : G.world
           ? 'Find a door. Choose who you hurt.'
-          : G.drive
+          : G.drive || G.stealth
             ? S.sub
             : G.arena
               ? G.awave % 5 === 0
@@ -16733,8 +17567,13 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   introPush();
-  drawBg();
-  if (G.drive) drawRoad();
+  if (G.stealth) {
+    drawFacility();
+    drawStealthCones();
+  } else {
+    drawBg();
+    if (G.drive) drawRoad();
+  }
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
   for (const k of G.picks) drawPick(k);
@@ -16763,7 +17602,8 @@ function render() {
         ctx.ellipse(o.e.x - G.camX, o.e.y - o.e.z - 22, 14, 26, 0, 0, 7);
         ctx.fill();
       }
-      if (o.e.veh) drawVehicle(o.e);
+      if (o.e.drone) drawDroneP(o.e);
+      else if (o.e.veh) drawVehicle(o.e);
       else {
         if (o.e.bk && o.e.ride) drawBike(o.e);
         drawFig(o.e);
@@ -16833,6 +17673,7 @@ function render() {
   }
   if (!noHud) drawIntro();
   if (G.drive && G.mode !== 'title') drawDriveHud();
+  if (G.stealth && G.mode !== 'title') drawStealthHud();
   netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
@@ -17614,6 +18455,7 @@ function renderOv() {
   if (m === 'trader') h = traderHtml();
   if (m === 'jobs') h = jobsHtml();
   if (m === 'driveover') h = driveOverHtml();
+  if (m === 'stealthover') h = stealthOverHtml();
   if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost' || m === 'nethub')
     h = netHtml(m);
   if (m === 'locker') {
@@ -18190,6 +19032,20 @@ ov.addEventListener('click', e => {
       break;
     case 'drive':
       startDrive(arg, parts[2] === '2');
+      keep = false;
+      break;
+    case 'jobbank': {
+      const res = G.mode === 'stealthover' ? G.sresult : G.dresult;
+      if (res && jobBank(res.take, arg)) renderOv();
+      keep = false;
+      break;
+    }
+    case 'stealth':
+      startStealth(arg, parts[2] === '2');
+      keep = false;
+      break;
+    case 'stealthagain':
+      startStealth((G.stealth && G.stealth.id) || 'arcology', G.coop);
       keep = false;
       break;
     case 'driveagain':

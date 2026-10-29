@@ -219,6 +219,9 @@ function drawHudTop() {
   } else if (G.drive) {
     line2 = 'TAKEDOWNS ' + G.drive.takedowns;
     col2 = '#ff3d8b';
+  } else if (G.stealth) {
+    line2 = G.salarm ? 'ALARM ' + G.salarm + '/3' : 'UNSEEN';
+    col2 = G.salarm ? '#ff3d4a' : '#7dffb0';
   } else if (G.world && G.wd) {
     const rp = Math.round(G.wd.rep);
     line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp;
@@ -338,7 +341,7 @@ function drawHud() {
         ? G.dun.b.name.toUpperCase()
         : G.world
           ? 'BLOCK ' + G.wd.level + ' — THE SPRAWL'
-          : G.drive
+          : G.drive || G.stealth
             ? S.name.toUpperCase()
             : G.arena
               ? 'WAVE ' + G.awave
@@ -347,7 +350,7 @@ function drawHud() {
         ? 'Room ' + (G.dun.room + 1) + ' of ' + G.dun.rooms
         : G.world
           ? 'Find a door. Choose who you hurt.'
-          : G.drive
+          : G.drive || G.stealth
             ? S.sub
             : G.arena
               ? G.awave % 5 === 0
@@ -633,8 +636,13 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   introPush();
-  drawBg();
-  if (G.drive) drawRoad();
+  if (G.stealth) {
+    drawFacility();
+    drawStealthCones();
+  } else {
+    drawBg();
+    if (G.drive) drawRoad();
+  }
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
   for (const k of G.picks) drawPick(k);
@@ -663,7 +671,8 @@ function render() {
         ctx.ellipse(o.e.x - G.camX, o.e.y - o.e.z - 22, 14, 26, 0, 0, 7);
         ctx.fill();
       }
-      if (o.e.veh) drawVehicle(o.e);
+      if (o.e.drone) drawDroneP(o.e);
+      else if (o.e.veh) drawVehicle(o.e);
       else {
         if (o.e.bk && o.e.ride) drawBike(o.e);
         drawFig(o.e);
@@ -733,6 +742,7 @@ function render() {
   }
   if (!noHud) drawIntro();
   if (G.drive && G.mode !== 'title') drawDriveHud();
+  if (G.stealth && G.mode !== 'title') drawStealthHud();
   netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
