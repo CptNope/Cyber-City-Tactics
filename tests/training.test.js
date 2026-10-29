@@ -109,7 +109,11 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
     const o = foe('ganger');
     if (P.state === 'grab') {
       rel();
-      if (f % 10 === 0) tap('KeyK');
+      // a throw is a pushed direction plus kick (a plain kick is a knee)
+      if (f % 10 === 0) {
+        K('KeyD', true);
+        tap('KeyK');
+      }
     } else if (o.state === 'hurt') {
       rel();
       K('KeyD', true);

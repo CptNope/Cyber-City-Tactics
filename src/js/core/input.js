@@ -285,8 +285,8 @@ function updateTouchUI() {
   else if (G.world && !G.dun && nearDoor(p)) punch = 'ENTER';
   else if (G.world && !G.dun && nearTrader(p)) punch = 'TRADE';
   else if (p.state === 'grab') {
-    punch = 'KNEE';
-    kick = 'THROW';
+    punch = p.grabDir ? 'THROW' : 'PUNCH';
+    kick = p.grabDir ? 'THROW' : 'KNEE';
   } else if (p.holding) {
     punch = 'THROW';
     kick = 'DROP';
@@ -294,7 +294,7 @@ function updateTouchUI() {
     punch = 'LIFT';
   setLbl('punch', punch);
   setLbl('kick', kick);
-  setLbl('jump', p.state === 'grab' ? (canPile(p) ? 'PILE' : 'TOSS') : 'JUMP');
+  setLbl('jump', p.state === 'grab' ? 'LEAP' : 'JUMP');
   setLbl('dodge', p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE');
   const sid = p.spells[p.spell],
     sp = SPELLS[sid];

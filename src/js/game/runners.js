@@ -234,11 +234,30 @@ function upRunner(p) {
       releaseGrab(p);
       return;
     }
-    // Double Dragon's grab: punch strings a gut punch, a knee and a knee lift; kick throws wherever you hold;
-    // jump throws on the way up (or pile drives, for those who know how); dodge swings them with Grand slam
+    // Double Dragon's grab. With no direction pushed, punch only punches (jab, jab, hook) and kick only uses
+    // the legs (knee, knee, knee lift). Push a direction and either one throws that way. Jump takes them up
+    // with you. The direction you walked in with doesn't count until you let go of it or change it.
+    const hx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
+      hy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+    if (!hx && !hy) p.grabArmed = true;
+    const pushed = (hx || hy) && (p.grabArmed || hx !== p.grabLockX || hy !== p.grabLockY);
+    p.grabDir = !!pushed;
     const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
-    if (I.pressed.punch) {
+    if ((I.pressed.punch || I.pressed.kick) && pushed) {
+      throwGrabbed(p, e, hx, hy, false);
+    } else if (I.pressed.punch) {
+      p.gp = (p.gp || 0) + 1;
+      p.grabHit = 'punch';
+      p.kneeT = 8;
+      if (p.gp >= 3) {
+        // the hook: down they go
+        hurt(e, (6 + D.melee * 0.7) * gm, p.face, { kd: true, kb: 7, src: p, ax: p.x, melee: true });
+        p.grab = null;
+        setS(p, 'idle');
+      } else hurt(e, (3 + D.melee * 0.4) * gm, p.face, { src: p, ax: p.x, melee: true });
+    } else if (I.pressed.kick) {
       p.knees++;
+      p.grabHit = 'knee';
       p.kneeT = 8;
       if (p.knees >= 3) {
         // the knee lift: up into the air, ready for a jump kick on the way down
@@ -250,8 +269,7 @@ function upRunner(p) {
         }
         p.grab = null;
         setS(p, 'idle');
-      } else
-        hurt(e, ((p.knees === 1 ? 3 : 4) + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
+      } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
     } else if (I.pressed.dodge && hasTech(p, 'slam')) {
       // Grand slam: swing them round by the collar through everyone close, then let go
       p.slamHit = [];
@@ -259,55 +277,21 @@ function upRunner(p) {
       sfx.heavy();
       return;
     } else if (I.pressed.jump) {
-      p.grabJump = canPile(p) ? 'pdrive' : 'jthrow';
-      p.slamHit = [];
-      p.vz = p.grabJump === 'pdrive' ? 5 : 4;
+      // up with them: push a direction in the air to throw that way; land without one to pile drive
+      // (for those who can) or body slam
+      p.gjDir = pushed ? [hx, hy] : null;
+      p.vz = canPile(p) ? 5 : 4.4;
       p.z = 1;
-      setS(p, p.grabJump);
+      setS(p, canPile(p) ? 'pdrive' : 'jthrow');
       sfx.jump();
       return;
-    } else if (I.pressed.kick) {
-      const hx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
-        hy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0),
-        gy = hasTech(p, 'gyro');
-      p.grab = null;
-      setS(p, 'throw');
-      if (G.training) G.tf.threw = true;
-      setS(e, 'down');
-      e.thrown = p;
-      e.thrownHit = [];
-      e.laneV = 0;
-      e.hardLand = 1;
-      if (hx === -p.face) {
-        // over the shoulder: a spin and a slam behind you, harder on landing
-        e.x = p.x - p.face * 6;
-        e.z = 16;
-        e.vz = 4.2;
-        e.vx = -p.face * (gy ? 4.6 : 3.2);
-        e.hardLand = 1.6;
-        p.face = -p.face;
-        say(p, 'OVER THE SHOULDER', '#ffc63d', 40, 30, true);
-      } else if (hy && !hx) {
-        // into another lane of the street, bowling over whoever stands there
-        e.x = p.x + p.face * 6;
-        e.z = 10;
-        e.vz = 3.6;
-        e.vx = p.face * 1.2;
-        e.laneV = hy * (gy ? 2.8 : 2.1);
-      } else {
-        e.vz = gy ? 3.9 : 3.4;
-        e.vx = p.face * (gy ? 6.4 : 4.6);
-        e.x = p.x + p.face * 8;
-        e.z = 8;
-      }
-      sfx.heavy();
     }
     if (p.kneeT > 0) p.kneeT--;
     return;
   }
   if (p.state === 'mach' || p.state === 'dragon') return flurryTick(p, I, D);
   if (p.state === 'gslam') return slamTick(p, D);
-  if (p.state === 'jthrow' || p.state === 'pdrive') return grabJumpTick(p, D);
+  if (p.state === 'jthrow' || p.state === 'pdrive') return grabJumpTick(p, I, D);
   const busy = {
     stomp: 20,
     dashp: 22,
@@ -686,7 +670,7 @@ function slamTick(p, D) {
 const canPile = p => p.arch === 'samurai' || p.arch === 'adept' || hasTech(p, 'pile');
 // up with them, and down: a jump throw hurls them at the street ahead; a pile driver takes them up and over
 // and drives them head-first into the street, with a shockwave for anyone close
-function grabJumpTick(p, D) {
+function grabJumpTick(p, I, D) {
   const e = p.grab,
     pile = p.state === 'pdrive';
   if (!e || e.state !== 'grabbed') {
@@ -695,16 +679,28 @@ function grabJumpTick(p, D) {
     return;
   }
   const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'gyro') ? 1.5 : 1);
-  if (pile) {
-    // held upside down over your head on the way up
-    e.x = p.x + p.face * 3;
-    e.y = p.y;
-    e.z = p.z + 68; // drawn flipped round a point near the waist: this puts their head just above your hands
-    e.flip = true;
-    if (p.t > 4 && p.z <= 0) {
-      e.flip = false;
-      e.z = 0;
-      p.grab = null;
+  // carried: upside down overhead for a pile driver, out in front otherwise
+  e.x = p.x + p.face * (pile ? 3 : 10);
+  e.y = p.y;
+  e.z = p.z + (pile ? 68 : 8); // a flipped figure turns about its waist: this puts their head over your hands
+  e.flip = pile;
+  // a direction in the air throws them that way (one pushed before the jump, at the top of it)
+  const hx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
+    hy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+  const dir = p.t > 2 && (hx || hy) ? [hx, hy] : p.gjDir && p.vz <= 0.4 ? p.gjDir : null;
+  if (dir) {
+    e.flip = false;
+    e.z = p.z + 8;
+    throwGrabbed(p, e, dir[0], dir[1], true);
+    setS(p, 'jump');
+    return;
+  }
+  if (p.t > 4 && p.z <= 0) {
+    e.flip = false;
+    e.z = 0;
+    p.grab = null;
+    if (pile) {
+      // head-first into the street, with a shockwave for anyone close
       hurt(e, (16 + D.melee * 1.5) * gm, p.face, { kd: true, big: true, air: true, src: p, ax: p.x, kb: 2 });
       for (const o of G.ents)
         if (
@@ -725,26 +721,54 @@ function grabJumpTick(p, D) {
       G.shake = Math.max(G.shake, 9);
       sfx.boom();
       say(p, 'PILE DRIVER', '#ffc63d', 50, 40, true);
-      setS(p, 'idle');
-      p.inv = Math.max(p.inv, 12);
+    } else {
+      // a body slam on the street in front of you
+      e.x = p.x + p.face * 14;
+      hurt(e, (10 + D.melee * 0.9) * gm, p.face, { kd: true, big: true, air: true, src: p, ax: p.x, kb: 2 });
+      G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 2, c: '#a79dc2', life: 14, max: 14, r: 26 });
+      G.shake = Math.max(G.shake, 6);
+      sfx.heavy();
+      say(p, 'BODY SLAM', '#ffc63d', 40, 30, true);
     }
-    return;
+    setS(p, 'idle');
+    p.inv = Math.max(p.inv, 12);
   }
-  // the jump throw: carried up, then hurled down ahead at the top of the jump
-  e.x = p.x + p.face * 10;
-  e.y = p.y;
-  e.z = p.z + 8;
-  if (p.vz <= 0.4) {
-    p.grab = null;
-    setS(e, 'down');
-    e.thrown = p;
-    e.thrownHit = [];
-    e.hardLand = 1.4;
-    e.vx = p.face * (hasTech(p, 'gyro') ? 5.6 : 4.2);
-    e.vz = -1;
-    sfx.heavy();
-    setS(p, 'jump');
+}
+// a throw from a grab, on the ground or from the air: forward, back over the shoulder (lands harder),
+// up or down into another lane (bowling over whoever stands there), or a diagonal of those
+function throwGrabbed(p, e, hx, hy, air) {
+  const gy = hasTech(p, 'gyro');
+  p.grab = null;
+  if (G.training) G.tf.threw = true;
+  if (!air) setS(p, 'throw');
+  setS(e, 'down');
+  e.thrown = p;
+  e.thrownHit = [];
+  e.laneV = 0;
+  e.hardLand = air ? 1.4 : 1;
+  e.z = Math.max(e.z, 8);
+  if (hx === -p.face) {
+    e.x = p.x - p.face * 6;
+    e.z = Math.max(e.z, 16);
+    e.vz = air ? 1.5 : 4.2;
+    e.vx = -p.face * (gy ? 4.6 : 3.2);
+    e.laneV = hy * 1.4;
+    e.hardLand *= 1.6;
+    p.face = -p.face;
+    say(p, 'OVER THE SHOULDER', '#ffc63d', 40, 30, true);
+  } else if (hy && !hx) {
+    e.x = p.x + p.face * 6;
+    e.z = Math.max(e.z, 10);
+    e.vz = air ? 1.5 : 3.6;
+    e.vx = p.face * 1.2;
+    e.laneV = hy * (gy ? 2.8 : 2.1);
+  } else {
+    e.x = p.x + p.face * 8;
+    e.vz = air ? -0.5 : gy ? 3.9 : 3.4;
+    e.vx = p.face * (gy ? 6.4 : 4.6) * (hy ? 0.8 : 1);
+    e.laneV = hy * 1.6;
   }
+  sfx.heavy();
 }
 // Heel stomp: a kick aimed at someone on the ground
 const downedNear = p =>

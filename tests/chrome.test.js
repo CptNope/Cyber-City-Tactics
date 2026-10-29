@@ -63,7 +63,7 @@ ok(p.state === 'grab' && p.grab === e && e.state === 'grabbed', 'walking into a 
 const hp0 = e.hp;
 tap('KeyJ');
 step(2);
-ok(e.hp < hp0 && p.state === 'grab', 'punch knees a held foe');
+ok(e.hp < hp0 && p.state === 'grab', 'punch hits a held foe');
 const other = foe('ganger', -40);
 A.setS(other, 'idle');
 key('KeyA', true);
@@ -155,8 +155,11 @@ idle();
 key('KeyD', true);
 for (let i = 0; i < 30 && s.state !== 'grab'; i++) step(1);
 key('KeyD', false);
+step(1);
+key('KeyD', true); // push a direction (again) and kick: a throw
 tap('KeyK');
 step(1);
+key('KeyD', false);
 ok(Math.abs(g.vx) > 6, `gyro: throws fly further (vx ${g.vx.toFixed(1)})`);
 
 // ---------- the moves ----------

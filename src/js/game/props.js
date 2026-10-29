@@ -87,8 +87,13 @@ function tryGrab(p, dx) {
     const rx = (e.x - p.x) * dx;
     if (rx < 0 || rx > 26 || Math.abs(e.y - p.y) > 10) continue;
     e.dazeUntil = 0;
+    const I = INP[p.idx] || INP[0];
     p.grab = e;
     p.knees = 0;
+    p.gp = 0;
+    p.grabArmed = false;
+    p.grabLockX = dx; // what was held walking in, so it doesn't throw by itself
+    p.grabLockY = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
     p.face = dx;
     setS(p, 'grab');
     setS(e, 'grabbed');

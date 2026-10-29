@@ -1028,8 +1028,10 @@ function drawFig(e) {
     bh = [11, -33];
     ff = [6, 0];
     bf = [-6, 0];
-    if (e.kneeT > 0 && e.knees === 1) {
-      fh = [20, -31]; // the gut punch
+    if (e.kneeT > 0 && e.grabHit === 'punch') {
+      // the free hand: jab, jab, then a wide hook
+      fh = [13, -30];
+      bh = e.gp >= 3 ? [20, -40] : [19, -33];
       lean = 3;
     } else if (e.kneeT > 0) {
       ff = [10, -18];

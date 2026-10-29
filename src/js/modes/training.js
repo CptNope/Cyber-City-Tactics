@@ -86,8 +86,8 @@ const TRAIN = [
     done: p => p.parryT > 0
   },
   {
-    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. KICK throws him.',
-    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. K throws him.',
+    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. Hold a direction and tap KICK to throw him that way.',
+    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. Hold a direction and press K to throw him that way.',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });

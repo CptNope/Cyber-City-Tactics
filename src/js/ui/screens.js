@@ -8,9 +8,10 @@
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
 <b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab</span>
-<b>· Punch</b><span>Gut punch, knee, then a knee lift that launches them</span>
-<b>· Kick</b><span>Throw: forward, hold back for over the shoulder, hold up or down to throw them into another lane</span>
-<b>· Jump</b><span>Jump throw. Street samurai and adepts (or the Pile driver rig) pile drive instead</span>
+<b>· Punch</b><span>Punches only: jab, jab, then a hook that knocks them down</span>
+<b>· Kick</b><span>Legs only: knee, knee, then a knee lift that launches them</span>
+<b>· Direction + either</b><span>A throw that way: forward, back (over the shoulder, lands harder), up or down (into another lane). The direction you walked in with counts once you let go of it</span>
+<b>· Jump</b><span>Up with them. Push a direction in the air to throw that way; land without one for a body slam, or a pile driver for street samurai and adepts (or with the Pile driver rig)</span>
 <b>Heavy blow</b><span>Hold punch, release: breaks guards, knocks down everyone in front</span>
 <b>Flying kick</b><span>Jump, then punch or kick</span>
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>

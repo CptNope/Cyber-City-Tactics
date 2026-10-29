@@ -70,7 +70,7 @@ const TECH = {
   },
   pile: {
     name: 'Pile driver rig',
-    desc: 'While holding a grabbed foe, JUMP becomes a pile driver: up, over and head-first into the street, with a shockwave. Street samurai and adepts already know it.',
+    desc: 'Leap with a grabbed foe (JUMP) and land without pushing a direction: a pile driver, head-first into the street, with a shockwave. Street samurai and adepts already know it.',
     cost: 460,
     move: true,
     innate: p => p.arch === 'samurai' || p.arch === 'adept'

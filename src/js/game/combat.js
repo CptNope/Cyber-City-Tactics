@@ -375,8 +375,8 @@ function hurt(t, dmg, dir, o) {
       t.dazeUntil = G.t + (hasTech(o.src, 'grip') ? 110 : 60);
       tip(
         'grab',
-        'Stars over a foe mean it is dazed: walk into it to grab. PUNCH knees, KICK throws (hold a direction to aim).',
-        'Stars over a foe mean it is dazed: walk into it to grab. J knees, K throws (hold A or D to aim the throw).'
+        'Stars over a foe mean it is dazed: walk into it to grab. PUNCH punches, KICK knees, a direction plus either throws, JUMP leaps with them.',
+        'Stars over a foe mean it is dazed: walk into it to grab. J punches, K knees, a direction plus either throws, Space leaps with them.'
       );
     }
   }
