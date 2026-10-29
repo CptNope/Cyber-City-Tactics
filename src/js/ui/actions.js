@@ -53,6 +53,18 @@ ov.addEventListener('click', e => {
       setMode('arenapick');
       keep = false;
       break;
+    case 'jobs':
+      setMode('jobs');
+      keep = false;
+      break;
+    case 'drive':
+      startDrive(arg, parts[2] === '2');
+      keep = false;
+      break;
+    case 'driveagain':
+      startDrive((G.drive && G.drive.id) || G.lastDrive || 'causeway', G.coop);
+      keep = false;
+      break;
     case 'arena1':
       G.arenaSeed = null;
       startArena(false);

@@ -463,6 +463,26 @@ async function readme() {
     renderOv();
   });
   await snap('sheet', true);
+  // a driving job: both runners on bikes, a biker alongside and traffic ahead
+  await pg.evaluate(() => {
+    G.pendArch = ['samurai', 'mage'];
+    startDrive('causeway', true);
+    G.fade = 0;
+    G.banner = 0;
+    for (let i = 0; i < 360; i++) {
+      for (const p of PL) {
+        INP[p.idx].held.right = true;
+        p.hp = p.maxHp;
+        if (p.bk) p.bk.crash = 0;
+        if (p.state === 'down') setS(p, 'ride');
+        p.inv = 0;
+      }
+      __cap.step(1);
+    }
+    G.toasts = [];
+    G.tip = null;
+  });
+  await snap('drive');
   // the Codex
   await pg.evaluate(() => {
     G.ret = 'title';

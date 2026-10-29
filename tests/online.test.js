@@ -326,6 +326,27 @@ const { pathToFileURL } = require('url');
       'host page: no errors in campaign or Sprawl' +
         (H.errs.length ? ': ' + H.errs.slice(0, 3).join(' | ') : '')
     );
+    // ---- a driving job: both runners on bikes, the friend steering their own ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await host.click('[data-a="jobs"]');
+    await host.click('[data-a="drive:causeway:1"]');
+    await host.waitForFunction(() => G.mode === 'play' && G.drive && PL.length === 2 && PL[1].ride, null, {
+      timeout: 10000
+    });
+    await fr.waitForFunction(
+      () => G.mode === 'play' && G.drive && PL.length === 2 && PL.every(p => p.bk),
+      null,
+      { timeout: 10000 }
+    );
+    ok(true, 'driving job online: the friend rides as runner 2');
+    await fr.waitForTimeout(500);
+    const dy0 = await host.evaluate(() => PL[1].y);
+    await fr.keyboard.down('KeyW');
+    await fr.waitForTimeout(500);
+    await fr.keyboard.up('KeyW');
+    ok((await host.evaluate(() => PL[1].y)) < dy0 - 8, "the friend's keys steer their bike on the host");
     // ---- training: solo, the friend watches ----
     await host.keyboard.press('Escape');
     await host.click('[data-a="quit"]');

@@ -101,7 +101,9 @@ const NET_WAIT = {
   hack: 'Your partner is hacking a terminal.',
   over: 'Out of lives. Your partner can retry or head back.',
   wiped: 'Wiped out. Your partner can retry or head back.',
-  win: 'The campaign is done. Nice work.'
+  win: 'The campaign is done. Nice work.',
+  jobs: 'Your partner is picking a job.',
+  driveover: 'The run is over. Your partner can ride it again or pick another job.'
 };
 const NET = {
   role: null, // 'host' | 'guest' | null
@@ -973,7 +975,12 @@ function netInviteLink() {
 function netHtml(m) {
   if (m === 'netwait') {
     NET.shownHm = NET.hm;
-    const over = NET.hm === 'arenaover' || NET.hm === 'over' || NET.hm === 'wiped' || NET.hm === 'win';
+    const over =
+      NET.hm === 'arenaover' ||
+      NET.hm === 'over' ||
+      NET.hm === 'wiped' ||
+      NET.hm === 'win' ||
+      NET.hm === 'driveover';
     const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
     const txt =
       NET.hm === 'arenaover'
@@ -985,7 +992,7 @@ function netHtml(m) {
   if (m === 'nethub')
     return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
     <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
-    <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
+    <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>Paused for you</h2><p>The fight keeps going on your partner's screen while this is open.</p>

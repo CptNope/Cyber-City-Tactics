@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = 'f6bcd5646d39';
+const VERSION = '7a8e173170fa';
 const PRECACHE = [
   './',
   'index.html',
@@ -48,11 +48,13 @@ const PRECACHE = [
   'src/js/modes/hacking.js',
   'src/js/modes/training.js',
   'src/js/modes/arena.js',
+  'src/js/modes/drive.js',
   'src/js/modes/net.js',
   'src/js/render/figures.js',
   'src/js/render/atmos.js',
   'src/js/render/looks.js',
   'src/js/render/intro.js',
+  'src/js/render/vehicles.js',
   'src/js/render/world.js',
   'src/js/render/sprawl.js',
   'src/js/render/hud.js',

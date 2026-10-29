@@ -14,7 +14,8 @@ const EPITHET = {
   archmage: 'Kagemori security director. Owns the street, the cops and the sky',
   blackice: 'Lethal countermeasure. It does not negotiate',
   avatar: 'What Project LANTERN was built to wake',
-  dragon: 'Who lights the way'
+  dragon: 'Who lights the way',
+  interceptor: 'Kagemori closes the causeway. This is the door'
 };
 let introE = null,
   introT = 0;

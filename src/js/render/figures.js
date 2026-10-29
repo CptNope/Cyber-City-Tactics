@@ -894,6 +894,35 @@ function drawFig(e) {
       bf = [-5, 0];
     }
   }
+  // on a bike (driving missions): seated, knees up, feet on the pegs, hands on the bars; strikes swing out
+  // to the side where riders alongside are
+  if (st === 'ride' || st === 'rpunch' || st === 'rkick' || st === 'rshoot') {
+    hip = [-3, -19];
+    sh = [4, -34];
+    lean = 6;
+    ff = [9, -8];
+    bf = [5, -7];
+    fkb = 9;
+    bkb = 9;
+    fh = [15, -25];
+    bh = [12, -24];
+    if (st === 'rpunch') {
+      const a = t >= 3 && t <= 9;
+      if (a) fh = [22, -31];
+      swing = a;
+    }
+    if (st === 'rkick') {
+      const a = t >= 5 && t <= 12;
+      if (a) {
+        ff = [24, -14];
+        fkb = -2;
+      }
+    }
+    if (st === 'rshoot') {
+      fh = [22, -30];
+      gun = true;
+    }
+  }
   if (lying && e.z > 0 && (rk === 'launch' || rk === 'spin')) {
     // airborne: limbs flail
     const w = Math.sin(G.t * 0.9);

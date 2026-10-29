@@ -12,6 +12,7 @@ function update() {
   if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.05);
   G.comboT++;
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
+  if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
     if (p.chiT > 0) p.chiT--;
@@ -230,28 +231,7 @@ function update() {
     }
   }
   G.projs = G.projs.filter(p => p.life > 0);
-  for (const q of G.parts) {
-    q.x += q.vx;
-    q.y += q.vy;
-    q.z += q.vz;
-    q.vz -= 0.15;
-    if (q.z < 0) {
-      q.z = 0;
-      q.vz *= -0.3;
-      q.vx *= 0.6;
-    }
-    q.life--;
-  }
-  G.parts = G.parts.filter(q => q.life > 0);
-  const cap = lowFx() ? 90 : 240; // a hard cap so a huge fight can't bog down a slow device
-  if (G.parts.length > cap) G.parts.splice(0, G.parts.length - cap);
-  for (const f of G.fx) f.life--;
-  G.fx = G.fx.filter(f => f.life > 0);
-  for (const tx of G.texts) {
-    tx.z += 0.5;
-    tx.life--;
-  }
-  G.texts = G.texts.filter(t => t.life > 0);
+  tickFx();
   for (const k of G.picks) {
     k.t++;
     for (const p of alive())
@@ -260,19 +240,6 @@ function update() {
   G.picks = G.picks.filter(
     k => !k.got && (k.t < 1200 || k.k === 'gear' || k.k === 'chip' || k.k === 'icebrk' || k.k === 'shard')
   );
-  const mxr = curS().matrix;
-  for (const r of G.rain) {
-    r.y += r.s * (mxr ? 0.5 : 1);
-    r.x -= mxr ? 0 : 1.2;
-    if (r.y > H) {
-      r.y = -10;
-      r.x = rand(0, W + 40);
-    }
-  }
-  if (G.tip) {
-    G.tip.life--;
-    if (G.tip.life <= 0) G.tip = G.tipQ && G.tipQ.length ? G.tipQ.shift() : null;
-  }
   if (G.t % 30 === 0 && !G.den) {
     for (const p of alive()) {
       if (G.ents.some(e => e.kind === 'vend' && e.state !== 'dead' && Math.abs(e.x - p.x) < 80))
@@ -515,4 +482,44 @@ function stageClear() {
     ];
     enterDen();
   };
+}
+
+// The cosmetic tick shared by every mode (driving missions run their own update but still need it): particles,
+// effects, floating text, rain and the tip box
+function tickFx() {
+  for (const q of G.parts) {
+    q.x += q.vx;
+    q.y += q.vy;
+    q.z += q.vz;
+    q.vz -= 0.15;
+    if (q.z < 0) {
+      q.z = 0;
+      q.vz *= -0.3;
+      q.vx *= 0.6;
+    }
+    q.life--;
+  }
+  G.parts = G.parts.filter(q => q.life > 0);
+  const cap = lowFx() ? 90 : 240; // a hard cap so a huge fight can't bog down a slow device
+  if (G.parts.length > cap) G.parts.splice(0, G.parts.length - cap);
+  for (const f of G.fx) f.life--;
+  G.fx = G.fx.filter(f => f.life > 0);
+  for (const tx of G.texts) {
+    tx.z += 0.5;
+    tx.life--;
+  }
+  G.texts = G.texts.filter(t => t.life > 0);
+  const mxr = curS().matrix;
+  for (const r of G.rain) {
+    r.y += r.s * (mxr ? 0.5 : 1);
+    r.x -= mxr ? 0 : 1.2;
+    if (r.y > H) {
+      r.y = -10;
+      r.x = rand(0, W + 40);
+    }
+  }
+  if (G.tip) {
+    G.tip.life--;
+    if (G.tip.life <= 0) G.tip = G.tipQ && G.tipQ.length ? G.tipQ.shift() : null;
+  }
 }

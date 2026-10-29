@@ -291,7 +291,7 @@ function litFigures() {
   const op = ctx.globalCompositeOperation;
   ctx.globalCompositeOperation = 'lighter';
   for (const e of G.ents) {
-    if (e.state === 'dead' || (e.d && (e.d.fly || e.d.passive || e.d.dragon)) || e.cloaked) continue;
+    if (e.state === 'dead' || e.veh || (e.d && (e.d.fly || e.d.passive || e.d.dragon)) || e.cloaked) continue;
     const ex = e.x - G.camX,
       sc = (e.d && e.d.scale) || e.scale || 1;
     for (let i = 0; i < LIGHTS.length; i += 4) {

@@ -102,6 +102,10 @@ const LORE = [
   ]
 ];
 const BEST = {
+  biker:
+    'Causeway crews on stripped-down bikes and a length of chain. Pull alongside and they swing; kick them into the rail before they do.',
+  interceptor:
+    'An armored Kagemori van that hunts the causeway at the end of every run. It rams from the side. Bullets and boots crack the plating; fists just bruise.',
   ganger: 'Rustline crews. Cheap chrome, cheap knives, a lot of nerve.',
   orc: 'Big, tough and not as slow as they look. Knock them down before they knock you down.',
   sec: 'Kagemori security on a corp salary. They shoot first and file reports later.',

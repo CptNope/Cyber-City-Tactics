@@ -216,6 +216,9 @@ function drawHudTop() {
   } else if (G.training) {
     line2 = ARCH[PL[0].arch].name.toUpperCase();
     col2 = '#a79dc2';
+  } else if (G.drive) {
+    line2 = 'TAKEDOWNS ' + G.drive.takedowns;
+    col2 = '#ff3d8b';
   } else if (G.world && G.wd) {
     const rp = Math.round(G.wd.rep);
     line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp;
@@ -335,18 +338,22 @@ function drawHud() {
         ? G.dun.b.name.toUpperCase()
         : G.world
           ? 'BLOCK ' + G.wd.level + ' — THE SPRAWL'
-          : G.arena
-            ? 'WAVE ' + G.awave
-            : 'DISTRICT ' + (G.stage + 1) + ' — ' + S.name.toUpperCase(),
+          : G.drive
+            ? S.name.toUpperCase()
+            : G.arena
+              ? 'WAVE ' + G.awave
+              : 'DISTRICT ' + (G.stage + 1) + ' — ' + S.name.toUpperCase(),
       sub = G.dun
         ? 'Room ' + (G.dun.room + 1) + ' of ' + G.dun.rooms
         : G.world
           ? 'Find a door. Choose who you hurt.'
-          : G.arena
-            ? G.awave % 5 === 0
-              ? 'Boss wave'
-              : S.name
-            : S.sub;
+          : G.drive
+            ? S.sub
+            : G.arena
+              ? G.awave % 5 === 0
+                ? 'Boss wave'
+                : S.name
+              : S.sub;
     txt(big, W / 2, 122, 30, '#efe9ff', 'center');
     ctx.font = '12px "Chakra Petch", sans-serif';
     ctx.fillStyle = '#a79dc2';
@@ -627,6 +634,7 @@ function render() {
   ctx.translate(shx, shy + BAND);
   introPush();
   drawBg();
+  if (G.drive) drawRoad();
   if (G.dun && G.dun.b.type === 'club') drawDanceFloor();
   if (G.hazard) drawHazard();
   for (const k of G.picks) drawPick(k);
@@ -655,7 +663,11 @@ function render() {
         ctx.ellipse(o.e.x - G.camX, o.e.y - o.e.z - 22, 14, 26, 0, 0, 7);
         ctx.fill();
       }
-      drawFig(o.e);
+      if (o.e.veh) drawVehicle(o.e);
+      else {
+        if (o.e.bk && o.e.ride) drawBike(o.e);
+        drawFig(o.e);
+      }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl) drawFoeBar(o.e);
@@ -720,6 +732,7 @@ function render() {
     drawHudTop();
   }
   if (!noHud) drawIntro();
+  if (G.drive && G.mode !== 'title') drawDriveHud();
   netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();

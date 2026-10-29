@@ -61,6 +61,51 @@ function applyCoat(p) {
   p.pal = Object.assign({}, PALS[p.idx], c.coat ? { coat: c.coat, coat2: c.coat2, acc: c.acc } : {});
 }
 const DEF = {
+  // driving missions (modes/drive.js): riders on bikes and the Kagemori van that hunts the causeway
+  biker: {
+    name: 'Road ganger',
+    hp: 30,
+    spd: 1,
+    dmg: 7,
+    reach: 26,
+    cool: 64,
+    scale: 1,
+    creds: [8, 16],
+    karma: 12,
+    style: 'mohawk',
+    pal: {
+      skin: '#b97a5c',
+      coat: '#2b2236',
+      coat2: '#1f1828',
+      pants: '#1c2433',
+      hair: '#ffc63d',
+      acc: '#ff3d8b',
+      boot: '#0f0c14'
+    }
+  },
+  interceptor: {
+    name: 'Kagemori Interceptor',
+    hp: 300,
+    spd: 1,
+    dmg: 14,
+    reach: 30,
+    cool: 90,
+    scale: 1,
+    creds: [90, 140],
+    karma: 90,
+    boss: true,
+    veh: 'van',
+    style: 'helmet',
+    pal: {
+      skin: '#d6a37f',
+      coat: '#1d2230',
+      coat2: '#141822',
+      pants: '#1c2a44',
+      hair: '#a9dcff',
+      acc: '#ff3d4a',
+      boot: '#0f0c14'
+    }
+  },
   ganger: {
     name: 'Ganger',
     hp: 28,

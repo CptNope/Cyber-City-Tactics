@@ -45,6 +45,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 - **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
 - **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
+- **Jobs:** driving missions on the causeway, Road Rash style, with drone stealth and VTOL flights on the way.
 
 ## Screenshots
 
@@ -54,6 +55,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 | ![Mother Vesper's night market under the city](docs/store/shot-undercity-market.png)<br><sub>**The Undercity Market.** Mother Vesper sells what Kagemori throws away.</sub> | ![Armored and warded elites with a mech walker in the Arcology](docs/store/shot-arcology-elites.png)<br><sub>**Elites.** Armored, berserk and warded foes, each with a tell.</sub> |
 | ![Sable's black-market cart on a Sprawl block](docs/store/shot-sprawl-black-market.png)<br><sub>**The Sprawl.** Pick a door, or haggle with Sable at her cart.</sub> | ![The Den, the street hub between districts](docs/media/den.png)<br><sub>**The Den.** Fixers, docs, talismongers and a fence between jobs.</sub> |
 | ![The Mage skill tree on the character sheet](docs/media/skills.png)<br><sub>**Four skill trees** to mix freely, plus attributes, gear and cyberware.</sub> | ![The Codex of feats, legendaries, enemies and lore](docs/media/codex.png)<br><sub>**The Codex** keeps your legend across every run.</sub> |
+| ![Two runners on bikes on the causeway, a car ahead](docs/media/drive.png)<br><sub>**Driving jobs.** Throttle, nitro and a boot for anyone alongside.</sub> | ![The host's online room code](docs/media/online-room.png)<br><sub>**Online co-op** with a five-letter room code.</sub> |
 
 <p align="center">
   <img src="screenshots/narrow-play.png" alt="Playing on a phone in portrait, with touch controls" width="30%">
@@ -152,6 +154,28 @@ Endless waves on one street, solo or co-op, starting at level 3:
 **Daily challenge:** a new seeded Arena run every day, with a set archetype and modifier, so everyone plays the same day. Your best score for the day and your play streak are kept.
 
 **Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week. You play on Runner with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept, and the end screen has a Copy / Share button with a brag line and the game's link.
+
+### Jobs: driving
+Side jobs from Juno that aren't a brawl, on the **Jobs** board on the title screen (and the online menu). Each runner rides a bike through the street's depth lanes:
+
+| Do this | Keyboard (Runner 1) | What it does |
+|---|---|---|
+| Throttle / brake | hold **D** / **A** | Speed up to cruising, then flat out; brake to let trouble pass |
+| Change lanes | **W** / **S** | Slip between cars and line up on riders |
+| Punch / kick | **J** / **K** | Hit a rider alongside you; a kick shoves them a lane over and costs them speed |
+| Shoot | **U** | Hits the first thing ahead in your lane |
+| Nitro | **O** or Left Shift | A burst of speed (the blue bar under your bike) |
+| Hop | **Space** | Clear an oil slick |
+| Medkit | **H** | 30 HP from the shared kit |
+
+Gang bikers pull alongside and swing chains; shove one into a civilian car and the car does the rest. Ride into traffic or onto oil and you crash, then you're back on the bike a moment later (lose all your HP and the wait is longer). On the last stretch a **Kagemori Interceptor** van hunts you: it sits a lane over and swerves into you; fists only bruise its plating, but kicks and bullets crack it. Cross the finish before the clock runs out to get paid, with bonuses for takedowns, time left and wrecking the Interceptor. Best times are kept on the device.
+
+| Job | District | Clock |
+|---|---|---|
+| The Causeway Run | Rustline Barrens | 1:50 |
+| Neon Market Getaway | Neon Market | 1:35, more bikers and traffic |
+
+Co-op works the same way on one keyboard, two pads or online: Runner 2 gets their own bike.
 
 ### Training
 Ten drills in Juno's back alley with harmless sparring partners:

@@ -319,14 +319,16 @@ function genBg(S, seed) {
   return { far, near };
 }
 const curS = () =>
-  G.world
-    ? G.dun
-      ? G.dunStage
-      : G.streetStage
-    : G.den
-      ? DEN
-      : G.arena
-        ? STAGES[G.theme]
-        : G.training
-          ? TRAIN_STAGE
-          : STAGES[G.stage];
+  G.drive
+    ? G.drive.S
+    : G.world
+      ? G.dun
+        ? G.dunStage
+        : G.streetStage
+      : G.den
+        ? DEN
+        : G.arena
+          ? STAGES[G.theme]
+          : G.training
+            ? TRAIN_STAGE
+            : STAGES[G.stage];
