@@ -24,6 +24,35 @@ const CYBER = {
   }
 };
 const cyMax = k => CYBER[k].max || 3;
+// Chrome techniques: one-off implants that change how you fight, the way River City Ransom's books teach
+// moves. Doc installs them in the Den; Sprawl clinics carry them too. Each takes a little essence (max mana).
+const TECH = {
+  servo: {
+    name: 'Servo knuckles',
+    desc: 'Punches and uppercuts recover a third faster, and the combo window stays open longer.',
+    cost: 260
+  },
+  piston: {
+    name: 'Piston shins',
+    desc: 'Kicks recover a third faster and knock foes further back.',
+    cost: 280
+  },
+  grip: {
+    name: 'Grip actuators',
+    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and knees hit 40% harder.',
+    cost: 300
+  },
+  gyro: {
+    name: 'Gyro spine',
+    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way.',
+    cost: 340
+  },
+  spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },
+  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 }
+};
+const TECH_MANA = 4;
+const hasTech = (p, k) => !!(p && p.tech && p.tech[k]);
+const techN = p => (p && p.tech ? Object.keys(p.tech).filter(k => p.tech[k]).length : 0);
 const CONTRACTS = [
   {
     title: 'Clear the Barrens',

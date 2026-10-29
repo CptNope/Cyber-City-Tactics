@@ -686,6 +686,7 @@ function render() {
         drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
+      if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -844,6 +845,31 @@ function drawRunes(e, sx, sy, sc, c, back) {
 }
 // In front of the figure: rune ring front half, ward ripples, ricochet sparks, the vampiric drain stream,
 // berserk steam
+// a dazed foe: three stars circling its head, the cue that walking into it grabs it
+function drawDaze(e) {
+  const sc = (e.d && e.d.scale) || 1,
+    cx = e.x - G.camX,
+    cy = e.y - e.z - 60 * sc,
+    left = (e.dazeUntil - G.t) / 60;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, left * 3);
+  for (let i = 0; i < 3; i++) {
+    const a = G.t * 0.14 + (i * Math.PI * 2) / 3,
+      x = cx + Math.cos(a) * 11,
+      y = cy + Math.sin(a) * 3.5,
+      r = 2.6 + (Math.sin(a) > 0 ? 0.8 : 0);
+    ctx.fillStyle = '#ffe28a';
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const rr = k % 2 ? r * 0.45 : r,
+        aa = (k * Math.PI) / 4;
+      ctx.lineTo(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function drawEliteFront(e) {
   const c = ELITES[e.elite].col,
     sx = e.x - G.camX,

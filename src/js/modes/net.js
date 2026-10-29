@@ -1080,6 +1080,7 @@ const NET_SHOP = new Set([
   'buy',
   'buyice',
   'cyber',
+  'tech',
   'fbuy',
   'gmod',
   'hire',

@@ -68,6 +68,7 @@ const RUNNER_KEYS = [
   'pts',
   'attr',
   'cy',
+  'tech',
   'eq',
   'spells',
   'spell',
@@ -105,6 +106,7 @@ function newRunner(idx) {
     spts: 1,
     attr: { bod: 2, str: 2, agi: 2, mag: 2, hak: 1 },
     cy: { arm: 0, wired: 0, plate: 0 },
+    tech: {},
     eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0) },
     spells: ['fire'],
     spell: 0,
@@ -179,7 +181,7 @@ function refresh(p) {
     (p.lvl - 1) * 5 +
     (ar && ar.mod === 'padded' ? 25 : 0) +
     (ar && ar.leg === 'wyrmheart' ? 40 : 0);
-  p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6);
+  p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6 - techN(p) * TECH_MANA);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
@@ -217,6 +219,7 @@ function loadGame(s) {
       p.spts = undefined;
     }
     applyCoat(p);
+    if (!isObj(p.tech)) p.tech = {};
     if (!ARCH[p.arch]) p.arch = 'runner';
     p.lives = Math.max(1, p.lives);
     refresh(p);

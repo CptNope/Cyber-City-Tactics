@@ -269,6 +269,20 @@ function stashHtml() {
   <h3>Party bag · ${bag.length}/${BAG_MAX}</h3>
   <div class="list">${col(bag, 'stash', st.length < STASH_MAX ? 'Stash' : 'Stash full', st.length < STASH_MAX)}</div>`;
 }
+// chrome techniques for the runner whose tab is open, at Doc's or a Sprawl clinic
+function techHtml() {
+  const p = PL[G.sheetIdx] || PL[0];
+  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
+  <div class="list">${Object.keys(TECH)
+    .map(k => {
+      const t = TECH[k],
+        have = hasTech(p, k),
+        c = Math.round(t.cost * buyMul()),
+        ok = !have && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
+    })
+    .join('')}</div>`;
+}
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],
     clinic = b.type === 'clinic';
@@ -295,7 +309,7 @@ function shopHtml(b) {
     ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
     : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
   return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
-  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${clinic ? techHtml() : ''}${sellHtml(clinic ? 'doc' : 'talis')}
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 // The challenge-seed box on the Arena and Sprawl start screens
@@ -454,7 +468,7 @@ function npcHtml(id) {
           ok = l < 3 && PARTY.creds >= c;
         return `<div class="item"><div><div class="nm">${cy.name} <span style="color:var(--muted);font-weight:400">· ${p.name} ${l}/3</span></div><div class="ds">${cy.desc} Costs 6 max mana.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="cyber:${k}" ${ok ? '' : 'disabled'}>${l >= 3 ? 'Maxed' : '¥' + c}</button></div></div>`;
       })
-      .join('')}</div>${sellHtml('doc')}`;
+      .join('')}</div>${techHtml()}${sellHtml('doc')}`;
   } else if (id === 'ratchet') {
     sayTxt = 'No receipts, no refunds, no questions. Selling? I pay forty cents on the nuyen.';
     body = `${G.world ? `<div class="list"><div class="item"><div><div class="nm">Icebreaker program</div><div class="ds">Cracks one node of any lock instantly. You have ${PARTY.ice || 0}.</div></div><div class="acts"><button class="btn sm${PARTY.creds >= 40 ? '' : ' ghost'}" data-a="buyice" ${PARTY.creds >= 40 ? '' : 'disabled'}>¥40</button></div></div></div>` : ''}

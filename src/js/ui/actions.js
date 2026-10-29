@@ -782,6 +782,20 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'tech': {
+      const t = TECH[arg],
+        c = t && Math.round(t.cost * buyMul());
+      if (t && !hasTech(p, arg) && PARTY.creds >= c) {
+        PARTY.creds -= c;
+        p.tech = Object.assign({}, p.tech, { [arg]: 1 });
+        refresh(p);
+        bump('techs');
+        sfx.buy();
+        say(p, t.name.toUpperCase(), '#45d2ff', 70, 50);
+      }
+      rerender();
+      break;
+    }
     case 'fbuy': {
       const i = G.stock.findIndex(x => x.uid === arg);
       if (i >= 0 && PARTY.creds >= stockPrice(G.stock[i]) && PARTY.bag.length < BAG_MAX) {

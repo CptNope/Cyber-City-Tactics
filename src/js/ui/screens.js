@@ -4,26 +4,48 @@
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ================= overlays ================= */
+// every fighting move in one place, under each set of controls
+const movesHtml = `<h3>Moves</h3><div class="keys">
+<b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
+<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab: punch knees (three knock it down), kick throws it into the crowd (hold a direction to aim)</span>
+<b>Heavy blow</b><span>Hold punch, release: breaks guards, knocks down everyone in front</span>
+<b>Flying kick</b><span>Jump, then punch or kick</span>
+<b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
+<b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
+<b>Shields</b><span>Kicks and heavy blows break riot shields</span>
+<b>Chrome</b><span>Doc in the Den installs techniques: faster punches and kicks, longer grabs, harder throws, higher jumps</span></div>
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed.</p>`;
+// the sheet's one-line summary of everything Doc has put in a runner
+function chromeLine(p) {
+  const cy = Object.keys(CYBER)
+      .filter(k => p.cy[k])
+      .map(k => CYBER[k].name + (cyMax(k) > 1 ? ' ' + p.cy[k] : '')),
+    te = Object.keys(TECH)
+      .filter(k => hasTech(p, k))
+      .map(k => TECH[k].name);
+  const all = cy.concat(te);
+  return `<p style="color:var(--muted);font-size:13px"><b style="color:var(--text)">Chrome:</b> ${all.length ? esc(all.join(' · ')) : 'none yet. Doc in the Den installs cyberware and fighting techniques.'}</p>`;
+}
 const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / grab / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
 <b>Dodge, parry</b><span>O or Left Shift, right as a hit lands</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span><b>Block map</b><span>M in the Sprawl</span></div></div>
 <div><h3>Runner 2</h3><div class="keys"><b>Move</b><span>Arrows</span><b>Punch</b><span>, or Numpad 1</span><b>Kick</b><span>. or Numpad 2</span><b>Jump</b><span>/ or Numpad 3</span>
 <b>Dodge</b><span>Right Shift</span><b>Special</b><span>\\ or Numpad 8</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
-<p style="font-size:12.5px">Walk into a staggered enemy to grab: punch to knee, kick to throw. Punch beside a can, crate or drum to lift it, then punch to throw. Kicks break riot shields.</p>`;
+${movesHtml}`;
 const touchHelp = `<div class="keys">
 <b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
 <b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
-<p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
+<p style="font-size:12.5px">A gamepad works too. Controls size and side are in Settings.</p>${movesHtml}`;
 const padHelp = () => `<div class="keys">
 <b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, grab, talk, enter · hold to charge a heavy blow</span>
 <b>B</b><span>Kick, throw · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
 <b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
-<p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>`;
+<p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
 const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keysHtml);
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
@@ -454,6 +476,7 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   <h3>Equipped</h3><div class="list">${eq}</div>
+  ${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
   <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;

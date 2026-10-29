@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+35320e2';
+const APP_VERSION = '2.0.0+871b2fc';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3638,6 +3638,35 @@ const CYBER = {
   }
 };
 const cyMax = k => CYBER[k].max || 3;
+// Chrome techniques: one-off implants that change how you fight, the way River City Ransom's books teach
+// moves. Doc installs them in the Den; Sprawl clinics carry them too. Each takes a little essence (max mana).
+const TECH = {
+  servo: {
+    name: 'Servo knuckles',
+    desc: 'Punches and uppercuts recover a third faster, and the combo window stays open longer.',
+    cost: 260
+  },
+  piston: {
+    name: 'Piston shins',
+    desc: 'Kicks recover a third faster and knock foes further back.',
+    cost: 280
+  },
+  grip: {
+    name: 'Grip actuators',
+    desc: 'Foes you daze stay dazed almost twice as long, you hold a grab longer, and knees hit 40% harder.',
+    cost: 300
+  },
+  gyro: {
+    name: 'Gyro spine',
+    desc: 'Throws fly further and hit twice as hard, both on landing and on anyone in the way.',
+    cost: 340
+  },
+  spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },
+  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 }
+};
+const TECH_MANA = 4;
+const hasTech = (p, k) => !!(p && p.tech && p.tech[k]);
+const techN = p => (p && p.tech ? Object.keys(p.tech).filter(k => p.tech[k]).length : 0);
 const CONTRACTS = [
   {
     title: 'Clear the Barrens',
@@ -4850,6 +4879,7 @@ const RUNNER_KEYS = [
   'pts',
   'attr',
   'cy',
+  'tech',
   'eq',
   'spells',
   'spell',
@@ -4887,6 +4917,7 @@ function newRunner(idx) {
     spts: 1,
     attr: { bod: 2, str: 2, agi: 2, mag: 2, hak: 1 },
     cy: { arm: 0, wired: 0, plate: 0 },
+    tech: {},
     eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0) },
     spells: ['fire'],
     spell: 0,
@@ -4961,7 +4992,7 @@ function refresh(p) {
     (p.lvl - 1) * 5 +
     (ar && ar.mod === 'padded' ? 25 : 0) +
     (ar && ar.leg === 'wyrmheart' ? 40 : 0);
-  p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6);
+  p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6 - techN(p) * TECH_MANA);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
@@ -4999,6 +5030,7 @@ function loadGame(s) {
       p.spts = undefined;
     }
     applyCoat(p);
+    if (!isObj(p.tech)) p.tech = {};
     if (!ARCH[p.arch]) p.arch = 'runner';
     p.lives = Math.max(1, p.lives);
     refresh(p);
@@ -5792,12 +5824,15 @@ function hurt(t, dmg, dir, o) {
   } else {
     setS(t, 'hurt');
     if (t.team === 0) sfx.hurt();
-    else if (o.src && G.combo >= 4)
+    // two hits in a row leave a foe dazed (stars over its head): walk into it and you grab it
+    else if (o.src && o.src.team === 0 && o.melee && t.hits >= 2 && grabbable(t)) {
+      t.dazeUntil = G.t + (hasTech(o.src, 'grip') ? 110 : 60);
       tip(
         'grab',
-        'Walk into a staggered enemy to grab it. PUNCH to knee, KICK to throw.',
-        'Walk into a staggered enemy to grab it. J to knee, K to throw them into the crowd.'
+        'Stars over a foe mean it is dazed: walk into it to grab. PUNCH knees, KICK throws (hold a direction to aim).',
+        'Stars over a foe mean it is dazed: walk into it to grab. J knees, K throws (hold A or D to aim the throw).'
       );
+    }
   }
   if (t.team === 0)
     tip(
@@ -6189,23 +6224,25 @@ function releaseGrab(p, quiet) {
   }
   if (p.state === 'grab') setS(p, 'idle');
 }
+// who can be grabbed at all: no bosses, nothing heavy (mechs), nothing flying, nothing that isn't a fighter
+const grabbable = e =>
+  e.team === 1 &&
+  !e.d.boss &&
+  !e.d.heavy &&
+  !e.d.fly &&
+  !e.d.passive &&
+  e.state !== 'dead' &&
+  e.state !== 'down' &&
+  e.state !== 'grabbed';
+// and when: flinching from a hit, or dazed after two in a row
+const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0));
 function tryGrab(p, dx) {
   if (dx === 0) return false;
   for (const e of G.ents) {
-    if (
-      e.team !== 1 ||
-      e.d.boss ||
-      e.d.heavy ||
-      e.d.fly ||
-      e.d.passive ||
-      e.state === 'dead' ||
-      e.state === 'down' ||
-      e.state === 'grabbed'
-    )
-      continue;
-    if (e.state !== 'hurt') continue;
+    if (!dazed(e)) continue;
     const rx = (e.x - p.x) * dx;
-    if (rx < 2 || rx > 16 || Math.abs(e.y - p.y) > 6) continue;
+    if (rx < 0 || rx > 26 || Math.abs(e.y - p.y) > 10) continue;
+    e.dazeUntil = 0;
     p.grab = e;
     p.knees = 0;
     p.face = dx;
@@ -6237,7 +6274,7 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = 8 + src.D.melee * 0.7;
+          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1);
           e.state = 'down';
           e.hp -= Math.round(dmg);
           G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
@@ -6384,7 +6421,7 @@ function upRunner(p) {
     return;
   }
   if (p.state === 'down') {
-    if (p.t > 50) {
+    if (p.t > (hasTech(p, 'recoil') ? 25 : 50)) {
       setS(p, 'idle');
       p.inv = 60;
     }
@@ -6446,15 +6483,16 @@ function upRunner(p) {
     e.x = p.x + p.face * 12;
     e.y = p.y;
     e.face = -p.face;
-    if (p.t > 100) {
+    if (p.t > (hasTech(p, 'grip') ? 180 : 100)) {
       releaseGrab(p);
       return;
     }
     if (I.pressed.punch) {
       p.knees++;
       p.kneeT = 8;
+      const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
       if (p.knees >= 3) {
-        hurt(e, (6 + D.melee * 0.6) * (has(p, 'brute') ? 1.5 : 1), p.face, {
+        hurt(e, (6 + D.melee * 0.6) * gm, p.face, {
           kd: true,
           kb: 8,
           src: p,
@@ -6462,16 +6500,16 @@ function upRunner(p) {
         });
         p.grab = null;
         setS(p, 'idle');
-      } else
-        hurt(e, (4 + D.melee * 0.45) * (has(p, 'brute') ? 1.5 : 1), p.face, { src: p, ax: p.x, melee: true });
+      } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
     } else if (I.pressed.kick) {
       let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
       p.grab = null;
       setS(p, 'throw');
       if (G.training) G.tf.threw = true;
       setS(e, 'down');
-      e.vz = 3.4;
-      e.vx = dir * 4.6;
+      const gy = hasTech(p, 'gyro');
+      e.vz = gy ? 3.9 : 3.4;
+      e.vx = dir * (gy ? 6.4 : 4.6);
       e.x = p.x + dir * 8;
       e.z = 8;
       e.thrown = p;
@@ -6506,7 +6544,8 @@ function upRunner(p) {
         sfx.whiff();
     }
     if (p.state === 'kick' && t === 7 && !G.den) {
-      if (!strike(p, 30 + R * 0.6, 6 + m * 0.8, { kb: 7, breaker: true })) sfx.whiff();
+      if (!strike(p, 30 + R * 0.6, 6 + m * 0.8, { kb: hasTech(p, 'piston') ? 11 : 7, breaker: true }))
+        sfx.whiff();
     }
     if (p.state === 'shoot') {
       const g = p.eq.gun,
@@ -6594,8 +6633,7 @@ function upRunner(p) {
         }
       }
     }
-    if (t >= (p.state === 'shoot' && has(p, 'quick') ? Math.round(busy.shoot * 0.7) : busy[p.state]))
-      setS(p, 'idle');
+    if (t >= busyFor(p, busy)) setS(p, 'idle');
     p.y = clamp(p.y, FY0 + 6, FY1);
     clampX(p);
     return;
@@ -6607,8 +6645,12 @@ function upRunner(p) {
   p.x += dx * (air ? spd + 0.15 : spd);
   p.y += dy * (air ? 0.6 : spd * 0.63);
   if (dx) p.face = dx;
-  if (p.state === 'jkick' && !p.didHit) {
-    if (strike(p, 26 + D.reach * 0.5, 7 + D.melee * 0.9, { kd: true, air: true, kb: 6 })) p.didHit = true;
+  // a flying kick lands once (twice with spring tendons, a moment apart)
+  if (p.state === 'jkick' && (p.didHit || 0) < (hasTech(p, 'spring') ? 2 : 1) && G.t - (p.jkT || -99) > 10) {
+    if (strike(p, 26 + D.reach * 0.5, 7 + D.melee * 0.9, { kd: true, air: true, kb: 6 })) {
+      p.didHit = (p.didHit || 0) + 1;
+      p.jkT = G.t;
+    }
   }
   if (!air) {
     if (p.holding) {
@@ -6635,7 +6677,7 @@ function upRunner(p) {
       setS(p, 'roll');
       sfx.roll();
     } else if (I.pressed.jump) {
-      p.vz = 4.7;
+      p.vz = hasTech(p, 'spring') ? 5.6 : 4.7;
       setS(p, 'jump');
       sfx.jump();
     } else if (I.pressed.punch) {
@@ -6675,7 +6717,7 @@ function upRunner(p) {
         setS(p, 'lift');
         sfx.grab();
       } else {
-        if (G.t - p.lastPunch < 30) p.combo++;
+        if (G.t - p.lastPunch < (hasTech(p, 'servo') ? 42 : 30)) p.combo++;
         else p.combo = 1;
         p.lastPunch = G.t;
         if (p.combo >= 3) {
@@ -6727,10 +6769,18 @@ function upRunner(p) {
     }
   } else if (p.state === 'jump' && (I.pressed.punch || I.pressed.kick)) {
     p.state = 'jkick';
-    p.didHit = false;
+    p.didHit = 0;
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+// how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
+function busyFor(p, busy) {
+  const s = p.state;
+  if (s === 'shoot' && has(p, 'quick')) return Math.round(busy.shoot * 0.7);
+  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) return Math.round(busy[s] * 0.66);
+  if (s === 'kick' && hasTech(p, 'piston')) return Math.round(busy[s] * 0.66);
+  return busy[s];
 }
 // Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
 // (baton, axe, hammer) add their effect on top of it.
@@ -7356,7 +7406,8 @@ function upEnemy(e) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;
       if (Math.abs(o.x - e.x) < 16 && Math.abs(o.y - e.y) < 10) {
         e.thrownHit.push(o);
-        hurt(o, (10 + e.thrown.D.melee * 0.6) * (has(e.thrown, 'brute') ? 1.5 : 1), Math.sign(e.vx) || 1, {
+        const tm = (has(e.thrown, 'brute') ? 1.5 : 1) * (hasTech(e.thrown, 'gyro') ? 2 : 1);
+        hurt(o, (10 + e.thrown.D.melee * 0.6) * tm, Math.sign(e.vx) || 1, {
           kd: true,
           big: true,
           src: e.thrown,
@@ -10252,8 +10303,8 @@ const TRAIN = [
     done: p => p.parryT > 0
   },
   {
-    t: 'Hit the ganger to stagger him, then walk into him to grab. KICK throws him.',
-    k: 'Hit the ganger to stagger him, then walk into him to grab. K throws him.',
+    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. KICK throws him.',
+    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. K throws him.',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });
@@ -14230,6 +14281,7 @@ const NET_SHOP = new Set([
   'buy',
   'buyice',
   'cyber',
+  'tech',
   'fbuy',
   'gmod',
   'hire',
@@ -18847,6 +18899,7 @@ function render() {
         drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
+      if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -19005,6 +19058,31 @@ function drawRunes(e, sx, sy, sc, c, back) {
 }
 // In front of the figure: rune ring front half, ward ripples, ricochet sparks, the vampiric drain stream,
 // berserk steam
+// a dazed foe: three stars circling its head, the cue that walking into it grabs it
+function drawDaze(e) {
+  const sc = (e.d && e.d.scale) || 1,
+    cx = e.x - G.camX,
+    cy = e.y - e.z - 60 * sc,
+    left = (e.dazeUntil - G.t) / 60;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, left * 3);
+  for (let i = 0; i < 3; i++) {
+    const a = G.t * 0.14 + (i * Math.PI * 2) / 3,
+      x = cx + Math.cos(a) * 11,
+      y = cy + Math.sin(a) * 3.5,
+      r = 2.6 + (Math.sin(a) > 0 ? 0.8 : 0);
+    ctx.fillStyle = '#ffe28a';
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const rr = k % 2 ? r * 0.45 : r,
+        aa = (k * Math.PI) / 4;
+      ctx.lineTo(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function drawEliteFront(e) {
   const c = ELITES[e.elite].col,
     sx = e.x - G.camX,
@@ -19172,26 +19250,48 @@ function attractStep() {
  * character sheet and skills.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ================= overlays ================= */
+// every fighting move in one place, under each set of controls
+const movesHtml = `<h3>Moves</h3><div class="keys">
+<b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
+<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab: punch knees (three knock it down), kick throws it into the crowd (hold a direction to aim)</span>
+<b>Heavy blow</b><span>Hold punch, release: breaks guards, knocks down everyone in front</span>
+<b>Flying kick</b><span>Jump, then punch or kick</span>
+<b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
+<b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
+<b>Shields</b><span>Kicks and heavy blows break riot shields</span>
+<b>Chrome</b><span>Doc in the Den installs techniques: faster punches and kicks, longer grabs, harder throws, higher jumps</span></div>
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed.</p>`;
+// the sheet's one-line summary of everything Doc has put in a runner
+function chromeLine(p) {
+  const cy = Object.keys(CYBER)
+      .filter(k => p.cy[k])
+      .map(k => CYBER[k].name + (cyMax(k) > 1 ? ' ' + p.cy[k] : '')),
+    te = Object.keys(TECH)
+      .filter(k => hasTech(p, k))
+      .map(k => TECH[k].name);
+  const all = cy.concat(te);
+  return `<p style="color:var(--muted);font-size:13px"><b style="color:var(--text)">Chrome:</b> ${all.length ? esc(all.join(' · ')) : 'none yet. Doc in the Den installs cyberware and fighting techniques.'}</p>`;
+}
 const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / grab / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
 <b>Dodge, parry</b><span>O or Left Shift, right as a hit lands</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span><b>Block map</b><span>M in the Sprawl</span></div></div>
 <div><h3>Runner 2</h3><div class="keys"><b>Move</b><span>Arrows</span><b>Punch</b><span>, or Numpad 1</span><b>Kick</b><span>. or Numpad 2</span><b>Jump</b><span>/ or Numpad 3</span>
 <b>Dodge</b><span>Right Shift</span><b>Special</b><span>\\ or Numpad 8</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
-<p style="font-size:12.5px">Walk into a staggered enemy to grab: punch to knee, kick to throw. Punch beside a can, crate or drum to lift it, then punch to throw. Kicks break riot shields.</p>`;
+${movesHtml}`;
 const touchHelp = `<div class="keys">
 <b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
 <b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
-<p style="font-size:12.5px">Walk into a staggered enemy to grab it. A gamepad works too. Controls size and side are in Settings.</p>`;
+<p style="font-size:12.5px">A gamepad works too. Controls size and side are in Settings.</p>${movesHtml}`;
 const padHelp = () => `<div class="keys">
 <b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, grab, talk, enter · hold to charge a heavy blow</span>
 <b>B</b><span>Kick, throw · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
 <b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
-<p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>`;
+<p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
 const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keysHtml);
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
@@ -19622,6 +19722,7 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   <h3>Equipped</h3><div class="list">${eq}</div>
+  ${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
   <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
@@ -19908,6 +20009,20 @@ function stashHtml() {
   <h3>Party bag · ${bag.length}/${BAG_MAX}</h3>
   <div class="list">${col(bag, 'stash', st.length < STASH_MAX ? 'Stash' : 'Stash full', st.length < STASH_MAX)}</div>`;
 }
+// chrome techniques for the runner whose tab is open, at Doc's or a Sprawl clinic
+function techHtml() {
+  const p = PL[G.sheetIdx] || PL[0];
+  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
+  <div class="list">${Object.keys(TECH)
+    .map(k => {
+      const t = TECH[k],
+        have = hasTech(p, k),
+        c = Math.round(t.cost * buyMul()),
+        ok = !have && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
+    })
+    .join('')}</div>`;
+}
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],
     clinic = b.type === 'clinic';
@@ -19934,7 +20049,7 @@ function shopHtml(b) {
     ? "Doc Kessler won't touch this stuff. I will. Military-grade, one of each, and no, I don't do refunds."
     : 'These formulas came off a wyrm-cult altar. Learn one and it remembers you.';
   return `<div class="card"><p class="eyebrow">${clinic ? 'Back-alley clinic' : 'Talisman shop'} · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>${esc(b.name)}</h2><span class="wallet">¥${PARTY.creds}</span></div>${whoTabs()}
-  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${sellHtml(clinic ? 'doc' : 'talis')}
+  <p class="say"><b>${clinic ? 'The ripperdoc' : 'The talismonger'}</b>${say}</p>${haggleHtml()}<div class="list">${rows.join('')}</div>${clinic ? techHtml() : ''}${sellHtml(clinic ? 'doc' : 'talis')}
   <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
 }
 // The challenge-seed box on the Arena and Sprawl start screens
@@ -20093,7 +20208,7 @@ function npcHtml(id) {
           ok = l < 3 && PARTY.creds >= c;
         return `<div class="item"><div><div class="nm">${cy.name} <span style="color:var(--muted);font-weight:400">· ${p.name} ${l}/3</span></div><div class="ds">${cy.desc} Costs 6 max mana.</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="cyber:${k}" ${ok ? '' : 'disabled'}>${l >= 3 ? 'Maxed' : '¥' + c}</button></div></div>`;
       })
-      .join('')}</div>${sellHtml('doc')}`;
+      .join('')}</div>${techHtml()}${sellHtml('doc')}`;
   } else if (id === 'ratchet') {
     sayTxt = 'No receipts, no refunds, no questions. Selling? I pay forty cents on the nuyen.';
     body = `${G.world ? `<div class="list"><div class="item"><div><div class="nm">Icebreaker program</div><div class="ds">Cracks one node of any lock instantly. You have ${PARTY.ice || 0}.</div></div><div class="acts"><button class="btn sm${PARTY.creds >= 40 ? '' : ' ghost'}" data-a="buyice" ${PARTY.creds >= 40 ? '' : 'disabled'}>¥40</button></div></div></div>` : ''}
@@ -20994,6 +21109,20 @@ ov.addEventListener('click', e => {
         p.cy[arg]++;
         refresh(p);
         sfx.buy();
+      }
+      rerender();
+      break;
+    }
+    case 'tech': {
+      const t = TECH[arg],
+        c = t && Math.round(t.cost * buyMul());
+      if (t && !hasTech(p, arg) && PARTY.creds >= c) {
+        PARTY.creds -= c;
+        p.tech = Object.assign({}, p.tech, { [arg]: 1 });
+        refresh(p);
+        bump('techs');
+        sfx.buy();
+        say(p, t.name.toUpperCase(), '#45d2ff', 70, 50);
       }
       rerender();
       break;

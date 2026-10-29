@@ -32,7 +32,8 @@ function upEnemy(e) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;
       if (Math.abs(o.x - e.x) < 16 && Math.abs(o.y - e.y) < 10) {
         e.thrownHit.push(o);
-        hurt(o, (10 + e.thrown.D.melee * 0.6) * (has(e.thrown, 'brute') ? 1.5 : 1), Math.sign(e.vx) || 1, {
+        const tm = (has(e.thrown, 'brute') ? 1.5 : 1) * (hasTech(e.thrown, 'gyro') ? 2 : 1);
+        hurt(o, (10 + e.thrown.D.melee * 0.6) * tm, Math.sign(e.vx) || 1, {
           kd: true,
           big: true,
           src: e.thrown,

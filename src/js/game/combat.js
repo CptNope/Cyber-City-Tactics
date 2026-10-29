@@ -370,12 +370,15 @@ function hurt(t, dmg, dir, o) {
   } else {
     setS(t, 'hurt');
     if (t.team === 0) sfx.hurt();
-    else if (o.src && G.combo >= 4)
+    // two hits in a row leave a foe dazed (stars over its head): walk into it and you grab it
+    else if (o.src && o.src.team === 0 && o.melee && t.hits >= 2 && grabbable(t)) {
+      t.dazeUntil = G.t + (hasTech(o.src, 'grip') ? 110 : 60);
       tip(
         'grab',
-        'Walk into a staggered enemy to grab it. PUNCH to knee, KICK to throw.',
-        'Walk into a staggered enemy to grab it. J to knee, K to throw them into the crowd.'
+        'Stars over a foe mean it is dazed: walk into it to grab. PUNCH knees, KICK throws (hold a direction to aim).',
+        'Stars over a foe mean it is dazed: walk into it to grab. J knees, K throws (hold A or D to aim the throw).'
       );
+    }
   }
   if (t.team === 0)
     tip(

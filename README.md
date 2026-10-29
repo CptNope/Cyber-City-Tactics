@@ -436,6 +436,19 @@ Tuned and Prototype items can roll an affix, which shows in the item's name (for
 - Wired reflexes: speed and crit
 - Dermal plating: armor
 
+**Chrome techniques** (from Doc, or a Sprawl clinic; one-off implants that change how you fight, like the books in River City Ransom; each costs 4 max mana):
+
+| Technique | What it does |
+|---|---|
+| Servo knuckles | Punches and uppercuts recover a third faster; the combo window stays open longer |
+| Piston shins | Kicks recover a third faster and knock foes further back |
+| Grip actuators | Dazes last almost twice as long, grabs hold longer, knees hit 40% harder |
+| Gyro spine | Throws fly further and hit twice as hard |
+| Spring tendons | Jump higher; one flying kick can hit twice |
+| Recoil dampers | Back on your feet twice as fast after a knockdown |
+
+The character sheet lists everything a runner has installed.
+
 **Companions** (rented from Kit, one at a time):
 - **Rigger drone:** snipes enemies in its lane.
 - **Brick, troll merc:** brawls and pulls aggro.
@@ -450,7 +463,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
-- **Grabs:** walk into a staggered enemy. Punch to knee them, or kick to throw them into others.
+- **Grabs:** two hits in a row daze a foe (stars circle its head). Walk into it while it's dazed to grab it: punch to knee (the third knocks it down), kick to throw it into the others, holding a direction to aim. Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen.
 - **Throwables:** trash cans, crates and explosive drums.
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.

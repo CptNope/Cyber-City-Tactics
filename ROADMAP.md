@@ -107,6 +107,8 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Corp ninjas and hellhounds.**~~ Shipped as Kagemori shadows and hellhound packs.
 - [x] ~~**Mech walkers and feral spirits.**~~ Shipped: a plated walker with a weak back, and a spirit that echoes your last spell.
 - [x] ~~**A parry.**~~ Shipped: a perfect dodge staggers the attacker and sets up a guaranteed crit.
+- [x] ~~**Grabs you can actually find.**~~ Shipped: two hits in a row daze a foe for a second (stars over its head), so there's time to walk in and grab; the help screen lists every move.
+- [x] ~~**Chrome techniques.**~~ Shipped: six one-off implants from Doc, River City Ransom books in chrome: faster punches, faster kicks, longer grabs, harder throws, higher jumps, faster get-ups.
 - [ ] **Juggles and wall bounces (M).** Enemies knocked into the street's back wall bounce back for follow-ups.
 - [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 

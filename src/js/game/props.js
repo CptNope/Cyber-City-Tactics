@@ -67,23 +67,25 @@ function releaseGrab(p, quiet) {
   }
   if (p.state === 'grab') setS(p, 'idle');
 }
+// who can be grabbed at all: no bosses, nothing heavy (mechs), nothing flying, nothing that isn't a fighter
+const grabbable = e =>
+  e.team === 1 &&
+  !e.d.boss &&
+  !e.d.heavy &&
+  !e.d.fly &&
+  !e.d.passive &&
+  e.state !== 'dead' &&
+  e.state !== 'down' &&
+  e.state !== 'grabbed';
+// and when: flinching from a hit, or dazed after two in a row
+const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0));
 function tryGrab(p, dx) {
   if (dx === 0) return false;
   for (const e of G.ents) {
-    if (
-      e.team !== 1 ||
-      e.d.boss ||
-      e.d.heavy ||
-      e.d.fly ||
-      e.d.passive ||
-      e.state === 'dead' ||
-      e.state === 'down' ||
-      e.state === 'grabbed'
-    )
-      continue;
-    if (e.state !== 'hurt') continue;
+    if (!dazed(e)) continue;
     const rx = (e.x - p.x) * dx;
-    if (rx < 2 || rx > 16 || Math.abs(e.y - p.y) > 6) continue;
+    if (rx < 0 || rx > 26 || Math.abs(e.y - p.y) > 10) continue;
+    e.dazeUntil = 0;
     p.grab = e;
     p.knees = 0;
     p.face = dx;

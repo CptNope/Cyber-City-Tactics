@@ -18,7 +18,7 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = 8 + src.D.melee * 0.7;
+          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1);
           e.state = 'down';
           e.hp -= Math.round(dmg);
           G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
@@ -165,7 +165,7 @@ function upRunner(p) {
     return;
   }
   if (p.state === 'down') {
-    if (p.t > 50) {
+    if (p.t > (hasTech(p, 'recoil') ? 25 : 50)) {
       setS(p, 'idle');
       p.inv = 60;
     }
@@ -227,15 +227,16 @@ function upRunner(p) {
     e.x = p.x + p.face * 12;
     e.y = p.y;
     e.face = -p.face;
-    if (p.t > 100) {
+    if (p.t > (hasTech(p, 'grip') ? 180 : 100)) {
       releaseGrab(p);
       return;
     }
     if (I.pressed.punch) {
       p.knees++;
       p.kneeT = 8;
+      const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
       if (p.knees >= 3) {
-        hurt(e, (6 + D.melee * 0.6) * (has(p, 'brute') ? 1.5 : 1), p.face, {
+        hurt(e, (6 + D.melee * 0.6) * gm, p.face, {
           kd: true,
           kb: 8,
           src: p,
@@ -243,16 +244,16 @@ function upRunner(p) {
         });
         p.grab = null;
         setS(p, 'idle');
-      } else
-        hurt(e, (4 + D.melee * 0.45) * (has(p, 'brute') ? 1.5 : 1), p.face, { src: p, ax: p.x, melee: true });
+      } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
     } else if (I.pressed.kick) {
       let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
       p.grab = null;
       setS(p, 'throw');
       if (G.training) G.tf.threw = true;
       setS(e, 'down');
-      e.vz = 3.4;
-      e.vx = dir * 4.6;
+      const gy = hasTech(p, 'gyro');
+      e.vz = gy ? 3.9 : 3.4;
+      e.vx = dir * (gy ? 6.4 : 4.6);
       e.x = p.x + dir * 8;
       e.z = 8;
       e.thrown = p;
@@ -287,7 +288,8 @@ function upRunner(p) {
         sfx.whiff();
     }
     if (p.state === 'kick' && t === 7 && !G.den) {
-      if (!strike(p, 30 + R * 0.6, 6 + m * 0.8, { kb: 7, breaker: true })) sfx.whiff();
+      if (!strike(p, 30 + R * 0.6, 6 + m * 0.8, { kb: hasTech(p, 'piston') ? 11 : 7, breaker: true }))
+        sfx.whiff();
     }
     if (p.state === 'shoot') {
       const g = p.eq.gun,
@@ -375,8 +377,7 @@ function upRunner(p) {
         }
       }
     }
-    if (t >= (p.state === 'shoot' && has(p, 'quick') ? Math.round(busy.shoot * 0.7) : busy[p.state]))
-      setS(p, 'idle');
+    if (t >= busyFor(p, busy)) setS(p, 'idle');
     p.y = clamp(p.y, FY0 + 6, FY1);
     clampX(p);
     return;
@@ -388,8 +389,12 @@ function upRunner(p) {
   p.x += dx * (air ? spd + 0.15 : spd);
   p.y += dy * (air ? 0.6 : spd * 0.63);
   if (dx) p.face = dx;
-  if (p.state === 'jkick' && !p.didHit) {
-    if (strike(p, 26 + D.reach * 0.5, 7 + D.melee * 0.9, { kd: true, air: true, kb: 6 })) p.didHit = true;
+  // a flying kick lands once (twice with spring tendons, a moment apart)
+  if (p.state === 'jkick' && (p.didHit || 0) < (hasTech(p, 'spring') ? 2 : 1) && G.t - (p.jkT || -99) > 10) {
+    if (strike(p, 26 + D.reach * 0.5, 7 + D.melee * 0.9, { kd: true, air: true, kb: 6 })) {
+      p.didHit = (p.didHit || 0) + 1;
+      p.jkT = G.t;
+    }
   }
   if (!air) {
     if (p.holding) {
@@ -416,7 +421,7 @@ function upRunner(p) {
       setS(p, 'roll');
       sfx.roll();
     } else if (I.pressed.jump) {
-      p.vz = 4.7;
+      p.vz = hasTech(p, 'spring') ? 5.6 : 4.7;
       setS(p, 'jump');
       sfx.jump();
     } else if (I.pressed.punch) {
@@ -456,7 +461,7 @@ function upRunner(p) {
         setS(p, 'lift');
         sfx.grab();
       } else {
-        if (G.t - p.lastPunch < 30) p.combo++;
+        if (G.t - p.lastPunch < (hasTech(p, 'servo') ? 42 : 30)) p.combo++;
         else p.combo = 1;
         p.lastPunch = G.t;
         if (p.combo >= 3) {
@@ -508,10 +513,18 @@ function upRunner(p) {
     }
   } else if (p.state === 'jump' && (I.pressed.punch || I.pressed.kick)) {
     p.state = 'jkick';
-    p.didHit = false;
+    p.didHit = 0;
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+// how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
+function busyFor(p, busy) {
+  const s = p.state;
+  if (s === 'shoot' && has(p, 'quick')) return Math.round(busy.shoot * 0.7);
+  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) return Math.round(busy[s] * 0.66);
+  if (s === 'kick' && hasTech(p, 'piston')) return Math.round(busy[s] * 0.66);
+  return busy[s];
 }
 // Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
 // (baton, axe, hammer) add their effect on top of it.
