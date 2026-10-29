@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/modes/training.js
- * Juno's eleven training drills, and the one-time offer to take them before a first run.
+ * Juno's thirteen training drills, and the one-time offer to take them before a first run.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ---------- training ---------- */
@@ -86,13 +86,49 @@ const TRAIN = [
     done: p => p.parryT > 0
   },
   {
-    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. Hold a direction and tap KICK to throw him that way.',
-    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. Hold a direction and press K to throw him that way.',
+    t: 'Punch the ganger twice until stars circle his head, then walk into him to grab. Let go, then push a direction and tap KICK to throw him that way.',
+    k: 'Punch the ganger twice (J, J) until stars circle his head, then walk into him to grab. Let go, then push a direction and press K to throw him that way.',
     setup(p) {
       clearFoes();
       trainee('ganger', p.x + 50, p.y, { hp: 999 });
     },
     done: () => G.tf.threw
+  },
+  {
+    t: 'Stars again, grab him, then tap JUMP: you leap with him. Land without pushing a direction for a body slam.',
+    k: 'Stars again (J, J), grab him, then press Space: you leap with him. Land without pushing a direction for a body slam.',
+    setup(p) {
+      clearFoes();
+      trainee('ganger', p.x + 50, p.y, { hp: 999 });
+    },
+    done: () => G.tf.slam
+  },
+  {
+    t: 'Now the other way round: this orc grabs. When he does, mash any button to break free.',
+    k: 'Now the other way round: this orc grabs. When he does, mash any key (J, K, Space) to break free.',
+    setup(p) {
+      clearFoes();
+      const e = trainee('orc', p.x + 40, p.y, { live: true, hp: 999, dmg: 1 });
+      e.cool = 1e9;
+    },
+    // he only ever grabs, and only when he's close
+    tick(p) {
+      const e = G.ents.find(o => o.kind === 'orc');
+      if (!e) return;
+      if (e.state !== 'grabtry' && e.state !== 'hold') e.cool = 1e9;
+      if (
+        ['idle', 'walk'].includes(e.state) &&
+        Math.abs(e.x - p.x) < 22 &&
+        Math.abs(e.y - p.y) < 7 &&
+        heldOK(p) &&
+        G.t % 40 === 0
+      ) {
+        e.tgt = p;
+        e.face = p.x >= e.x ? 1 : -1;
+        setS(e, 'grabtry');
+      }
+    },
+    done: () => G.tf.broke
   },
   {
     t: 'Stand by the drum and tap LIFT, then THROW it at the orc.',
@@ -194,6 +230,7 @@ function trainTick() {
     }
     return;
   }
+  if (TRAIN[G.tstep].tick) TRAIN[G.tstep].tick(p);
   if (TRAIN[G.tstep].done(p)) {
     G.tdone = 60;
     sfx.loot();

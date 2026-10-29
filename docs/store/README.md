@@ -32,19 +32,21 @@ NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 
 **Short description:** A neon brawler RPG for one or two players. Free in your browser.
 
-**Genre:** Action · **Tags:** beat-em-up, cyberpunk, local-co-op, online-co-op, rpg, open-world, offline
+**Genre:** Action · **Tags:** beat-em-up, cyberpunk, local-co-op, online-co-op, rpg, open-world, driving, stealth, offline
 
 **Description:**
 
 > Seattle, 2079. Magic came back, dragons came with it, and the corps bought the sky.
 >
-> You and a friend are two shadowrunners with a fixer called Juno and six districts between you and Director Voss. Punch, kick, shoot, cast, grab and throw your way from the gang turf under the dead monorail to the Kagemori host itself.
+> You and a friend are two shadowrunners with a fixer called Juno and six districts between you and Director Voss. Punch, kick, shoot, cast, grab, throw and pile drive your way from the gang turf under the dead monorail to the Kagemori host itself.
 >
 > - **Six districts, six bosses**, from the Gutter King to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
 > - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
 > - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
+> - **Fists from River City Ransom and Double Dragon:** daze a foe, grab it, then punch, knee, throw it any direction or leap and pile drive it. Buy chrome that teaches new moves: Mach fists, Dragon feet, Grand slam, a sprint. Foes grab back, unload flurries and throw the furniture.
+> - **Jobs between the brawls:** Road Rash–style bike chases, drone stealth through corp floors (one flies, one runs overwatch), and VTOL runs over the skyline that land in a rooftop brawl.
 > - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
-> - **Co-op, couch or online:** one keyboard, two controllers, or two browsers anywhere with an invite code (Arena). Training with Juno for anyone new.
+> - **Co-op, couch or online:** one keyboard, two controllers, or two browsers anywhere with a five-letter room code, in every mode. Training with Juno for anyone new.
 > - **Plays anywhere:** phones, tablets, laptops and TVs. Install it and it plays offline.
 >
 > No account, no ads, no tracking. Just the game.

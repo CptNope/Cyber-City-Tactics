@@ -45,7 +45,8 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 - **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
 - **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
-- **Jobs:** driving missions on the causeway (Road Rash style), drone stealth through corp floors, and VTOL flights over the skyline with a pilot and a door gunner.
+- **River City Ransom and Double Dragon in the fists:** daze a foe and grab it, then punch, knee, throw it any direction, or leap and pile drive it. Doc installs chrome that makes you faster and teaches new moves (Mach fists, Dragon feet, Grand slam, a sprint). Foes fight dirty too: they grab you, unload flurries and throw the furniture.
+- **Jobs:** driving missions on the causeway (Road Rash style), drone stealth through corp floors (with an overwatch seat for a second player), and VTOL flights over the skyline that land in a rooftop brawl. In the campaign, Juno offers one as a side job in every Den.
 
 ## Screenshots
 
@@ -90,7 +91,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 ---
 
 ## Quick start
-1. Open the game and pick **Training** if you're new. It's ten short drills you can't fail.
+1. Open the game and pick **Training** if you're new. It's thirteen short drills you can't fail.
 2. Pick a mode:
    - **Start a run** for the story campaign.
    - **The Sprawl** for the open world.
@@ -120,9 +121,9 @@ Between districts you walk **the Den**, a street hub where you talk to the local
 
 | Who | What they do |
 |---|---|
-| Juno | Fixer: gives you contracts |
+| Juno | Fixer: gives you contracts, and an optional side job (a drive, a drone run or a flight) each visit |
 | Sal | Bartender: rumors about the next job |
-| Doc Kessler | Street doc: medkits, ammo and cyberware |
+| Doc Kessler | Street doc: medkits, ammo, cyberware, and chrome techniques and moves |
 | Kit | Rents companions |
 | Old Wen | Talismonger: teaches spells |
 | Ratchet | Fence: buys and sells gear, fits gun mods, scraps gear for parts and reworks it |
@@ -224,17 +225,22 @@ Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunshi
 **Banking the take.** Jobs are standalone runs, so when one ends its results card offers to bank the creds and any gear you picked up to a save: the Sprawl's safehouse stash, or Ratchet's locker in your campaign's Den. Online, the host banks for the team.
 
 ### Training
-Ten drills in Juno's back alley with harmless sparring partners:
+Thirteen drills in Juno's back alley with harmless sparring partners:
 1. Moving
 2. Combos
 3. Guard breaks
 4. Air attacks
 5. Dodging
-6. Grabs
-7. Throwing a drum
-8. Heavy blows
-9. Guns and spells
-10. Your special
+6. Parrying
+7. Grabs and throws
+8. A jump slam: leap with a grabbed foe
+9. Breaking free when a foe grabs you
+10. Throwing a drum
+11. Heavy blows
+12. Guns and spells
+13. Your special
+
+The first time anyone starts a run, Juno offers the drills; finish them and one button starts the run that was waiting. Jobs teach their own controls with a tip the first time you play each one.
 
 Any step can be skipped from the pause menu.
 
@@ -470,7 +476,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 ---
 
 ## Combat
-- **Strikes:** punch combos end in an uppercut. You also have kicks and flying kicks.
+- **Strikes:** punch combos end in an uppercut. You also have kicks and flying kicks. With Doc's chrome, the third quick punch or kick turns into a flurry (Mach fists, Dragon feet), and Turbo calves add a double-tap sprint with a shoulder charge and a slide.
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
@@ -479,7 +485,9 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - **Kick:** legs only. A knee, a knee, then a knee lift that launches them (catch them with a jump kick).
   - **A direction plus punch or kick:** a throw that way. Forward; back for an over-the-shoulder slam behind you (it lands harder); up or down to throw them into another lane, bowling over whoever stands there. The direction you were already holding when you walked in doesn't throw until you let go of it or change it, so walking in never throws by accident.
   - **Jump:** you leap with them. Push a direction in the air to throw them that way from the top. Land without one and it's a body slam, or a pile driver (head-first into the street, with a shockwave) for street samurai and physical adepts. Anyone else can learn the pile driver from Doc's Pile driver rig.
-  - **Dodge:** Grand slam, with the implant. Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen.
+  - **Dodge:** Grand slam, with the implant.
+
+  Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen, and Training has drills for grabs, throws, the jump slam and breaking free.
 - **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button to break free, and they reel, dazed, ready to be grabbed back. Don't, and you're kneed and thrown. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
 - **Throwables:** trash cans, crates and explosive drums.
 - **Breakables:** vending machines spill medkits, ammo and mana.
@@ -491,7 +499,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
 - **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 60%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
 - **Feral spirits** drift through the Undercity and hidden shrines. They copy the last spell any runner cast: fireballs and bolts come back at you, an echoed heal patches up nearby enemies, and an echoed barrier shields the spirit. Bullets pass through them.
-- **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit. Land any hit and the cloak drops for a few seconds.
+- **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit, and sometimes a kick flurry (a ring and "!!" warn you). Land any hit and the cloak drops for a few seconds.
+- **Grabbers and throwers:** gangers, orc bruisers and the Gutter King grab runners (mash any button to break free); gangers and orcs pick up props and throw them.
 - **Elites:** each has a colored aura and a name tag, and drops better gear.
   - Armored: halves bullet damage
   - Berserk: faster and hits harder
@@ -499,7 +508,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - Vampiric: heals when it hits you
 - **Boss rage phases:** at half health each boss enrages.
   - The Gutter King and the Hollow Saint slam shockwaves you have to jump.
-  - Razor Mei chains dashes.
+  - Razor Mei chains dashes, and at any health she may wind up a punch flurry.
+  - The Gutter King grabs, and takes ten presses to break free of.
   - The Hollow Saint also summons spirits.
   - Voss fires five-way hexes.
   - Black ICE fires lane-wide beams. Dodge them by changing lanes or with a well-timed roll; after each beam its core vents and takes extra damage.
@@ -621,7 +631,7 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Action | Runner 1 | Runner 2 | Gamepad |
 |---|---|---|---|
 | Move | WASD (and arrows when solo) | Arrows | D-pad / left stick |
-| Punch, grab, talk, enter | J | , or Numpad 1 | X |
+| Punch, talk, enter | J | , or Numpad 1 | X |
 | Kick | K | . or Numpad 2 | B |
 | Jump | Space | / or Numpad 3 | A |
 | Dodge (and parry) | O or Left Shift | Right Shift | LB |
@@ -637,11 +647,26 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Hack (in the minigame) | Space or J | , | A or X (Y uses an icebreaker, B backs off) |
 | Menus | Mouse, touch or Tab | | D-pad/stick, A select, B back, LB/RB tabs |
 
+**Grabs.** Hit a foe twice to daze it (stars), then walk into it. While holding it:
+
+| Do this | And you |
+|---|---|
+| Punch | Jab, jab, hook (knocks down) |
+| Kick | Knee, knee, knee lift (launches) |
+| A direction + punch or kick | Throw that way: forward, back (over the shoulder), up or down (into another lane) |
+| Jump | Leap with them: push a direction in the air to throw, or land for a body slam (a pile driver for street samurai, adepts or with the Pile driver rig) |
+| Dodge | Grand slam (with the implant) |
+| Grabbed by a foe | Mash any button to break free |
+
+**With Doc's chrome:** mash punch or kick after two quick hits for a flurry (Mach fists, Dragon feet); double-tap a direction to sprint (Turbo calves), then punch to charge or kick to slide; kick beside a foe on the ground to stomp it (Heel spikes).
+
+**Jobs** use the same buttons with their own meaning, explained the first time you play each: on a bike, punch, kick, gun and spell strike to either side; in a drone, up and down climb, punch hacks, kick fires a shock dart, dodge cloaks; in the VTOL, runner 1 flies and fires (punch cannon, spell rocket, dodge flare) while runner 2 swings the door gun; on overwatch, runner 2 moves a reticle, punch loops a camera or laser, kick pings a noise.
+
 ## On phones
 - **Sideways:** the stick sits to the left of the screen and the buttons to the right, so your thumbs never cover the fight.
 - **Upright:** the view grows taller, the HUD moves into the sky at the top, and the controls sit under the screen.
 - The stick appears wherever your thumb lands on the left side.
-- The big buttons change their label to say what they'll do: LIFT, THROW, KNEE, TALK, ENTER. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
+- The big buttons change their label to say what they'll do: LIFT, THROW, TALK, ENTER, and while you grab someone PUNCH, KNEE, THROW (while you push a direction), LEAP and SWING. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
 - **Settings:** control size (S/M/L), left-handed layout, graphics quality, screen shake, vibration, tips, sound, music and full screen.
 - **Fills any screen:** the game covers the whole screen on every device, inside the notch-safe area. Wider screens (phones held sideways, ultrawide monitors) see more of the street. Taller screens get a sky band on top for the HUD, and on touch screens a strip of pavement under the controls, so your thumbs never cover the fight. Only screens wider than 3.7:1 show bars.
 - **Runs the same everywhere:** the game logic steps at a fixed 60 per second on any screen, from a 30 Hz phone to a 240 Hz monitor, and motion is interpolated so high-refresh screens stay smooth. On a slow device, *Graphics: Auto* switches to a lighter mode (sharper pixels off, fewer particles) after a few seconds. You can force *High* or *Low* in Settings.
@@ -690,7 +715,7 @@ You need Node 18 or newer. Nothing has to be installed to run, build or test the
 | `npm start` | Serves the game at http://localhost:8080 (the service worker is off on localhost so edits show on reload; add `?sw=1` to test it) |
 | `npm run build` | Stamps the version, refreshes the service worker's file list, writes `dist/cyber-city-tactics.html`. **Run before every commit.** |
 | `npm run check` | Fails if the build is out of date (handy in CI) |
-| `npm test` | Every headless test, including two bot playthroughs (about 20 s) |
+| `npm test` | Every headless test, including two bot playthroughs (about 30 s) |
 | `npm run test:quick` | The same without the bot playthroughs |
 | `npm run test:browser` | Real-Chromium checks: both builds boot, manifest, shortcuts, offline play, the update flow (needs `npm i -D playwright`) |
 | `npm run format` | Prettier over the source (needs `npm i -D prettier`) |
@@ -710,7 +735,7 @@ src/js/core/           canvas, utils and storage, audio, music, input
 src/js/data/           tables: enemies, districts, gear, contracts, lore, feats
 src/js/systems/        legend (feats, legendaries, Codex) and skill trees
 src/js/game/           simulation: state, flow, combat, runners, enemies, allies, update
-src/js/modes/          the Sprawl, dungeons, hacking, training, Arena
+src/js/modes/          the Sprawl, dungeons, hacking, training, Arena, jobs (driving, drone, flight), online co-op
 src/js/render/         drawing and the HUD
 src/js/ui/             menus and buttons
 src/js/pwa.js          install, updates, backups, shortcuts
@@ -721,7 +746,8 @@ src/fonts/             Teko and Chakra Petch, self-hosted (SIL OFL)
 dist/                  generated single-file build
 tools/                 build, local server, screenshot generator
 tests/                 headless tests and browser tests
-docs/                  architecture guide
+server/                the online lobby (a Cloudflare Worker: room codes and TURN relay passes)
+docs/                  architecture guide, design system and brand book
 ```
 
 ---

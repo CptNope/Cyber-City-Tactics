@@ -106,15 +106,16 @@ const BEST = {
     'Causeway crews on stripped-down bikes and a length of chain. Pull alongside and they swing; kick them into the rail before they do.',
   interceptor:
     'An armored Kagemori van that hunts the causeway at the end of every run. It rams from the side. Bullets and boots crack the plating; fists just bruise.',
-  ganger: 'Rustline crews. Cheap chrome, cheap knives, a lot of nerve.',
-  orc: 'Big, tough and not as slow as they look. Knock them down before they knock you down.',
+  ganger:
+    'Rustline crews. Cheap chrome, cheap knives, a lot of nerve. They grab (a "!" warns you; mash to break free) and pick up cans, crates and drums to throw.',
+  orc: 'Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around.',
   sec: 'Kagemori security on a corp salary. They shoot first and file reports later.',
   riot: 'Shields stop punches from the front. Kick them, throw something, or get behind.',
   shaman: 'Street shamans throw spells from the back line. Close the distance fast.',
   ghoul: 'They lunge from far away. Roll through and punish the recovery.',
   spirit: 'Bound fire spirits. Bullets pass right through them; use fists, blades or magic.',
   ninja:
-    'Kagemori shadows fade out of sight and only show themselves to strike. Hit one and the cloak drops for a few seconds.',
+    'Kagemori shadows fade out of sight and only show themselves to strike. Hit one and the cloak drops for a few seconds. Watch for the ring and "!!": a kick flurry is coming. Roll through it or parry.',
   mech: 'A walking gun platform. Its front plates shrug off almost everything, and it turns slowly. Get behind it and hit the glowing vent on its back.',
   feral:
     'A wild spirit that watches you fight and throws your last spell back at you. Think twice before you cast near one.',
@@ -125,8 +126,10 @@ const BEST = {
   ice: 'ICE sentries teleport and fire laser spreads. Watch the windup.',
   drone: 'Rigger drones keep their distance and shoot. Jump-kick them out of the air.',
   blackice: 'Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents.',
-  troll: "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves.",
-  blade: "Razor Mei dashes through you, then chains three dashes when she's enraged.",
+  troll:
+    "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves, and don't stand still in front of him: he grabs, and it takes a lot of mashing to get loose.",
+  blade:
+    'Razor Mei dashes through you, then chains three dashes when she\'s enraged. A ring and "!!" mean a punch flurry: roll through it or parry it.',
   saint: 'The Hollow Saint summons spirits and slams the floor. Keep moving.',
   thrall:
     "Mother Vesper's people. Quick, pale, and every hit they land heals them a little. Don't trade blows; stagger them and keep the pressure on.",

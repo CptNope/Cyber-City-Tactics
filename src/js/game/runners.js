@@ -721,6 +721,7 @@ function grabJumpTick(p, I, D) {
       G.shake = Math.max(G.shake, 9);
       sfx.boom();
       say(p, 'PILE DRIVER', '#ffc63d', 50, 40, true);
+      if (G.training) G.tf.slam = true;
     } else {
       // a body slam on the street in front of you
       e.x = p.x + p.face * 14;
@@ -729,6 +730,7 @@ function grabJumpTick(p, I, D) {
       G.shake = Math.max(G.shake, 6);
       sfx.heavy();
       say(p, 'BODY SLAM', '#ffc63d', 40, 30, true);
+      if (G.training) G.tf.slam = true;
     }
     setS(p, 'idle');
     p.inv = Math.max(p.inv, 12);

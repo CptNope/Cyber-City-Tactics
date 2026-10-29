@@ -36,22 +36,22 @@ function chromeLine(p) {
   return `<p style="color:var(--muted);font-size:13px"><b style="color:var(--text)">Chrome:</b> ${all.length ? esc(all.join(' · ')) : 'none yet. Doc in the Den installs cyberware and fighting techniques.'}</p>`;
 }
 const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
-<b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / grab / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
+<b>Move</b><span>WASD (arrows too, solo)</span><b>Punch / talk</b><span>J</span><b>Kick</b><span>K</span><b>Jump</b><span>Space</span>
 <b>Dodge, parry</b><span>O or Left Shift, right as a hit lands</span><b>Special</b><span>F, or punch and kick together</span><b>Heavy blow</b><span>Hold J, release</span><b>Gun</b><span>U</span><b>Spell</b><span>I</span><b>Swap spell</b><span>Q</span><b>Medkit</b><span>H</span><b>Character</b><span>C</span><b>Block map</b><span>M in the Sprawl</span></div></div>
 <div><h3>Runner 2</h3><div class="keys"><b>Move</b><span>Arrows</span><b>Punch</b><span>, or Numpad 1</span><b>Kick</b><span>. or Numpad 2</span><b>Jump</b><span>/ or Numpad 3</span>
 <b>Dodge</b><span>Right Shift</span><b>Special</b><span>\\ or Numpad 8</span><b>Gun</b><span>;</span><b>Spell</b><span>'</span><b>Swap / medkit</b><span>] and [</span></div>
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
 ${movesHtml}`;
 const touchHelp = `<div class="keys">
-<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, KNEE or TALK when that's what it will do.</span>
-<b>KICK</b><span>Breaks riot shields. Throws a grabbed enemy.</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
+<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, TALK or ENTER when that's what it will do.</span>
+<b>KICK</b><span>Breaks riot shields. Knees a grabbed enemy (push a direction to throw).</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
 <b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
 <b>Hold PUNCH</b><span>Charge a heavy blow that breaks guards</span><b>Hold SPELL</b><span>Swap spells</span></div>
 <p style="font-size:12.5px">A gamepad works too. Controls size and side are in Settings.</p>${movesHtml}`;
 const padHelp = () => `<div class="keys">
-<b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, grab, talk, enter · hold to charge a heavy blow</span>
-<b>B</b><span>Kick, throw · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
+<b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, talk, enter · hold to charge a heavy blow</span>
+<b>B</b><span>Kick · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
 <b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
 <p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;

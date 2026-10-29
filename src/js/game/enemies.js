@@ -766,6 +766,11 @@ function streetChoose(e, d, p, adx, ady) {
     G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 26, c: '#ffc63d', life: 14, max: 14, r: 22 });
     G.texts.push({ x: e.x, y: e.y, z: 70 * (d.scale || 1), s: '!!', c: '#ffc63d', life: 24 });
     sfx.zap();
+    tip(
+      'flurry',
+      'A ring and !! mean a flurry is coming: DODGE through it, or dodge just as it lands to parry.',
+      'A ring and !! mean a flurry is coming: roll through it (O), or roll just as it lands to parry.'
+    );
     return true;
   }
   return false;
@@ -905,6 +910,7 @@ function enemyRelease(e, broke) {
     e.t = -16; // reeling: a longer stagger than a flinch
     if (grabbable(e)) e.dazeUntil = G.t + 60; // and dazed: grab them back
     if (p) say(p, 'BROKE FREE', '#7dffb0', 50, 40);
+    if (G.training) G.tf.broke = true;
     sfx.hit();
   } else if (e.state === 'hold') setS(e, 'idle');
 }

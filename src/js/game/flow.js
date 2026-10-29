@@ -149,6 +149,11 @@ function enterDen() {
   saveGame('den');
   setMode('den');
   tip(
+    'chrome',
+    'Doc sells cyberware and chrome: faster punches and kicks, longer grabs, new moves like Mach fists. Juno has an optional side job each visit.',
+    'Doc sells cyberware and chrome: faster punches and kicks, longer grabs, new moves like Mach fists. Juno has an optional side job each visit.'
+  );
+  tip(
     'den',
     'Walk up to people and tap TALK to chat or shop. Kit rents companions. The next job starts at the right end of the street.',
     'Walk up to people and press J to talk or shop. Kit rents companions. The next job starts at the right end of the street.'

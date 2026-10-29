@@ -48,7 +48,7 @@ function renderOv() {
   }
   if (m === 'trainpick') {
     h = `<div class="card"><p class="eyebrow">Training · Juno's back alley</p><h2>Learn the moves</h2>
-    <p>Ten short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, grabs, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
+    <p>Thirteen short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, parries, grabs and throws, a jump slam, breaking free of a grab, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
@@ -66,7 +66,7 @@ function renderOv() {
   if (m === 'trainoffer') {
     // shown once, the first time someone starts a run without having trained
     h = `<div class="card"><p class="eyebrow">First time on the street?</p><h2>Two minutes with Juno first?</h2>
-    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Eleven quick drills: punches, kicks, dodges, parries, grabs, guns, spells and your special. Then the job's yours.</p>
+    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Thirteen quick drills: punches, kicks, dodges, parries, grabs, throws, breaking free, guns, spells and your special. Then the job's yours.</p>
     <div class="row"><button class="btn" data-a="trainfirst">Train first</button><button class="btn ghost" data-a="trainskip">Skip, start the run</button></div>
     <p style="color:var(--muted);font-size:13px">Training is always on the title screen if you want it later.</p></div>`;
   }

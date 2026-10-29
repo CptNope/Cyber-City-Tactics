@@ -13,7 +13,7 @@ The guiding rules:
 
 - [x] Core brawler: punch combos, kicks, jumps, flying kicks, grabs, throws, guns, spells
 - [x] RPG layer: karma levels, attributes, loot in three rarities, cyberware, spells, fixer contracts
-- [x] Campaign: five districts, five bosses, and the Den hub with seven NPCs
+- [x] Campaign: six districts, six bosses, and the Den hub with seven NPCs
 - [x] Two-player co-op on one keyboard, gamepads or touch
 - [x] Difficulty levels, New Game+, elite enemies, boss rage phases
 - [x] Mobile layout: portrait and landscape, floating stick, contextual buttons, settings, first-time tips
@@ -39,6 +39,9 @@ The guiding rules:
 - [x] **Expansion 5:** hellhound packs, cloaked Kagemori shadows, and salvage and crafting at Ratchet's workbench
 - [x] **Expansion 4:** a heavy blow for every melee weapon, four gun mods at Ratchet's bench, the spirit storm event, and a gear comparison card
 - [x] **Expansion 3:** Turbo, Fog, Split and Pacifist mutators; acid rain, corp parade and manhunt block events; co-op revive; Doc's neural reset; five new feats; GitHub Actions CI
+- [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
+- [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
+- [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), eleven chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
 ---
@@ -48,8 +51,8 @@ The guiding rules:
 ### Missions: new ways to play a job
 Side jobs from Juno (and a **Jobs** board on the title and online hub) that break up the brawling. Each works solo, in couch co-op and online, because each runs on the same entities and snapshots as everything else.
 
-- [x] ~~**Driving.**~~ Shipped: two jobs on the Jobs board (The Causeway Run, Neon Market Getaway), solo, couch and online. Still to come: Road Rash on the causeway. Each runner rides a bike in the street's depth lanes: hold right to throttle, left to brake, up and down to change lanes, dodge for a nitro burst, jump to hop an oil slick. Punch and kick riders alongside you, shoot what's ahead, and don't hit civilian traffic. Gang bikers swing chains, Kagemori interceptors ram, and a boss vehicle waits at the end of the run. Crash and you're back on the bike a moment later, a little lighter in HP. Pays creds and karma by finish time and takedowns.
-  - Car chases with a rigger driving and a partner shooting from the window; a delivery variant (keep the cargo intact); a night run with headlights only; bike upgrades bought with the pay; a driving job as a district's side contract.
+- [x] ~~**Driving.**~~ Shipped: two jobs on the Jobs board (The Causeway Run, Neon Market Getaway), solo, couch and online. Each runner rides a bike in the street's depth lanes: hold right to throttle, left to brake, up and down to change lanes, dodge for a nitro burst, jump to hop an oil slick. Punch and kick riders alongside you (either side), shoot and cast either way, grab loot off the road, and don't hit civilian traffic. Gang bikers swing chains and the Kagemori Interceptor rams at the end. Crash and you're back on the bike a moment later. Pays creds and karma by finish time and takedowns. Still to come:
+  - Car chases with a rigger driving and a partner shooting from the window; a delivery variant (keep the cargo intact); a night run with headlights only; bike upgrades bought with the pay.
   - The original pitch, for reference: Road Rash on the causeway. Each runner rides a bike in the street's depth lanes, throttle, brake, lanes, nitro, hop; punch and kick riders alongside, shoot what's ahead, avoid civilian traffic; gang bikers, a ramming Kagemori van at the end; crash and get back on.
 - [x] ~~**Drone stealth.**~~ Shipped: two jobs (Ghost in the Arcology, The Night Clinic) with cameras, guards, vents, lasers, the terminal hack, shock darts and a three-step alarm; solo, couch and online, each runner flying a drone. Overwatch co-op shipped too: runner 2 runs a reticle on the building's network, looping cameras and lasers and pinging noises that guards walk over to investigate. Still to come: doors the hack can open. The original pitch: A rigger's job: fly a small drone through a corp site seen in cross-section. Cameras sweep cones of light and guards walk patrol routes with vision arcs; stay in the dark, hug ceilings, wait out the sweep. Reach a terminal to start a hack (the existing hacking minigame, timed, while the drone hovers), or reach a target and take them down from behind with a shock dart for a quiet kill. Get seen and an alarm ticks up: more guards, then lockdown. Co-op: one runner pilots, the other runs overwatch on a camera feed, marking guards and opening doors.
 - [x] ~~**Flight.**~~ Shipped: two jobs (Over the Skyline, Into the Storm) with a pilot and a door gunner (or an autogun solo), drones, gunships, towers, searchlights and flak, salvage, and the Raijin. Over the Skyline now lands straight into a rooftop brawl: three waves of Kagemori security on the Arcology roof. The original pitch: A VTOL run over the skyline as a side-scrolling shooter: weave between towers and billboards, shoot down corp drones and gunships, dodge searchlights and flak, and drop the team onto a rooftop at the end (which leads straight into a brawl). Co-op: pilot and door gunner. The same parallax skyline as the districts, seen from above the rooftops for once.
@@ -112,6 +115,8 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Chrome moves.**~~ Shipped: five more from Doc that add moves: Mach fists and Dragon feet (mash for a punch or kick flurry), Grand slam (swing a grabbed foe through the crowd), Heel spikes (stomp the downed) and Turbo calves (double-tap to sprint; shoulder charge and slide).
 - [x] ~~**Double Dragon grabs.**~~ Shipped: from a grab, punch only punches (jab, jab, hook) and kick only knees (knee, knee, knee lift); a direction plus either throws that way (forward, over the shoulder, into another lane); jump leaps with them, throwing in any direction pushed in the air, or landing in a body slam, or a pile driver for street samurai, adepts and anyone with the Pile driver rig.
 - [x] ~~**Foes who fight like runners.**~~ Shipped: grabs you mash out of (gangers, orcs, the Gutter King), flurries with a tell (Razor Mei, Kagemori shadows), and gangers and orcs picking up and throwing props.
+- [ ] **Street weapons (M).** River City Ransom's pickups: pipes, chains and bats that foes drop, to swing for a few hits or throw; foes pick them up too.
+- [ ] **Taunts and begging (S).** Bosses taunt between phases and beaten regulars beg or run, River City style, with a karma choice to let them go.
 - [ ] **Juggles and wall bounces (M).** Enemies knocked into the street's back wall bounce back for follow-ups.
 - [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 

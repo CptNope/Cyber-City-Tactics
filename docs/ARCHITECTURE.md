@@ -4,7 +4,7 @@ This is a guide for reading and changing the code. For what the game *is*, see t
 
 ## The big picture
 
-- **No framework, no bundler required.** The game is plain JavaScript drawing on a `<canvas>`, plus a little HTML for menus. `index.html` loads one CSS file and 35 small scripts in order. You can open it from any static server and it runs.
+- **No framework, no bundler required.** The game is plain JavaScript drawing on a `<canvas>`, plus a little HTML for menus. `index.html` loads one CSS file and 49 small scripts in order. You can open it from any static server and it runs.
 - **One shared global scope.** The scripts are *classic* scripts, not ES modules, so every top-level `const`, `let` and `function` in one file is visible to the files after it. That keeps the code simple to move around. The rule that comes with it: **a file may only use, at load time, things defined in files listed above it.** Functions can call each other freely at run time; the order only matters for code that runs while the page is loading.
 - **A tiny build step for shipping.** `npm run build` stamps a version, refreshes the service worker's file list, and writes a single-file copy of the whole game to `dist/`. Development doesn't need it; deploying does.
 
@@ -22,8 +22,10 @@ src/
     data/                tables only: enemies, districts, gear, contracts, lore, feats
     systems/             cross-mode systems: legend (feats, legendaries, Codex) and skill trees
     game/                the simulation: state, flow between places, combat, runners, enemies, allies, update
-    modes/               mode-specific rules: Sprawl, dungeons, hacking, training, Arena (and challenges), online co-op
-    render/              drawing: figures, backgrounds, Sprawl street, HUD and the main render()
+    modes/               mode-specific rules: Sprawl, black market, choices, dungeons, hacking, training, Arena (and
+                         challenges), jobs (shared banking and side jobs, driving, drone stealth, flight), online co-op
+    render/              drawing: figures, light, looks, intros, vehicles, the corp floor, the skyline, backgrounds,
+                         Sprawl street, HUD and the main render()
     ui/                  HTML menus: screens, overlay and mode switching, button actions, title attract
     pwa.js               install prompt, update bar, backups, shortcuts, persistent storage
     main.js              the game loop and boot
@@ -32,7 +34,8 @@ screenshots/             install-dialog screenshots (regenerate with tools/scree
 dist/                    generated single-file build
 tools/                   build.mjs, serve.mjs, screenshots.mjs
 tests/                   headless tests (Node) and browser tests (Playwright)
-docs/                    this file
+server/                  the online lobby: a Cloudflare Worker with room codes and TURN relay passes (see its README)
+docs/                    this file, the design system and brand book, README media and the store kit
 ```
 
 ## Load order
@@ -41,10 +44,10 @@ The `BUILD:SCRIPTS` block in `index.html` is the one place the order is defined;
 
 1. `version.js`, then **core/** (canvas → utils → audio → music → input)
 2. **data/** (content → gear → world → legend-data)
-3. **systems/** (legend → skills)
+3. **systems/** (legend → skills → haggle)
 4. **game/** (state → flow → combat → props → runners → allies → enemies → update)
-5. **modes/** (sprawl → blackmarket → choices → dungeons → hacking → training → arena → net)
-6. **render/** (figures → world → sprawl → hud)
+5. **modes/** (sprawl → blackmarket → choices → dungeons → hacking → training → arena → jobs → drive → stealth → flight → net)
+6. **render/** (figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud)
 7. **ui/** (attract → screens → overlay → actions)
 8. `pwa.js`, then `main.js`, which boots everything
 
@@ -82,6 +85,7 @@ frame(now)                        requestAnimationFrame, any refresh rate
 - **Drone stealth jobs (`modes/stealth.js`, `render/facility.js`).** Built the same way as driving: `G.stealth` holds a freshly seeded layout (cameras, walls with vent gaps, laser gates, guard patrols, the terminal and the exit), `curS()` returns its stage, `update()` hands the step to `stealthUpdate()`, and runners carry a `drone` (velocity, cloak, battery, detection meter). Everything stands on one plane (`SF.floor`); height is `z`. Camera sweeps and laser timing are functions of `G.t`, so the friend's screen online draws them without extra data. The terminal reuses the hacking minigame through its vault path: `startHack({tier: 3}, term)`, and `hackWin`/`hackFail` call `stealthHackDone()` when a stealth job is running. Overwatch co-op (`G.stealth.ow`) keeps runner 2 out of `G.ents` with no drone: `stealthOverwatch()` moves a screen-space reticle in the primitive `G.owX`/`G.owZ` (so snapshots carry it every time it moves), loops set `offT` on a camera or laser (`stealthCamSees()` and `laserOn()` respect it), and pings give guards a `lure` that `stealthPatrol()` walks to before returning. `modes/jobs.js` holds what all jobs share: the crew (`jobCrew()`), karma (`jobKarma()`), the take (`jobTake()`) and banking it into a save (`jobBank()`). Juno's campaign side jobs (`CAMPAIGN_JOBS`, one per Den visit) set `G.cjob`: `jobCrew()` then keeps the campaign's runners instead of making fresh ones, `cjobStart()` saves the Den and keeps a copy, and `cjobBack()` reloads that copy, adds the take and the karma counted in `G.cjob.karma`, and marks `G.sideJobs[stage]` (saved with the run).
 - **Flight jobs (`modes/flight.js`, `render/air.js`).** Same pattern again: `G.flight` holds the run (towers, spawn marks, the boss flag), `update()` hands the step to `flightUpdate()`, and the city scrolls by advancing `G.camX` itself. The VTOL is one entity (`kind: 'vtol'`, with the door gun's `aim`); flying things carry `air` and live on one plane (`FL.base`) with their height in `z`. Runner 1's input flies; runner 2's swings and fires the door gun, which aims itself when nobody holds it. Shots are `G.projs` entries with `air` (`bullet`, `rocket`, enemy `eshot` and homing `missile`), drawn by `drawProj()`. The runners ride inside, so `flightUpdate()` keeps them out of `G.ents`. A job with `roof` waves (Over the Skyline) lands into a brawl: `roofStart()` sets `G.flight.roof`, puts the runners in `G.ents`, and from then `update()` runs the ordinary brawler step with `roofTick()` in place of `waves()` (the camera holds on one screen, `render/air.js` `drawRoof()` paints the deck). Losing every runner there calls `roofEnd(false)` from `runners.js`.
 - **Online co-op (`modes/net.js`).** WebRTC, no server: `netStartHost()` makes an offer, waits for ICE gathering to finish (no trickle) and packs the SDP into a `CCT1z…` code (deflate-raw, base64url); the friend's `netStartJoin()` answers the same way. The host is authoritative. Each logic step `netHostInput()` copies the friend's last `{h, c}` message into `INP[1]`: `h` is one held flag per action and `c` a press counter per action, so a tap shorter than a packet still lands. Every second step `netSnapshot()` sends, for every entity in `G.ents` and `PL` (given a stable `nid`), only the fields whose rounded JSON changed since the last send (`NET.sent`), plus every `G` field not in `NET_GDENY` whose rounded JSON changed (objects are re-checked every eighth snapshot or when replaced; the backdrop `G.bg` only when replaced), `PARTY`, all projectiles, new particles, texts and effects (tagged `_ns` once sent), picks and props when they change, the sounds played during the step (`sfx` is wrapped while `NET.inUpd`) and the song. Entity references travel as `{$e: nid}` and resolve on arrival. Once connected the host lands on `nethub`, which `setMode` substitutes for the title while online; any mode it starts gets runner 2 from `joinRunner2()` in `netHostTick()`. The friend's character sheet forwards `NET_REMOTE` clicks (`skill`, `attr`, `equip`, `unequip`, `spell`, `drop`, `lock`) as `{k:'act'}`; `netRemoteAct()` replays them on the host through a hidden button in the overlay with `G.sheetIdx` set to 1, so they run the exact same code as a local click. On the friend's side `stepOnce()` calls `netGuestStep()` instead of `update()`: it applies the queued snapshots, eases entities and projectiles toward them over two steps, ticks particles, texts, effects and rain itself, and shows `netwait` whenever the host is in a menu. Fields starting with `_` (render caches like `_pose`) never cross. `tests/online.test.js` connects two Chromium pages for real.
+- **Fighting like River City Ransom and Double Dragon (`game/runners.js`, `game/props.js`, `game/enemies.js`).** Two melee hits in a row set `e.dazeUntil` (`hurt()` in combat.js; stars drawn by `drawDaze()`), and `tryGrab()` grabs a foe that is `dazed()` when a runner walks into it, recording the direction held (`grabLockX/Y`) so it doesn't count as a throw until released or changed. The grab branch of `upRunner()` reads that: punch is a jab string (`p.gp`), kick a knee string (`p.knees`), a pushed direction plus either calls `throwGrabbed()`, and jump starts `jthrow`/`pdrive`, which `grabJumpTick()` runs (a direction in the air throws; landing without one body slams or, for `canPile()`, pile drives). Thrown foes carry `thrown`, `hardLand` and `laneV`, and their landing damage is in `physics()`. Doc's chrome is `TECH` in data/world.js, saved per runner in `p.tech` (in `RUNNER_KEYS`) and checked with `hasTech(p, k)`; `busyFor()` shortens punches and kicks, `flurryTick()` runs Mach fists and Dragon feet (hits with `flurry: true` never add up to a knockdown), `slamTick()` Grand slam, `stompHit()` Heel spikes, and the sprint is `p.sprint`. Foes get the same moves through `DEF` flags (`grab`, `holdNeed`, `thrower`, `flurry`): `streetChoose()` picks one in place of a plain swing and `streetTick()` runs it; a held runner is in state `held` (`heldTick()` counts mashes), and `enemyRelease()` lets go when they break free, when anyone hits the holder, or when the holder leaves.
 - **Tests.** `tests/timing.test.js` drives the real loop at 30–240 Hz and checks the step count, stall handling, interpolation, error recovery and quality switching.
 
 Hit-stop (`G.stop`) and slow motion (`G.slow`) skip update steps without dropping button presses.
@@ -124,7 +128,7 @@ Everything is in `localStorage` under `cs_*` keys (listed in the README). `store
 
 ## Recipes
 
-**A new enemy.** Add an entry to `DEF` in data/content.js (copy a similar one: `ranged`, `lunge`, `teleport`, `shield` and the other flags switch on existing behaviors in game/enemies.js). Add a bestiary line to `BEST` in data/legend-data.js. Spawn it from a district's wave list in `STAGES`, an Arena pool in modes/arena.js, or a Sprawl faction in `FAC` (modes/sprawl.js).
+**A new enemy.** Add an entry to `DEF` in data/content.js (copy a similar one: `ranged`, `lunge`, `teleport`, `shield`, `grab`, `thrower`, `flurry` and the other flags switch on existing behaviors in game/enemies.js). Add a bestiary line to `BEST` in data/legend-data.js. Spawn it from a district's wave list in `STAGES`, an Arena pool in modes/arena.js, or a Sprawl faction in `FAC` (modes/sprawl.js).
 
 **A new weapon, gun or armor.** Add a base to `BASES` in data/gear.js. Guns pick a `fire` mode; new fire modes go in `fireBullet()` (game/runners.js). Order matters: bases later in each list drop later in the game.
 
@@ -137,6 +141,10 @@ Everything is in `localStorage` under `cs_*` keys (listed in the README). `store
 **A new Sprawl block event.** Add it to `EVENTS` in modes/sprawl.js, give it a slice of the roll in `genStreet()`, and check `evOn('id')` where it changes things. Anything that runs every tick on the street goes in `blockEventTick()`.
 
 **A new campaign mutator.** Add a name to `MUTS` and a one-line rule to `MUTD` in modes/arena.js (the new-run screen lists them automatically), then check `modOn('id')` where it changes things. Each mutator adds 20% karma through `mutN()`.
+
+**A new chrome technique or move.** Add it to `TECH` in data/world.js (`move: true` lists it under Chrome moves; `innate(p)` marks archetypes that already know it), check `hasTech(p, 'id')` where it changes things in game/runners.js, and add a line to the help screen's `movesHtml` (ui/screens.js) and the README.
+
+**A new training drill.** Add a step to `TRAIN` in modes/training.js: the touch and keyboard text, a `setup(p)`, a `done()` check on a `G.tf` flag that the game sets when the move happens (`if (G.training) G.tf.x = true`), and optionally a `tick(p)` that runs every step. Then teach the bot in tests/training.test.js.
 
 **A new archetype.** Add it to `ARCH` in data/gear.js (with `locked: 'featId'` if it should be unlocked), its free skill to `ARCH_SKILL` in systems/skills.js, and its special in `doSpecial()` (game/runners.js).
 
