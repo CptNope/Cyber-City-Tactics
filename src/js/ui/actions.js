@@ -57,7 +57,16 @@ ov.addEventListener('click', e => {
       setMode('jobs');
       keep = false;
       break;
+    case 'cjob':
+      if (cjobStart()) keep = false;
+      else renderOv();
+      break;
+    case 'cjobback':
+      cjobBack();
+      keep = false;
+      break;
     case 'drive':
+      cjobClear();
       startDrive(arg, parts[2] === '2');
       keep = false;
       break;
@@ -68,6 +77,7 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'flight':
+      cjobClear();
       startFlight(arg, parts[2] === '2');
       keep = false;
       break;
@@ -76,6 +86,7 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'stealth':
+      cjobClear();
       startStealth(arg, parts[2] === '2');
       keep = false;
       break;
@@ -305,6 +316,7 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'cont': {
+      cjobClear();
       const s = store.load('cs_save3');
       if (!s) break;
       loadGame(s);
@@ -519,6 +531,7 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     case 'quit':
+      cjobClear();
       if (G.world) saveWorld();
       musicPlay('title');
       attract();

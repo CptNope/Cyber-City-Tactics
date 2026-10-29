@@ -52,22 +52,7 @@ const driveJob = () => (G.drive && DRIVE_JOBS[G.drive.id]) || DRIVE_JOBS.causewa
 function startDrive(id, coop) {
   const J = DRIVE_JOBS[id] || DRIVE_JOBS.causeway;
   if (NET.role === 'host' && NET.live) coop = true; // the friend online is always runner 2
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-    p.hp = p.maxHp;
-    p.mp = p.maxMp;
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -427,7 +412,7 @@ function driveWreck(e, by) {
   onKill({ team: 1, kind: e.kind, elite: e.elite, d: { passive: false } }, by);
   // loot spills onto the road a little ahead, in the wreck's lane: steer into it to grab it
   const cr = Math.round(rand(...(d.creds || [6, 12])));
-  gainKarma(Math.round((d.karma || 10) * 0.6));
+  jobKarma(Math.round((d.karma || 10) * 0.6));
   const at = (dx, dy) => [e.x + dx + (e.bk ? e.bk.v * 10 : 40), clamp(e.y + dy, DRIVE.top, DRIVE.bot)];
   driveDrop('cred', ...at(40, 0), { v: d.boss ? cr * 3 : cr });
   const roll = Math.random();
@@ -744,7 +729,7 @@ function driveFinish() {
   const pay = D.win ? J.pay + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 : D.takedowns * 5,
     karma = D.win ? J.karma + D.takedowns * 4 + (D.bossDown ? 60 : 0) : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_drive') || {},
     prev = rec[D.id];
   const best = D.win && (!prev || !prev.best || G.dtime < prev.best);
@@ -832,6 +817,5 @@ function driveOverHtml() {
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="driveagain">Ride it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="driveagain">Ride it again</button>')}</div>`;
 }

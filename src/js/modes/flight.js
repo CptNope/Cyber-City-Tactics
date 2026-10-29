@@ -44,22 +44,7 @@ const flyY = e => FL.base - e.z; // screen y of anything in the air
 function startFlight(id, coop) {
   const J = FLIGHT_JOBS[id] || FLIGHT_JOBS.skyline;
   if (NET.role === 'host' && NET.live) coop = true;
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-    p.hp = p.maxHp;
-    p.mp = p.maxMp;
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -343,7 +328,7 @@ function flightKill(e) {
   e.hp = 0;
   F.kills++;
   if (G.run) G.run.kills++;
-  gainKarma(e.big ? 80 : e.gun ? 16 : 6);
+  jobKarma(e.big ? 80 : e.gun ? 16 : 6);
   onKill({ team: 1, kind: e.kind, elite: null, d: { passive: false } }, PL[0]);
   sfx.boom();
   G.shake = Math.max(G.shake, e.big ? 12 : 3);
@@ -550,7 +535,7 @@ function flightFinish() {
   const pay = F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3,
     karma = F.win ? J.karma + F.kills * 2 : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_flight') || {},
     prev = rec[F.id] || {};
   if (F.win)
@@ -583,6 +568,5 @@ function flightOverHtml() {
       <div class="item"><div><div class="nm">Hull</div></div><div class="acts">${r.hull || 0}%</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="flightagain">Fly it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="flightagain">Fly it again</button>')}</div>`;
 }

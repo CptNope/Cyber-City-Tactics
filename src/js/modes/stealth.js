@@ -56,20 +56,7 @@ const stealthJob = () => (G.stealth && STEALTH_JOBS[G.stealth.id]) || STEALTH_JO
 function startStealth(id, coop) {
   const J = STEALTH_JOBS[id] || STEALTH_JOBS.arcology;
   if (NET.role === 'host' && NET.live) coop = true;
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -443,7 +430,7 @@ function stealthDart(p) {
     if (best.target) {
       S.aide = true;
       G.texts.push({ x: best.x, y: SF.floor, z: 70, s: 'TARGET DOWN', c: '#ffc63d', life: 80 });
-      gainKarma(40);
+      jobKarma(40);
     } else G.texts.push({ x: best.x, y: SF.floor, z: 60, s: 'LIGHTS OUT', c: '#45d2ff', life: 50, sm: true });
     if (G.run) G.run.kills++;
     sfx.hit();
@@ -476,7 +463,7 @@ function stealthFinish() {
   const pay = S.win ? J.pay + (S.aide ? 200 : 0) + (ghost ? 150 : 0) : 0,
     karma = S.win ? J.karma + (ghost ? 60 : 0) : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_stealth') || {},
     prev = rec[S.id] || {};
   if (S.win)
@@ -513,6 +500,5 @@ function stealthOverHtml() {
       <div class="item"><div><div class="nm">Ghost bonus</div></div><div class="acts">${r.ghost ? 'No alarms (+¥150)' : 'Alarm ' + (r.alarm || 0)}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="stealthagain">Fly it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="stealthagain">Fly it again</button>')}</div>`;
 }

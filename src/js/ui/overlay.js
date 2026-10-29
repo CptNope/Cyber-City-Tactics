@@ -405,6 +405,7 @@ function npcHtml(id) {
     body = `<div class="job"><div class="row" style="justify-content:space-between"><b>Debrief</b><span class="st ${d.done ? 'up' : 'down'}">${d.done ? 'Paid' : 'No bonus'}</span></div>
     <span style="color:var(--muted);font-size:13px">${d.done ? `+¥${d.creds} · +${d.karma} karma each${d.pacifist ? ' · <span class="up">Pacifist ×2</span>' : ''}${d.levels ? ` · <span class="up">level up ×${d.levels}</span>` : ''}${d.prize ? ` · ${esc(d.prize.name)} added to the bag` : ''}` : 'Contract rewards withheld.'}</span></div>
     ${choiceHtml()}
+    ${sideJobHtml()}
     <p>Next: <b style="color:var(--text)">${esc(STAGES[stage + 1].name)}</b>. ${esc(STAGES[stage + 1].sub.replace(/\.$/, ''))}.</p>`;
   } else if (n.lines) {
     sayTxt = n.lines[Math.min(stage, n.lines.length - 1)];
@@ -548,6 +549,8 @@ function togglePause() {
 }
 function newRun(coop) {
   G.choices = {};
+  G.sideJobs = {};
+  cjobClear();
   G.muts = (G.pendMuts || []).slice();
   G.diff = G.pendDiff;
   G.ng = 0;

@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+71dac17';
+const APP_VERSION = '2.0.0+9470e0b';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -4983,7 +4983,8 @@ function saveGame(phase) {
     stock: G.stock,
     debrief: G.debrief,
     choices: G.choices || {},
-    bestCombo: G.bestCombo
+    bestCombo: G.bestCombo,
+    sideJobs: G.sideJobs || {}
   };
   store.set('cs_save3', JSON.parse(JSON.stringify(o)));
 }
@@ -5013,6 +5014,7 @@ function loadGame(s) {
   G.debrief = s.debrief || null;
   G.choices = isObj(s.choices) ? s.choices : {};
   G.bestCombo = s.bestCombo || 0;
+  G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
 const karmaNext = l => 50 + l * 45;
 const active = () => PL.filter(p => !p.out);
@@ -10905,6 +10907,127 @@ function jobBankHtml(take) {
     <div class="row">${saves.map((s, i) => `<button class="btn sm${i ? ' ghost' : ''}" data-a="jobbank:${s.id}">Bank to ${esc(s.name)}</button>`).join('')}</div>`;
 }
 
+/* ---------- Juno's side jobs in the campaign ----------
+ * In the Den between districts, Juno offers one optional job. It runs with the campaign's own runners
+ * (their level, gear and skills), and when it ends the team goes back to the Den: the take goes into the
+ * party's bag and wallet and the karma onto the runners. One shot per Den visit, win or lose. */
+const CAMPAIGN_JOBS = [
+  { kind: 'drive', id: 'causeway' },
+  { kind: 'stealth', id: 'clinic' },
+  { kind: 'drive', id: 'market' },
+  { kind: 'stealth', id: 'arcology' },
+  { kind: 'flight', id: 'skyline' }
+];
+const JOB_KINDS = {
+  drive: { jobs: () => DRIVE_JOBS, start: (id, c) => startDrive(id, c), res: () => G.dresult, verb: 'Ride' },
+  stealth: {
+    jobs: () => STEALTH_JOBS,
+    start: (id, c) => startStealth(id, c),
+    res: () => G.sresult,
+    verb: 'Fly'
+  },
+  flight: { jobs: () => FLIGHT_JOBS, start: (id, c) => startFlight(id, c), res: () => G.fresult, verb: 'Fly' }
+};
+let cjobSave = null; // the campaign as it stood in the Den, restored when the job ends (host only)
+const sideJobAt = st => CAMPAIGN_JOBS[st % CAMPAIGN_JOBS.length];
+const sideJobDef = c => JOB_KINDS[c.kind].jobs()[c.id];
+// the crew for a job: fresh level-4 runners from the Jobs board, or the campaign's own for one of Juno's
+function jobCrew(coop) {
+  G.challenge = null;
+  G.rngW = G.rngP = null;
+  if (G.cjob) {
+    for (const p of PL) {
+      refresh(p);
+      p.hp = p.maxHp;
+      p.mp = p.maxMp;
+    }
+  } else {
+    G.diff = G.pendDiff;
+    G.ng = 0;
+    G.coop = !!coop;
+    newRunStats();
+    PL = [newRunner(0)];
+    if (coop) PL.push(newRunner(1));
+    PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
+    for (const p of PL) {
+      p.lvl = 4;
+      refresh(p);
+      p.hp = p.maxHp;
+      p.mp = p.maxMp;
+    }
+  }
+  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
+}
+// karma earned on a job: on the runners now, and counted so it survives the trip back to the Den
+function jobKarma(n) {
+  gainKarma(n);
+  if (G.cjob) G.cjob.karma += n;
+}
+function cjobStart() {
+  const c = sideJobAt(G.stage);
+  if (!c || (G.sideJobs || {})[G.stage]) return false;
+  saveGame('den');
+  cjobSave = store.load('cs_save3');
+  G.cjob = { stage: G.stage, kind: c.kind, id: c.id, karma: 0 };
+  JOB_KINDS[c.kind].start(c.id, G.coop);
+  return true;
+}
+function cjobClear() {
+  G.cjob = null;
+  cjobSave = null;
+}
+// back to the Den: the campaign as it was, plus the take, the karma, and the job marked off
+function cjobBack() {
+  const c = G.cjob,
+    save = cjobSave;
+  if (!c || !save) return false;
+  const res = JOB_KINDS[c.kind].res() || {},
+    take = res.take || { creds: 0, items: [] };
+  cjobClear();
+  loadGame(save);
+  PARTY.creds += take.creds;
+  let sold = 0;
+  for (const it of take.items) {
+    if (PARTY.bag.length < BAG_MAX) PARTY.bag.push(it);
+    else if (PARTY.stash.length < STASH_MAX) PARTY.stash.push(Object.assign({}, it, { fresh: true }));
+    else sold += sellPrice(it, 'fence');
+  }
+  PARTY.creds += sold;
+  G.sideJobs = Object.assign({}, G.sideJobs, {
+    [c.stage]: { win: !!res.win, creds: take.creds, items: take.items.length, karma: c.karma }
+  });
+  gainKarma(c.karma);
+  enterDen();
+  G.npc = 'juno';
+  setMode('npc');
+  return true;
+}
+// the bottom of a job's results card: banking and replays from the Jobs board, or the way back to the Den
+function jobEndHtml(take, again) {
+  if (G.cjob) {
+    const n = take ? take.items.length : 0;
+    return `<p>Juno's job: <b style="color:var(--gold)">¥${take ? take.creds : 0}${n ? ` and ${n} piece${n === 1 ? '' : 's'} of gear` : ''}</b> go into the party bag${G.cjob.karma ? `, and ${G.cjob.karma} karma onto the runners` : ''}.</p>
+    <div class="row">${NET.role === 'guest' && NET.live ? '<p style="color:var(--muted)">Your partner takes the team back to the Den.</p>' : '<button class="btn" data-a="cjobback">Back to the Den</button>'}</div>`;
+  }
+  return `${jobBankHtml(take)}
+    <div class="row">${again}<button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div>`;
+}
+// Juno's offer, on her card in the Den
+function sideJobHtml() {
+  const st = G.stage,
+    c = sideJobAt(st);
+  if (!c || G.challenge) return '';
+  const J = sideJobDef(c),
+    d = (G.sideJobs || {})[st];
+  if (d)
+    return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st ${d.win ? 'up' : 'down'}">${d.win ? 'Done' : 'Blown'}</span></div>
+    ${isObj(d) ? `<span style="color:var(--muted);font-size:13px">+¥${d.creds}${d.items ? ` · ${d.items} gear to the bag` : ''}${d.karma ? ` · +${d.karma} karma` : ''}</span>` : ''}</div>`;
+  const what = { drive: 'A driving job', stealth: 'A drone job', flight: 'A flight job' }[c.kind];
+  return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st">Optional</span></div>
+    <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here.</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="cjob">Take the side job</button></div></div>`;
+}
+
 /* ===== src/js/modes/drive.js ===== */
 /* Cyber City Tactics · src/js/modes/drive.js
  * Driving missions: Road Rash on the causeway. Each runner rides a bike through the street's depth lanes:
@@ -10959,22 +11082,7 @@ const driveJob = () => (G.drive && DRIVE_JOBS[G.drive.id]) || DRIVE_JOBS.causewa
 function startDrive(id, coop) {
   const J = DRIVE_JOBS[id] || DRIVE_JOBS.causeway;
   if (NET.role === 'host' && NET.live) coop = true; // the friend online is always runner 2
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-    p.hp = p.maxHp;
-    p.mp = p.maxMp;
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -11334,7 +11442,7 @@ function driveWreck(e, by) {
   onKill({ team: 1, kind: e.kind, elite: e.elite, d: { passive: false } }, by);
   // loot spills onto the road a little ahead, in the wreck's lane: steer into it to grab it
   const cr = Math.round(rand(...(d.creds || [6, 12])));
-  gainKarma(Math.round((d.karma || 10) * 0.6));
+  jobKarma(Math.round((d.karma || 10) * 0.6));
   const at = (dx, dy) => [e.x + dx + (e.bk ? e.bk.v * 10 : 40), clamp(e.y + dy, DRIVE.top, DRIVE.bot)];
   driveDrop('cred', ...at(40, 0), { v: d.boss ? cr * 3 : cr });
   const roll = Math.random();
@@ -11651,7 +11759,7 @@ function driveFinish() {
   const pay = D.win ? J.pay + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 : D.takedowns * 5,
     karma = D.win ? J.karma + D.takedowns * 4 + (D.bossDown ? 60 : 0) : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_drive') || {},
     prev = rec[D.id];
   const best = D.win && (!prev || !prev.best || G.dtime < prev.best);
@@ -11739,8 +11847,7 @@ function driveOverHtml() {
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? 'Wrecked (+¥150)' : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="driveagain">Ride it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="driveagain">Ride it again</button>')}</div>`;
 }
 
 /* ===== src/js/modes/stealth.js ===== */
@@ -11801,20 +11908,7 @@ const stealthJob = () => (G.stealth && STEALTH_JOBS[G.stealth.id]) || STEALTH_JO
 function startStealth(id, coop) {
   const J = STEALTH_JOBS[id] || STEALTH_JOBS.arcology;
   if (NET.role === 'host' && NET.live) coop = true;
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -12188,7 +12282,7 @@ function stealthDart(p) {
     if (best.target) {
       S.aide = true;
       G.texts.push({ x: best.x, y: SF.floor, z: 70, s: 'TARGET DOWN', c: '#ffc63d', life: 80 });
-      gainKarma(40);
+      jobKarma(40);
     } else G.texts.push({ x: best.x, y: SF.floor, z: 60, s: 'LIGHTS OUT', c: '#45d2ff', life: 50, sm: true });
     if (G.run) G.run.kills++;
     sfx.hit();
@@ -12221,7 +12315,7 @@ function stealthFinish() {
   const pay = S.win ? J.pay + (S.aide ? 200 : 0) + (ghost ? 150 : 0) : 0,
     karma = S.win ? J.karma + (ghost ? 60 : 0) : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_stealth') || {},
     prev = rec[S.id] || {};
   if (S.win)
@@ -12258,8 +12352,7 @@ function stealthOverHtml() {
       <div class="item"><div><div class="nm">Ghost bonus</div></div><div class="acts">${r.ghost ? 'No alarms (+¥150)' : 'Alarm ' + (r.alarm || 0)}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="stealthagain">Fly it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="stealthagain">Fly it again</button>')}</div>`;
 }
 
 /* ===== src/js/modes/flight.js ===== */
@@ -12308,22 +12401,7 @@ const flyY = e => FL.base - e.z; // screen y of anything in the air
 function startFlight(id, coop) {
   const J = FLIGHT_JOBS[id] || FLIGHT_JOBS.skyline;
   if (NET.role === 'host' && NET.live) coop = true;
-  G.challenge = null;
-  G.rngW = G.rngP = null;
-  G.diff = G.pendDiff;
-  G.ng = 0;
-  G.coop = !!coop;
-  newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
-  for (const p of PL) {
-    p.lvl = 4;
-    refresh(p);
-    p.hp = p.maxHp;
-    p.mp = p.maxMp;
-  }
+  jobCrew(coop);
   G.arena = false;
   G.den = false;
   G.training = false;
@@ -12607,7 +12685,7 @@ function flightKill(e) {
   e.hp = 0;
   F.kills++;
   if (G.run) G.run.kills++;
-  gainKarma(e.big ? 80 : e.gun ? 16 : 6);
+  jobKarma(e.big ? 80 : e.gun ? 16 : 6);
   onKill({ team: 1, kind: e.kind, elite: null, d: { passive: false } }, PL[0]);
   sfx.boom();
   G.shake = Math.max(G.shake, e.big ? 12 : 3);
@@ -12814,7 +12892,7 @@ function flightFinish() {
   const pay = F.win ? J.pay + F.kills * 6 + Math.round((G.fhull / FL.hull) * 100) * 2 : F.kills * 3,
     karma = F.win ? J.karma + F.kills * 2 : 0;
   PARTY.creds += pay;
-  if (karma) gainKarma(karma);
+  if (karma) jobKarma(karma);
   const rec = store.load('cs_flight') || {},
     prev = rec[F.id] || {};
   if (F.win)
@@ -12847,8 +12925,7 @@ function flightOverHtml() {
       <div class="item"><div><div class="nm">Hull</div></div><div class="acts">${r.hull || 0}%</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
-    ${jobBankHtml(r.take)}
-    <div class="row"><button class="btn" data-a="flightagain">Fly it again</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+    ${jobEndHtml(r.take, '<button class="btn" data-a="flightagain">Fly it again</button>')}</div>`;
 }
 
 /* ===== src/js/modes/net.js ===== */
@@ -19641,6 +19718,7 @@ function npcHtml(id) {
     body = `<div class="job"><div class="row" style="justify-content:space-between"><b>Debrief</b><span class="st ${d.done ? 'up' : 'down'}">${d.done ? 'Paid' : 'No bonus'}</span></div>
     <span style="color:var(--muted);font-size:13px">${d.done ? `+¥${d.creds} · +${d.karma} karma each${d.pacifist ? ' · <span class="up">Pacifist ×2</span>' : ''}${d.levels ? ` · <span class="up">level up ×${d.levels}</span>` : ''}${d.prize ? ` · ${esc(d.prize.name)} added to the bag` : ''}` : 'Contract rewards withheld.'}</span></div>
     ${choiceHtml()}
+    ${sideJobHtml()}
     <p>Next: <b style="color:var(--text)">${esc(STAGES[stage + 1].name)}</b>. ${esc(STAGES[stage + 1].sub.replace(/\.$/, ''))}.</p>`;
   } else if (n.lines) {
     sayTxt = n.lines[Math.min(stage, n.lines.length - 1)];
@@ -19784,6 +19862,8 @@ function togglePause() {
 }
 function newRun(coop) {
   G.choices = {};
+  G.sideJobs = {};
+  cjobClear();
   G.muts = (G.pendMuts || []).slice();
   G.diff = G.pendDiff;
   G.ng = 0;
@@ -19867,7 +19947,16 @@ ov.addEventListener('click', e => {
       setMode('jobs');
       keep = false;
       break;
+    case 'cjob':
+      if (cjobStart()) keep = false;
+      else renderOv();
+      break;
+    case 'cjobback':
+      cjobBack();
+      keep = false;
+      break;
     case 'drive':
+      cjobClear();
       startDrive(arg, parts[2] === '2');
       keep = false;
       break;
@@ -19878,6 +19967,7 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'flight':
+      cjobClear();
       startFlight(arg, parts[2] === '2');
       keep = false;
       break;
@@ -19886,6 +19976,7 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'stealth':
+      cjobClear();
       startStealth(arg, parts[2] === '2');
       keep = false;
       break;
@@ -20115,6 +20206,7 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'cont': {
+      cjobClear();
       const s = store.load('cs_save3');
       if (!s) break;
       loadGame(s);
@@ -20329,6 +20421,7 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     case 'quit':
+      cjobClear();
       if (G.world) saveWorld();
       musicPlay('title');
       attract();

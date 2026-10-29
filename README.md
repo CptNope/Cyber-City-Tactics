@@ -217,6 +217,8 @@ Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunshi
 | Over the Skyline | Kagemori Arcology | |
 | Into the Storm | Rustline Barrens, at night in a storm | more drones |
 
+**Side jobs in the campaign.** In every Den, Juno's card offers one optional job for that stop: a driving, drone or flight job played with your campaign runners (their level, gear and skills). When it ends, **Back to the Den** puts the creds and gear in the party bag and the karma on the runners. One shot per Den, win or lose; quit midway and it's still on offer.
+
 **Banking the take.** Jobs are standalone runs, so when one ends its results card offers to bank the creds and any gear you picked up to a save: the Sprawl's safehouse stash, or Ratchet's locker in your campaign's Den. Online, the host banks for the team.
 
 ### Training

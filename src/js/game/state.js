@@ -201,7 +201,8 @@ function saveGame(phase) {
     stock: G.stock,
     debrief: G.debrief,
     choices: G.choices || {},
-    bestCombo: G.bestCombo
+    bestCombo: G.bestCombo,
+    sideJobs: G.sideJobs || {}
   };
   store.set('cs_save3', JSON.parse(JSON.stringify(o)));
 }
@@ -231,6 +232,7 @@ function loadGame(s) {
   G.debrief = s.debrief || null;
   G.choices = isObj(s.choices) ? s.choices : {};
   G.bestCombo = s.bestCombo || 0;
+  G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
 const karmaNext = l => 50 + l * 45;
 const active = () => PL.filter(p => !p.out);
