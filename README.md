@@ -163,12 +163,13 @@ Side jobs from Juno that aren't a brawl, on the **Jobs** board on the title scre
 | Throttle / brake | hold **D** / **A** | Speed up to cruising, then flat out; brake to let trouble pass |
 | Change lanes | **W** / **S** | Slip between cars and line up on riders |
 | Punch / kick | **J** / **K** | Hit a rider alongside you; a kick shoves them a lane over and costs them speed |
-| Shoot | **U** | Hits the first thing ahead in your lane |
+| Shoot | **U** | Hits the first thing ahead in your lane, or behind you if nothing's ahead; hold **A** to aim back |
+| Spell | **I** | Fireball, Manabolt and Chain Lightning aim the same way as the gun; Heal patches up riders near you, Barrier makes you briefly untouchable |
 | Nitro | **O** or Left Shift | A burst of speed (the blue bar under your bike) |
 | Hop | **Space** | Clear an oil slick |
 | Medkit | **H** | 30 HP from the shared kit |
 
-Gang bikers pull alongside and swing chains; shove one into a civilian car and the car does the rest. Ride into traffic or onto oil and you crash, then you're back on the bike a moment later (lose all your HP and the wait is longer). On the last stretch a **Kagemori Interceptor** van hunts you: it sits a lane over and swerves into you; fists only bruise its plating, but kicks and bullets crack it. Cross the finish before the clock runs out to get paid, with bonuses for takedowns, time left and wrecking the Interceptor. Best times are kept on the device.
+Gang bikers pull alongside and swing chains; shove one into a civilian car and the car does the rest. Wrecks spill loot onto the road just ahead (creds, ammo, medkits, mana and sometimes gear): steer over it to grab it. Ride into traffic or onto oil and you crash, then you're back on the bike a moment later (lose all your HP and the wait is longer). On the last stretch a **Kagemori Interceptor** van hunts you: it sits a lane over and swerves into you; fists only bruise its plating, but kicks and bullets crack it. Cross the finish before the clock runs out to get paid, with bonuses for takedowns, time left and wrecking the Interceptor. Best times are kept on the device.
 
 | Job | District | Clock |
 |---|---|---|

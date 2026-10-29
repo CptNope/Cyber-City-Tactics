@@ -70,7 +70,7 @@ const TESTS = [
   { file: 'screen', minPass: 20 },
   { file: 'graphics', minPass: 38 },
   { file: 'lobby', minPass: 31 },
-  { file: 'drive', minPass: 27 },
+  { file: 'drive', minPass: 32 },
   { file: 'shop', minPass: 41 },
   { file: 'blackmarket', minPass: 9 },
   { file: 'market', minPass: 15 },

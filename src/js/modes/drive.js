@@ -45,6 +45,8 @@ const DRIVE = {
   bot: FY1 - 4,
   nitroCost: 35
 };
+// cars and the van are drawn (and collide) at this size against the bikes
+const VEH_SCALE = 1.45;
 const driveJob = () => (G.drive && DRIVE_JOBS[G.drive.id]) || DRIVE_JOBS.causeway;
 
 function startDrive(id, coop) {
@@ -160,6 +162,7 @@ function driveUpdate() {
     if (e.flash > 0) e.flash--;
   }
   driveTraffic();
+  drivePickups();
   driveSpawns(D, J);
   // the camera rides with the pack; nobody falls off the back or runs off the front
   const a = PL.filter(p => !p.out);
@@ -256,14 +259,16 @@ function driveRider(p) {
     else if (I.pressed.gun && p.eq.gun) {
       if (p.ammo > 0) {
         setS(p, 'rshoot');
-        driveShoot(p);
+        driveShoot(p, I);
       } else sfx.click();
-    }
+    } else if (I.pressed.spell) driveCast(p, I);
   } else {
     if (st === 'rpunch' && t === 4) driveStrike(p, false);
     if (st === 'rkick' && t === 7) driveStrike(p, true);
-    if ((st === 'rpunch' && t >= 12) || (st === 'rkick' && t >= 17) || (st === 'rshoot' && t >= 10))
+    if ((st === 'rpunch' && t >= 12) || (st === 'rkick' && t >= 17) || (st === 'rshoot' && t >= 12)) {
       setS(p, 'ride');
+      p.face = 1; // done shooting over the shoulder: eyes front
+    }
   }
 }
 const attrOf = (p, k) => (p.D && p.D.a && p.D.a[k]) || (p.attr && p.attr[k]) || 1;
@@ -272,7 +277,11 @@ function driveStrike(p, kick) {
   for (const e of G.ents) {
     if (e.team !== 1 || e.state === 'dead') continue;
     const van = e.veh === 'van';
-    if (Math.abs(e.x - p.x) > (van ? 48 : kick ? 34 : 30) || Math.abs(e.y - p.y) > (van ? 20 : 16)) continue;
+    if (
+      Math.abs(e.x - p.x) > (van ? 48 * VEH_SCALE : kick ? 34 : 30) ||
+      Math.abs(e.y - p.y) > (van ? 26 : 16)
+    )
+      continue;
     if (Math.abs(e.z - p.z) > 16) continue;
     let dmg = kick ? 13 + attrOf(p, 'str') * 2.2 : 8 + attrOf(p, 'str') * 1.6;
     if (van && !kick) dmg *= 0.35; // fists just bruise the plating
@@ -286,30 +295,100 @@ function driveStrike(p, kick) {
   }
   if (!any) sfx.whiff();
 }
-function driveShoot(p) {
-  p.ammo--;
-  sfx.shot();
-  let best = null;
+// Who a shot or a spell goes for: hold left (braking) to aim behind you; otherwise the first thing ahead in
+// your lane, or, with nothing ahead, whoever is closest behind
+function driveAim(p, I, range, slack) {
+  const back = I && I.held.left;
+  let ahead = null,
+    behind = null;
   for (const e of G.ents) {
     if (e.team !== 1 || e.state === 'dead') continue;
     const dx = e.x - p.x;
-    if (dx < 0 || dx > 260 || Math.abs(e.y - p.y) > (e.veh === 'van' ? 20 : 13)) continue;
-    if (!best || dx < best.x - p.x) best = e;
+    if (Math.abs(dx) > range || Math.abs(e.y - p.y) > (e.veh === 'van' ? slack + 10 : slack)) continue;
+    if (dx >= 0 && (!ahead || dx < ahead.x - p.x)) ahead = e;
+    if (dx < 0 && (!behind || dx > behind.x - p.x)) behind = e;
   }
-  const ex = best ? best.x : p.x + 260;
-  for (let i = 0; i < 5; i++)
+  if (back) return { t: behind, dir: -1 };
+  return ahead ? { t: ahead, dir: 1 } : behind ? { t: behind, dir: -1 } : { t: null, dir: 1 };
+}
+function driveTracer(p, dir, ex, col, z) {
+  const sx = p.x + dir * 18;
+  for (let i = 0; i < 6; i++)
     G.parts.push({
-      x: p.x + 20 + ((ex - p.x - 20) * i) / 5,
+      x: sx + ((ex - sx) * i) / 6,
       y: p.y,
-      z: p.z + 28,
-      vx: 4,
+      z: p.z + (z || 28),
+      vx: dir * 4,
       vy: 0,
       vz: 0,
       life: 5 + i,
-      c: '#ffe28a',
-      sz: 1.5
+      c: col,
+      sz: 1.6
     });
-  if (best) driveHit(p, best, 10 + attrOf(p, 'agi') * 1.5, true);
+}
+function driveShoot(p, I) {
+  p.ammo--;
+  sfx.shot();
+  const { t, dir } = driveAim(p, I, 280, 13);
+  p.face = dir; // a look over the shoulder for a shot behind
+  driveTracer(p, dir, t ? t.x : p.x + dir * 280, '#ffe28a');
+  if (t) driveHit(p, t, 10 + attrOf(p, 'agi') * 1.5, true);
+}
+// spells from the saddle: Fireball blasts a group, Manabolt and Chain Lightning hit hard, Heal and Barrier
+// look after the riders around you
+function driveCast(p, I) {
+  const id = p.spells && p.spells[p.spell],
+    sp = SPELLS[id];
+  if (!sp) return;
+  const cost = spellCost(p, sp);
+  if (p.mp < cost) {
+    sfx.click();
+    say(p, 'NO MANA', '#45d2ff', 60, 30, true);
+    return;
+  }
+  p.mp -= cost;
+  const pw = (p.D && p.D.spell) || 10;
+  setS(p, 'rshoot');
+  sfx.spell();
+  if (id === 'heal') {
+    for (const q of PL)
+      if (q.bk && Math.abs(q.x - p.x) < 70 && Math.abs(q.y - p.y) < 40) {
+        q.hp = Math.min(q.maxHp, q.hp + Math.round(12 + pw * 1.2));
+        say(q, '+HP', '#7dffb0', 60, 30, true);
+      }
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#7dffb0', life: 18, max: 18, r: 50 });
+    return;
+  }
+  if (id === 'barrier') {
+    p.inv = Math.max(p.inv, 150);
+    say(p, 'BARRIER', '#45d2ff', 60, 40, true);
+    G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#45d2ff', life: 18, max: 18, r: 30 });
+    return;
+  }
+  const { t, dir } = driveAim(p, I, 300, 16);
+  p.face = dir;
+  const col = id === 'fire' ? '#ff6a3d' : id === 'chain' ? '#9fe9ff' : '#b98cff';
+  driveTracer(p, dir, t ? t.x : p.x + dir * 300, col, 30);
+  if (!t) return;
+  if (id === 'fire') {
+    // the blast catches everyone close to the target
+    for (const e of G.ents)
+      if (e.team === 1 && e.state !== 'dead' && Math.abs(e.x - t.x) < 44 && Math.abs(e.y - t.y) < 22)
+        driveHit(p, e, (14 + pw) * (e === t ? 1 : 0.6), true);
+    G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 24, c: '#ff6a3d', life: 20, max: 20, r: 46 });
+    G.shake = Math.max(G.shake, 4);
+  } else if (id === 'chain') {
+    let last = t;
+    const hit = new Set();
+    for (let n = 0; n < 3 && last; n++) {
+      hit.add(last);
+      driveHit(p, last, (10 + pw) * (n ? 0.7 : 1), false);
+      const from = last;
+      last = G.ents.find(
+        e => e.team === 1 && e.state !== 'dead' && !hit.has(e) && Math.abs(e.x - from.x) < 90 && e.hp > 0
+      );
+    }
+  } else driveHit(p, t, 10 + pw * 1.25, false);
 }
 function driveHit(a, e, dmg, heavy) {
   dmg = Math.max(1, Math.round(dmg));
@@ -346,10 +425,19 @@ function driveWreck(e, by) {
   if (G.run) G.run.kills++;
   // the Codex counts road kills like any other (a stand-in so a boss van doesn't drop loot on the road)
   onKill({ team: 1, kind: e.kind, elite: e.elite, d: { passive: false } }, by);
+  // loot spills onto the road a little ahead, in the wreck's lane: steer into it to grab it
   const cr = Math.round(rand(...(d.creds || [6, 12])));
-  PARTY.creds += cr;
   gainKarma(Math.round((d.karma || 10) * 0.6));
-  if (by) say(by, '+¥' + cr, '#ffc63d', 60, 40, true);
+  const at = (dx, dy) => [e.x + dx + (e.bk ? e.bk.v * 10 : 40), clamp(e.y + dy, DRIVE.top, DRIVE.bot)];
+  driveDrop('cred', ...at(40, 0), { v: d.boss ? cr * 3 : cr });
+  const roll = Math.random();
+  if (d.boss) {
+    driveDrop('gear', ...at(70, -10), { item: randItem(G.stage + 1, true) });
+    driveDrop('med', ...at(100, 10));
+  } else if (roll < 0.14) driveDrop('ammo', ...at(70, 0));
+  else if (roll < 0.24) driveDrop('med', ...at(70, 0));
+  else if (roll < 0.32) driveDrop('mana', ...at(70, 0));
+  else if (roll < 0.38) driveDrop('gear', ...at(70, 0), { item: randItem(G.stage, false) });
   if (d.boss) {
     D.bossDown = true;
     G.slow = 50;
@@ -359,6 +447,30 @@ function driveWreck(e, by) {
     G.texts.push({ x: e.x, y: e.y, z: 70, s: 'WRECKED', c: '#efe9ff', life: 80, big: true });
     G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 20, c: '#ff6a3d', life: 26, max: 26, r: 90 });
   } else G.texts.push({ x: e.x, y: e.y, z: 56, s: 'TAKEDOWN', c: '#ff3d8b', life: 40, sm: true });
+}
+function driveDrop(k, x, y, extra) {
+  G.picks.push(Object.assign({ k, x, y, t: 0, z: 0 }, extra || {}));
+}
+// riders grab what's on the road as they pass over it
+function drivePickups() {
+  for (const k of G.picks) {
+    k.t++;
+    if (k.got) continue;
+    for (const p of PL)
+      if (
+        p.bk &&
+        !p.out &&
+        p.bk.crash === 0 &&
+        p.z < 16 &&
+        Math.abs(k.x - p.x) < 20 &&
+        Math.abs(k.y - p.y) < 13
+      ) {
+        collect(k, p);
+        k.got = true;
+        break;
+      }
+  }
+  G.picks = G.picks.filter(k => !k.got && k.x > G.camX - 120);
 }
 // a runner goes down: the bike skids out, they lose a moment and some HP
 function driveCrash(p, frames, dmg) {
@@ -476,12 +588,12 @@ function driveVan(e) {
     e.ramT--;
     e.y = clamp(e.y + clamp(e.ramY - e.y, -2.4, 2.4), DRIVE.top + 6, DRIVE.bot);
     for (const p of PL)
-      if (!p.out && p.bk && Math.abs(p.x - e.x) < 46 && Math.abs(p.y - e.y) < 14 && p.z < 10) {
+      if (!p.out && p.bk && Math.abs(p.x - e.x) < 46 * VEH_SCALE && Math.abs(p.y - e.y) < 16 && p.z < 10) {
         driveCrash(p, 80, e.dmg);
         e.ramT = 0;
       }
   } else {
-    const lane = tg.y + (e.y < tg.y ? -24 : 24);
+    const lane = tg.y + (e.y < tg.y ? -28 : 28);
     e.y = clamp(e.y + clamp(lane - e.y, -0.8, 0.8), DRIVE.top + 6, DRIVE.bot);
     if (e.cool > 0) e.cool--;
     else if (Math.abs(tg.x - e.x) < 70) {
@@ -501,15 +613,15 @@ function driveTraffic() {
     for (const r of riders) {
       if (r.z > (o.veh === 'oil' ? 2 : 8)) continue;
       if (
-        Math.abs(r.x - o.x) > (o.veh === 'oil' ? 18 : 30) ||
-        Math.abs(r.y - o.y) > (o.veh === 'oil' ? 6 : 9)
+        Math.abs(r.x - o.x) > (o.veh === 'oil' ? 18 : 30 * VEH_SCALE) ||
+        Math.abs(r.y - o.y) > (o.veh === 'oil' ? 6 : 9 * VEH_SCALE)
       )
         continue;
       if (r.kind === 'player') {
         if (o.veh === 'oil') driveCrash(r, 44, 4);
         else {
           driveCrash(r, 70, 9);
-          r.x = o.x - 34;
+          r.x = o.x - 34 * VEH_SCALE;
         }
       } else if (r.team === 1) {
         // shove a biker into traffic and the traffic does the rest
@@ -546,14 +658,14 @@ function driveSpawns(D, J) {
   if (cx > D.carX) {
     const y = rand(DRIVE.top + 4, DRIVE.bot - 2);
     const cars = G.ents.filter(o => o.veh === 'car' && o.x > cx - 40);
-    if (cars.length < 4 && !cars.some(o => Math.abs(o.y - y) < 18 && o.x > cx + W - 120))
+    if (cars.length < 4 && !cars.some(o => Math.abs(o.y - y) < 24 && o.x > cx + W - 140))
       G.ents.push({
         kind: 'car',
         veh: 'car',
         team: 2,
         d: { name: 'Car', passive: true },
         pal: PALS[0],
-        x: cx + W + 70,
+        x: cx + W + 90,
         y,
         z: 0,
         vz: 0,

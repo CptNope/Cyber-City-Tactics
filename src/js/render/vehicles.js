@@ -120,7 +120,7 @@ function drawBike(e) {
 function drawVehicle(e) {
   const sx = e.x - G.camX,
     y = e.y;
-  if (sx < -120 || sx > W + 120) return;
+  if (sx < -160 || sx > W + 160) return;
   if (e.veh === 'oil') {
     ctx.fillStyle = 'rgba(8,6,12,.92)';
     ctx.beginPath();
@@ -141,9 +141,10 @@ function drawVehicle(e) {
     dead = e.state === 'dead',
     L = van ? 44 : 32,
     spin = (e.walk || 0) * 0.22;
-  shadow(sx, y, van ? 46 : 34);
+  shadow(sx, y, (van ? 46 : 34) * VEH_SCALE);
   ctx.save();
   ctx.translate(sx, y - (e.z || 0));
+  ctx.scale(VEH_SCALE, VEH_SCALE); // sized against the bikes so a car reads as a car
   if (van && e.ramT > 0) ctx.rotate(Math.sign(e.ramY - e.y) * 0.04);
   const body = dead ? '#1a1620' : van ? '#1d2230' : e.col || '#4a6b8a';
   if (van) {

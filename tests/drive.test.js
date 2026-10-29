@@ -77,10 +77,52 @@ const td = G.drive.takedowns,
   cr0 = A.PARTY.creds;
 tap('KeyK');
 step(12);
+ok(e.state === 'dead' && G.drive.takedowns === td + 1, 'a kick takes them down');
+const loot = G.picks.find(k => k.k === 'cred');
+ok(loot && loot.x > p.x && Math.abs(loot.y - e.y) < 16, 'the wreck spills creds onto the road ahead');
+// steer over it to grab it
+for (let i = 0; i < 120 && G.picks.includes(loot); i++) {
+  p.y += Math.sign(loot.y - p.y) * Math.min(1.5, Math.abs(loot.y - p.y));
+  step(1);
+}
 ok(
-  e.state === 'dead' && G.drive.takedowns === td + 1 && A.PARTY.creds > cr0,
-  'a kick takes them down for creds'
+  !G.picks.includes(loot) && A.PARTY.creds > cr0,
+  `riding over the loot collects it (¥${cr0} → ¥${A.PARTY.creds})`
 );
+// shots and spells go behind you too
+for (const x of G.ents) if (x.team === 1) x.x = -9999;
+G.ents = G.ents.filter(x => x.x > -9000);
+const back = A.spawnEnemy('biker', -1);
+back.elite = null;
+back.ride = true;
+back.x = p.x - 90;
+back.y = p.y;
+back.bk = { v: p.bk.v, crash: 0 };
+back.cool = 999;
+A.setS(back, 'ride');
+p.ammo = 10;
+const bhp = back.hp;
+tap('KeyU');
+step(3);
+ok(
+  back.hp < bhp && p.face === -1,
+  `the gun fires backward at a rider behind (${bhp} → ${back.hp}), rider looks back`
+);
+step(14);
+ok(p.face === 1 && p.state === 'ride', 'then eyes front again');
+p.mp = p.maxMp;
+p.spell = Math.max(0, p.spells.indexOf('fire'));
+back.x = p.x - 80;
+back.y = p.y;
+back.hp = 99;
+const bhp2 = back.hp,
+  mp0 = p.mp;
+key('KeyA', true);
+tap('KeyI');
+step(3);
+key('KeyA', false);
+ok(back.hp < bhp2 && p.mp < mp0, `holding left aims the Fireball behind you (${bhp2} → ${back.hp})`);
+step(14);
 ok(A.LEG.kills.biker >= 1, 'the Codex counts road gangers');
 
 // a civilian car: ride into it and you crash; you get back on
