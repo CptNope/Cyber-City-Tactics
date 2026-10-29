@@ -28,6 +28,7 @@ function resetWorld() {
   G.hazard = null;
   G.drive = null;
   G.stealth = null;
+  G.flight = null;
   // a downed partner's revive marker belongs to the scene they fell in
   for (const p of PL) p.outX = null;
   G.zaps = [];

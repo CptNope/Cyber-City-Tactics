@@ -789,6 +789,16 @@ function jobsHtml() {
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="drive:${k}:1">Ride solo</button><button class="btn sm ghost" data-a="drive:${k}:2">Ride co-op</button></div></div>`;
     })
     .join('');
+  const frec = store.load('cs_flight') || {};
+  const flight = Object.keys(FLIGHT_JOBS)
+    .map(k => {
+      const J = FLIGHT_JOBS[k],
+        r = frec[k];
+      return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:#ff9f6b">Flight · ${STAGES[J.stage].name}</span></div>
+    <span style="color:var(--muted);font-size:13px">${esc(J.sub)}.${r && r.kills ? ` Your best: ${r.kills} shot down, hull ${r.hull}%.` : ''}</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="flight:${k}:1">Fly solo</button><button class="btn sm ghost" data-a="flight:${k}:2">Pilot and gunner</button></div></div>`;
+    })
+    .join('');
   const stealth = Object.keys(STEALTH_JOBS)
     .map(k => {
       const J = STEALTH_JOBS[k],
@@ -806,7 +816,9 @@ function jobsHtml() {
     <h3>Drone stealth</h3>
     <p style="font-size:13px">Each runner flies a drone through a corp floor. <b>Stay out of the light cones</b>: cameras sweep from the ceiling and guards see ahead of them. Walls only open at their vents and lasers blink on and off. <b>Punch</b> hacks the terminal, <b>kick</b> fires a shock dart (only works from behind), <b>dodge</b> cloaks for a moment. Get seen too long and the alarm goes up; three alarms and the floor locks down.</p>
     ${stealth}
-    <p style="color:var(--muted);font-size:12.5px">Coming next: a VTOL flight over the skyline.</p>
+    <h3>Flight</h3>
+    <p style="font-size:13px">A VTOL run over the city that scrolls by on its own. Runner 1 flies: <b>hold punch</b> (or gun) for the nose cannon, <b>spell</b> fires a rocket, <b>dodge</b> drops a flare that shakes missiles. Runner 2 works the <b>door gun</b>: up and down to swing it, hold punch to fire (solo, it fires on its own). Watch the towers' searchlights: hold still in one and flak comes for you.</p>
+    ${flight}
     <div class="row"><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
 }
 function driveOverHtml() {

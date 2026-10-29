@@ -45,7 +45,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 - **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
 - **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
-- **Jobs:** driving missions on the causeway, Road Rash style, and drone stealth through corp floors, with VTOL flights on the way.
+- **Jobs:** driving missions on the causeway (Road Rash style), drone stealth through corp floors, and VTOL flights over the skyline with a pilot and a door gunner.
 
 ## Screenshots
 
@@ -55,6 +55,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 | ![Mother Vesper's night market under the city](docs/store/shot-undercity-market.png)<br><sub>**The Undercity Market.** Mother Vesper sells what Kagemori throws away.</sub> | ![Armored and warded elites with a mech walker in the Arcology](docs/store/shot-arcology-elites.png)<br><sub>**Elites.** Armored, berserk and warded foes, each with a tell.</sub> |
 | ![Sable's black-market cart on a Sprawl block](docs/store/shot-sprawl-black-market.png)<br><sub>**The Sprawl.** Pick a door, or haggle with Sable at her cart.</sub> | ![The Den, the street hub between districts](docs/media/den.png)<br><sub>**The Den.** Fixers, docs, talismongers and a fence between jobs.</sub> |
 | ![The Mage skill tree on the character sheet](docs/media/skills.png)<br><sub>**Four skill trees** to mix freely, plus attributes, gear and cyberware.</sub> | ![The Codex of feats, legendaries, enemies and lore](docs/media/codex.png)<br><sub>**The Codex** keeps your legend across every run.</sub> |
+| ![The VTOL over the towers, drones ahead](docs/media/flight.png)<br><sub>**Flight jobs.** A pilot, a door gunner and the Raijin at the end.</sub> | ![Doc Kessler's counter in the Den](docs/media/sheet.png)<br><sub>**Your runner**: attributes, gear and spells on the character sheet.</sub> |
 | ![Two runners on bikes on the causeway, a car ahead](docs/media/drive.png)<br><sub>**Driving jobs.** Throttle, nitro and a boot for anyone alongside.</sub> | ![Two drones in a dark corp floor, a camera sweeping](docs/media/stealth.png)<br><sub>**Drone jobs.** Stay out of the light, hack the terminal, get out.</sub> |
 
 <p align="center">
@@ -197,6 +198,24 @@ Ceiling cameras sweep cones of light and guards see ahead of them. Walls only le
 | The Night Clinic | Neon Market | Doc Varga |
 
 The floor is laid out fresh every time you fly it.
+
+### Jobs: flight
+A VTOL run over the skyline as a side-scrolling shooter. The city scrolls by on its own; you fly inside the frame.
+
+| Do this | Runner 1, the pilot | Runner 2, the door gunner |
+|---|---|---|
+| Fly | **WASD** | |
+| Fire | hold **J** or **U**: the nose cannon | **↑ ↓** swing the door gun, hold **,** to fire |
+| Rocket | **I**: costs mana, splashes | |
+| Flare | **O**: missiles chase it instead, and you jink clear | |
+| Patch the hull | **H** | |
+
+Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunships hold the right of the screen and fire spreads, and the towers stand up into your flight path. Searchlights on the towers lock on if you sit in their beam, and flak follows (a red ring closes on where you were). Shot-down drones leave salvage floating in the air; fly through it. At the end the **Raijin** gunship guards the drop zone: bring it down and the team drops onto the roof.
+
+| Job | Over | |
+|---|---|---|
+| Over the Skyline | Kagemori Arcology | |
+| Into the Storm | Rustline Barrens, at night in a storm | more drones |
 
 **Banking the take.** Jobs are standalone runs, so when one ends its results card offers to bank the creds and any gear you picked up to a save: the Sprawl's safehouse stash, or Ratchet's locker in your campaign's Den. Online, the host banks for the team.
 

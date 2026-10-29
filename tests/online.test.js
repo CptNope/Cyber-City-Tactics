@@ -368,6 +368,30 @@ const { pathToFileURL } = require('url');
     await fr.waitForTimeout(500);
     await fr.keyboard.up('KeyW');
     ok((await host.evaluate(() => PL[1].z)) > sz0 + 8, "the friend's keys fly their drone on the host");
+    // ---- a flight job: the host pilots, the friend works the door gun ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await host.click('[data-a="jobs"]');
+    await host.click('[data-a="flight:skyline:1"]');
+    await host.waitForFunction(() => G.mode === 'play' && G.flight && PL.length === 2, null, {
+      timeout: 10000
+    });
+    await fr.waitForFunction(
+      () => G.mode === 'play' && G.flight && G.ents.some(e => e.kind === 'vtol'),
+      null,
+      { timeout: 10000 }
+    );
+    ok(true, 'flight job online: the friend rides along as the door gunner');
+    await fr.waitForTimeout(400);
+    const aim0 = await host.evaluate(() => vtolOf().aim);
+    await fr.keyboard.down('KeyW');
+    await fr.waitForTimeout(500);
+    await fr.keyboard.up('KeyW');
+    ok(
+      (await host.evaluate(() => vtolOf().aim)) < aim0 - 0.2,
+      "the friend's keys swing the door gun on the host"
+    );
     // ---- training: solo, the friend watches ----
     await host.keyboard.press('Escape');
     await host.click('[data-a="quit"]');

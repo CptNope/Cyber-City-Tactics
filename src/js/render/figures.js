@@ -1481,7 +1481,25 @@ function drawFig(e) {
 function drawProj(pr) {
   const sx = pr.x - G.camX,
     sy = pr.y - pr.z;
-  shadow(sx, pr.y, pr.k === 'bullet' ? 3 : 6);
+  if (!pr.air) shadow(sx, pr.y, pr.k === 'bullet' ? 3 : 6);
+  // flight jobs: enemy fire, rockets and missiles
+  if (pr.k === 'eshot') {
+    glow(sx, sy, 6, 6, '#ff3d8b', 0.7);
+    ctx.fillStyle = '#ffd0e4';
+    ctx.fillRect(sx - 1.5, sy - 1.5, 3, 3);
+    return;
+  }
+  if (pr.k === 'rocket' || pr.k === 'missile') {
+    const a = Math.atan2(-pr.vz, pr.vx);
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(a);
+    ctx.fillStyle = pr.k === 'missile' ? '#c9c2d8' : '#ffc63d';
+    ctx.fillRect(-6, -1.5, 10, 3);
+    ctx.restore();
+    glow(sx - Math.cos(a) * 8, sy + Math.sin(a) * 8, 7, 4, '#ff6a3d', 0.7);
+    return;
+  }
   if (pr.k === 'laser') {
     ctx.strokeStyle = '#45d2ff';
     ctx.lineWidth = 2;
@@ -1564,7 +1582,8 @@ function drawPick(k) {
     bob = Math.sin((G.t + k.x) * 0.12) * 1.5,
     sy = k.y - 6 + bob;
   if (k.t > 1000 && k.k !== 'gear' && k.k !== 'chip' && (G.t >> 2) % 2) return;
-  shadow(sx, k.y, 5);
+  if (!k.air) shadow(sx, k.y, 5);
+  else glow(sx, sy, 10, 10, k.k === 'cred' ? '#ffc63d' : '#7dffb0', 0.35); // salvage floating in the air
   if (k.k === 'cred') {
     fillPoly([sx - 6, sy - 2, sx + 6, sy - 4, sx + 6, sy, sx - 6, sy + 2], '#ffc63d');
     ctx.fillStyle = '#7a5a10';

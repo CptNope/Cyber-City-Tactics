@@ -502,6 +502,23 @@ async function readme() {
     G.tip = null;
   });
   await snap('stealth');
+  // a flight job: the VTOL over the towers, drones ahead
+  await pg.evaluate(() => {
+    G.pendArch = ['samurai', 'mage'];
+    startFlight('skyline', true);
+    G.fade = 0;
+    G.banner = 0;
+    for (let i = 0; i < 300; i++) {
+      INP[0].held.punch = true;
+      INP[0].held.up = i % 160 < 80;
+      INP[0].held.down = i % 160 >= 80;
+      G.fhull = 120;
+      __cap.step(1);
+    }
+    G.toasts = [];
+    G.tip = null;
+  });
+  await snap('flight');
   // the Codex
   await pg.evaluate(() => {
     G.ret = 'title';

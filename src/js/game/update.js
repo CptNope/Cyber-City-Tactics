@@ -14,6 +14,7 @@ function update() {
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
+  if (G.flight) return flightUpdate(); // and flight jobs (modes/flight.js)
   for (const p of PL) {
     if (p.parryT > 0) p.parryT--;
     if (p.chiT > 0) p.chiT--;

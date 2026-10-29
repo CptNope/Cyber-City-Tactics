@@ -62,11 +62,19 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'jobbank': {
-      const res = G.mode === 'stealthover' ? G.sresult : G.dresult;
+      const res = G.mode === 'stealthover' ? G.sresult : G.mode === 'flightover' ? G.fresult : G.dresult;
       if (res && jobBank(res.take, arg)) renderOv();
       keep = false;
       break;
     }
+    case 'flight':
+      startFlight(arg, parts[2] === '2');
+      keep = false;
+      break;
+    case 'flightagain':
+      startFlight((G.flight && G.flight.id) || 'skyline', G.coop);
+      keep = false;
+      break;
     case 'stealth':
       startStealth(arg, parts[2] === '2');
       keep = false;

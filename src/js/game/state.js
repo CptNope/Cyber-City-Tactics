@@ -323,14 +323,16 @@ const curS = () =>
     ? G.drive.S
     : G.stealth
       ? G.stealth.S
-      : G.world
-        ? G.dun
-          ? G.dunStage
-          : G.streetStage
-        : G.den
-          ? DEN
-          : G.arena
-            ? STAGES[G.theme]
-            : G.training
-              ? TRAIN_STAGE
-              : STAGES[G.stage];
+      : G.flight
+        ? G.flight.S
+        : G.world
+          ? G.dun
+            ? G.dunStage
+            : G.streetStage
+          : G.den
+            ? DEN
+            : G.arena
+              ? STAGES[G.theme]
+              : G.training
+                ? TRAIN_STAGE
+                : STAGES[G.stage];

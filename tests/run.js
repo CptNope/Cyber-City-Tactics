@@ -72,6 +72,7 @@ const TESTS = [
   { file: 'lobby', minPass: 31 },
   { file: 'drive', minPass: 36 },
   { file: 'stealth', minPass: 32 },
+  { file: 'flight', minPass: 27 },
   { file: 'shop', minPass: 41 },
   { file: 'blackmarket', minPass: 9 },
   { file: 'market', minPass: 15 },
