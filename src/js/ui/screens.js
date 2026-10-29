@@ -19,7 +19,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>· Grand slam</b><span>Jump while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
-<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed.</p>`;
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers throw cans, crates and drums.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
   const cy = Object.keys(CYBER)

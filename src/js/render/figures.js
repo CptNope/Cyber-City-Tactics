@@ -930,7 +930,7 @@ function drawFig(e) {
     bf = [-6, 0];
     lean = -1;
   }
-  if (st === 'hurt' || st === 'grabbed') {
+  if (st === 'hurt' || st === 'grabbed' || st === 'held') {
     lean = -6;
     fh = [2, -38];
     bh = [-10, -36];
@@ -996,7 +996,24 @@ function drawFig(e) {
     fkb = 6;
     bkb = 6;
   }
-  if (st === 'grab') {
+  // a foe reaching out to grab, or winding up a flurry
+  if (st === 'grabtry') {
+    const a = t >= 10;
+    fh = a ? [20, -33] : [8, -36];
+    bh = a ? [18, -29] : [4, -34];
+    lean = a ? 6 : -2;
+    ff = [8, 0];
+    bf = [-7, 0];
+  }
+  if (st === 'ftell') {
+    fh = [9, -37];
+    bh = [5, -35];
+    lean = -4;
+    hip = [0, -18];
+    ff = [9, 0];
+    bf = [-9, 0];
+  }
+  if (st === 'grab' || st === 'hold') {
     fh = [13, -30];
     bh = [11, -33];
     ff = [6, 0];

@@ -687,6 +687,7 @@ function render() {
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
+      if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -845,6 +846,18 @@ function drawRunes(e, sx, sy, sc, c, back) {
 }
 // In front of the figure: rune ring front half, ward ripples, ricochet sparks, the vampiric drain stream,
 // berserk steam
+// a held runner: how close the mashing is to breaking the hold
+function drawStruggle(p) {
+  const e = p.heldBy,
+    need = e.d.boss ? 10 : e.d.holdNeed || 6,
+    k = Math.min(1, (p.struggle || 0) / need),
+    x = p.x - G.camX - 16,
+    y = p.y - p.z - 66;
+  ctx.fillStyle = 'rgba(11,8,18,.8)';
+  ctx.fillRect(x - 1, y - 1, 34, 6);
+  ctx.fillStyle = (G.t >> 2) % 2 ? '#ffc63d' : '#ffe28a';
+  ctx.fillRect(x, y, 32 * k, 4);
+}
 // a dazed foe: three stars circling its head, the cue that walking into it grabs it
 function drawDaze(e) {
   const sc = (e.d && e.d.scale) || 1,

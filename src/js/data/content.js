@@ -114,6 +114,9 @@ const DEF = {
     reach: 22,
     cool: 72,
     scale: 1,
+    grab: 0.15, // a grab instead of a punch, sometimes
+    holdNeed: 4, // presses to break free
+    thrower: true, // picks up cans and crates
     creds: [6, 14],
     karma: 10,
     style: 'mohawk',
@@ -135,6 +138,9 @@ const DEF = {
     reach: 24,
     cool: 86,
     scale: 1.15,
+    grab: 0.3,
+    holdNeed: 6,
+    thrower: true,
     creds: [12, 22],
     karma: 18,
     style: 'tusks',
@@ -281,6 +287,8 @@ const DEF = {
     spd: 1.1,
     dmg: 12,
     reach: 24,
+    flurry: 'dragon', // a kick flurry out of the dark
+    flurryP: 0.25,
     cool: 80,
     scale: 1,
     stealth: true,
@@ -448,6 +456,7 @@ const DEF = {
     scale: 1.45,
     boss: true,
     charge: 3.2,
+    grab: 0.3,
     creds: [90, 120],
     karma: 90,
     style: 'horns',
@@ -471,6 +480,8 @@ const DEF = {
     scale: 1.08,
     boss: true,
     charge: 4.4,
+    flurry: 'mach',
+    flurryP: 0.3,
     creds: [110, 140],
     karma: 120,
     style: 'blade',

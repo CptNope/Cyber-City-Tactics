@@ -303,7 +303,7 @@ ok(nj.cloaked, 'shadow is cloaked while it closes in');
 let sawStrike = false;
 for (let i = 0; i < 400 && !sawStrike; i++) {
   step(1);
-  if (nj.state === 'windup') sawStrike = !nj.cloaked;
+  if (nj.state === 'windup' || nj.state === 'ftell') sawStrike = !nj.cloaked; // a strike or a flurry's tell
 }
 ok(sawStrike, 'shadow drops the cloak to strike');
 nj.state = 'idle';

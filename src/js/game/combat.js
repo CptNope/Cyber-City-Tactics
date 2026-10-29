@@ -329,10 +329,9 @@ function hurt(t, dmg, dir, o) {
   t.elem = o.fire || o.col === '#ff6a3d' ? 'fire' : o.col === '#45d2ff' ? 'shock' : o.magic ? 'magic' : null;
   t.reactN = (t.reactN || 0) + 1;
   if (t.d && t.d.boss && !t.enraged && t.hp > 0 && t.hp < t.maxHp * 0.5) enrage(t);
-  if (t.team === 0) {
-    if (t.holding) dropProp(t);
-    if (t.grab) releaseGrab(t);
-  }
+  if (t.holding) dropProp(t);
+  if (t.team === 0 && t.grab) releaseGrab(t);
+  if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
   if (t.hp <= 0) {
     kill(t, dir, o);
     return true;
@@ -341,6 +340,7 @@ function hurt(t, dmg, dir, o) {
     sfx.clank();
     return true;
   }
+  if (t.state === 'held' && o.held) return true; // a knee to someone held: it hurts, they stay held
   if (t.state === 'grabbed' && !o.kd) return true;
   if (t.state === 'grabbed') {
     const g = PL.find(p => p.grab === t);

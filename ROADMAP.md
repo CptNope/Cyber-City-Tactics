@@ -110,6 +110,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Grabs you can actually find.**~~ Shipped: two hits in a row daze a foe for a second (stars over its head), so there's time to walk in and grab; the help screen lists every move.
 - [x] ~~**Chrome techniques.**~~ Shipped: six one-off implants from Doc, River City Ransom books in chrome: faster punches, faster kicks, longer grabs, harder throws, higher jumps, faster get-ups.
 - [x] ~~**Chrome moves.**~~ Shipped: five more from Doc that add moves: Mach fists and Dragon feet (mash for a punch or kick flurry), Grand slam (swing a grabbed foe through the crowd), Heel spikes (stomp the downed) and Turbo calves (double-tap to sprint; shoulder charge and slide).
+- [x] ~~**Foes who fight like runners.**~~ Shipped: grabs you mash out of (gangers, orcs, the Gutter King), flurries with a tell (Razor Mei, Kagemori shadows), and gangers and orcs picking up and throwing props.
 - [ ] **Juggles and wall bounces (M).** Enemies knocked into the street's back wall bounce back for follow-ups.
 - [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 

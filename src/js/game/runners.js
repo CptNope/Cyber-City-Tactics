@@ -164,6 +164,7 @@ function upRunner(p) {
     if (p.t > 100) respawn(p);
     return;
   }
+  if (p.state === 'held') return heldTick(p, I);
   if (p.state === 'down') {
     if (p.t > (hasTech(p, 'recoil') ? 25 : 50)) {
       setS(p, 'idle');

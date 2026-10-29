@@ -474,6 +474,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
 - **Grabs:** two hits in a row daze a foe (stars circle its head). Walk into it while it's dazed to grab it: punch to knee (the third knocks it down), kick to throw it into the others, holding a direction to aim. Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen.
+- **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button to break free, and they reel, dazed, ready to be grabbed back. Don't, and you're kneed and thrown. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
 - **Throwables:** trash cans, crates and explosive drums.
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.

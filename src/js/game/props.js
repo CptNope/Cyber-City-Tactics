@@ -42,8 +42,9 @@ function shatter(pr) {
     G.shake = 8;
     G.fx.push({ k: 'ring', x: pr.x, y: pr.y, z: pr.z, c: '#ff6a3d', life: 20, max: 20, r: rr });
     burst(pr.x, pr.y, pr.z, '#ffc63d', 16);
+    const foes = pr.team === 1 ? 0 : 1; // a drum a ganger threw burns runners instead
     for (const t of G.ents) {
-      if (t.team !== 1 || t.state === 'dead') continue;
+      if (t.team !== foes || t.state === 'dead') continue;
       if (Math.abs(t.x - pr.x) < rr && Math.abs(t.y - pr.y) < (18 * rr) / 44)
         hurt(t, pr.dmg, t.x >= pr.x ? 1 : -1, {
           kd: true,
