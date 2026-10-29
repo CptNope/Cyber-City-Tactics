@@ -686,7 +686,7 @@ function drawFig(e) {
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
     sy = e.y - e.z;
-  shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
+  if (!e.flip) shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
   if (e.inv > 0 && e.state !== 'down' && e.state !== 'roll' && (G.t >> 2) % 2) return;
   // Deaths: physical ones blink out the classic way; elemental ones burn, short out or dissolve instead
   const dead = e.state === 'dead',
@@ -1013,12 +1013,25 @@ function drawFig(e) {
     ff = [9, 0];
     bf = [-9, 0];
   }
+  // carrying a grabbed foe up: a jump throw (arms forward) or a pile driver (arms overhead)
+  if (st === 'jthrow' || st === 'pdrive') {
+    fh = st === 'pdrive' ? [4, -50] : [14, -36];
+    bh = st === 'pdrive' ? [-3, -50] : [10, -38];
+    ff = [7, -8];
+    bf = [-5, -10];
+    fkb = 6;
+    bkb = 6;
+    lean = st === 'pdrive' ? -2 : 3;
+  }
   if (st === 'grab' || st === 'hold') {
     fh = [13, -30];
     bh = [11, -33];
     ff = [6, 0];
     bf = [-6, 0];
-    if (e.kneeT > 0) {
+    if (e.kneeT > 0 && e.knees === 1) {
+      fh = [20, -31]; // the gut punch
+      lean = 3;
+    } else if (e.kneeT > 0) {
       ff = [10, -18];
       fkb = -4;
     }

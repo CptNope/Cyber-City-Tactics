@@ -236,9 +236,9 @@ key('KeyD', true);
 for (let i = 0; i < 30 && s.state !== 'grab'; i++) step(1);
 key('KeyD', false);
 ok(s.state === 'grab', 'grabbed one');
-tap('Space');
+tap('KeyO');
 step(1);
-ok(s.state === 'gslam', 'grand slam: JUMP while holding swings them round');
+ok(s.state === 'gslam', 'grand slam: DODGE while holding swings them round');
 for (let i = 0; i < 34 && s.state === 'gslam'; i++) step(1);
 ok(
   bystander.state === 'down' || bystander.hp < bystander.maxHp,

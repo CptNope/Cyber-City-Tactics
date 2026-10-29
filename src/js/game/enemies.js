@@ -28,6 +28,7 @@ function upEnemy(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
   if (e.thrown && e.z > 0) {
+    if (e.laneV) e.y = clamp(e.y + e.laneV, FY0 + 6, FY1); // thrown across the lanes
     for (const o of G.ents) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;
       if (Math.abs(o.x - e.x) < 16 && Math.abs(o.y - e.y) < 10) {
@@ -910,7 +911,7 @@ function enemyRelease(e, broke) {
 // a held runner: every press is a struggle, and enough of them breaks the hold
 function heldTick(p, I) {
   const e = p.heldBy;
-  if (!e || e.state !== 'hold' || e.holdP !== p) {
+  if (!e || e.state !== 'hold' || e.holdP !== p || !G.ents.includes(e)) {
     p.heldBy = null;
     setS(p, 'idle');
     return;

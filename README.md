@@ -453,7 +453,8 @@ Tuned and Prototype items can roll an affix, which shows in the item's name (for
 |---|---|
 | Mach fists | Your third quick punch becomes a flurry of jabs. Keep mashing PUNCH to keep it going; it ends in an uppercut. Flurry hits daze but never knock down on their own |
 | Dragon feet | The same with kicks: mash KICK, and it ends with a big kick |
-| Grand slam | Holding a grabbed foe, press JUMP: swing them round through everyone close, then hurl them |
+| Grand slam | Holding a grabbed foe, press DODGE: swing them round through everyone close, then hurl them |
+| Pile driver rig | Holding a grabbed foe, JUMP becomes a pile driver (street samurai and adepts know it already) |
 | Heel spikes | KICK beside a foe on the ground to stomp them |
 | Turbo calves | Tap a direction twice to sprint. PUNCH out of a sprint for a shoulder charge, KICK for a slide, or jump for a long one |
 
@@ -473,7 +474,11 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
-- **Grabs:** two hits in a row daze a foe (stars circle its head). Walk into it while it's dazed to grab it: punch to knee (the third knocks it down), kick to throw it into the others, holding a direction to aim. Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen.
+- **Grabs (Double Dragon style):** two hits in a row daze a foe (stars circle its head). Walk into it while it's dazed to grab it, then:
+  - **Punch:** a gut punch, a knee, then a knee lift that launches them (catch them with a jump kick).
+  - **Kick:** a throw. On its own it goes forward; hold back for an over-the-shoulder slam behind you (it lands harder); hold up or down to throw them into another lane, bowling over whoever stands there.
+  - **Jump:** a jump throw, hurled down at the street ahead. Street samurai and physical adepts pile drive instead: up, over and head-first into the street with a shockwave. Anyone else can learn it with Doc's Pile driver rig.
+  - **Dodge:** Grand slam, with the implant. Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen.
 - **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button to break free, and they reel, dazed, ready to be grabbed back. Don't, and you're kneed and thrown. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
 - **Throwables:** trash cans, crates and explosive drums.
 - **Breakables:** vending machines spill medkits, ammo and mana.

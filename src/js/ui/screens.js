@@ -7,7 +7,10 @@
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab: punch knees (three knock it down), kick throws it into the crowd (hold a direction to aim)</span>
+<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab</span>
+<b>· Punch</b><span>Gut punch, knee, then a knee lift that launches them</span>
+<b>· Kick</b><span>Throw: forward, hold back for over the shoulder, hold up or down to throw them into another lane</span>
+<b>· Jump</b><span>Jump throw. Street samurai and adepts (or the Pile driver rig) pile drive instead</span>
 <b>Heavy blow</b><span>Hold punch, release: breaks guards, knocks down everyone in front</span>
 <b>Flying kick</b><span>Jump, then punch or kick</span>
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
@@ -16,7 +19,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
 <b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
 <b>· Dragon feet</b><span>The third quick kick becomes a flurry; keep mashing kick</span>
-<b>· Grand slam</b><span>Jump while holding a grabbed foe to swing them through the crowd</span>
+<b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
 <p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers throw cans, crates and drums.</p>`;

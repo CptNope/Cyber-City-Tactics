@@ -683,7 +683,17 @@ function render() {
       else if (o.e.veh) drawVehicle(o.e);
       else {
         if (o.e.bk && o.e.ride) drawBike(o.e);
-        drawFig(o.e);
+        if (o.e.flip) {
+          // upside down over a pile driver's head
+          const fx = o.e.x - G.camX,
+            fy = o.e.y - o.e.z - 24;
+          ctx.save();
+          ctx.translate(fx, fy);
+          ctx.rotate(Math.PI);
+          ctx.translate(-fx, -fy);
+          drawFig(o.e);
+          ctx.restore();
+        } else drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);

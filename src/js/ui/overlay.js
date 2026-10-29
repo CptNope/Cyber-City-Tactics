@@ -275,9 +275,10 @@ function techHtml() {
     row = k => {
       const t = TECH[k],
         have = hasTech(p, k),
+        known = !have && t.innate && t.innate(p),
         c = Math.round(t.cost * buyMul()),
-        ok = !have && PARTY.creds >= c;
-      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
+        ok = !have && !known && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : known ? 'Known' : '¥' + c}</button></div></div>`;
     },
     ups = Object.keys(TECH).filter(k => !TECH[k].move),
     moves = Object.keys(TECH).filter(k => TECH[k].move);

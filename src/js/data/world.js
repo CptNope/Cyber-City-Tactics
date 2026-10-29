@@ -64,9 +64,16 @@ const TECH = {
   },
   slam: {
     name: 'Grand slam',
-    desc: 'While holding a grabbed foe, press JUMP to swing them round through everyone close, then hurl them.',
+    desc: 'While holding a grabbed foe, press DODGE to swing them round through everyone close, then hurl them.',
     cost: 480,
     move: true
+  },
+  pile: {
+    name: 'Pile driver rig',
+    desc: 'While holding a grabbed foe, JUMP becomes a pile driver: up, over and head-first into the street, with a shockwave. Street samurai and adepts already know it.',
+    cost: 460,
+    move: true,
+    innate: p => p.arch === 'samurai' || p.arch === 'adept'
   },
   heel: {
     name: 'Heel spikes',

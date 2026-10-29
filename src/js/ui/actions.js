@@ -785,7 +785,7 @@ ov.addEventListener('click', e => {
     case 'tech': {
       const t = TECH[arg],
         c = t && Math.round(t.cost * buyMul());
-      if (t && !hasTech(p, arg) && PARTY.creds >= c) {
+      if (t && !hasTech(p, arg) && !(t.innate && t.innate(p)) && PARTY.creds >= c) {
         PARTY.creds -= c;
         p.tech = Object.assign({}, p.tech, { [arg]: 1 });
         refresh(p);

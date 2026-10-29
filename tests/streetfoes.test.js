@@ -143,3 +143,12 @@ const ph = P.hp,
   gh = pal.hp;
 A.shatter({ k: 'prop', kind: 'drum', team: 1, x: P.x + 10, y: P.y, z: 2, dmg: 20, life: 1 });
 ok(P.hp < ph && pal.hp === gh, "a foe's drum hurts runners and spares its own");
+// a holder that leaves the street (despawned, cleared) never leaves a runner stuck
+calm();
+const gone = foe('orc', 18);
+A.setS(gone, 'grabtry');
+step(15);
+ok(P.state === 'held', 'held again');
+G.ents = G.ents.filter(x => x !== gone);
+step(2);
+ok(P.state !== 'held', 'the holder is gone: the runner is free');

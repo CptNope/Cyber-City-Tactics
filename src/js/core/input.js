@@ -294,6 +294,8 @@ function updateTouchUI() {
     punch = 'LIFT';
   setLbl('punch', punch);
   setLbl('kick', kick);
+  setLbl('jump', p.state === 'grab' ? (canPile(p) ? 'PILE' : 'TOSS') : 'JUMP');
+  setLbl('dodge', p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE');
   const sid = p.spells[p.spell],
     sp = SPELLS[sid];
   setLbl('spell', `${SPSHORT[sid]}<small>${spellCost(p, sp)}</small>`, p.mp < spellCost(p, sp) || G.den);

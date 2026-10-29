@@ -18,7 +18,9 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1);
+          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1) * (e.hardLand || 1);
+          e.hardLand = 1;
+          e.laneV = 0;
           e.state = 'down';
           e.hp -= Math.round(dmg);
           G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
@@ -232,39 +234,72 @@ function upRunner(p) {
       releaseGrab(p);
       return;
     }
+    // Double Dragon's grab: punch strings a gut punch, a knee and a knee lift; kick throws wherever you hold;
+    // jump throws on the way up (or pile drives, for those who know how); dodge swings them with Grand slam
+    const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
     if (I.pressed.punch) {
       p.knees++;
       p.kneeT = 8;
-      const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
       if (p.knees >= 3) {
-        hurt(e, (6 + D.melee * 0.6) * gm, p.face, {
-          kd: true,
-          kb: 8,
-          src: p,
-          ax: p.x
-        });
+        // the knee lift: up into the air, ready for a jump kick on the way down
+        hurt(e, (7 + D.melee * 0.7) * gm, p.face, { kd: true, kb: 2, src: p, ax: p.x });
+        if (e.state === 'down') {
+          e.vz = 4.6;
+          e.vx = p.face * 0.8;
+          e.react = 'launch';
+        }
         p.grab = null;
         setS(p, 'idle');
-      } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
-    } else if (I.pressed.jump && hasTech(p, 'slam')) {
+      } else
+        hurt(e, ((p.knees === 1 ? 3 : 4) + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
+    } else if (I.pressed.dodge && hasTech(p, 'slam')) {
       // Grand slam: swing them round by the collar through everyone close, then let go
       p.slamHit = [];
       setS(p, 'gslam');
       sfx.heavy();
       return;
+    } else if (I.pressed.jump) {
+      p.grabJump = canPile(p) ? 'pdrive' : 'jthrow';
+      p.slamHit = [];
+      p.vz = p.grabJump === 'pdrive' ? 5 : 4;
+      p.z = 1;
+      setS(p, p.grabJump);
+      sfx.jump();
+      return;
     } else if (I.pressed.kick) {
-      let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
+      const hx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
+        hy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0),
+        gy = hasTech(p, 'gyro');
       p.grab = null;
       setS(p, 'throw');
       if (G.training) G.tf.threw = true;
       setS(e, 'down');
-      const gy = hasTech(p, 'gyro');
-      e.vz = gy ? 3.9 : 3.4;
-      e.vx = dir * (gy ? 6.4 : 4.6);
-      e.x = p.x + dir * 8;
-      e.z = 8;
       e.thrown = p;
       e.thrownHit = [];
+      e.laneV = 0;
+      e.hardLand = 1;
+      if (hx === -p.face) {
+        // over the shoulder: a spin and a slam behind you, harder on landing
+        e.x = p.x - p.face * 6;
+        e.z = 16;
+        e.vz = 4.2;
+        e.vx = -p.face * (gy ? 4.6 : 3.2);
+        e.hardLand = 1.6;
+        p.face = -p.face;
+        say(p, 'OVER THE SHOULDER', '#ffc63d', 40, 30, true);
+      } else if (hy && !hx) {
+        // into another lane of the street, bowling over whoever stands there
+        e.x = p.x + p.face * 6;
+        e.z = 10;
+        e.vz = 3.6;
+        e.vx = p.face * 1.2;
+        e.laneV = hy * (gy ? 2.8 : 2.1);
+      } else {
+        e.vz = gy ? 3.9 : 3.4;
+        e.vx = p.face * (gy ? 6.4 : 4.6);
+        e.x = p.x + p.face * 8;
+        e.z = 8;
+      }
       sfx.heavy();
     }
     if (p.kneeT > 0) p.kneeT--;
@@ -272,6 +307,7 @@ function upRunner(p) {
   }
   if (p.state === 'mach' || p.state === 'dragon') return flurryTick(p, I, D);
   if (p.state === 'gslam') return slamTick(p, D);
+  if (p.state === 'jthrow' || p.state === 'pdrive') return grabJumpTick(p, D);
   const busy = {
     stomp: 20,
     dashp: 22,
@@ -644,6 +680,70 @@ function slamTick(p, D) {
     e.thrownHit = p.slamHit.slice();
     sfx.heavy();
     G.shake = Math.max(G.shake, 5);
+  }
+}
+// who can pile drive: street samurai and adepts know how; anyone else needs the implant
+const canPile = p => p.arch === 'samurai' || p.arch === 'adept' || hasTech(p, 'pile');
+// up with them, and down: a jump throw hurls them at the street ahead; a pile driver takes them up and over
+// and drives them head-first into the street, with a shockwave for anyone close
+function grabJumpTick(p, D) {
+  const e = p.grab,
+    pile = p.state === 'pdrive';
+  if (!e || e.state !== 'grabbed') {
+    p.grab = null;
+    if (p.z <= 0) setS(p, 'idle');
+    return;
+  }
+  const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'gyro') ? 1.5 : 1);
+  if (pile) {
+    // held upside down over your head on the way up
+    e.x = p.x + p.face * 3;
+    e.y = p.y;
+    e.z = p.z + 68; // drawn flipped round a point near the waist: this puts their head just above your hands
+    e.flip = true;
+    if (p.t > 4 && p.z <= 0) {
+      e.flip = false;
+      e.z = 0;
+      p.grab = null;
+      hurt(e, (16 + D.melee * 1.5) * gm, p.face, { kd: true, big: true, air: true, src: p, ax: p.x, kb: 2 });
+      for (const o of G.ents)
+        if (
+          o !== e &&
+          o.team === 1 &&
+          o.state !== 'dead' &&
+          Math.abs(o.x - p.x) < 40 &&
+          Math.abs(o.y - p.y) < 14
+        )
+          hurt(o, (6 + D.melee * 0.5) * gm, Math.sign(o.x - p.x) || 1, {
+            kd: true,
+            air: true,
+            src: p,
+            ax: p.x
+          });
+      G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 2, c: '#ffc63d', life: 18, max: 18, r: 44 });
+      burst(p.x, p.y, 2, '#8a7a9a', 16);
+      G.shake = Math.max(G.shake, 9);
+      sfx.boom();
+      say(p, 'PILE DRIVER', '#ffc63d', 50, 40, true);
+      setS(p, 'idle');
+      p.inv = Math.max(p.inv, 12);
+    }
+    return;
+  }
+  // the jump throw: carried up, then hurled down ahead at the top of the jump
+  e.x = p.x + p.face * 10;
+  e.y = p.y;
+  e.z = p.z + 8;
+  if (p.vz <= 0.4) {
+    p.grab = null;
+    setS(e, 'down');
+    e.thrown = p;
+    e.thrownHit = [];
+    e.hardLand = 1.4;
+    e.vx = p.face * (hasTech(p, 'gyro') ? 5.6 : 4.2);
+    e.vz = -1;
+    sfx.heavy();
+    setS(p, 'jump');
   }
 }
 // Heel stomp: a kick aimed at someone on the ground

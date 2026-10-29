@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9bc369e';
+const APP_VERSION = '2.0.0+093069e';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2069,6 +2069,8 @@ function updateTouchUI() {
     punch = 'LIFT';
   setLbl('punch', punch);
   setLbl('kick', kick);
+  setLbl('jump', p.state === 'grab' ? (canPile(p) ? 'PILE' : 'TOSS') : 'JUMP');
+  setLbl('dodge', p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE');
   const sid = p.spells[p.spell],
     sp = SPELLS[sid];
   setLbl('spell', `${SPSHORT[sid]}<small>${spellCost(p, sp)}</small>`, p.mp < spellCost(p, sp) || G.den);
@@ -3689,9 +3691,16 @@ const TECH = {
   },
   slam: {
     name: 'Grand slam',
-    desc: 'While holding a grabbed foe, press JUMP to swing them round through everyone close, then hurl them.',
+    desc: 'While holding a grabbed foe, press DODGE to swing them round through everyone close, then hurl them.',
     cost: 480,
     move: true
+  },
+  pile: {
+    name: 'Pile driver rig',
+    desc: 'While holding a grabbed foe, JUMP becomes a pile driver: up, over and head-first into the street, with a shockwave. Street samurai and adepts already know it.',
+    cost: 460,
+    move: true,
+    innate: p => p.arch === 'samurai' || p.arch === 'adept'
   },
   heel: {
     name: 'Heel spikes',
@@ -6317,7 +6326,9 @@ function physics(e) {
         const src = e.thrown;
         e.thrown = null;
         if (e.state !== 'dead') {
-          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1);
+          const dmg = (8 + src.D.melee * 0.7) * (hasTech(src, 'gyro') ? 2 : 1) * (e.hardLand || 1);
+          e.hardLand = 1;
+          e.laneV = 0;
           e.state = 'down';
           e.hp -= Math.round(dmg);
           G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
@@ -6531,39 +6542,72 @@ function upRunner(p) {
       releaseGrab(p);
       return;
     }
+    // Double Dragon's grab: punch strings a gut punch, a knee and a knee lift; kick throws wherever you hold;
+    // jump throws on the way up (or pile drives, for those who know how); dodge swings them with Grand slam
+    const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
     if (I.pressed.punch) {
       p.knees++;
       p.kneeT = 8;
-      const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'grip') ? 1.4 : 1);
       if (p.knees >= 3) {
-        hurt(e, (6 + D.melee * 0.6) * gm, p.face, {
-          kd: true,
-          kb: 8,
-          src: p,
-          ax: p.x
-        });
+        // the knee lift: up into the air, ready for a jump kick on the way down
+        hurt(e, (7 + D.melee * 0.7) * gm, p.face, { kd: true, kb: 2, src: p, ax: p.x });
+        if (e.state === 'down') {
+          e.vz = 4.6;
+          e.vx = p.face * 0.8;
+          e.react = 'launch';
+        }
         p.grab = null;
         setS(p, 'idle');
-      } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
-    } else if (I.pressed.jump && hasTech(p, 'slam')) {
+      } else
+        hurt(e, ((p.knees === 1 ? 3 : 4) + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
+    } else if (I.pressed.dodge && hasTech(p, 'slam')) {
       // Grand slam: swing them round by the collar through everyone close, then let go
       p.slamHit = [];
       setS(p, 'gslam');
       sfx.heavy();
       return;
+    } else if (I.pressed.jump) {
+      p.grabJump = canPile(p) ? 'pdrive' : 'jthrow';
+      p.slamHit = [];
+      p.vz = p.grabJump === 'pdrive' ? 5 : 4;
+      p.z = 1;
+      setS(p, p.grabJump);
+      sfx.jump();
+      return;
     } else if (I.pressed.kick) {
-      let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
+      const hx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
+        hy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0),
+        gy = hasTech(p, 'gyro');
       p.grab = null;
       setS(p, 'throw');
       if (G.training) G.tf.threw = true;
       setS(e, 'down');
-      const gy = hasTech(p, 'gyro');
-      e.vz = gy ? 3.9 : 3.4;
-      e.vx = dir * (gy ? 6.4 : 4.6);
-      e.x = p.x + dir * 8;
-      e.z = 8;
       e.thrown = p;
       e.thrownHit = [];
+      e.laneV = 0;
+      e.hardLand = 1;
+      if (hx === -p.face) {
+        // over the shoulder: a spin and a slam behind you, harder on landing
+        e.x = p.x - p.face * 6;
+        e.z = 16;
+        e.vz = 4.2;
+        e.vx = -p.face * (gy ? 4.6 : 3.2);
+        e.hardLand = 1.6;
+        p.face = -p.face;
+        say(p, 'OVER THE SHOULDER', '#ffc63d', 40, 30, true);
+      } else if (hy && !hx) {
+        // into another lane of the street, bowling over whoever stands there
+        e.x = p.x + p.face * 6;
+        e.z = 10;
+        e.vz = 3.6;
+        e.vx = p.face * 1.2;
+        e.laneV = hy * (gy ? 2.8 : 2.1);
+      } else {
+        e.vz = gy ? 3.9 : 3.4;
+        e.vx = p.face * (gy ? 6.4 : 4.6);
+        e.x = p.x + p.face * 8;
+        e.z = 8;
+      }
       sfx.heavy();
     }
     if (p.kneeT > 0) p.kneeT--;
@@ -6571,6 +6615,7 @@ function upRunner(p) {
   }
   if (p.state === 'mach' || p.state === 'dragon') return flurryTick(p, I, D);
   if (p.state === 'gslam') return slamTick(p, D);
+  if (p.state === 'jthrow' || p.state === 'pdrive') return grabJumpTick(p, D);
   const busy = {
     stomp: 20,
     dashp: 22,
@@ -6943,6 +6988,70 @@ function slamTick(p, D) {
     e.thrownHit = p.slamHit.slice();
     sfx.heavy();
     G.shake = Math.max(G.shake, 5);
+  }
+}
+// who can pile drive: street samurai and adepts know how; anyone else needs the implant
+const canPile = p => p.arch === 'samurai' || p.arch === 'adept' || hasTech(p, 'pile');
+// up with them, and down: a jump throw hurls them at the street ahead; a pile driver takes them up and over
+// and drives them head-first into the street, with a shockwave for anyone close
+function grabJumpTick(p, D) {
+  const e = p.grab,
+    pile = p.state === 'pdrive';
+  if (!e || e.state !== 'grabbed') {
+    p.grab = null;
+    if (p.z <= 0) setS(p, 'idle');
+    return;
+  }
+  const gm = (has(p, 'brute') ? 1.5 : 1) * (hasTech(p, 'gyro') ? 1.5 : 1);
+  if (pile) {
+    // held upside down over your head on the way up
+    e.x = p.x + p.face * 3;
+    e.y = p.y;
+    e.z = p.z + 68; // drawn flipped round a point near the waist: this puts their head just above your hands
+    e.flip = true;
+    if (p.t > 4 && p.z <= 0) {
+      e.flip = false;
+      e.z = 0;
+      p.grab = null;
+      hurt(e, (16 + D.melee * 1.5) * gm, p.face, { kd: true, big: true, air: true, src: p, ax: p.x, kb: 2 });
+      for (const o of G.ents)
+        if (
+          o !== e &&
+          o.team === 1 &&
+          o.state !== 'dead' &&
+          Math.abs(o.x - p.x) < 40 &&
+          Math.abs(o.y - p.y) < 14
+        )
+          hurt(o, (6 + D.melee * 0.5) * gm, Math.sign(o.x - p.x) || 1, {
+            kd: true,
+            air: true,
+            src: p,
+            ax: p.x
+          });
+      G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 2, c: '#ffc63d', life: 18, max: 18, r: 44 });
+      burst(p.x, p.y, 2, '#8a7a9a', 16);
+      G.shake = Math.max(G.shake, 9);
+      sfx.boom();
+      say(p, 'PILE DRIVER', '#ffc63d', 50, 40, true);
+      setS(p, 'idle');
+      p.inv = Math.max(p.inv, 12);
+    }
+    return;
+  }
+  // the jump throw: carried up, then hurled down ahead at the top of the jump
+  e.x = p.x + p.face * 10;
+  e.y = p.y;
+  e.z = p.z + 8;
+  if (p.vz <= 0.4) {
+    p.grab = null;
+    setS(e, 'down');
+    e.thrown = p;
+    e.thrownHit = [];
+    e.hardLand = 1.4;
+    e.vx = p.face * (hasTech(p, 'gyro') ? 5.6 : 4.2);
+    e.vz = -1;
+    sfx.heavy();
+    setS(p, 'jump');
   }
 }
 // Heel stomp: a kick aimed at someone on the ground
@@ -7592,6 +7701,7 @@ function upEnemy(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
   if (e.thrown && e.z > 0) {
+    if (e.laneV) e.y = clamp(e.y + e.laneV, FY0 + 6, FY1); // thrown across the lanes
     for (const o of G.ents) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;
       if (Math.abs(o.x - e.x) < 16 && Math.abs(o.y - e.y) < 10) {
@@ -8474,7 +8584,7 @@ function enemyRelease(e, broke) {
 // a held runner: every press is a struggle, and enough of them breaks the hold
 function heldTick(p, I) {
   const e = p.heldBy;
-  if (!e || e.state !== 'hold' || e.holdP !== p) {
+  if (!e || e.state !== 'hold' || e.holdP !== p || !G.ents.includes(e)) {
     p.heldBy = null;
     setS(p, 'idle');
     return;
@@ -15585,7 +15695,7 @@ function drawFig(e) {
     pal = e.pal,
     sx = e.x - G.camX + (e.kind === 'glitch' && G.t % 23 < 2 ? rand(-3, 3) : 0),
     sy = e.y - e.z;
-  shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
+  if (!e.flip) shadow(sx, e.y, (e.state === 'down' || e.state === 'dead') && e.z === 0 ? 20 * sc : 11 * sc);
   if (e.inv > 0 && e.state !== 'down' && e.state !== 'roll' && (G.t >> 2) % 2) return;
   // Deaths: physical ones blink out the classic way; elemental ones burn, short out or dissolve instead
   const dead = e.state === 'dead',
@@ -15912,12 +16022,25 @@ function drawFig(e) {
     ff = [9, 0];
     bf = [-9, 0];
   }
+  // carrying a grabbed foe up: a jump throw (arms forward) or a pile driver (arms overhead)
+  if (st === 'jthrow' || st === 'pdrive') {
+    fh = st === 'pdrive' ? [4, -50] : [14, -36];
+    bh = st === 'pdrive' ? [-3, -50] : [10, -38];
+    ff = [7, -8];
+    bf = [-5, -10];
+    fkb = 6;
+    bkb = 6;
+    lean = st === 'pdrive' ? -2 : 3;
+  }
   if (st === 'grab' || st === 'hold') {
     fh = [13, -30];
     bh = [11, -33];
     ff = [6, 0];
     bf = [-6, 0];
-    if (e.kneeT > 0) {
+    if (e.kneeT > 0 && e.knees === 1) {
+      fh = [20, -31]; // the gut punch
+      lean = 3;
+    } else if (e.kneeT > 0) {
       ff = [10, -18];
       fkb = -4;
     }
@@ -19386,7 +19509,17 @@ function render() {
       else if (o.e.veh) drawVehicle(o.e);
       else {
         if (o.e.bk && o.e.ride) drawBike(o.e);
-        drawFig(o.e);
+        if (o.e.flip) {
+          // upside down over a pile driver's head
+          const fx = o.e.x - G.camX,
+            fy = o.e.y - o.e.z - 24;
+          ctx.save();
+          ctx.translate(fx, fy);
+          ctx.rotate(Math.PI);
+          ctx.translate(-fx, -fy);
+          drawFig(o.e);
+          ctx.restore();
+        } else drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
@@ -19756,7 +19889,10 @@ function attractStep() {
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab: punch knees (three knock it down), kick throws it into the crowd (hold a direction to aim)</span>
+<b>Daze and grab</b><span>Two hits in a row put stars over a foe. Walk into it to grab</span>
+<b>· Punch</b><span>Gut punch, knee, then a knee lift that launches them</span>
+<b>· Kick</b><span>Throw: forward, hold back for over the shoulder, hold up or down to throw them into another lane</span>
+<b>· Jump</b><span>Jump throw. Street samurai and adepts (or the Pile driver rig) pile drive instead</span>
 <b>Heavy blow</b><span>Hold punch, release: breaks guards, knocks down everyone in front</span>
 <b>Flying kick</b><span>Jump, then punch or kick</span>
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
@@ -19765,7 +19901,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
 <b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
 <b>· Dragon feet</b><span>The third quick kick becomes a flurry; keep mashing kick</span>
-<b>· Grand slam</b><span>Jump while holding a grabbed foe to swing them through the crowd</span>
+<b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
 <p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers throw cans, crates and drums.</p>`;
@@ -20523,9 +20659,10 @@ function techHtml() {
     row = k => {
       const t = TECH[k],
         have = hasTech(p, k),
+        known = !have && t.innate && t.innate(p),
         c = Math.round(t.cost * buyMul()),
-        ok = !have && PARTY.creds >= c;
-      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
+        ok = !have && !known && PARTY.creds >= c;
+      return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : known ? 'Known' : '¥' + c}</button></div></div>`;
     },
     ups = Object.keys(TECH).filter(k => !TECH[k].move),
     moves = Object.keys(TECH).filter(k => TECH[k].move);
@@ -21627,7 +21764,7 @@ ov.addEventListener('click', e => {
     case 'tech': {
       const t = TECH[arg],
         c = t && Math.round(t.cost * buyMul());
-      if (t && !hasTech(p, arg) && PARTY.creds >= c) {
+      if (t && !hasTech(p, arg) && !(t.innate && t.innate(p)) && PARTY.creds >= c) {
         PARTY.creds -= c;
         p.tech = Object.assign({}, p.tech, { [arg]: 1 });
         refresh(p);
