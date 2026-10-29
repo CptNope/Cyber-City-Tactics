@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+31e193f';
+const APP_VERSION = '2.0.0+f6bcd56';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -10859,7 +10859,7 @@ const NET_GDENY = new Set([
   'pcamX',
   'hack',
   'arenaSeed',
-  'stock'
+  'shopSig'
 ]);
 // what the friend sees while the host is in each menu
 const NET_WAIT = {
@@ -10977,7 +10977,10 @@ function netPc(ice) {
     if (pc !== NET.pc) return;
     if (pc.connectionState === 'failed')
       netLost(
-        NET.live ? 'The connection dropped.' : "Couldn't connect. Check both codes, or try on the same Wi-Fi."
+        NET.live
+          ? 'The connection dropped.'
+          : "Couldn't connect. Check both codes, or try on the same Wi-Fi.",
+        NET.live
       );
   });
   NET.pc = pc;
@@ -11047,7 +11050,8 @@ function netPollAnswer() {
 function netFail(e) {
   NET.status = 'error';
   NET.err = (e && e.message) || String(e);
-  if (G.mode === 'online') renderOv();
+  if (G.mode === 'netlost') NET.lostMsg = NET.err; // a rejoin that didn't take: say why on the same card
+  if (G.mode === 'online' || G.mode === 'netlost') renderOv();
 }
 async function netStartHost() {
   netClose();
@@ -11067,7 +11071,11 @@ async function netStartHost() {
     if (lobbyUrl())
       try {
         const r = await lobby('/rooms', { offer: NET.code });
-        if (r.status === 201) NET.room = (await r.json()).code;
+        if (r.status === 201) {
+          const d = await r.json();
+          NET.room = d.code;
+          NET.roomKey = d.key || '';
+        }
       } catch (e) {}
     if (pc !== NET.pc) return;
     NET.lobbyDown = !!lobbyUrl() && !NET.room;
@@ -11131,11 +11139,16 @@ async function netStartJoin(code) {
     if (pc !== NET.pc) return;
     NET.code = await packCode(pc.localDescription);
     NET.room = room;
+    if (room) NET.lastRoom = room;
     NET.status = 'answer';
     if (room) {
       const r = await lobby('/rooms/' + room + '/answer', { answer: NET.code }).catch(() => null);
       if (r && r.status === 409)
-        throw new Error('Someone already joined that room. Ask the host to host again.');
+        throw new Error(
+          NET.rejoining
+            ? "The host hasn't reopened the room yet. Give it a few seconds and try again."
+            : 'Someone already joined that room. Ask the host to host again.'
+        );
       NET.status = r && r.ok ? 'sent' : 'answer';
     }
   } catch (e) {
@@ -11165,7 +11178,7 @@ function netBind(dc) {
   });
   dc.addEventListener('close', () => {
     if (dc === NET.dc)
-      netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.');
+      netLost(NET.role === 'guest' ? 'The connection to the host dropped.' : 'Your partner dropped.', true);
   });
 }
 function netSend(o) {
@@ -11185,6 +11198,7 @@ function netClose() {
   NET.pc = NET.dc = null;
   netPollStop();
   NET.room = '';
+  NET.roomKey = '';
   NET.lobbyDown = false;
   NET.relay = false;
   try {
@@ -11217,9 +11231,13 @@ function netLeave() {
   netClose();
   if (guest) attract(); // put a valid street back behind the menus
 }
-function netLost(msg) {
+// dropped: the connection failed rather than someone choosing to leave, so a rejoin makes sense
+function netLost(msg, dropped) {
   const role = NET.role,
-    was = NET.live;
+    was = NET.live,
+    room = NET.room,
+    key = NET.roomKey,
+    away = role === 'host' && was && dropped && PL[1] ? PL[1] : null;
   netClose();
   if (role === 'host') {
     if (was && G.coop) {
@@ -11228,11 +11246,16 @@ function netLost(msg) {
         x: G.camX + W / 2,
         y: 140,
         z: 0,
-        s: 'PARTNER LEFT',
+        s: dropped ? 'PARTNER DROPPED' : 'PARTNER LEFT',
         c: '#ff3d8b',
         life: 110,
         big: true
       });
+    }
+    // keep their runner and reopen the same room code, so they can come straight back
+    if (away && room && key && lobbyUrl()) {
+      NET.away = away;
+      netRehost(room, key);
     }
     if (G.mode === 'online') {
       NET.status = 'error';
@@ -11241,10 +11264,40 @@ function netLost(msg) {
     }
   } else if (role === 'guest') {
     NET.lostMsg = msg;
+    NET.canRejoin = !!(dropped && NET.lastRoom && lobbyUrl());
+    NET.rejoining = false;
     attract();
     musicPlay('title');
     setMode('netlost');
   }
+}
+async function netRehost(room, key) {
+  NET.role = 'host';
+  NET.status = 'making';
+  try {
+    const pc = netPc(await netIce());
+    netBind(pc.createDataChannel('cct', { ordered: true }));
+    await pc.setLocalDescription(await pc.createOffer());
+    await iceDone(pc);
+    if (pc !== NET.pc) return;
+    NET.code = await packCode(pc.localDescription);
+    const r = await lobby('/rooms/' + room + '/reopen', { offer: NET.code, key });
+    if (pc !== NET.pc) return;
+    if (!r.ok) throw new Error('reopen ' + r.status);
+    NET.room = room;
+    NET.roomKey = key;
+    NET.status = 'offer';
+    netPollAnswer();
+  } catch (e) {
+    NET.away = null;
+    netClose();
+  }
+}
+// the host's tag while the friend is away
+function netAwayTag() {
+  return NET.role === 'host' && NET.away && NET.room && !NET.live
+    ? 'PARTNER DROPPED · ROOM ' + NET.room + ' TO REJOIN'
+    : '';
 }
 
 /* ---------- messages ---------- */
@@ -11259,7 +11312,7 @@ function netRecv(data) {
   });
   NET.rxT = performance.now();
   if (m.k === 'in' && NET.role === 'host') NET.rIn = m;
-  else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a);
+  else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
   else if (m.k === 'hello' && NET.role === 'host') netHostBegin(m);
   else if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
   else if (m.k === 's' && NET.role === 'guest') {
@@ -11267,7 +11320,7 @@ function netRecv(data) {
     NET.q.push(m);
     if (NET.q.length > 30) NET.q.splice(0, NET.q.length - 30);
   } else if (m.k === 'bye')
-    netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.');
+    netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.', false);
 }
 
 /* ---------- host ---------- */
@@ -11286,6 +11339,22 @@ function netHostBegin(m) {
   NET.hmode = '';
   NET.friend = { arch: G.pendArch[1] };
   netSend({ k: 'start', v: APP_VERSION });
+  // back from a drop, mid-run: the same runner walks back in
+  const away = NET.away;
+  NET.away = null;
+  if (away && PL.length === 1 && G.mode !== 'nethub' && G.mode !== 'title' && !G.training) {
+    const p1 = PL[0];
+    PL.push(away);
+    G.coop = true;
+    away.out = false;
+    away.holding = null;
+    away.inv = 90;
+    away.x = clamp(p1.x - 20, G.camX + 20, G.camX + W - 20);
+    away.y = clamp(p1.y + 16, FY0 + 6, FY1);
+    if (G.mode === 'play' || G.mode === 'den' || G.ret === 'play' || G.ret === 'den') G.ents.push(away);
+    say(away, (away.name || 'RUNNER 2') + ' IS BACK', '#ffc63d', 70, 80);
+    return;
+  }
   setMode('nethub');
 }
 // runner 2's buttons, as last reported by the friend
@@ -11397,6 +11466,7 @@ function netSnapshot() {
     hm: G.mode,
     mu: typeof M !== 'undefined' ? M.cur : '',
     rn: G.rain.length > 0 ? 1 : 0,
+    hg: typeof haggle !== 'undefined' ? haggle : null,
     o: G.ents.map(netNid),
     pl: PL.map(netNid),
     sx: NET.sfxQ.splice(0)
@@ -11561,6 +11631,7 @@ function netApply(s) {
     Object.assign(PARTY, s.pa);
   }
   if (s.bg) G.bg = s.bg;
+  if (typeof haggle !== 'undefined') haggle = s.hg || null;
   if (!!s.rn !== G.rain.length > 0) makeRain(!!s.rn);
   if (s.mu && typeof M !== 'undefined' && M.cur !== s.mu) musicPlay(s.mu);
   for (const a of s.sx) if (typeof sfx[a[0]] === 'function') sfx[a[0]].apply(sfx, a.slice(1));
@@ -11626,7 +11697,14 @@ function netGuestStep() {
   }
   // the host's menus: perks, pause, the run's end
   const hm = NET.hm;
-  if (G.mode === 'play' && hm !== 'play' && hm !== 'den') setMode('netwait');
+  if (NET.optOut && NET.optOut !== hm) NET.optOut = '';
+  if (NET_SHARED.has(hm) && hm !== NET.optOut && PL[1] && (G.mode === 'play' || G.mode === 'netwait')) {
+    G.sheetIdx = 1;
+    setMode(hm);
+    NET.shopSig = netShopSig();
+  } else if (NET_SHARED.has(G.mode) && hm !== G.mode)
+    setMode(hm === 'play' || hm === 'den' ? 'play' : 'netwait');
+  else if (G.mode === 'play' && hm !== 'play' && hm !== 'den') setMode('netwait');
   else if (G.mode === 'netwait' && (hm === 'play' || hm === 'den') && PL.length) setMode('play');
   else if (G.mode === 'netwait' && NET.shownHm !== hm) renderOv();
   // the friend's sheet follows the mirrored runner (a point spent, an item equipped)
@@ -11634,6 +11712,15 @@ function netGuestStep() {
     const card = ov.querySelector('.card'),
       top = card ? card.scrollTop : 0;
     NET.sheetSig = netSheetSig();
+    renderOv();
+    const c2 = ov.querySelector('.card');
+    if (c2) c2.scrollTop = top;
+  }
+  // a shared counter redraws when the wallet, the bag, the stock or runner 2 changes
+  if (NET_SHARED.has(G.mode) && tick % 6 === 0 && netShopSig() !== NET.shopSig) {
+    const card = ov.querySelector('.card'),
+      top = card ? card.scrollTop : 0;
+    NET.shopSig = netShopSig();
     renderOv();
     const c2 = ov.querySelector('.card');
     if (c2) c2.scrollTop = top;
@@ -11652,7 +11739,7 @@ function netGuestStep() {
     NET.inT = 0;
     netSend('{"k":"in","h":"' + h + '","c":' + c + '}');
   }
-  if (performance.now() - NET.rxT > 15000) netLost('Lost touch with the host.');
+  if (performance.now() - NET.rxT > 15000) netLost('Lost touch with the host.', true);
 }
 
 /* ---------- screens ---------- */
@@ -11685,14 +11772,14 @@ function netHtml(m) {
   if (m === 'nethub')
     return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
     <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued) or the Sprawl. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
-    <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button></div>
+    <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
   if (m === 'netmenu')
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>Paused for you</h2><p>The fight keeps going on your partner's screen while this is open.</p>
     <div class="row"><button class="btn" data-a="netresume">Back to the fight</button>${soundBtns()}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
   if (m === 'netlost')
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>Disconnected</h2><p>${esc(NET.lostMsg || 'The connection dropped.')}</p>
-    <div class="row"><button class="btn" data-a="online">Online co-op</button><button class="btn ghost" data-a="back2title">Title</button></div></div>`;
+    <div class="row">${NET.canRejoin ? `<button class="btn" data-a="netrejoin">Rejoin room ${esc(NET.lastRoom)}</button>` : ''}<button class="btn${NET.canRejoin ? ' ghost' : ''}" data-a="online">Online co-op</button><button class="btn ghost" data-a="back2title">Title</button></div></div>`;
   // the connect card
   const st = NET.status,
     busy = st === 'making' || st === 'joining' || st === 'connecting',
@@ -11763,6 +11850,30 @@ function netSelect() {
 // The friend's own character sheet: it draws from the mirrored runner, and the buttons that change something
 // are run on the host, as runner 2, with the same code a local click would use.
 const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock']);
+// Shops the friend shares with the host: they see the same counter and buy and sell as runner 2
+const NET_SHARED = new Set(['npc', 'shop', 'trader', 'locker', 'safe']);
+const NET_SHOP = new Set([
+  'buy',
+  'buyice',
+  'cyber',
+  'fbuy',
+  'gmod',
+  'hire',
+  'learn',
+  'reroll',
+  'salvage',
+  'sell',
+  'sellcommon',
+  'upgrade',
+  'bmbuy',
+  'haggle',
+  'lock',
+  'stash',
+  'unstash',
+  'equip',
+  'unequip',
+  'drop'
+]);
 // what the sheet shows, so it redraws only when one of those changes (not every time runner 2 moves)
 function netSheetSig() {
   const p = PL[G.sheetIdx] || PL[0];
@@ -11786,6 +11897,9 @@ function netSheetSig() {
     G.sheetTab
   ]);
 }
+function netShopSig() {
+  return netSheetSig() + JSON.stringify([PARTY, G.stock, G.npc, G.shop, G.safeTab, G.wd && G.wd.bm, haggle]);
+}
 function netGuestSheet() {
   if (G.mode === 'sheet') return setMode('play');
   if (!PL[1]) return;
@@ -11794,8 +11908,12 @@ function netGuestSheet() {
   setMode('sheet');
   NET.sheetSig = netSheetSig();
 }
-function netRemoteAct(a) {
-  if (typeof a !== 'string' || a.length > 80 || !NET_REMOTE.has(a.split(':')[0]) || PL.length < 2) return;
+function netRemoteAct(a, mode) {
+  if (typeof a !== 'string' || a.length > 80 || PL.length < 2) return;
+  const name = a.split(':')[0];
+  // a shop click only counts while the host is still at that same counter
+  const ok = NET_REMOTE.has(name) || (NET_SHOP.has(name) && NET_SHARED.has(G.mode) && mode === G.mode);
+  if (!ok) return;
   const si = G.sheetIdx,
     btn = document.createElement('button');
   G.sheetIdx = 1;
@@ -11812,6 +11930,26 @@ function netRemoteAct(a) {
 }
 // returns true when the action was an online one
 function netAct(a, b) {
+  // the friend at the host's counter: buying and selling run on the host as runner 2
+  if (NET.role === 'guest' && NET.live && NET_SHARED.has(G.mode)) {
+    if (a === 'leave' || a === 'close' || a === 'lockerback' || a === 'back2title') {
+      NET.optOut = G.mode;
+      setMode('netwait');
+      return true;
+    }
+    if (a === 'sheet') {
+      netGuestSheet();
+      return true;
+    }
+    if (NET_SHOP.has(a)) {
+      if (b && b.dataset) {
+        netSend({ k: 'act', a: b.dataset.a, m: G.mode });
+        sfx.click();
+      }
+      return true;
+    }
+    if (a !== 'who' && a !== 'stab' && a !== 'safetab' && a !== 'tree') return true; // the host's to press
+  }
   if (NET.role === 'guest' && NET.live && G.mode === 'sheet') {
     if (a === 'close' || a === 'sheet') {
       setMode('play');
@@ -11826,6 +11964,10 @@ function netAct(a, b) {
     }
   }
   switch (a) {
+    case 'netrejoin':
+      NET.rejoining = true;
+      netStartJoin(NET.lastRoom);
+      return true;
     case 'netsheet':
       netGuestSheet();
       return true;
@@ -11900,6 +12042,24 @@ function netFromHash() {
 addEventListener('hashchange', () => {
   if (!NET.live) netFromHash();
 });
+
+// A quiet tag along the bottom: the friend watching a solo mode, or the host waiting for a dropped friend
+function netDrawTag(t) {
+  ctx.font = '600 13px Teko, Impact, sans-serif';
+  const w = ctx.measureText(t).width + 20;
+  ctx.fillStyle = 'rgba(11,8,18,.75)';
+  ctx.fillRect(W / 2 - w / 2, BAND + H - 34, w, 20);
+  txt(t, W / 2, BAND + H - 19, 13, '#45d2ff', 'center');
+}
+function netDrawTags() {
+  if (G.mode !== 'play' && G.mode !== 'den') return;
+  if (NET.role === 'guest' && NET.live && PL.length === 1)
+    netDrawTag(G.training ? 'WATCHING · TRAINING IS SOLO' : 'WATCHING');
+  else {
+    const t = netAwayTag();
+    if (t) netDrawTag(t);
+  }
+}
 
 /* ===== src/js/render/figures.js ===== */
 /* Cyber City Tactics · src/js/render/figures.js
@@ -15504,6 +15664,7 @@ function render() {
     drawHudTop();
   }
   if (!noHud) drawIntro();
+  netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {

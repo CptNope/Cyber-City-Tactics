@@ -271,6 +271,33 @@ const { pathToFileURL } = require('url');
     );
     await fr.keyboard.press('Escape');
     await fr.waitForFunction(() => G.mode === 'play', null, { timeout: 3000 });
+    // ---- shopping together: the host talks to Doc Kessler, the friend buys at the same counter ----
+    await host.evaluate(() => {
+      PARTY.creds = 500;
+      PARTY.med = 1;
+      enterDen();
+      setMode('den');
+      openNPC('doc');
+    });
+    await fr.waitForFunction(
+      () => G.mode === 'npc' && G.npc === 'doc' && document.querySelector('[data-a="buy:med"]'),
+      null,
+      { timeout: 5000 }
+    );
+    ok(true, "host opens Doc's counter → the friend sees it too");
+    await fr.click('[data-a="buy:med"]');
+    await host.waitForFunction(() => PARTY.med === 2 && PARTY.creds < 500, null, { timeout: 5000 });
+    ok(true, "the friend's purchase lands on the host (medkit bought, creds spent)");
+    await fr.waitForFunction(() => PARTY.med === 2 && /¥4/.test(ov.textContent), null, { timeout: 5000 });
+    ok(true, "the friend's counter updates with the new wallet");
+    await fr.click('[data-a="leave"]');
+    ok(
+      (await fr.evaluate(() => G.mode)) === 'netwait' && (await host.evaluate(() => G.mode)) === 'npc',
+      'the friend can step away; the host stays at the counter'
+    );
+    await host.click('[data-a="leave"]');
+    await fr.waitForFunction(() => G.mode === 'play', null, { timeout: 5000 });
+    ok(true, 'host leaves the counter → both back in the Den');
     // ---- the Sprawl ----
     await host.keyboard.press('Escape');
     await host.click('[data-a="quit"]');
@@ -299,6 +326,19 @@ const { pathToFileURL } = require('url');
       'host page: no errors in campaign or Sprawl' +
         (H.errs.length ? ': ' + H.errs.slice(0, 3).join(' | ') : '')
     );
+    // ---- training: solo, the friend watches ----
+    await host.keyboard.press('Escape');
+    await host.click('[data-a="quit"]');
+    await host.waitForFunction(() => G.mode === 'nethub');
+    await host.click('[data-a="trainpick"]');
+    await host.click('[data-a="train"]');
+    await host.waitForFunction(() => G.mode === 'play' && G.training, null, { timeout: 10000 });
+    await host.waitForTimeout(600);
+    ok((await host.evaluate(() => PL.length)) === 1, 'training stays solo on the host');
+    await fr.waitForFunction(() => G.mode === 'play' && G.training && PL.length === 1, null, {
+      timeout: 10000
+    });
+    ok(true, 'the friend watches the training');
     // friend leaves → host drops runner 2 and keeps playing
     await fr.keyboard.press('Escape');
     await fr.click('[data-a="netleave"]');
@@ -347,6 +387,31 @@ const { pathToFileURL } = require('url');
       (await host.evaluate(() => PL[1].arch)) === 'samurai',
       'friend typed the room code → connected, nothing pasted back'
     );
+    // a dropped connection (no goodbye): the host keeps the runner and reopens the room; the friend rejoins
+    await host.evaluate(() => (PL[1].karma = 4242));
+    await fr.waitForFunction(() => PL[1] && PL[1].karma === 4242, null, { timeout: 5000 });
+    await fr.evaluate(() => NET.pc.close());
+    await host.waitForFunction(
+      r => !NET.live && NET.away && NET.status === 'offer' && NET.room === r && PL.length === 1,
+      room,
+      { timeout: 15000 }
+    );
+    ok(
+      /PARTNER DROPPED · ROOM/.test(await host.evaluate(() => netAwayTag())),
+      'host: partner dropped, room reopened under the same code'
+    );
+    await fr.waitForFunction(() => G.mode === 'netlost' && NET.canRejoin, null, { timeout: 15000 });
+    ok(/Rejoin room/.test(await fr.textContent('#ov .card')), 'friend: a Rejoin button for the same room');
+    await fr.click('[data-a="netrejoin"]');
+    await host.waitForFunction(
+      () => NET.live && PL.length === 2 && PL[1].karma === 4242 && G.mode === 'play',
+      null,
+      { timeout: 20000 }
+    );
+    await fr.waitForFunction(() => NET.live && G.mode === 'play' && PL.length === 2, null, {
+      timeout: 15000
+    });
+    ok(true, 'rejoined mid-run with the same runner (karma kept)');
     await fr.keyboard.press('Escape');
     await fr.click('[data-a="netleave"]');
     await host.waitForFunction(() => !NET.live && PL.length === 1, null, { timeout: 8000 });

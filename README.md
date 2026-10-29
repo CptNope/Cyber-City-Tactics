@@ -197,7 +197,11 @@ Play with a friend in another browser, on another device, anywhere. No accounts 
 
 **How it connects.** The two browsers talk directly (WebRTC). A small Cloudflare Worker in [`server/`](server/README.md) only swaps the connection details behind the room code and, on networks that block direct connections (many offices and schools), hands out passes for Cloudflare's relay. The game itself never goes through a server of ours. If the lobby is ever unreachable, the game falls back to swapping two long codes by hand.
 
-**Good to know.** Training stays solo. If the connection drops, start a new online game; if the friend leaves mid-campaign, the host carries on solo. The host's game is the real one: saves, unlocks and high scores land on the host's device.
+**Shopping together.** When the host walks up to Doc Kessler, Ratchet, Old Wen, Sable or the safehouse, the friend sees the same counter and buys, sells and haggles for their own runner, with the shared wallet updating on both screens.
+
+**Dropped connections.** If the friend's connection drops (not if they choose to leave), the host's game keeps their runner aside and reopens the same room code; the friend's screen offers **Rejoin room K7Q2X**, and they walk back into the run with everything they had.
+
+**Good to know.** Training is solo, but the friend can watch it. The host's game is the real one: saves, unlocks and high scores land on the host's device.
 
 ---
 

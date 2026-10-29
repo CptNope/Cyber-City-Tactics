@@ -104,7 +104,7 @@ The guiding rules:
 - [x] ~~**Revive.**~~ Shipped: stand by your partner's marker.
 - [x] ~~**Online co-op.**~~ Shipped for the Arena: WebRTC peer to peer, joined with a five-letter room code from a Cloudflare Worker lobby that also hands out TURN relay passes; long manual codes as a fallback. The host runs the game; the friend's browser sends buttons and draws the host's snapshots.
 - [x] ~~**Online co-op beyond the Arena.**~~ Shipped: the host's hub starts any mode with the friend as Runner 2, and the friend has their own character sheet.
-- [ ] **Online co-op, round three (M).** The friend shopping for themselves in the Den and the Sprawl, rejoining after a dropped connection, and spectating the host's training.
+- [x] ~~**Online co-op, round three.**~~ Shipped: the friend shops at the host's counter for their own runner, rejoins the same room after a drop, and watches the host's training.
 - [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.
 - [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
 

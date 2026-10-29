@@ -9,6 +9,7 @@
  *       GET  /rooms/CODE                   → 200 {offer} | 404
  *       POST /rooms/CODE/answer   {answer} → 204 | 404 | 409 (already answered)
  *       GET  /rooms/CODE/answer            → 200 {answer} | 204 (not yet) | 404
+ *       POST /rooms/CODE/reopen {offer, key} → 204 | 403   (the host, after a drop; key came with the code)
  *  2. Relay passes. GET /ice returns ICE servers for RTCPeerConnection: Cloudflare's STUN, plus short-lived
  *     Cloudflare TURN credentials when the TURN_KEY_ID and TURN_KEY_API_TOKEN secrets are set, so players on
  *     networks that block direct connections still meet (their traffic is relayed through Cloudflare).
@@ -30,6 +31,14 @@ export function makeCode(rand = Math.random) {
   let s = '';
   for (let i = 0; i < CODE_LEN; i++) s += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)];
   return s;
+}
+const KEY_LEN = 24;
+export function makeKey() {
+  const b = new Uint8Array(18);
+  crypto.getRandomValues(b);
+  return btoa(String.fromCharCode(...b))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
 }
 export const validCode = c =>
   typeof c === 'string' && c.length === CODE_LEN && [...c].every(ch => CODE_CHARS.includes(ch));
@@ -116,20 +125,35 @@ export default {
       const b = await readBody(req);
       if (!b || !goodBlob(b.offer)) return json({ error: 'bad invite' }, 400, h);
       for (let i = 0; i < 6; i++) {
-        const code = makeCode();
+        const code = makeCode(),
+          key = makeKey();
         const r = await room(env, code).fetch('https://room/create', {
           method: 'POST',
-          body: JSON.stringify({ offer: b.offer })
+          body: JSON.stringify({ offer: b.offer, key })
         });
-        if (r.status === 201) return json({ code }, 201, h);
+        if (r.status === 201) return json({ code, key }, 201, h);
       }
       return json({ error: 'busy, try again' }, 503, h);
     }
-    const m = path.match(/^\/rooms\/([A-Za-z0-9]+)(\/answer)?$/);
+    const m = path.match(/^\/rooms\/([A-Za-z0-9]+)(\/answer|\/reopen)?$/);
     if (m) {
       const code = m[1].toUpperCase();
       if (!validCode(code)) return json({ error: 'no such room' }, 404, h);
       const stub = room(env, code);
+      // the host, after the friend dropped: a fresh invite under the same code, so the friend can rejoin
+      if (m[2] === '/reopen' && req.method === 'POST') {
+        if (!(await allow(env, 'room:' + ip, ROOMS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
+        const b = await readBody(req);
+        if (!b || !goodBlob(b.offer) || typeof b.key !== 'string' || b.key.length !== KEY_LEN)
+          return json({ error: 'bad invite' }, 400, h);
+        return relay(
+          await stub.fetch('https://room/reopen', {
+            method: 'POST',
+            body: JSON.stringify({ offer: b.offer, key: b.key })
+          }),
+          h
+        );
+      }
       if (!m[2] && req.method === 'GET') return relay(await stub.fetch('https://room/offer'), h);
       if (m[2] && req.method === 'GET') return relay(await stub.fetch('https://room/answer'), h);
       if (m[2] && req.method === 'POST') {
@@ -177,11 +201,20 @@ export class Room {
     const live = made && now - made < ROOM_TTL_MS;
     if (url.pathname === '/create') {
       if (live) return new Response(null, { status: 409 });
-      const { offer } = await req.json();
+      const { offer, key } = await req.json();
       await st.deleteAll();
-      await st.put({ made: now, offer });
+      await st.put({ made: now, offer, key });
       await st.setAlarm(now + ROOM_TTL_MS);
       return new Response(null, { status: 201 });
+    }
+    if (url.pathname === '/reopen') {
+      const { offer, key } = await req.json();
+      // only the host who made the room (it holds the key); an expired, empty code can be taken back
+      if (live && (await st.get('key')) !== key) return json({ error: 'not your room' }, 403);
+      await st.deleteAll();
+      await st.put({ made: now, offer, key });
+      await st.setAlarm(now + ROOM_TTL_MS);
+      return new Response(null, { status: 204 });
     }
     if (!live) return json({ error: 'no such room' }, 404);
     if (url.pathname === '/offer') return json({ offer: await st.get('offer') }, 200);

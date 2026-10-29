@@ -50,7 +50,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
 
   // the round trip
   let r = await call('POST', '/rooms', { offer: OFFER });
-  const { code } = await r.json();
+  const { code, key } = await r.json();
   ok(r.status === 201 && W.validCode(code), `host gets a room code (${code})`);
   r = await call('GET', '/rooms/' + code.toLowerCase());
   ok(
@@ -66,6 +66,27 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   r = await call('GET', '/rooms/' + code + '/answer');
   ok(r.status === 200 && (await r.json()).answer === ANSWER, 'host picks up the reply');
   ok((await call('GET', '/rooms/ZZZZZ')).status === 404, 'unknown rooms are 404');
+  // rejoining: the host reopens the same code with its key; anyone else is refused
+  ok(typeof key === 'string' && key.length === 24, 'the host gets a room key with the code');
+  const OFFER2 = 'CCT1z' + 'C'.repeat(400);
+  ok(
+    (await call('POST', '/rooms/' + code + '/reopen', { offer: OFFER2, key: 'x'.repeat(24) })).status === 403,
+    'reopening needs the right key'
+  );
+  ok(
+    (await call('POST', '/rooms/' + code + '/reopen', { offer: OFFER2, key })).status === 204,
+    'the host reopens its room'
+  );
+  r = await call('GET', '/rooms/' + code);
+  ok((await r.json()).offer === OFFER2, 'the code now holds the fresh invite');
+  ok(
+    (await call('GET', '/rooms/' + code + '/answer')).status === 204,
+    'and the old reply is gone, ready for the friend'
+  );
+  ok(
+    (await call('POST', '/rooms/' + code + '/answer', { answer: ANSWER })).status === 204,
+    'the friend answers again'
+  );
 
   // junk and oversize bodies
   ok((await call('POST', '/rooms', { offer: 'hello' })).status === 400, 'non-game invites are refused');

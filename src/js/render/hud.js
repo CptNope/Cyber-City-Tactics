@@ -720,6 +720,7 @@ function render() {
     drawHudTop();
   }
   if (!noHud) drawIntro();
+  netDrawTags();
   if (prefs.fps) drawFpsMeter();
   if (legDirty && G.t % 900 === 0) saveLeg();
   if (G.training && G.mode === 'play') {
