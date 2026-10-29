@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+d6ee9df';
+const APP_VERSION = '2.0.0+78cc317';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -17900,6 +17900,21 @@ function drawFacility() {
     ctx.globalAlpha = 1;
     glow(tx, SF.floor - 22, 26, 16, T.done ? '#7dffb0' : '#45d2ff', 0.25);
     txt(T.done ? 'DONE' : 'TERMINAL', tx, SF.floor - 34, 10, T.done ? '#7dffb0' : '#9fe9ff', 'center');
+    // a drone close enough: say what to press, or that it's flying too high to plug in
+    const near = !T.done && PL.find(p => p.drone && !p.out && Math.abs(p.x - T.x) < 38);
+    if (near) {
+      const ok = near.z < 70;
+      ctx.fillStyle = 'rgba(11,8,18,.8)';
+      ctx.fillRect(tx - 44, SF.floor - 62, 88, 16);
+      txt(
+        ok ? ctl('PUNCH TO HACK', 'J TO HACK') : 'FLY LOWER',
+        tx,
+        SF.floor - 50,
+        11,
+        ok ? '#ffc63d' : '#a79dc2',
+        'center'
+      );
+    }
   }
   // the exit vent at the far end
   const ex = S.exit - cx;
@@ -17911,7 +17926,8 @@ function drawFacility() {
     ctx.strokeRect(ex - 15.5, sfY(100) + 0.5, 31, 59);
     for (let i = 1; i < 6; i++) ctx.fillRect(ex - 14, sfY(100) + i * 10, 28, 1);
     if (S.data) glow(ex, sfY(70), 34, 40, '#7dffb0', 0.25);
-    txt('EXIT', ex, sfY(104), 11, col, 'center');
+    txt(S.data ? 'EXIT · FLY IN' : 'EXIT · LOCKED', ex, sfY(104), 11, col, 'center');
+    if (!S.data) txt('GET THE FILES FIRST', ex, sfY(116), 9, '#a79dc2', 'center');
   }
   // walls, open only at their vents
   for (const w of S.walls) {
@@ -18092,30 +18108,83 @@ function drawDroneP(p) {
     ctx.fillRect(sx - 8, sy + 7, (16 * d.batt) / 100, 1.5);
   }
 }
+// where to go next: the terminal until the files are pulled, then the exit vent
+function stealthGoal() {
+  const S = G.stealth;
+  if (!S) return null;
+  if (!S.data) return { x: S.term.x, z: 30, s: 'TERMINAL', c: '#45d2ff' };
+  return { x: S.exit, z: 70, s: 'EXIT', c: '#7dffb0' };
+}
 function drawStealthHud() {
   const S = G.stealth,
     J = stealthJob(),
     bw = 236,
     bx = (W - bw) / 2,
-    by = BAND + (G.coop ? 50 : 8);
+    by = BAND + 52, // under the runners' panels, clear of money and ammo
+    g = stealthGoal(),
+    lead = PL.find(p => p.drone && !p.out),
+    dist = g && lead ? Math.max(0, Math.round(Math.abs(g.x - lead.x) / 10)) : 0;
   ctx.fillStyle = 'rgba(11,8,18,.75)';
-  ctx.fillRect(bx, by - 4, bw, 46);
-  const line = (y, done, s, col) => {
-    ctx.font = '11px "Chakra Petch", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = done ? '#7dffb0' : col || '#efe9ff';
-    ctx.fillText((done ? '✓ ' : '○ ') + s, bx + 8, y);
-  };
-  line(by + 8, S.data, 'Pull the files from the terminal');
-  line(by + 20, S.aide, 'Dart ' + J.target + ' from behind (bonus)', S.aide ? null : '#a79dc2');
-  line(by + 32, S.done && S.win, 'Out through the vent at the far end', S.data ? '#efe9ff' : '#6b6280');
+  ctx.fillRect(bx, by - 4, bw, 34);
+  ctx.font = '11px "Chakra Petch", sans-serif';
+  ctx.textAlign = 'left';
+  // the one thing to do now, with how far away it is
+  const now =
+    S.done && S.win
+      ? 'Out clean'
+      : !S.data
+        ? 'Pull the files from the terminal'
+        : 'Out through the exit vent';
+  ctx.fillStyle = S.done && S.win ? '#7dffb0' : '#efe9ff';
+  ctx.fillText('▸ ' + now, bx + 8, by + 8);
+  if (g && !S.done) {
+    ctx.textAlign = 'right';
+    ctx.fillStyle = g.c;
+    ctx.fillText(
+      (g.x >= (lead ? lead.x : 0) ? '' : '◂ ') + dist + ' m' + (g.x >= (lead ? lead.x : 0) ? ' ▸' : ''),
+      bx + bw - 16,
+      by + 8
+    );
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = S.aide ? '#7dffb0' : '#a79dc2';
+  ctx.fillText((S.aide ? '✓ ' : '○ ') + 'Bonus: dart ' + J.target + ' from behind', bx + 8, by + 21);
   if (S.ow && owOf()) {
     ctx.fillStyle = 'rgba(11,8,18,.75)';
-    ctx.fillRect(bx, by + 44, bw, 14);
+    ctx.fillRect(bx, by + 32, bw, 14);
     ctx.font = '10px "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#45d2ff';
-    ctx.fillText(`OVERWATCH · LOOPS ${G.owLoops} · PINGS ${G.owPings}`, bx + bw / 2, by + 54);
+    ctx.fillText(`OVERWATCH · LOOPS ${G.owLoops} · PINGS ${G.owPings}`, bx + bw / 2, by + 42);
+  }
+  // the objective marker: a bouncing chevron over it on screen, an arrow at the screen's edge when it isn't
+  if (g && !S.done) {
+    const sx = g.x - G.camX,
+      sy = BAND + sfY(g.z + 40) + Math.sin(G.t * 0.15) * 3;
+    ctx.fillStyle = g.c;
+    if (sx > 12 && sx < W - 12) {
+      ctx.beginPath();
+      ctx.moveTo(sx - 6, sy - 8);
+      ctx.lineTo(sx + 6, sy - 8);
+      ctx.lineTo(sx, sy);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      const right = sx >= W - 12,
+        ax = right ? W - 10 : 10,
+        ay = BAND + sfY(g.z);
+      ctx.globalAlpha = 0.6 + 0.4 * Math.sin(G.t * 0.15);
+      ctx.beginPath();
+      ctx.moveTo(ax + (right ? 6 : -6), ay);
+      ctx.lineTo(ax - (right ? 4 : -4), ay - 8);
+      ctx.lineTo(ax - (right ? 4 : -4), ay + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.font = '9px "Chakra Petch", sans-serif';
+      ctx.textAlign = right ? 'right' : 'left';
+      ctx.fillText(g.s + ' ' + dist + ' m', right ? ax - 6 : ax + 6, ay + 18);
+    }
   }
   // the alarm: three pips down the right edge
   for (let i = 0; i < 3; i++) {

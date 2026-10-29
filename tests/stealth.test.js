@@ -131,6 +131,7 @@ S.lasers = [];
 G.ents = G.ents.filter(e => !e.guard);
 G.salarm = 0;
 
+ok(A.stealthGoal().s === 'TERMINAL', 'the objective marker points to the terminal first');
 // the exit won't take you without the files
 put(p, S.exit - 20);
 p.drone.seen = 0;
@@ -145,6 +146,7 @@ ok(G.mode === 'hack' && G.hack && G.hack.vault === S.term, 'punch at the termina
 A.hackWin();
 step(2);
 ok(G.mode === 'play' && S.data && S.term.done, 'hack won: FILES PULLED');
+ok(A.stealthGoal().s === 'EXIT', 'then it points to the exit vent');
 // the target, darted from behind, for the bonus
 const aide = guards.find(e => e.target);
 G.ents.push(aide);
