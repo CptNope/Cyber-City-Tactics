@@ -271,17 +271,20 @@ function stashHtml() {
 }
 // chrome techniques for the runner whose tab is open, at Doc's or a Sprawl clinic
 function techHtml() {
-  const p = PL[G.sheetIdx] || PL[0];
-  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
-  <div class="list">${Object.keys(TECH)
-    .map(k => {
+  const p = PL[G.sheetIdx] || PL[0],
+    row = k => {
       const t = TECH[k],
         have = hasTech(p, k),
         c = Math.round(t.cost * buyMul()),
         ok = !have && PARTY.creds >= c;
       return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
-    })
-    .join('')}</div>`;
+    },
+    ups = Object.keys(TECH).filter(k => !TECH[k].move),
+    moves = Object.keys(TECH).filter(k => TECH[k].move);
+  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
+  <div class="list">${ups.map(row).join('')}</div>
+  <h3>Chrome moves</h3><p style="color:var(--muted);font-size:13px">New moves, wired straight into the spine.</p>
+  <div class="list">${moves.map(row).join('')}</div>`;
 }
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],

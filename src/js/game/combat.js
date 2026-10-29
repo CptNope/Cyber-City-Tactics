@@ -361,7 +361,7 @@ function hurt(t, dmg, dir, o) {
     t.x += dir * 6;
     return true;
   }
-  if (o.kd || t.hits >= 3) {
+  if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
     t.vz = 2.8;
     t.vx = dir * 2.2;

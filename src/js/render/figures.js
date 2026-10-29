@@ -779,6 +779,64 @@ function drawFig(e) {
     ff = [8, 0];
     bf = [-7, 0];
   }
+  // the River City moves
+  if (st === 'mach') {
+    const a = (t >> 1) % 2; // fists alternate every other frame
+    fh = a ? [21, -35] : [7, -31];
+    bh = a ? [4, -28] : [19, -31];
+    lean = 4;
+    ff = [8, 0];
+    bf = [-7, 0];
+    swing = true;
+  }
+  if (st === 'dragon') {
+    const a = Math.floor(t / 2.5) % 2; // high, low, high
+    ff = a ? [23, -27] : [22, -12];
+    fkb = -3;
+    bf = [-4, 0];
+    lean = -5;
+    fh = [3, -31];
+    bh = [-10, -30];
+    swing = true;
+  }
+  if (st === 'gslam') {
+    const a = (t / 30) * Math.PI * 2;
+    fh = [Math.cos(a) * 15, -32 + Math.sin(a) * 4];
+    bh = [Math.cos(a) * 12, -34 + Math.sin(a) * 4];
+    lean = Math.cos(a) * 4;
+    ff = [8, 0];
+    bf = [-8, 0];
+    swing = true;
+  }
+  if (st === 'stomp') {
+    const a = t >= 6;
+    ff = a ? [11, -2] : [9, -20];
+    fkb = a ? 1 : 8;
+    bf = [-5, 0];
+    lean = a ? 4 : -2;
+    fh = [4, -33];
+    bh = [-8, -31];
+  }
+  if (st === 'dashp') {
+    fh = [15, -31];
+    bh = [13, -27];
+    lean = 9;
+    ff = [10, -2];
+    bf = [-12, -3];
+    swing = t < 12;
+  }
+  if (st === 'slide') {
+    hip = [0, -11];
+    sh = [-6, -27];
+    ff = [24, -4];
+    fkb = 0;
+    bf = [-6, -1];
+    bkb = 7;
+    fh = [-4, -18];
+    bh = [-14, -16];
+    lean = -8;
+    swing = t < 16;
+  }
   if (st === 'idle' || st === 'blink' || st === 'summon') {
     sh = [0, -35 + breath];
     fh = [8, -27 + breath];
@@ -792,7 +850,7 @@ function drawFig(e) {
     }
   }
   if (st === 'walk' || st === 'charge') {
-    const k = st === 'charge' ? 1.5 : 1;
+    const k = st === 'charge' || e.sprint ? 1.5 : 1;
     ff = [ws * 7 * k, -Math.max(0, wc) * 3];
     bf = [-ws * 7 * k, -Math.max(0, -wc) * 3];
     fh = [-ws * 6 + 4, -24];
@@ -800,6 +858,11 @@ function drawFig(e) {
     if (st === 'charge') {
       lean = 5;
       fh = [14, -30];
+    }
+    if (e.sprint) {
+      lean = 6;
+      fh = [-ws * 9 + 6, -27];
+      bh = [ws * 9 - 2, -27];
     }
   }
   if (st === 'punch') {

@@ -158,3 +158,120 @@ key('KeyD', false);
 tap('KeyK');
 step(1);
 ok(Math.abs(g.vx) > 6, `gyro: throws fly further (vx ${g.vx.toFixed(1)})`);
+
+// ---------- the moves ----------
+s.tech = Object.assign({}, s.tech, { mach: 1, dragon: 1, slam: 1, heel: 1, turbo: 1 });
+A.refresh(s);
+s.hp = s.maxHp;
+const sparring = dx => {
+  const f = A.spawnEnemy('ganger', 1);
+  f.x = s.x + dx;
+  f.y = s.y;
+  f.hp = f.maxHp = 9999;
+  f.dmg = 0;
+  f.cool = f.coolMul = 1e9;
+  A.setS(f, 'idle');
+  return f;
+};
+const ready = () => {
+  calm();
+  for (let i = 0; i < 80 && s.state !== 'idle'; i++) step(1);
+  s.x = 220;
+  s.face = 1;
+  s.combo = 0;
+  s.kcombo = 0;
+  step(40);
+};
+// Mach fists
+ready();
+let f = sparring(20);
+tap('KeyJ');
+step(10);
+tap('KeyJ');
+step(10);
+tap('KeyJ');
+step(1);
+ok(s.state === 'mach', 'mach fists: the third quick punch starts a flurry');
+const fh0 = f.hp;
+for (let i = 0; i < 8; i++) {
+  tap('KeyJ');
+  step(6);
+}
+ok(
+  s.state === 'mach' && f.hp < fh0 - 15 && f.state !== 'down',
+  'mashing keeps it going: many hits, and the flurry alone never floors them'
+);
+for (let i = 0; i < 90 && s.state === 'mach'; i++) step(1);
+ok(s.state === 'upper', 'stop mashing and it ends in an uppercut');
+// Dragon feet
+ready();
+f = sparring(26);
+tap('KeyK');
+step(15);
+tap('KeyK');
+step(15);
+tap('KeyK');
+step(1);
+ok(s.state === 'dragon', 'dragon feet: the third quick kick starts a kick flurry');
+for (let i = 0; i < 90 && s.state === 'dragon'; i++) step(1);
+ok(s.state === 'kick', 'it ends with a big kick');
+// Heel spikes
+ready();
+f = sparring(12);
+A.setS(f, 'down');
+f.z = 0;
+f.inv = 0;
+const fd = f.hp;
+tap('KeyK');
+step(1);
+ok(s.state === 'stomp', 'heel spikes: KICK beside a downed foe stomps');
+step(8);
+ok(f.hp < fd, `the stomp lands on the ground (${fd - f.hp} damage)`);
+// Grand slam
+ready();
+f = sparring(22);
+const bystander = sparring(-26);
+f.dazeUntil = G.t + 200;
+key('KeyD', true);
+for (let i = 0; i < 30 && s.state !== 'grab'; i++) step(1);
+key('KeyD', false);
+ok(s.state === 'grab', 'grabbed one');
+tap('Space');
+step(1);
+ok(s.state === 'gslam', 'grand slam: JUMP while holding swings them round');
+for (let i = 0; i < 34 && s.state === 'gslam'; i++) step(1);
+ok(
+  bystander.state === 'down' || bystander.hp < bystander.maxHp,
+  'the swing flattens whoever it passes through'
+);
+ok(f.thrown === s, 'then they fly');
+// Turbo calves
+ready();
+const sx0 = s.x;
+key('KeyD', true);
+step(2);
+key('KeyD', false);
+step(2);
+key('KeyD', true);
+step(10);
+ok(s.sprint && s.x - sx0 > 10 * s.D.spd * 1.5, 'turbo calves: double-tap to sprint');
+f = sparring(40);
+tap('KeyJ');
+step(1);
+ok(s.state === 'dashp', 'PUNCH out of a sprint: a shoulder charge');
+for (let i = 0; i < 24; i++) step(1);
+key('KeyD', false);
+ok(f.state === 'down' || f.hp < f.maxHp, 'that knocks down whoever is in the way');
+ready();
+key('KeyD', true);
+step(2);
+key('KeyD', false);
+step(2);
+key('KeyD', true);
+step(4);
+tap('KeyK');
+step(1);
+key('KeyD', false);
+ok(s.state === 'slide', 'KICK out of a sprint: a slide');
+// Doc sells them under their own heading
+ok(/Chrome moves/.test(A.techHtml()) && /Mach fists/.test(A.techHtml()), 'Doc lists them as Chrome moves');

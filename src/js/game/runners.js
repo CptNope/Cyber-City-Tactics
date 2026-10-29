@@ -245,6 +245,12 @@ function upRunner(p) {
         p.grab = null;
         setS(p, 'idle');
       } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
+    } else if (I.pressed.jump && hasTech(p, 'slam')) {
+      // Grand slam: swing them round by the collar through everyone close, then let go
+      p.slamHit = [];
+      setS(p, 'gslam');
+      sfx.heavy();
+      return;
     } else if (I.pressed.kick) {
       let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
       p.grab = null;
@@ -263,7 +269,12 @@ function upRunner(p) {
     if (p.kneeT > 0) p.kneeT--;
     return;
   }
+  if (p.state === 'mach' || p.state === 'dragon') return flurryTick(p, I, D);
+  if (p.state === 'gslam') return slamTick(p, D);
   const busy = {
+    stomp: 20,
+    dashp: 22,
+    slide: 24,
     punch: 13,
     upper: 20,
     kick: 20,
@@ -310,6 +321,22 @@ function upRunner(p) {
       }
     }
     if (p.state === 'cast' && t === 10) castSpell(p);
+    if (p.state === 'stomp' && t === 7) stompHit(p, D);
+    // off a sprint: a shoulder charge, or a slide along the ground; each lands once
+    if (p.state === 'dashp' || p.state === 'slide') {
+      const sl = p.state === 'slide';
+      if (t < (sl ? 16 : 12)) p.x += p.face * (sl ? 3.6 - t * 0.15 : 3.3);
+      if (!p.didHit && t >= 3 && t <= (sl ? 16 : 12))
+        if (
+          strike(p, (sl ? 26 : 22) + D.reach * 0.5, (sl ? 6 : 7) + D.melee * (sl ? 0.8 : 0.95), {
+            kd: true,
+            kb: sl ? 7 : 10,
+            big: !sl,
+            breaker: true
+          })
+        )
+          p.didHit = true;
+    }
     if (p.state === 'throw' && t === 4 && p.holding) throwProp(p);
     if (p.state === 'roll') {
       p.x += p.rdx * 3.3;
@@ -384,8 +411,26 @@ function upRunner(p) {
   }
   let dx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
     dy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+  // Turbo calves: tap a direction twice to sprint, for as long as you hold it
+  if (hasTech(p, 'turbo') && !p.holding) {
+    if (dx && dx !== p.lastDx) {
+      if (dx === p.tapDx && G.t - (p.tapT || -99) < 15 && !G.den) {
+        p.sprint = true;
+        sfx.roll();
+      }
+      p.tapDx = dx;
+      p.tapT = G.t;
+    }
+    if (!dx || (p.sprint && dx !== p.face)) p.sprint = false;
+  } else p.sprint = false;
+  p.lastDx = dx;
   const air = p.z > 0 || p.vz > 0,
-    spd = D.spd * (p.holding ? 0.75 : 1) * ((p.chargeT || 0) > 12 ? 0.5 : 1) * (p.buffT > 0 ? 1.2 : 1);
+    spd =
+      D.spd *
+      (p.holding ? 0.75 : 1) *
+      ((p.chargeT || 0) > 12 ? 0.5 : 1) *
+      (p.buffT > 0 ? 1.2 : 1) *
+      (p.sprint ? 1.85 : 1);
   p.x += dx * (air ? spd + 0.15 : spd);
   p.y += dy * (air ? 0.6 : spd * 0.63);
   if (dx) p.face = dx;
@@ -455,7 +500,12 @@ function upRunner(p) {
           (e.x - p.x) * p.face > -4 &&
           (e.x - p.x) * p.face < 30
       );
-      if (prop && !foeNear) {
+      if (p.sprint && !prop) {
+        p.sprint = false;
+        p.didHit = false;
+        setS(p, 'dashp');
+        sfx.heavy();
+      } else if (prop && !foeNear) {
         G.props.splice(G.props.indexOf(prop), 1);
         p.holding = prop;
         setS(p, 'lift');
@@ -466,11 +516,25 @@ function upRunner(p) {
         p.lastPunch = G.t;
         if (p.combo >= 3) {
           p.combo = 0;
-          setS(p, 'upper');
+          if (hasTech(p, 'mach') && !G.den) startFlurry(p, 'mach');
+          else setS(p, 'upper');
         } else setS(p, 'punch');
       }
     } else if (I.pressed.kick) {
-      setS(p, 'kick');
+      const down = hasTech(p, 'heel') && !G.den && downedNear(p);
+      if (G.t - (p.lastKick || -99) < 34) p.kcombo = (p.kcombo || 0) + 1;
+      else p.kcombo = 1;
+      p.lastKick = G.t;
+      if (p.sprint) {
+        p.sprint = false;
+        p.didHit = false;
+        setS(p, 'slide');
+        sfx.roll();
+      } else if (down) setS(p, 'stomp');
+      else if (p.kcombo >= 3 && hasTech(p, 'dragon') && !G.den) {
+        p.kcombo = 0;
+        startFlurry(p, 'dragon');
+      } else setS(p, 'kick');
     } else if (I.pressed.gun && !G.den && ARCH[p.arch] && ARCH[p.arch].noGun) {
       sfx.click();
       say(p, 'ADEPTS FIGHT BARE', '#ffc63d', 56, 40, true);
@@ -517,6 +581,88 @@ function upRunner(p) {
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+/* ---------- River City moves from Doc's chrome ---------- */
+// Mach fists and dragon feet: the third quick punch (or kick) becomes a flurry that lasts as long as you
+// keep mashing, with a finisher when you stop. Flurry hits daze but never knock down on their own.
+function startFlurry(p, st) {
+  p.flurT = 30;
+  setS(p, st);
+  say(p, st === 'mach' ? 'MACH FISTS' : 'DRAGON FEET', '#45d2ff', 40, 30, true);
+}
+function flurryTick(p, I, D) {
+  const kick = p.state === 'dragon';
+  if (I.pressed[kick ? 'kick' : 'punch']) p.flurT = Math.min(72, p.flurT + 11);
+  p.flurT--;
+  if (p.t % (kick ? 5 : 4) === 2) {
+    const R = D.reach,
+      m = D.melee,
+      hit = kick
+        ? strike(p, 30 + R * 0.6, 3.4 + m * 0.4, { flurry: true, kb: 1.5, breaker: true })
+        : strike(p, 22 + R, 2.5 + m * 0.33, { flurry: true, kb: 1 });
+    if (!hit && p.t % 8 === 2) sfx.whiff();
+  }
+  p.x += p.face * 0.3; // stepping in after them, so the flurry doesn't push them out of reach
+  if (p.flurT <= 0) setS(p, kick ? 'kick' : 'upper'); // the finisher
+  p.y = clamp(p.y, FY0 + 6, FY1);
+  clampX(p);
+}
+// Grand slam: the held foe swings round once, flattening everyone it passes through, then flies off
+function slamTick(p, D) {
+  const e = p.grab,
+    T = 30;
+  if (!e || e.state !== 'grabbed') {
+    p.grab = null;
+    setS(p, 'idle');
+    return;
+  }
+  const a = (p.t / T) * Math.PI * 2;
+  e.x = p.x + Math.cos(a) * 18 * p.face;
+  e.y = clamp(p.y + Math.sin(a) * 7, FY0 + 6, FY1);
+  e.z = 10 + Math.sin(a) * 4;
+  for (const o of G.ents) {
+    if (o === e || o.team !== 1 || o.state === 'dead' || p.slamHit.includes(o)) continue;
+    if (Math.abs(o.x - e.x) < 20 && Math.abs(o.y - e.y) < 12) {
+      p.slamHit.push(o);
+      hurt(o, (10 + D.melee * 0.8) * (hasTech(p, 'gyro') ? 1.5 : 1), Math.sign(o.x - p.x) || p.face, {
+        kd: true,
+        big: true,
+        src: p,
+        ax: p.x
+      });
+    }
+  }
+  if (p.t >= T) {
+    p.grab = null;
+    setS(p, 'throw');
+    setS(e, 'down');
+    e.vz = 3.6;
+    e.vx = p.face * (hasTech(p, 'gyro') ? 6.4 : 5);
+    e.x = p.x + p.face * 10;
+    e.thrown = p;
+    e.thrownHit = p.slamHit.slice();
+    sfx.heavy();
+    G.shake = Math.max(G.shake, 5);
+  }
+}
+// Heel stomp: a kick aimed at someone on the ground
+const downedNear = p =>
+  G.ents.find(
+    e =>
+      e.team === 1 &&
+      e.state === 'down' &&
+      !e.d.passive &&
+      e.z <= 2 &&
+      Math.abs(e.x - (p.x + p.face * 10)) < 20 &&
+      Math.abs(e.y - p.y) < 10
+  );
+function stompHit(p, D) {
+  const e = downedNear(p);
+  if (!e) return sfx.whiff();
+  hurt(e, 9 + D.melee * 1.1, p.face, { air: true, kd: true, src: p, ax: p.x, melee: true, kb: 1 });
+  G.shake = Math.max(G.shake, 4);
+  burst(e.x, e.y, 2, '#ffe28a', 8);
+  sfx.heavy();
 }
 // how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
 function busyFor(p, busy) {

@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+871b2fc';
+const APP_VERSION = '2.0.0+b243e87';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3662,7 +3662,38 @@ const TECH = {
     cost: 340
   },
   spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },
-  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 }
+  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 },
+  // the moves: River City Ransom's books, installed
+  mach: {
+    name: 'Mach fists',
+    desc: 'Your third quick punch becomes a flurry of jabs. Keep mashing PUNCH to keep it going; it ends in an uppercut.',
+    cost: 420,
+    move: true
+  },
+  dragon: {
+    name: 'Dragon feet',
+    desc: 'Your third quick kick becomes a flurry of kicks. Keep mashing KICK to keep it going; it ends with a big kick.',
+    cost: 440,
+    move: true
+  },
+  slam: {
+    name: 'Grand slam',
+    desc: 'While holding a grabbed foe, press JUMP to swing them round through everyone close, then hurl them.',
+    cost: 480,
+    move: true
+  },
+  heel: {
+    name: 'Heel spikes',
+    desc: 'KICK next to a foe on the ground to stomp them.',
+    cost: 360,
+    move: true
+  },
+  turbo: {
+    name: 'Turbo calves',
+    desc: 'Tap a direction twice to sprint. PUNCH out of a sprint for a shoulder charge, KICK for a slide.',
+    cost: 400,
+    move: true
+  }
 };
 const TECH_MANA = 4;
 const hasTech = (p, k) => !!(p && p.tech && p.tech[k]);
@@ -5815,7 +5846,7 @@ function hurt(t, dmg, dir, o) {
     t.x += dir * 6;
     return true;
   }
-  if (o.kd || t.hits >= 3) {
+  if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
     t.vz = 2.8;
     t.vx = dir * 2.2;
@@ -6501,6 +6532,12 @@ function upRunner(p) {
         p.grab = null;
         setS(p, 'idle');
       } else hurt(e, (4 + D.melee * 0.45) * gm, p.face, { src: p, ax: p.x, melee: true });
+    } else if (I.pressed.jump && hasTech(p, 'slam')) {
+      // Grand slam: swing them round by the collar through everyone close, then let go
+      p.slamHit = [];
+      setS(p, 'gslam');
+      sfx.heavy();
+      return;
     } else if (I.pressed.kick) {
       let dir = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0) || p.face;
       p.grab = null;
@@ -6519,7 +6556,12 @@ function upRunner(p) {
     if (p.kneeT > 0) p.kneeT--;
     return;
   }
+  if (p.state === 'mach' || p.state === 'dragon') return flurryTick(p, I, D);
+  if (p.state === 'gslam') return slamTick(p, D);
   const busy = {
+    stomp: 20,
+    dashp: 22,
+    slide: 24,
     punch: 13,
     upper: 20,
     kick: 20,
@@ -6566,6 +6608,22 @@ function upRunner(p) {
       }
     }
     if (p.state === 'cast' && t === 10) castSpell(p);
+    if (p.state === 'stomp' && t === 7) stompHit(p, D);
+    // off a sprint: a shoulder charge, or a slide along the ground; each lands once
+    if (p.state === 'dashp' || p.state === 'slide') {
+      const sl = p.state === 'slide';
+      if (t < (sl ? 16 : 12)) p.x += p.face * (sl ? 3.6 - t * 0.15 : 3.3);
+      if (!p.didHit && t >= 3 && t <= (sl ? 16 : 12))
+        if (
+          strike(p, (sl ? 26 : 22) + D.reach * 0.5, (sl ? 6 : 7) + D.melee * (sl ? 0.8 : 0.95), {
+            kd: true,
+            kb: sl ? 7 : 10,
+            big: !sl,
+            breaker: true
+          })
+        )
+          p.didHit = true;
+    }
     if (p.state === 'throw' && t === 4 && p.holding) throwProp(p);
     if (p.state === 'roll') {
       p.x += p.rdx * 3.3;
@@ -6640,8 +6698,26 @@ function upRunner(p) {
   }
   let dx = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0),
     dy = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+  // Turbo calves: tap a direction twice to sprint, for as long as you hold it
+  if (hasTech(p, 'turbo') && !p.holding) {
+    if (dx && dx !== p.lastDx) {
+      if (dx === p.tapDx && G.t - (p.tapT || -99) < 15 && !G.den) {
+        p.sprint = true;
+        sfx.roll();
+      }
+      p.tapDx = dx;
+      p.tapT = G.t;
+    }
+    if (!dx || (p.sprint && dx !== p.face)) p.sprint = false;
+  } else p.sprint = false;
+  p.lastDx = dx;
   const air = p.z > 0 || p.vz > 0,
-    spd = D.spd * (p.holding ? 0.75 : 1) * ((p.chargeT || 0) > 12 ? 0.5 : 1) * (p.buffT > 0 ? 1.2 : 1);
+    spd =
+      D.spd *
+      (p.holding ? 0.75 : 1) *
+      ((p.chargeT || 0) > 12 ? 0.5 : 1) *
+      (p.buffT > 0 ? 1.2 : 1) *
+      (p.sprint ? 1.85 : 1);
   p.x += dx * (air ? spd + 0.15 : spd);
   p.y += dy * (air ? 0.6 : spd * 0.63);
   if (dx) p.face = dx;
@@ -6711,7 +6787,12 @@ function upRunner(p) {
           (e.x - p.x) * p.face > -4 &&
           (e.x - p.x) * p.face < 30
       );
-      if (prop && !foeNear) {
+      if (p.sprint && !prop) {
+        p.sprint = false;
+        p.didHit = false;
+        setS(p, 'dashp');
+        sfx.heavy();
+      } else if (prop && !foeNear) {
         G.props.splice(G.props.indexOf(prop), 1);
         p.holding = prop;
         setS(p, 'lift');
@@ -6722,11 +6803,25 @@ function upRunner(p) {
         p.lastPunch = G.t;
         if (p.combo >= 3) {
           p.combo = 0;
-          setS(p, 'upper');
+          if (hasTech(p, 'mach') && !G.den) startFlurry(p, 'mach');
+          else setS(p, 'upper');
         } else setS(p, 'punch');
       }
     } else if (I.pressed.kick) {
-      setS(p, 'kick');
+      const down = hasTech(p, 'heel') && !G.den && downedNear(p);
+      if (G.t - (p.lastKick || -99) < 34) p.kcombo = (p.kcombo || 0) + 1;
+      else p.kcombo = 1;
+      p.lastKick = G.t;
+      if (p.sprint) {
+        p.sprint = false;
+        p.didHit = false;
+        setS(p, 'slide');
+        sfx.roll();
+      } else if (down) setS(p, 'stomp');
+      else if (p.kcombo >= 3 && hasTech(p, 'dragon') && !G.den) {
+        p.kcombo = 0;
+        startFlurry(p, 'dragon');
+      } else setS(p, 'kick');
     } else if (I.pressed.gun && !G.den && ARCH[p.arch] && ARCH[p.arch].noGun) {
       sfx.click();
       say(p, 'ADEPTS FIGHT BARE', '#ffc63d', 56, 40, true);
@@ -6773,6 +6868,88 @@ function upRunner(p) {
   }
   p.y = clamp(p.y, FY0 + 6, FY1);
   clampX(p);
+}
+/* ---------- River City moves from Doc's chrome ---------- */
+// Mach fists and dragon feet: the third quick punch (or kick) becomes a flurry that lasts as long as you
+// keep mashing, with a finisher when you stop. Flurry hits daze but never knock down on their own.
+function startFlurry(p, st) {
+  p.flurT = 30;
+  setS(p, st);
+  say(p, st === 'mach' ? 'MACH FISTS' : 'DRAGON FEET', '#45d2ff', 40, 30, true);
+}
+function flurryTick(p, I, D) {
+  const kick = p.state === 'dragon';
+  if (I.pressed[kick ? 'kick' : 'punch']) p.flurT = Math.min(72, p.flurT + 11);
+  p.flurT--;
+  if (p.t % (kick ? 5 : 4) === 2) {
+    const R = D.reach,
+      m = D.melee,
+      hit = kick
+        ? strike(p, 30 + R * 0.6, 3.4 + m * 0.4, { flurry: true, kb: 1.5, breaker: true })
+        : strike(p, 22 + R, 2.5 + m * 0.33, { flurry: true, kb: 1 });
+    if (!hit && p.t % 8 === 2) sfx.whiff();
+  }
+  p.x += p.face * 0.3; // stepping in after them, so the flurry doesn't push them out of reach
+  if (p.flurT <= 0) setS(p, kick ? 'kick' : 'upper'); // the finisher
+  p.y = clamp(p.y, FY0 + 6, FY1);
+  clampX(p);
+}
+// Grand slam: the held foe swings round once, flattening everyone it passes through, then flies off
+function slamTick(p, D) {
+  const e = p.grab,
+    T = 30;
+  if (!e || e.state !== 'grabbed') {
+    p.grab = null;
+    setS(p, 'idle');
+    return;
+  }
+  const a = (p.t / T) * Math.PI * 2;
+  e.x = p.x + Math.cos(a) * 18 * p.face;
+  e.y = clamp(p.y + Math.sin(a) * 7, FY0 + 6, FY1);
+  e.z = 10 + Math.sin(a) * 4;
+  for (const o of G.ents) {
+    if (o === e || o.team !== 1 || o.state === 'dead' || p.slamHit.includes(o)) continue;
+    if (Math.abs(o.x - e.x) < 20 && Math.abs(o.y - e.y) < 12) {
+      p.slamHit.push(o);
+      hurt(o, (10 + D.melee * 0.8) * (hasTech(p, 'gyro') ? 1.5 : 1), Math.sign(o.x - p.x) || p.face, {
+        kd: true,
+        big: true,
+        src: p,
+        ax: p.x
+      });
+    }
+  }
+  if (p.t >= T) {
+    p.grab = null;
+    setS(p, 'throw');
+    setS(e, 'down');
+    e.vz = 3.6;
+    e.vx = p.face * (hasTech(p, 'gyro') ? 6.4 : 5);
+    e.x = p.x + p.face * 10;
+    e.thrown = p;
+    e.thrownHit = p.slamHit.slice();
+    sfx.heavy();
+    G.shake = Math.max(G.shake, 5);
+  }
+}
+// Heel stomp: a kick aimed at someone on the ground
+const downedNear = p =>
+  G.ents.find(
+    e =>
+      e.team === 1 &&
+      e.state === 'down' &&
+      !e.d.passive &&
+      e.z <= 2 &&
+      Math.abs(e.x - (p.x + p.face * 10)) < 20 &&
+      Math.abs(e.y - p.y) < 10
+  );
+function stompHit(p, D) {
+  const e = downedNear(p);
+  if (!e) return sfx.whiff();
+  hurt(e, 9 + D.melee * 1.1, p.face, { air: true, kd: true, src: p, ax: p.x, melee: true, kb: 1 });
+  G.shake = Math.max(G.shake, 4);
+  burst(e.x, e.y, 2, '#ffe28a', 8);
+  sfx.heavy();
 }
 // how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
 function busyFor(p, busy) {
@@ -15268,6 +15445,64 @@ function drawFig(e) {
     ff = [8, 0];
     bf = [-7, 0];
   }
+  // the River City moves
+  if (st === 'mach') {
+    const a = (t >> 1) % 2; // fists alternate every other frame
+    fh = a ? [21, -35] : [7, -31];
+    bh = a ? [4, -28] : [19, -31];
+    lean = 4;
+    ff = [8, 0];
+    bf = [-7, 0];
+    swing = true;
+  }
+  if (st === 'dragon') {
+    const a = Math.floor(t / 2.5) % 2; // high, low, high
+    ff = a ? [23, -27] : [22, -12];
+    fkb = -3;
+    bf = [-4, 0];
+    lean = -5;
+    fh = [3, -31];
+    bh = [-10, -30];
+    swing = true;
+  }
+  if (st === 'gslam') {
+    const a = (t / 30) * Math.PI * 2;
+    fh = [Math.cos(a) * 15, -32 + Math.sin(a) * 4];
+    bh = [Math.cos(a) * 12, -34 + Math.sin(a) * 4];
+    lean = Math.cos(a) * 4;
+    ff = [8, 0];
+    bf = [-8, 0];
+    swing = true;
+  }
+  if (st === 'stomp') {
+    const a = t >= 6;
+    ff = a ? [11, -2] : [9, -20];
+    fkb = a ? 1 : 8;
+    bf = [-5, 0];
+    lean = a ? 4 : -2;
+    fh = [4, -33];
+    bh = [-8, -31];
+  }
+  if (st === 'dashp') {
+    fh = [15, -31];
+    bh = [13, -27];
+    lean = 9;
+    ff = [10, -2];
+    bf = [-12, -3];
+    swing = t < 12;
+  }
+  if (st === 'slide') {
+    hip = [0, -11];
+    sh = [-6, -27];
+    ff = [24, -4];
+    fkb = 0;
+    bf = [-6, -1];
+    bkb = 7;
+    fh = [-4, -18];
+    bh = [-14, -16];
+    lean = -8;
+    swing = t < 16;
+  }
   if (st === 'idle' || st === 'blink' || st === 'summon') {
     sh = [0, -35 + breath];
     fh = [8, -27 + breath];
@@ -15281,7 +15516,7 @@ function drawFig(e) {
     }
   }
   if (st === 'walk' || st === 'charge') {
-    const k = st === 'charge' ? 1.5 : 1;
+    const k = st === 'charge' || e.sprint ? 1.5 : 1;
     ff = [ws * 7 * k, -Math.max(0, wc) * 3];
     bf = [-ws * 7 * k, -Math.max(0, -wc) * 3];
     fh = [-ws * 6 + 4, -24];
@@ -15289,6 +15524,11 @@ function drawFig(e) {
     if (st === 'charge') {
       lean = 5;
       fh = [14, -30];
+    }
+    if (e.sprint) {
+      lean = 6;
+      fh = [-ws * 9 + 6, -27];
+      bh = [ws * 9 - 2, -27];
     }
   }
   if (st === 'punch') {
@@ -19259,7 +19499,12 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
 <b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
 <b>Shields</b><span>Kicks and heavy blows break riot shields</span>
-<b>Chrome</b><span>Doc in the Den installs techniques: faster punches and kicks, longer grabs, harder throws, higher jumps</span></div>
+<b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
+<b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
+<b>· Dragon feet</b><span>The third quick kick becomes a flurry; keep mashing kick</span>
+<b>· Grand slam</b><span>Jump while holding a grabbed foe to swing them through the crowd</span>
+<b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
+<b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
 <p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
@@ -20011,17 +20256,20 @@ function stashHtml() {
 }
 // chrome techniques for the runner whose tab is open, at Doc's or a Sprawl clinic
 function techHtml() {
-  const p = PL[G.sheetIdx] || PL[0];
-  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
-  <div class="list">${Object.keys(TECH)
-    .map(k => {
+  const p = PL[G.sheetIdx] || PL[0],
+    row = k => {
       const t = TECH[k],
         have = hasTech(p, k),
         c = Math.round(t.cost * buyMul()),
         ok = !have && PARTY.creds >= c;
       return `<div class="item"><div><div class="nm">${t.name}</div><div class="ds">${t.desc}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="tech:${k}" ${ok ? '' : 'disabled'}>${have ? 'Installed' : '¥' + c}</button></div></div>`;
-    })
-    .join('')}</div>`;
+    },
+    ups = Object.keys(TECH).filter(k => !TECH[k].move),
+    moves = Object.keys(TECH).filter(k => TECH[k].move);
+  return `<h3>Chrome techniques</h3><p style="color:var(--muted);font-size:13px">One-off implants that change how you fight. Each costs ${TECH_MANA} max mana. ${esc(p.name)} has ${techN(p)} of ${Object.keys(TECH).length}.</p>
+  <div class="list">${ups.map(row).join('')}</div>
+  <h3>Chrome moves</h3><p style="color:var(--muted);font-size:13px">New moves, wired straight into the spine.</p>
+  <div class="list">${moves.map(row).join('')}</div>`;
 }
 function shopHtml(b) {
   const p = PL[G.sheetIdx] || PL[0],

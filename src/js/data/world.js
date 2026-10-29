@@ -48,7 +48,38 @@ const TECH = {
     cost: 340
   },
   spring: { name: 'Spring tendons', desc: 'Jump higher, and one flying kick can hit twice.', cost: 300 },
-  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 }
+  recoil: { name: 'Recoil dampers', desc: 'Back on your feet twice as fast after a knockdown.', cost: 240 },
+  // the moves: River City Ransom's books, installed
+  mach: {
+    name: 'Mach fists',
+    desc: 'Your third quick punch becomes a flurry of jabs. Keep mashing PUNCH to keep it going; it ends in an uppercut.',
+    cost: 420,
+    move: true
+  },
+  dragon: {
+    name: 'Dragon feet',
+    desc: 'Your third quick kick becomes a flurry of kicks. Keep mashing KICK to keep it going; it ends with a big kick.',
+    cost: 440,
+    move: true
+  },
+  slam: {
+    name: 'Grand slam',
+    desc: 'While holding a grabbed foe, press JUMP to swing them round through everyone close, then hurl them.',
+    cost: 480,
+    move: true
+  },
+  heel: {
+    name: 'Heel spikes',
+    desc: 'KICK next to a foe on the ground to stomp them.',
+    cost: 360,
+    move: true
+  },
+  turbo: {
+    name: 'Turbo calves',
+    desc: 'Tap a direction twice to sprint. PUNCH out of a sprint for a shoulder charge, KICK for a slide.',
+    cost: 400,
+    move: true
+  }
 };
 const TECH_MANA = 4;
 const hasTech = (p, k) => !!(p && p.tech && p.tech[k]);

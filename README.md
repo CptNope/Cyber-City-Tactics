@@ -447,6 +447,16 @@ Tuned and Prototype items can roll an affix, which shows in the item's name (for
 | Spring tendons | Jump higher; one flying kick can hit twice |
 | Recoil dampers | Back on your feet twice as fast after a knockdown |
 
+**Chrome moves** (also from Doc, also 4 max mana each): new moves in the spirit of River City Ransom's Mach Punch, Dragon Feet, Grand Slam and running attacks.
+
+| Move | How |
+|---|---|
+| Mach fists | Your third quick punch becomes a flurry of jabs. Keep mashing PUNCH to keep it going; it ends in an uppercut. Flurry hits daze but never knock down on their own |
+| Dragon feet | The same with kicks: mash KICK, and it ends with a big kick |
+| Grand slam | Holding a grabbed foe, press JUMP: swing them round through everyone close, then hurl them |
+| Heel spikes | KICK beside a foe on the ground to stomp them |
+| Turbo calves | Tap a direction twice to sprint. PUNCH out of a sprint for a shoulder charge, KICK for a slide, or jump for a long one |
+
 The character sheet lists everything a runner has installed.
 
 **Companions** (rented from Kit, one at a time):

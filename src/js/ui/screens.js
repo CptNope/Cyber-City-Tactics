@@ -13,7 +13,12 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
 <b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
 <b>Shields</b><span>Kicks and heavy blows break riot shields</span>
-<b>Chrome</b><span>Doc in the Den installs techniques: faster punches and kicks, longer grabs, harder throws, higher jumps</span></div>
+<b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
+<b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
+<b>· Dragon feet</b><span>The third quick kick becomes a flurry; keep mashing kick</span>
+<b>· Grand slam</b><span>Jump while holding a grabbed foe to swing them through the crowd</span>
+<b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
+<b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
 <p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
