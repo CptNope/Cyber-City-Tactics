@@ -235,11 +235,24 @@ function spawnPassive(kind, x, y) {
   G.ents.push(e);
   return e;
 }
+// Foes grow with the runners as well as with the district, so a strong party still has a fight on its hands:
+// a regular foe takes four or five punches at any level, which is also what leaves time to daze and grab it.
+// Driving, drone and flight jobs keep their own tuning (their crews have fixed strength).
+const partyLvl = () => {
+  const a = PL.filter(p => !p.out);
+  return a.length ? a.reduce((t, p) => t + (p.lvl || 1), 0) / a.length : 1;
+};
+function lvlMul() {
+  if (G.drive || G.stealth || (G.flight && !G.flight.roof) || G.training) return { hp: 1, dmg: 1 };
+  const l = Math.max(0, partyLvl() - 1);
+  return { hp: 1 + 0.09 * l, dmg: 1 + 0.08 * l };
+}
 function spawnEnemy(kind, side) {
   const d = DEF[kind],
     DF = DIFF[G.diff],
     NG = ngMul(),
-    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp;
+    LV = lvlMul(),
+    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp * LV.hp;
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -258,7 +271,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg),
+    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg * LV.dmg),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,
