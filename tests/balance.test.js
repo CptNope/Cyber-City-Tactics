@@ -31,7 +31,10 @@ const plain = lvl => {
 };
 const lo = plain(1),
   hi = plain(11);
-ok(hi.hp > lo.hp * 1.8 && hi.hp < lo.hp * 2.1, `a ganger at party level 11 has about 1.9x the health of level 1 (${lo.hp} → ${hi.hp})`);
+ok(
+  hi.hp > lo.hp * 1.8 && hi.hp < lo.hp * 2.1,
+  `a ganger at party level 11 has about 1.9x the health of level 1 (${lo.hp} → ${hi.hp})`
+);
 ok(hi.dmg > lo.dmg * 1.6, `and hits harder (${lo.dmg} → ${hi.dmg})`);
 ok(A.lvlMul().hp > 1.8, 'lvlMul follows the party');
 // a drone job's guards don't scale with the crew
