@@ -292,10 +292,18 @@ function updateTouchUI() {
     kick = 'DROP';
   } else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
     punch = 'LIFT';
+  if (G.stealth && p.drone) {
+    // a drone's buttons: hack, dart, cloak
+    punch = 'HACK';
+    kick = 'DART';
+  }
   setLbl('punch', punch);
   setLbl('kick', kick);
   setLbl('jump', p.state === 'grab' ? 'LEAP' : 'JUMP');
-  setLbl('dodge', p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE');
+  setLbl(
+    'dodge',
+    G.stealth && p.drone ? 'CLOAK' : p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE'
+  );
   const sid = p.spells[p.spell],
     sp = SPELLS[sid];
   setLbl('spell', `${SPSHORT[sid]}<small>${spellCost(p, sp)}</small>`, p.mp < spellCost(p, sp) || G.den);

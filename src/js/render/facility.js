@@ -178,6 +178,24 @@ function drawStealthCones() {
     );
   }
   ctx.restore();
+  // a guard a drone could dart: say whether it would drop them (from behind) or just give you away
+  for (const p of PL) {
+    if (!p.drone || p.out || S.done) continue;
+    const e = dartTarget(p);
+    if (!e) continue;
+    const ok = dartBehind(p, e),
+      ex = e.x - cx;
+    ctx.fillStyle = 'rgba(11,8,18,.8)';
+    ctx.fillRect(ex - 40, sfY(78) - 11, 80, 15);
+    txt(
+      p.drone.dartT ? 'RELOADING' : ok ? ctl('KICK TO DART', 'K TO DART') : 'GET BEHIND THEM',
+      ex,
+      sfY(78),
+      10,
+      p.drone.dartT ? '#6b6280' : ok ? '#ffc63d' : '#a79dc2',
+      'center'
+    );
+  }
   if (S.ow) drawOverwatch(S);
 }
 // overwatch's reticle: brackets over the floor, the camera or laser a loop would take, and the ping's reach
