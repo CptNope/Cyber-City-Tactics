@@ -525,7 +525,11 @@ function upRunner(p) {
           (e.x - p.x) * p.face > -4 &&
           (e.x - p.x) * p.face < 30
       );
-      if (p.sprint && !prop) {
+      const downed = !G.den && !prop && haulTarget(p);
+      if (downed) {
+        haulUp(p, downed);
+        return;
+      } else if (p.sprint && !prop) {
         p.sprint = false;
         p.didHit = false;
         setS(p, 'dashp');
@@ -798,10 +802,16 @@ function stompHit(p, D) {
 // how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
 function busyFor(p, busy) {
   const s = p.state;
-  if (s === 'shoot' && has(p, 'quick')) return Math.round(busy.shoot * 0.7);
-  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) return Math.round(busy[s] * 0.66);
-  if (s === 'kick' && hasTech(p, 'piston')) return Math.round(busy[s] * 0.66);
-  return busy[s];
+  if (s === 'shoot' && has(p, 'quick'))
+    return Math.round(busy.shoot * 0.7 * ((p.eq.gun && p.eq.gun.speed) || 1));
+  const w = p.eq && p.eq.weapon,
+    g = p.eq && p.eq.gun;
+  let n = busy[s];
+  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) n *= 0.66;
+  if (s === 'kick' && hasTech(p, 'piston')) n *= 0.66;
+  if ((s === 'punch' || s === 'upper') && w && w.speed) n *= w.speed; // a Swift weapon
+  if (s === 'shoot' && g && g.speed) n *= g.speed; // a Swift gun
+  return Math.round(n);
 }
 // Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
 // (baton, axe, hammer) add their effect on top of it.
@@ -1007,25 +1017,56 @@ function fireBullet(src, dmg, z, spread) {
       sfx.shot();
     }
   } else sfx.zap();
-  const base = { team: src.team, src: src.team === 0 ? src : null, z };
+  const gb = src.team === 0 && src.eq && src.eq.gun ? src.eq.gun.base : null,
+    gk = gb === 'rifle' ? 'rifle' : gb === 'smg' ? 'auto' : gb === 'heavy' ? 'heavy' : 'pistol',
+    base = { team: src.team, src: src.team === 0 ? src : null, z, gk };
   if (spread) {
+    // buckshot: a fan of pellets, each a share of the shot, with sparks and smoke out of the barrel
     const bs = legOf(src, 'gun') === 'boomstick',
-      n = bs ? 2 : 1;
-    for (let i = -n; i <= n; i++)
+      n = bs ? 7 : 5,
+      per = (dmg * (bs ? 2.75 : 1.65)) / n;
+    for (let i = 0; i < n; i++) {
+      const u = n === 1 ? 0 : i / (n - 1) - 0.5;
       G.projs.push(
         Object.assign(
           {
             k: 'bullet',
-            x: src.x + src.face * 18,
-            y: src.y + i * 5,
-            vx: src.face * 6.5,
-            dmg: dmg * 0.55,
-            life: 20,
+            pellet: true,
+            x: src.x + src.face * (16 + Math.random() * 6),
+            y: src.y + u * 12,
+            vx: src.face * (6.2 + Math.random() * 0.8),
+            dmg: per,
+            life: 18 + Math.floor(Math.random() * 4),
             kd: bs
           },
           base
         )
       );
+    }
+    for (let i = 0; i < 9; i++)
+      G.parts.push({
+        x: src.x + src.face * 22,
+        y: src.y,
+        z,
+        vx: src.face * (1.5 + Math.random() * 3),
+        vy: (Math.random() - 0.5) * 2.2,
+        vz: (Math.random() - 0.5) * 1.6,
+        life: 6 + Math.floor(Math.random() * 6),
+        c: i % 3 ? '#ffb347' : '#fff3c4',
+        sz: 1.6
+      });
+    for (let i = 0; i < 3; i++)
+      G.parts.push({
+        x: src.x + src.face * 24,
+        y: src.y,
+        z: z + 1,
+        vx: src.face * 0.5,
+        vy: 0,
+        vz: 0.3,
+        life: 22,
+        c: '#5a5468',
+        sz: 3
+      });
   } else if (fire === 'grenade')
     G.projs.push(
       Object.assign(
@@ -1045,6 +1086,7 @@ function fireBullet(src, dmg, z, spread) {
           dmg,
           life: 90,
           rail: fire === 'pierce',
+          x0: src.x + src.face * 18,
           seek: fire === 'seek',
           pierce: fire === 'pierce' ? 99 : src.team === 0 && has(src, 'pierce') ? 1 : 0,
           hit: []
@@ -1052,7 +1094,14 @@ function fireBullet(src, dmg, z, spread) {
         base
       )
     );
-  burst(src.x + src.face * 20, src.y, z, '#ffe28a', 4);
+  if (!spread)
+    burst(
+      src.x + src.face * 20,
+      src.y,
+      z,
+      fire === 'pierce' ? '#9fe9ff' : '#ffe28a',
+      fire === 'pierce' ? 7 : 4
+    );
 }
 function castSpell(p) {
   if (G.training) G.tf.cast = true;

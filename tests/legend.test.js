@@ -101,7 +101,7 @@ ok(L.feats.b_troll && A.legUnlocked().includes('boomstick'), 'Gutter King kill: 
 G.picks = [];
 A.legendDrop(P.x + 10, P.y, 1);
 const pk = G.picks.find(k => k.k === 'gear' && k.item.leg);
-ok(pk && pk.item.leg === 'boomstick' && pk.item.rar === 3, 'legendary drop: ' + (pk && pk.item.name));
+ok(pk && pk.item.leg === 'boomstick' && pk.item.rar === 4, 'legendary drop: ' + (pk && pk.item.name));
 P.x = pk.x;
 P.y = pk.y;
 step(5);
@@ -114,7 +114,7 @@ ok(L.legs.includes('boomstick') && L.feats.leg1, 'picking it up registers it + B
   G.projs = [];
   tap('KeyU');
   step(6);
-  ok(G.projs.filter(q => q.k === 'bullet' && q.kd).length === 5, 'Boomstick fires 5 knockdown pellets');
+  ok(G.projs.filter(q => q.k === 'bullet' && q.kd).length === 7, 'Boomstick fires 7 knockdown pellets');
 }
 {
   P = fresh();

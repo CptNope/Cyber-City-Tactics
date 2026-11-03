@@ -259,9 +259,9 @@ ok(
   ok(e.hp === 94, 'spiked armor hurts melee attackers: ' + e.hp);
 }
 {
-  const it = A.mkItem('armor', 'exo', 2);
+  const it = A.mkItem('armor', 'exo', 2, false, 'ironside'); // Ironside favours Body, so the frame's own bonuses show
   ok(
-    it.bonus.agi <= 1 && /Exo-frame/.test(it.name),
+    it.bonus.agi === -1 && it.bonus.str === 2 && /Exo-frame/.test(it.name),
     'exo-frame item: ' + it.name + ' ' + JSON.stringify(it.bonus)
   );
 }
@@ -270,7 +270,7 @@ ok(
   P.eq.armor = A.mkItem('armor', 'coat', 0, 'padded');
   const h = P.maxHp;
   A.refresh(P);
-  ok(P.maxHp === h + 25, 'padded +25 HP');
+  ok(P.maxHp >= h + 25 && P.eq.armor.mod === 'padded', 'padded +25 HP (a one-part Tuned coat now)');
 }
 // skills in combat
 {

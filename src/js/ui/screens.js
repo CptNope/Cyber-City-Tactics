@@ -7,7 +7,7 @@
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer. A grab lasts under two seconds</span>
+<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer, and so does dropping it below about 30% health. Punch beside a knocked-down foe to haul it up into a grab. A grab lasts under two seconds</span>
 <b>· Punch</b><span>Punches only: jab, jab, then a hook that knocks them down</span>
 <b>· Kick</b><span>Legs only: knee, knee, then a knee lift that launches them</span>
 <b>· Direction + either</b><span>A throw that way: forward, back (over the shoulder, lands harder), up or down (into another lane). The direction you walked in with counts once you let go of it</span>
@@ -348,26 +348,34 @@ function bonusStr(b) {
     .join(' · ');
 }
 function itemLine(it) {
-  if (it.leg) return itemLine0(it) + ` · <span style="color:#ff8a3d">Legendary: ${LEGS[it.leg].fx}</span>`;
+  if (it.leg) return itemLine0(it) + ` · <span style="color:${RCOL[4]}">Legendary: ${LEGS[it.leg].fx}</span>`;
   return itemLine0(it);
 }
 function itemLine0(it) {
   return itemLine1(it) + (it.gmod ? ` · <span style="color:var(--mana)">${GMODS[it.gmod].name}</span>` : '');
 }
 function itemLine1(it) {
-  const bs = BASES[it.slot][it.base] || {};
+  fixItem(it);
+  const bs = BASES[it.slot][it.base] || {},
+    M = MFR[it.mfr];
   const s =
     it.slot === 'armor'
       ? `Armor ${it.arm}`
       : it.slot === 'gun'
         ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
         : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
-  const b = bonusStr(it.bonus);
+  const b = bonusStr(it.bonus),
+    parts = (it.parts || []).map(k => `${PARTS[k].n}: ${partDesc(k, it.slot)}`).join('; '),
+    innate = it.daze && !hasPart(it, 'concuss') ? 'dazes in one hit' : '',
+    oldMod = it.mod && !(it.parts || []).some(k => PARTS[k].mod === it.mod) && !it.leg ? it.mod : null;
   return (
+    (M ? `<span style="color:${M.col}">${esc(M.name)}</span> · ` : '') +
     s +
     (b ? ' · ' + b : '') +
-    (it.mod
-      ? ` · <span style="color:${AFX_COL[it.mod] || 'var(--gold)'}">${AFFIX[it.mod].n}: ${AFFIX[it.mod].desc}</span>`
+    (innate ? ' · ' + innate : '') +
+    (parts ? ` · <span style="color:${RCOL[it.rar]}">${parts}</span>` : '') +
+    (oldMod
+      ? ` · <span style="color:${AFX_COL[oldMod] || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
       : '')
   );
 }

@@ -132,7 +132,7 @@ Everything is in `localStorage` under `cs_*` keys (listed in the README). `store
 
 **A new enemy.** Add an entry to `DEF` in data/content.js (copy a similar one: `ranged`, `lunge`, `teleport`, `shield`, `grab`, `thrower`, `flurry` and the other flags switch on existing behaviors in game/enemies.js). Add a bestiary line to `BEST` in data/legend-data.js. Spawn it from a district's wave list in `STAGES`, an Arena pool in modes/arena.js, or a Sprawl faction in `FAC` (modes/sprawl.js).
 
-**A new weapon, gun or armor.** Add a base to `BASES` in data/gear.js. Guns pick a `fire` mode; new fire modes go in `fireBullet()` (game/runners.js). Order matters: bases later in each list drop later in the game.
+**A new weapon, gun or armor.** Add a base to `BASES` in data/gear.js; give a melee base a `look` and draw it in `drawWeapon()`, and a gun base a silhouette in `GUN_SHAPE` (render/figures.js). Items are made by `mkItem(slot, base, parts, mod, maker)`: `applyParts()` works out the numbers, name, rarity (the part count) and price from the base, the maker (`MFR`) and the parts (`PARTS`), and `fixItem()` brings items from older saves up to date. A new part goes in `PARTS` with its effect in `applyParts()` (and wherever its field is read: `crit`, `critMul`, `speed`, `daze`, `kb`); a new maker in `MFR` with the parts it favours. Guns pick a `fire` mode; new fire modes go in `fireBullet()` (game/runners.js). Order matters: bases later in each list drop later in the game.
 
 **A new affix or legendary.** Affixes: `AFFIX` in data/gear.js, effect in `hurt()` (game/combat.js). Legendaries: `LEGS` in data/legend-data.js, a feat that unlocks it in `FEATS`, and the effect wherever it applies (search for `legOf(`).
 

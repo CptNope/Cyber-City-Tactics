@@ -78,8 +78,42 @@ const grabbable = e =>
   e.state !== 'dead' &&
   e.state !== 'down' &&
   e.state !== 'grabbed';
-// and when: flinching from a hit, or dazed after two in a row
-const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0));
+// and when: flinching from a hit, dazed after two in a row, or reeling on their last legs (under 30% health)
+const reeling = e => e.hp > 0 && e.maxHp > 0 && e.hp < e.maxHp * 0.3;
+const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0) || reeling(e));
+// River City style: a foe flat on the street in front of you can be hauled up into a grab
+function haulTarget(p) {
+  return G.ents.find(
+    e =>
+      e.team === 1 &&
+      e.state === 'down' &&
+      e.z <= 1 &&
+      e.hp > 0 &&
+      !e.d.boss &&
+      !e.d.heavy &&
+      !e.d.fly &&
+      !e.d.passive &&
+      (e.x - p.x) * p.face > -4 &&
+      (e.x - p.x) * p.face < 26 &&
+      Math.abs(e.y - p.y) < 10
+  );
+}
+function haulUp(p, e) {
+  const I = INP[p.idx] || INP[0];
+  setS(e, 'grabbed');
+  e.vx = e.vz = 0;
+  e.inv = 0; // the moment of grace for getting up doesn't protect someone hauled up
+  e.dazeUntil = 0;
+  p.grab = e;
+  p.knees = 0;
+  p.gp = 0;
+  p.grabArmed = false;
+  p.grabLockX = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
+  p.grabLockY = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+  setS(p, 'grab');
+  sfx.grab();
+  say(p, 'UP YOU GET', '#ffc63d', 40, 30, true);
+}
 function tryGrab(p, dx) {
   if (dx === 0) return false;
   for (const e of G.ents) {
@@ -87,6 +121,7 @@ function tryGrab(p, dx) {
     const rx = (e.x - p.x) * dx;
     if (rx < 0 || rx > 26 || Math.abs(e.y - p.y) > 10) continue;
     e.dazeUntil = 0;
+    e.inv = 0;
     const I = INP[p.idx] || INP[0];
     p.grab = e;
     p.knees = 0;

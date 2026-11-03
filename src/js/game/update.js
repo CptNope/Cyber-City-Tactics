@@ -107,6 +107,8 @@ function update() {
     if (pr.k === 'nade') {
       pr.z += pr.vz;
       pr.vz -= 0.09;
+      if (G.t % 3 === 0)
+        G.parts.push({ x: pr.x, y: pr.y, z: pr.z, vx: 0, vy: 0, vz: 0.15, life: 16, c: '#6b6280', sz: 2 }); // a smoke trail
       if (pr.z <= 0) {
         pr.z = 0;
         explode(pr, { gun: true });
@@ -293,7 +295,7 @@ function collect(k, p) {
     sfx.buy();
   }
   if (k.k === 'ammo') {
-    const n = gmodOf(p) === 'mag' ? 12 : 8;
+    const n = gmodOf(p) === 'mag' || hasPart(p.eq.gun, 'drum') ? 12 : 8;
     p.ammo += n;
     sfx.buy();
     say(p, '+' + n + ' AMMO', '#ffe28a');
@@ -321,6 +323,11 @@ function collect(k, p) {
     PARTY.bag.push(gotItem(k.item));
     sfx.loot();
     say(p, k.item.name.toUpperCase(), RCOL[k.item.rar]);
+    tip(
+      'gearcol',
+      'Gear colour is rarity: white, green, blue, purple, orange Legendary, one tier per part it rolled. The maker sets its speciality. CHAR shows the full card.',
+      'Gear colour is rarity: white, green, blue, purple, orange Legendary, one tier per part it rolled. The maker sets its speciality. C shows the full card.'
+    );
     gotLegend(k.item);
   }
   if (k.k === 'shard') {

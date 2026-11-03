@@ -79,9 +79,10 @@ function peak(k, v) {
 }
 function mkLegend(id) {
   const L = LEGS[id],
-    it = mkItem(L.slot, L.base, 3);
-  it.name = L.name;
+    it = mkItem(L.slot, L.base, 2);
   it.leg = id;
+  applyParts(it); // a named legendary: two parts plus its unique effect, always the Legendary tier
+  it.name = L.name;
   it.price = Math.round(BASES[L.slot][L.base].price * 4);
   return it;
 }

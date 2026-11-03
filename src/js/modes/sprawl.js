@@ -544,6 +544,7 @@ function loadWorld(s) {
   );
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
+  fixGear();
 }
 function enterStreet(x) {
   G.world = true;

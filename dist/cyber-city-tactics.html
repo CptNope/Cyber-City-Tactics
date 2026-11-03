@@ -494,10 +494,10 @@ button:focus-visible {
   color: #e6e1f2;
 }
 .r1 {
-  color: var(--mana);
+  color: #7dffb0;
 }
 .r2 {
-  color: var(--gold);
+  color: #45d2ff;
 }
 .up {
   color: var(--ok);
@@ -740,7 +740,10 @@ button:focus-visible {
   }
 }
 .r3 {
-  color: #ff8a3d;
+  color: #b98cff;
+}
+.r4 {
+  color: #ffa630;
 }
 .swatch {
   width: 26px;
@@ -1131,7 +1134,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+c2686af';
+const APP_VERSION = '2.0.0+9da9524';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3371,12 +3374,90 @@ const AFFIX = {
   padded: { n: 'Padded', slots: ['armor'], desc: '+25 max HP' }
 };
 const AFX_COL = { shock: '#45d2ff', burn: '#ff6a3d', leech: '#7dffb0' };
+/* Gear works like Borderlands: every piece comes from a manufacturer with its own speciality, and rolls 0–4
+ * parts. The number of parts is its rarity, and its colour: white Street (none), green Tuned (one), blue
+ * Prototype (two), purple Black-market (three), orange Legendary (four, or a named legendary from a feat).
+ * The tier itself adds a little; the parts are what make two katanas play differently. */
 const RAR = [
   { n: 'Street', m: 1 },
-  { n: 'Tuned', m: 1.25 },
-  { n: 'Prototype', m: 1.55 },
-  { n: 'Black-market', m: 1.9 }
+  { n: 'Tuned', m: 1.12 },
+  { n: 'Prototype', m: 1.25 },
+  { n: 'Black-market', m: 1.4 },
+  { n: 'Legendary', m: 1.55 }
 ];
+// Manufacturers: who makes what, their colour on the item card and the weapon, and the parts they favour
+const MFR = {
+  kagemori: {
+    name: 'Kagemori',
+    col: '#ff3d4a',
+    spec: 'Precision: crits',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'agi',
+    likes: ['keen', 'keen', 'sight', 'swift', 'attr', 'plated']
+  },
+  rustline: {
+    name: 'Rustline Forge',
+    col: '#ff8a3d',
+    spec: 'Raw damage and knockback',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'str',
+    likes: ['heavy', 'heavy', 'brutal', 'burn', 'attr', 'plated', 'spiked']
+  },
+  voltaic: {
+    name: 'Voltaic',
+    col: '#45d2ff',
+    spec: 'Shock and fire; its melee weapons always daze',
+    slots: ['weapon', 'gun'],
+    attr: 'hak',
+    likes: ['shock', 'shock', 'burn', 'swift', 'concuss', 'drum']
+  },
+  hexwright: {
+    name: 'Hexwright',
+    col: '#b98cff',
+    spec: 'Magic: mana, spell power, leeching',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'mag',
+    likes: ['attr', 'attr', 'leech', 'warded', 'keen', 'padded']
+  },
+  ironside: {
+    name: 'Ironside Arms',
+    col: '#c9d1e0',
+    spec: 'Speed: faster swings and fire, bigger mags',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'bod',
+    likes: ['swift', 'swift', 'drum', 'heavy', 'padded', 'plated']
+  }
+};
+// Parts: what each one does, the word it lends the item's name, and which slots can have it
+const PARTS = {
+  heavy: { n: 'Heavy', slots: ['weapon', 'gun'], desc: '+20% damage' },
+  brutal: { n: 'Brutal', slots: ['weapon'], desc: 'knocks foes further' },
+  keen: { n: 'Keen', slots: ['weapon', 'gun'], desc: '+8% crit chance' },
+  sight: { n: 'Scoped', slots: ['gun'], desc: '+6% crit chance and crits hit harder' },
+  swift: {
+    n: 'Swift',
+    slots: ['weapon', 'gun', 'armor'],
+    desc: 'attacks recover 20% faster',
+    adesc: 'move 8% faster'
+  },
+  concuss: { n: 'Concussive', slots: ['weapon'], desc: 'one hit dazes a foe (ready to grab)' },
+  drum: { n: 'Drum-fed', slots: ['gun'], desc: 'ammo pickups give 50% more rounds' },
+  attr: { n: 'Augmented', slots: ['weapon', 'gun', 'armor'], desc: '+2 more to the maker’s attribute' },
+  shock: { n: 'Shock', slots: ['weapon', 'gun'], mod: 'shock' },
+  burn: { n: 'Incendiary', slots: ['weapon', 'gun'], mod: 'burn' },
+  leech: { n: 'Leeching', slots: ['weapon', 'gun'], mod: 'leech' },
+  plated: { n: 'Plated', slots: ['armor'], desc: '+30% armor' },
+  spiked: { n: 'Spiked', slots: ['armor'], mod: 'spiked' },
+  padded: { n: 'Padded', slots: ['armor'], mod: 'padded' },
+  warded: { n: 'Warded', slots: ['armor'], desc: '+2 Magic' }
+};
+const partDesc = (k, slot) => {
+  const P = PARTS[k];
+  if (P.mod) return AFFIX[P.mod].desc;
+  return slot === 'armor' && P.adesc ? P.adesc : P.desc;
+};
+const hasPart = (it, k) => !!(it && it.parts && it.parts.includes(k));
+const makersFor = slot => Object.keys(MFR).filter(k => MFR[k].slots.includes(slot));
 // The party bag holds this many items (it was 12). Shops buy anything in it. The stash (Den locker and Sprawl
 // safehouse, shared) holds STASH_MAX more and never leaves home.
 const BAG_MAX = 40,
@@ -3395,7 +3476,8 @@ const BAG_SORTS = {
   new: (a, b) => (b.got || 0) - (a.got || 0)
 };
 const bagSort = () => BAG_SORTS[prefs.bagSort] || BAG_SORTS.best;
-const RCOL = ['#efe9ff', '#45d2ff', '#ffc63d', '#ff8a3d'];
+// rarity colours, Borderlands order: white, green, blue, purple, orange
+const RCOL = ['#efe9ff', '#7dffb0', '#45d2ff', '#b98cff', '#ffa630'];
 const SPELLS = {
   fire: {
     name: 'Fireball',
@@ -3565,62 +3647,124 @@ function applyArch(p, key) {
   p.mp = p.maxMp;
 }
 
-function mkItem(slot, base, rar, mod) {
-  const b = BASES[slot][base] || Object.values(BASES[slot])[0],
-    r = RAR[rar];
-  if (mod === true) {
-    const ms = Object.keys(AFFIX).filter(k => AFFIX[k].slots.includes(slot));
-    mod = pick(ms);
-  }
+// Make an item: base from BASES, `rar` parts (0–4) favouring its maker's speciality. `mod` true asks for an
+// elemental or affix part among them; a string asks for that affix. `mfr` picks the maker (random otherwise).
+function mkItem(slot, base, rar, mod, mfr) {
+  const b = BASES[slot][base] ? BASES[slot][base] : Object.values(BASES[slot])[0];
+  if (!BASES[slot][base]) base = Object.keys(BASES[slot])[0];
   const it = {
     uid: Math.random().toString(36).slice(2, 9),
     slot,
     base,
-    rar,
-    name: (rar ? r.n + ' ' : '') + (mod ? AFFIX[mod].n + ' ' : '') + b.name,
+    rar: 0,
+    mfr: MFR[mfr] && MFR[mfr].slots.includes(slot) ? mfr : pick(makersFor(slot)),
+    parts: [],
     bonus: Object.assign({}, b.bonus || {})
   };
-  if (mod) it.mod = mod;
-  if (b.dmg) it.dmg = Math.round(b.dmg * r.m);
-  if (b.arm) it.arm = Math.round(b.arm * r.m);
   if (b.reach) it.reach = b.reach;
   if (b.fire) it.fire = b.fire;
   if (b.look) it.look = b.look;
-  const ks = Object.keys(ATTRS);
-  for (let i = 0; i < rar; i++) {
-    const k = pick(ks);
-    it.bonus[k] = (it.bonus[k] || 0) + 1;
+  const want = typeof mod === 'string' ? Object.keys(PARTS).find(k => PARTS[k].mod === mod) : null;
+  if (want) it.parts.push(want);
+  else if (mod === true && rar > 0) {
+    const ms = Object.keys(PARTS).filter(k => PARTS[k].mod && PARTS[k].slots.includes(slot));
+    it.parts.push(pick(ms));
   }
-  it.price = Math.round(b.price * (1 + rar * 0.7) * (mod ? 1.3 : 1));
+  while (it.parts.length < Math.min(4, rar)) addPart(it);
+  applyParts(it);
+  return it;
+}
+// one more part, picked from the maker's favourites most of the time; at most one affix part per item
+function addPart(it) {
+  const M = MFR[it.mfr],
+    ok = k =>
+      PARTS[k] &&
+      PARTS[k].slots.includes(it.slot) &&
+      (!PARTS[k].mod || !it.parts.some(q => PARTS[q].mod)) &&
+      (k === 'attr' || k === 'heavy' || !it.parts.includes(k));
+  const fav = M.likes.filter(ok),
+    any = Object.keys(PARTS).filter(ok),
+    pool = fav.length && Math.random() < 0.75 ? fav : any;
+  if (pool.length) it.parts.push(pick(pool));
+}
+// work out an item's numbers, name and price from its base, maker and parts
+function applyParts(it) {
+  const b = BASES[it.slot][it.base],
+    M = MFR[it.mfr] || MFR.ironside;
+  it.rar = it.leg ? 4 : Math.min(4, it.parts.length);
+  const r = RAR[it.rar],
+    n = k => it.parts.filter(q => q === k).length;
+  it.bonus = Object.assign({}, b.bonus || {});
+  if (b.dmg) it.dmg = Math.round(b.dmg * r.m * (1 + 0.2 * n('heavy')));
+  if (b.arm) it.arm = Math.round(b.arm * r.m * (1 + 0.3 * n('plated')));
+  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more
+  const ap = it.rar + 2 * n('attr');
+  if (ap) it.bonus[M.attr] = (it.bonus[M.attr] || 0) + ap;
+  if (n('warded')) it.bonus.mag = (it.bonus.mag || 0) + 2;
+  it.crit = 0.08 * n('keen') + 0.06 * n('sight');
+  it.critMul = n('sight') ? 1.25 : 1;
+  it.speed = it.slot !== 'armor' && n('swift') ? 0.8 : 1;
+  it.daze = !!(n('concuss') || (it.slot === 'weapon' && it.mfr === 'voltaic'));
+  it.kb = n('brutal') ? 1.6 : it.mfr === 'rustline' && it.slot === 'weapon' ? 1.2 : 1;
+  const mp = it.parts.find(q => PARTS[q].mod);
+  it.mod = mp ? PARTS[mp].mod : it.legMod || null;
+  if (!it.mod) delete it.mod;
+  if (!it.leg) {
+    const lead = it.parts.find(q => q !== 'attr') || it.parts[0];
+    it.name = M.name + ' ' + (lead ? PARTS[lead].n + ' ' : '') + b.name;
+  }
+  it.price = Math.round(b.price * (1 + it.rar * 0.6) * (it.leg ? 2 : 1));
+}
+// older saves: items from before makers and parts get a maker (fixed by their id) and parts to match their tier
+function fixItem(it) {
+  if (!it || it.mfr || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  const ks = makersFor(it.slot);
+  let h = 0;
+  for (const c of String(it.uid)) h = (h * 31 + c.charCodeAt(0)) | 0;
+  it.mfr = ks[Math.abs(h) % ks.length];
+  const keepName = it.leg ? it.name : null,
+    oldMod = it.mod;
+  it.parts = [];
+  if (oldMod && !it.leg) {
+    const k =
+      oldMod === 'keen'
+        ? 'keen'
+        : Object.keys(PARTS).find(q => PARTS[q].mod === oldMod && PARTS[q].slots.includes(it.slot));
+    if (k) it.parts.push(k);
+  }
+  if (it.leg && oldMod) it.legMod = oldMod;
+  const want = it.leg ? 2 : Math.min(3, it.rar || 0);
+  while (it.parts.length < want) addPart(it);
+  applyParts(it);
+  if (keepName) it.name = keepName;
   return it;
 }
 /* Salvage and crafting at Ratchet's: scrap gear into parts, then spend parts to reroll an affix or raise rarity. */
-const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2 + (it.mod ? 1 : 0));
+const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2);
 const REROLL = { parts: 3, creds: 40 };
 const upgradeCost = it => ({ parts: 4 * (it.rar + 1), creds: 80 * (it.rar + 1) });
-const canUpgrade = it => !!it && !it.leg && it.rar < 2;
+const canUpgrade = it => !!it && !it.leg && it.rar < 3; // Ratchet adds parts up to Black-market; Legendary only drops
 const canReroll = it => !!it && !it.leg;
 function renameItem(it) {
-  const b = BASES[it.slot][it.base];
-  it.name = (it.rar ? RAR[it.rar].n + ' ' : '') + (it.mod ? AFFIX[it.mod].n + ' ' : '') + b.name;
-  it.price = Math.round(b.price * (1 + it.rar * 0.7) * (it.mod ? 1.3 : 1));
+  fixItem(it);
+  applyParts(it);
 }
+// Ratchet's reroll: the same number of parts, rolled again
 function rerollItem(it) {
   if (!canReroll(it)) return false;
-  const ms = Object.keys(AFFIX).filter(k => AFFIX[k].slots.includes(it.slot) && k !== it.mod);
-  it.mod = pick(ms);
-  renameItem(it);
+  fixItem(it);
+  const n = it.parts.length || 1;
+  it.parts = [];
+  while (it.parts.length < n) addPart(it);
+  applyParts(it);
   return true;
 }
+// Ratchet's upgrade: one more part, so one tier up
 function upgradeItem(it) {
   if (!canUpgrade(it)) return false;
-  const b = BASES[it.slot][it.base];
-  it.rar++;
-  if (b.dmg) it.dmg = Math.round(b.dmg * RAR[it.rar].m);
-  if (b.arm) it.arm = Math.round(b.arm * RAR[it.rar].m);
-  const k = pick(Object.keys(ATTRS));
-  it.bonus[k] = (it.bonus[k] || 0) + 1;
-  renameItem(it);
+  fixItem(it);
+  addPart(it);
+  applyParts(it);
   return true;
 }
 function randItem(stage, boost) {
@@ -3628,9 +3772,10 @@ function randItem(stage, boost) {
   const bases = Object.keys(BASES[slot]);
   const top = clamp(Math.floor(stage) + 1 + (boost ? 1 : 0), 0, bases.length - 1);
   const base = bases[ri(Math.max(0, top - 2), top)];
-  const roll = Math.random() + stage * 0.12 + (boost ? 0.45 : 0);
-  const rar = roll > 1.15 ? 2 : roll > 0.68 ? 1 : 0;
-  return mkItem(slot, base, rar, Math.random() < [0, 0.4, 0.8][rar]);
+  // how many parts it rolls is its rarity; deeper districts and elites and bosses (boost) roll more
+  const roll = Math.random() + stage * 0.1 + (boost ? 0.4 : 0);
+  const rar = roll > 1.6 ? 4 : roll > 1.25 ? 3 : roll > 0.95 ? 2 : roll > 0.6 ? 1 : 0;
+  return mkItem(slot, base, rar);
 }
 
 /* ===== src/js/data/world.js ===== */
@@ -4574,9 +4719,10 @@ function peak(k, v) {
 }
 function mkLegend(id) {
   const L = LEGS[id],
-    it = mkItem(L.slot, L.base, 3);
-  it.name = L.name;
+    it = mkItem(L.slot, L.base, 2);
   it.leg = id;
+  applyParts(it); // a named legendary: two parts plus its unique effect, always the Legendary tier
+  it.name = L.name;
   it.price = Math.round(BASES[L.slot][L.base].price * 4);
   return it;
 }
@@ -5025,6 +5171,7 @@ function eff(p) {
 }
 function refresh(p) {
   initSkills(p);
+  for (const k in p.eq) fixItem(p.eq[k]); // gear from before makers and parts
   const a = eff(p),
     w = p.eq.weapon,
     g = p.eq.gun,
@@ -5044,8 +5191,10 @@ function refresh(p) {
       cy.wired * 0.04 +
       (cy.eyes || 0) * 0.08 +
       (wb.crit || 0) +
-      ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0),
-    spd: 1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08,
+      ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0) +
+      ((w && w.crit) || 0) +
+      ((g && g.crit) || 0),
+    spd: (1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08) * (hasPart(ar, 'swift') ? 1.08 : 1),
     spell: a.mag * 4,
     regen: Math.round(Math.max(12, 46 - a.mag * 3) * (has(p, 'flow') ? 0.6 : 1)),
     breaker: !!wb.breaker,
@@ -5086,6 +5235,11 @@ function saveGame(phase) {
   };
   store.set('cs_save3', JSON.parse(JSON.stringify(o)));
 }
+// bring every item the party owns up to date (makers and parts arrived after some saves were made)
+function fixGear() {
+  for (const it of (PARTY.bag || []).concat(PARTY.stash || [], G.stock || [])) fixItem(it);
+  for (const p of PL) for (const k in p.eq) fixItem(p.eq[k]);
+}
 function loadGame(s) {
   G.coop = !!s.coop;
   Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
@@ -5113,6 +5267,7 @@ function loadGame(s) {
   G.debrief = s.debrief || null;
   G.choices = isObj(s.choices) ? s.choices : {};
   G.bestCombo = s.bestCombo || 0;
+  fixGear();
   G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
 const karmaNext = l => 50 + l * 45;
@@ -5727,7 +5882,9 @@ function hurt(t, dmg, dir, o) {
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
           (o.bullet && gmodOf(o.src) === 'laser' ? 0.1 : 0))
   ) {
-    dmg *= o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8;
+    dmg *=
+      (o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8) *
+      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1);
     crit = true;
   }
   dmg = Math.max(1, Math.round(dmg));
@@ -5737,7 +5894,8 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && legOf(t, 'armor') === 'dragonscale')
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
   const heavy = !!(t.d && t.d.heavy);
-  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3);
+  const wkb = o.melee && o.src && o.src.eq && o.src.eq.weapon ? o.src.eq.weapon.kb || 1 : 1; // Brutal and Rustline knock further
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb;
   if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
@@ -5909,6 +6067,12 @@ function hurt(t, dmg, dir, o) {
   }
   if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
+    if (t.team === 1 && o.src && o.src.team === 0 && grabbable(Object.assign({}, t, { state: 'idle' })))
+      tip(
+        'haul',
+        'Knocked down? PUNCH beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.',
+        'Knocked down? Press J beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.'
+      );
     t.vz = 2.8;
     t.vx = dir * 2.2;
     t.hits = 0;
@@ -5917,7 +6081,14 @@ function hurt(t, dmg, dir, o) {
     setS(t, 'hurt');
     if (t.team === 0) sfx.hurt();
     // two hits in a row leave a foe dazed (stars over its head): walk into it and you grab it
-    else if (o.src && o.src.team === 0 && o.melee && t.hits >= 2 && grabbable(t)) {
+    // (a Concussive or Voltaic weapon dazes on the first hit)
+    else if (
+      o.src &&
+      o.src.team === 0 &&
+      o.melee &&
+      (t.hits >= 2 || (o.src.eq && o.src.eq.weapon && o.src.eq.weapon.daze)) &&
+      grabbable(t)
+    ) {
       t.dazeUntil = G.t + (hasTech(o.src, 'grip') ? 110 : 60);
       tip(
         'grab',
@@ -6327,8 +6498,42 @@ const grabbable = e =>
   e.state !== 'dead' &&
   e.state !== 'down' &&
   e.state !== 'grabbed';
-// and when: flinching from a hit, or dazed after two in a row
-const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0));
+// and when: flinching from a hit, dazed after two in a row, or reeling on their last legs (under 30% health)
+const reeling = e => e.hp > 0 && e.maxHp > 0 && e.hp < e.maxHp * 0.3;
+const dazed = e => grabbable(e) && (e.state === 'hurt' || G.t < (e.dazeUntil || 0) || reeling(e));
+// River City style: a foe flat on the street in front of you can be hauled up into a grab
+function haulTarget(p) {
+  return G.ents.find(
+    e =>
+      e.team === 1 &&
+      e.state === 'down' &&
+      e.z <= 1 &&
+      e.hp > 0 &&
+      !e.d.boss &&
+      !e.d.heavy &&
+      !e.d.fly &&
+      !e.d.passive &&
+      (e.x - p.x) * p.face > -4 &&
+      (e.x - p.x) * p.face < 26 &&
+      Math.abs(e.y - p.y) < 10
+  );
+}
+function haulUp(p, e) {
+  const I = INP[p.idx] || INP[0];
+  setS(e, 'grabbed');
+  e.vx = e.vz = 0;
+  e.inv = 0; // the moment of grace for getting up doesn't protect someone hauled up
+  e.dazeUntil = 0;
+  p.grab = e;
+  p.knees = 0;
+  p.gp = 0;
+  p.grabArmed = false;
+  p.grabLockX = (I.held.right ? 1 : 0) - (I.held.left ? 1 : 0);
+  p.grabLockY = (I.held.down ? 1 : 0) - (I.held.up ? 1 : 0);
+  setS(p, 'grab');
+  sfx.grab();
+  say(p, 'UP YOU GET', '#ffc63d', 40, 30, true);
+}
 function tryGrab(p, dx) {
   if (dx === 0) return false;
   for (const e of G.ents) {
@@ -6336,6 +6541,7 @@ function tryGrab(p, dx) {
     const rx = (e.x - p.x) * dx;
     if (rx < 0 || rx > 26 || Math.abs(e.y - p.y) > 10) continue;
     e.dazeUntil = 0;
+    e.inv = 0;
     const I = INP[p.idx] || INP[0];
     p.grab = e;
     p.knees = 0;
@@ -6879,7 +7085,11 @@ function upRunner(p) {
           (e.x - p.x) * p.face > -4 &&
           (e.x - p.x) * p.face < 30
       );
-      if (p.sprint && !prop) {
+      const downed = !G.den && !prop && haulTarget(p);
+      if (downed) {
+        haulUp(p, downed);
+        return;
+      } else if (p.sprint && !prop) {
         p.sprint = false;
         p.didHit = false;
         setS(p, 'dashp');
@@ -7152,10 +7362,16 @@ function stompHit(p, D) {
 // how long a busy move keeps you busy: guns with Quickdraw, and fists and feet with chrome, recover sooner
 function busyFor(p, busy) {
   const s = p.state;
-  if (s === 'shoot' && has(p, 'quick')) return Math.round(busy.shoot * 0.7);
-  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) return Math.round(busy[s] * 0.66);
-  if (s === 'kick' && hasTech(p, 'piston')) return Math.round(busy[s] * 0.66);
-  return busy[s];
+  if (s === 'shoot' && has(p, 'quick'))
+    return Math.round(busy.shoot * 0.7 * ((p.eq.gun && p.eq.gun.speed) || 1));
+  const w = p.eq && p.eq.weapon,
+    g = p.eq && p.eq.gun;
+  let n = busy[s];
+  if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) n *= 0.66;
+  if (s === 'kick' && hasTech(p, 'piston')) n *= 0.66;
+  if ((s === 'punch' || s === 'upper') && w && w.speed) n *= w.speed; // a Swift weapon
+  if (s === 'shoot' && g && g.speed) n *= g.speed; // a Swift gun
+  return Math.round(n);
 }
 // Weapon-specific heavy blows. Looks listed in HEAVY_OWN replace the standard swing at frame 9; the rest
 // (baton, axe, hammer) add their effect on top of it.
@@ -7361,25 +7577,56 @@ function fireBullet(src, dmg, z, spread) {
       sfx.shot();
     }
   } else sfx.zap();
-  const base = { team: src.team, src: src.team === 0 ? src : null, z };
+  const gb = src.team === 0 && src.eq && src.eq.gun ? src.eq.gun.base : null,
+    gk = gb === 'rifle' ? 'rifle' : gb === 'smg' ? 'auto' : gb === 'heavy' ? 'heavy' : 'pistol',
+    base = { team: src.team, src: src.team === 0 ? src : null, z, gk };
   if (spread) {
+    // buckshot: a fan of pellets, each a share of the shot, with sparks and smoke out of the barrel
     const bs = legOf(src, 'gun') === 'boomstick',
-      n = bs ? 2 : 1;
-    for (let i = -n; i <= n; i++)
+      n = bs ? 7 : 5,
+      per = (dmg * (bs ? 2.75 : 1.65)) / n;
+    for (let i = 0; i < n; i++) {
+      const u = n === 1 ? 0 : i / (n - 1) - 0.5;
       G.projs.push(
         Object.assign(
           {
             k: 'bullet',
-            x: src.x + src.face * 18,
-            y: src.y + i * 5,
-            vx: src.face * 6.5,
-            dmg: dmg * 0.55,
-            life: 20,
+            pellet: true,
+            x: src.x + src.face * (16 + Math.random() * 6),
+            y: src.y + u * 12,
+            vx: src.face * (6.2 + Math.random() * 0.8),
+            dmg: per,
+            life: 18 + Math.floor(Math.random() * 4),
             kd: bs
           },
           base
         )
       );
+    }
+    for (let i = 0; i < 9; i++)
+      G.parts.push({
+        x: src.x + src.face * 22,
+        y: src.y,
+        z,
+        vx: src.face * (1.5 + Math.random() * 3),
+        vy: (Math.random() - 0.5) * 2.2,
+        vz: (Math.random() - 0.5) * 1.6,
+        life: 6 + Math.floor(Math.random() * 6),
+        c: i % 3 ? '#ffb347' : '#fff3c4',
+        sz: 1.6
+      });
+    for (let i = 0; i < 3; i++)
+      G.parts.push({
+        x: src.x + src.face * 24,
+        y: src.y,
+        z: z + 1,
+        vx: src.face * 0.5,
+        vy: 0,
+        vz: 0.3,
+        life: 22,
+        c: '#5a5468',
+        sz: 3
+      });
   } else if (fire === 'grenade')
     G.projs.push(
       Object.assign(
@@ -7399,6 +7646,7 @@ function fireBullet(src, dmg, z, spread) {
           dmg,
           life: 90,
           rail: fire === 'pierce',
+          x0: src.x + src.face * 18,
           seek: fire === 'seek',
           pierce: fire === 'pierce' ? 99 : src.team === 0 && has(src, 'pierce') ? 1 : 0,
           hit: []
@@ -7406,7 +7654,14 @@ function fireBullet(src, dmg, z, spread) {
         base
       )
     );
-  burst(src.x + src.face * 20, src.y, z, '#ffe28a', 4);
+  if (!spread)
+    burst(
+      src.x + src.face * 20,
+      src.y,
+      z,
+      fire === 'pierce' ? '#9fe9ff' : '#ffe28a',
+      fire === 'pierce' ? 7 : 4
+    );
 }
 function castSpell(p) {
   if (G.training) G.tf.cast = true;
@@ -7793,7 +8048,11 @@ function upEnemy(e) {
     }
   }
   physics(e);
-  if (e.state === 'grabbed') return;
+  if (e.state === 'grabbed') {
+    // nobody holding them any more (a grab that ended some other way): back on their feet
+    if (!PL.some(p => p.grab === e)) setS(e, 'idle');
+    return;
+  }
   if (e.d.passive) {
     if (e.state === 'dead') {
       if (e.t > 40) e.gone = true;
@@ -8793,6 +9052,8 @@ function update() {
     if (pr.k === 'nade') {
       pr.z += pr.vz;
       pr.vz -= 0.09;
+      if (G.t % 3 === 0)
+        G.parts.push({ x: pr.x, y: pr.y, z: pr.z, vx: 0, vy: 0, vz: 0.15, life: 16, c: '#6b6280', sz: 2 }); // a smoke trail
       if (pr.z <= 0) {
         pr.z = 0;
         explode(pr, { gun: true });
@@ -8979,7 +9240,7 @@ function collect(k, p) {
     sfx.buy();
   }
   if (k.k === 'ammo') {
-    const n = gmodOf(p) === 'mag' ? 12 : 8;
+    const n = gmodOf(p) === 'mag' || hasPart(p.eq.gun, 'drum') ? 12 : 8;
     p.ammo += n;
     sfx.buy();
     say(p, '+' + n + ' AMMO', '#ffe28a');
@@ -9007,6 +9268,11 @@ function collect(k, p) {
     PARTY.bag.push(gotItem(k.item));
     sfx.loot();
     say(p, k.item.name.toUpperCase(), RCOL[k.item.rar]);
+    tip(
+      'gearcol',
+      'Gear colour is rarity: white, green, blue, purple, orange Legendary, one tier per part it rolled. The maker sets its speciality. CHAR shows the full card.',
+      'Gear colour is rarity: white, green, blue, purple, orange Legendary, one tier per part it rolled. The maker sets its speciality. C shows the full card.'
+    );
     gotLegend(k.item);
   }
   if (k.k === 'shard') {
@@ -9763,6 +10029,7 @@ function loadWorld(s) {
   );
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
+  fixGear();
 }
 function enterStreet(x) {
   G.world = true;
@@ -11246,7 +11513,7 @@ const PERKS = [
         y: 150,
         z: 0,
         s: it.name.toUpperCase(),
-        c: ['#efe9ff', '#45d2ff', '#ffc63d'][it.rar],
+        c: RCOL[it.rar],
         life: 80
       });
     }
@@ -16278,7 +16545,7 @@ function drawFig(e) {
   ctx.fillRect(bf[0] - 3, bf[1] - 2.5, 7, 3);
   const armorCol =
     isP && e.eq.armor && e.eq.armor.rar
-      ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18'][e.eq.armor.rar]
+      ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18', '#3a2a50', '#4a3010'][e.eq.armor.rar]
       : null;
   const cTop = fl ? '#fff' : armorCol || coat;
   if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard' || style === 'vamp') {
@@ -16597,73 +16864,9 @@ function drawFig(e) {
     ctx.fillStyle = 'rgba(255,255,255,.4)';
     ctx.fillRect(fh[0] + 2, sh[1], 1, 26);
   }
-  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll') {
-    const w = e.eq.weapon,
-      L = { pipe: 9, baton: 9, blade: 15, whip: 18, knucks: 2, axe: 11, hammer: 11 }[w.look] || 9,
-      ang = swing ? -0.15 : -1.1;
-    ctx.strokeStyle =
-      w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0
-        ? AFX_COL[w.mod]
-        : {
-            pipe: '#8a8f9c',
-            baton: '#45d2ff',
-            blade: '#e9f6ff',
-            whip: '#ff3d8b',
-            knucks: '#ffc63d',
-            axe: '#8a6a52',
-            hammer: '#6b6280'
-          }[w.look] || '#8a8f9c';
-    ctx.lineWidth = w.look === 'whip' ? 0.8 : 1.6;
-    ctx.beginPath();
-    ctx.moveTo(fh[0], fh[1]);
-    ctx.lineTo(fh[0] + Math.cos(ang) * L, fh[1] + Math.sin(ang) * L);
-    ctx.stroke();
-    const tx = fh[0] + Math.cos(ang) * L,
-      ty = fh[1] + Math.sin(ang) * L;
-    if (w.look === 'hammer') {
-      ctx.save();
-      ctx.translate(tx, ty);
-      ctx.rotate(ang);
-      ctx.fillStyle = '#3a3150';
-      ctx.fillRect(-2, -4.5, 6, 9);
-      ctx.fillStyle = '#b98cff';
-      ctx.globalAlpha *= 0.8;
-      ctx.fillRect(3, -4.5, 1.4, 9);
-      ctx.restore();
-    }
-    if (w.look === 'axe') {
-      ctx.save();
-      ctx.translate(tx, ty);
-      ctx.rotate(ang);
-      fillPoly([-3, 0, 1, -1, 3, 6, -3, 4], '#d6dbe6');
-      ctx.restore();
-    }
-    if (w.look === 'knucks') {
-      ctx.fillStyle = '#ffc63d';
-      ctx.fillRect(fh[0] - 1, fh[1] - 2.5, 3.5, 5);
-    }
-  }
-  if (gun) {
-    const big = isP && e.eq.gun && e.eq.gun.fire !== 'single';
-    ctx.fillStyle = '#14121a';
-    ctx.fillRect(fh[0], fh[1] - 2.5, big ? 13 : 9, 3.2);
-    ctx.fillRect(fh[0] + 1, fh[1], 2.4, 3.5);
-    if (
-      (st === 'shoot' && (t < 4 || (big && e.eq.gun.fire === 'burst' && t % 4 < 2))) ||
-      (st === 'aim' && t >= 20 && t < 25)
-    )
-      fillPoly(
-        [
-          fh[0] + (big ? 13 : 9),
-          fh[1] - 3,
-          fh[0] + (big ? 20 : 16),
-          fh[1] - 1,
-          fh[0] + (big ? 13 : 9),
-          fh[1] + 1
-        ],
-        '#ffe28a'
-      );
-  }
+  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
+    drawWeapon(e.eq.weapon, fh, swing, t, st, fl);
+  if (gun) drawGun(isP ? e.eq.gun : null, fh, st, t, fl, st === 'aim' && t >= 20 && t < 25);
   if (style === 'blade') {
     ctx.strokeStyle = fl ? '#fff' : '#e9f6ff';
     ctx.lineWidth = 1.4;
@@ -16733,6 +16936,185 @@ function drawFig(e) {
     fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
   }
 }
+/* ---------- weapons in hand ----------
+ * Each melee weapon has its own shape, drawn along the arm's angle from the hand (fh): the grip carries a
+ * band in its maker's colour, and an affix flickers its colour along the business end. */
+function drawWeapon(w, fh, swing, t, st, fl) {
+  const look = w.look || 'pipe',
+    ang = swing ? -0.15 : -1.1,
+    M = MFR[w.mfr],
+    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? AFX_COL[w.mod] : null;
+  ctx.save();
+  ctx.translate(fh[0], fh[1]);
+  if (look === 'knucks') {
+    // brass over the fist, with spurs
+    ctx.fillStyle = fl ? '#fff' : fx || '#ffc63d';
+    ctx.fillRect(-1.5, -3, 4, 6);
+    fillPoly([2.5, -3, 5, -2.2, 2.5, -1.2], '#e9f6ff');
+    fillPoly([2.5, 0.2, 5, 1, 2.5, 2], '#e9f6ff');
+    if (M) {
+      ctx.fillStyle = M.col;
+      ctx.fillRect(-1.5, 2, 4, 1);
+    }
+    ctx.restore();
+    return;
+  }
+  ctx.rotate(ang);
+  // the grip, with the maker's band
+  ctx.fillStyle = '#1a1622';
+  ctx.fillRect(-2, -1.1, 5, 2.2);
+  if (M) {
+    ctx.fillStyle = M.col;
+    ctx.fillRect(1.5, -1.2, 1.4, 2.4);
+  }
+  if (look === 'pipe') {
+    ctx.fillStyle = fl ? '#fff' : '#8a8f9c';
+    ctx.fillRect(3, -1.1, 8, 2.2);
+    ctx.fillStyle = '#5a5e6a';
+    ctx.fillRect(10, -1.6, 2.2, 3.2); // the elbow joint
+    if (fx) glow(11, 0, 5, 3, fx, 0.5);
+  } else if (look === 'baton') {
+    ctx.fillStyle = '#2a2e3a';
+    ctx.fillRect(3, -1.2, 4, 2.4);
+    ctx.fillStyle = fl ? '#fff' : '#9fe9ff';
+    ctx.fillRect(7, -0.9, 5, 1.8);
+    glow(12, 0, 6, 4, fx || '#45d2ff', 0.55 + 0.25 * Math.sin(G.t * 0.7));
+    if ((G.t + t) % 6 < 2) {
+      ctx.strokeStyle = '#e9f6ff';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(8, -1);
+      ctx.lineTo(10, -3);
+      ctx.lineTo(11, -0.5);
+      ctx.lineTo(13, -2.5);
+      ctx.stroke();
+    }
+  } else if (look === 'blade') {
+    // a guard, then a long, faintly curved edge with a bright cutting line
+    ctx.fillStyle = '#ffc63d';
+    ctx.fillRect(3, -2.4, 1.2, 4.8);
+    ctx.fillStyle = fl ? '#fff' : '#c9d2e6';
+    ctx.beginPath();
+    ctx.moveTo(4.2, -1);
+    ctx.quadraticCurveTo(12, -1.8, 19, -0.2);
+    ctx.lineTo(4.2, 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = fx || '#ffffff';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(4.5, -0.9);
+    ctx.quadraticCurveTo(12, -1.7, 18.6, -0.3);
+    ctx.stroke();
+    if (swing) glow(14, -1, 8, 3, fx || '#e9f6ff', 0.35);
+  } else if (look === 'whip') {
+    // a monofilament: a glowing line that curls off the handle and lashes straight out on a swing
+    const reach = swing ? 26 : 16,
+      wave = swing ? 0.6 : 3.5,
+      ph = G.t * 0.25;
+    ctx.strokeStyle = fl ? '#fff' : fx || '#ff3d8b';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(3, 0);
+    for (let k = 1; k <= 10; k++) {
+      const u = k / 10,
+        x = 3 + u * reach,
+        y = Math.sin(u * 5 + ph) * wave * u + (swing ? 0 : u * u * 9);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    const ex = 3 + reach,
+      ey = swing ? Math.sin(5 + ph) * wave : Math.sin(5 + ph) * wave + 9;
+    glow(ex, ey, 4, 4, fx || '#ff3d8b', 0.7);
+  } else if (look === 'axe') {
+    ctx.fillStyle = '#6a4a32';
+    ctx.fillRect(3, -1, 9, 2);
+    ctx.fillStyle = fl ? '#fff' : '#d6dbe6';
+    fillPoly([9, -1, 13, -5.5, 15, -5, 14.2, 1.2, 11, 1], ctx.fillStyle);
+    fillPoly([9.5, -1, 12.8, -4.8, 13.4, -4.6, 10.4, 0.4], '#c43a3a');
+    if (fx) glow(13, -2, 5, 4, fx, 0.5);
+  } else if (look === 'hammer') {
+    ctx.fillStyle = '#4a4458';
+    ctx.fillRect(3, -0.9, 9, 1.8);
+    ctx.fillStyle = fl ? '#fff' : '#2c2838';
+    ctx.fillRect(11, -5, 6, 10);
+    ctx.fillStyle = '#b98cff';
+    ctx.globalAlpha *= 0.85;
+    ctx.fillRect(16.2, -5, 1.2, 10);
+    ctx.globalAlpha = 1;
+    glow(14, 0, 9, 9, fx || '#b98cff', 0.25 + 0.15 * Math.sin(G.t * 0.2));
+  }
+  ctx.restore();
+}
+/* Guns in hand: each base has its own silhouette, and its own muzzle flash when it fires. Foes' guns are the
+ * plain pistol. */
+const GUN_SHAPE = {
+  light: { len: 8, h: 3, grip: 1, flash: 'small' },
+  heavy: { len: 10, h: 3.8, grip: 1, flash: 'small' },
+  smg: { len: 10, h: 3.2, grip: 1, mag: 1, flash: 'small' },
+  shot: { len: 11, h: 4, grip: 1, twin: 1, flash: 'cone' },
+  rifle: { len: 15, h: 3.2, grip: 1, mag: 1, stock: 1, flash: 'star' },
+  smart: { len: 14, h: 3.4, grip: 1, stock: 1, scope: '#7dffb0', flash: 'star' },
+  rail: { len: 17, h: 3, grip: 1, stock: 1, coils: 1, flash: 'rail' },
+  launcher: { len: 13, h: 5.5, grip: 1, tube: 1, flash: 'puff' }
+};
+function drawGun(g, fh, st, t, fl, aimFlash) {
+  const S = GUN_SHAPE[(g && g.base) || 'light'] || GUN_SHAPE.light,
+    M = g && MFR[g.mfr],
+    x = fh[0],
+    y = fh[1] - S.h + 0.6;
+  ctx.fillStyle = fl ? '#fff' : '#14121a';
+  ctx.fillRect(x, y, S.len, S.h);
+  if (S.twin) {
+    ctx.fillStyle = '#3a3448';
+    ctx.fillRect(x + 4, y + S.h / 2 - 0.3, S.len - 4, 0.6);
+  }
+  if (S.tube) {
+    ctx.fillStyle = '#2e3a26';
+    ctx.fillRect(x + 2, y - 0.5, S.len - 2, S.h + 1);
+  }
+  if (S.stock) {
+    ctx.fillStyle = '#14121a';
+    fillPoly([x, y, x - 5, y + 1, x - 5, y + S.h + 1.5, x, y + S.h], '#14121a');
+  }
+  ctx.fillStyle = '#14121a';
+  ctx.fillRect(x + 1, y + S.h, 2.4, 3.4); // grip
+  if (S.mag) ctx.fillRect(x + 5, y + S.h, 2, 4);
+  if (S.scope) {
+    ctx.fillRect(x + 4, y - 2, 6, 1.8);
+    ctx.fillStyle = S.scope;
+    ctx.fillRect(x + 9.2, y - 1.8, 0.8, 1.4);
+  }
+  if (S.coils) {
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = (G.t >> 2) % 3 === i ? '#9fe9ff' : '#2a6a8a';
+      ctx.fillRect(x + 6 + i * 3.2, y - 0.6, 1.4, S.h + 1.2);
+    }
+  }
+  if (M) {
+    ctx.fillStyle = M.col;
+    ctx.fillRect(x + 2, y + S.h - 0.9, 3, 0.9);
+  }
+  const fire =
+    (st === 'shoot' && t < 4) || aimFlash || (st === 'shoot' && g && g.fire === 'burst' && t % 4 < 2);
+  if (!fire) return;
+  const mx = x + S.len,
+    my = y + S.h / 2;
+  if (S.flash === 'cone') {
+    // a shotgun's blast: a wide fan of flame
+    fillPoly([mx, my - 1.5, mx + 13, my - 7, mx + 16, my, mx + 13, my + 7, mx, my + 1.5], '#ffb347');
+    fillPoly([mx, my - 1, mx + 9, my - 3.5, mx + 11, my, mx + 9, my + 3.5, mx, my + 1], '#fff3c4');
+  } else if (S.flash === 'rail') {
+    ctx.fillStyle = '#e9f6ff';
+    ctx.fillRect(mx, my - 0.8, 14, 1.6);
+    glow(mx + 4, my, 10, 6, '#45d2ff', 0.8);
+  } else if (S.flash === 'puff') {
+    glow(mx + 3, my, 8, 7, '#c9c2d8', 0.6);
+  } else if (S.flash === 'star') {
+    fillPoly([mx, my - 1, mx + 9, my, mx, my + 1], '#ffe28a');
+    fillPoly([mx + 2, my - 4, mx + 4, my, mx + 2, my + 4], '#ffe28a');
+  } else fillPoly([mx, my - 2, mx + 7, my, mx, my + 2], '#ffe28a');
+}
 function drawProj(pr) {
   const sx = pr.x - G.camX,
     sy = pr.y - pr.z;
@@ -16775,13 +17157,55 @@ function drawProj(pr) {
     return;
   }
   if (pr.k === 'bullet') {
-    ctx.strokeStyle = pr.rail ? '#45d2ff' : pr.seek ? '#7dffb0' : '#ffe28a';
-    ctx.lineWidth = pr.rail ? 2.4 : 1.6;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(sx - Math.sign(pr.vx) * (pr.rail ? 22 : 9), sy);
-    ctx.stroke();
-    glow(sx, sy, pr.rail ? 9 : 5, pr.rail ? 5 : 3, ctx.strokeStyle, 0.6);
+    const d = Math.sign(pr.vx);
+    if (pr.pellet) {
+      // buckshot: hot little pellets with short streaks
+      ctx.fillStyle = '#ffd27a';
+      ctx.fillRect(sx - 1, sy - 1, 2, 2);
+      ctx.strokeStyle = 'rgba(255,179,71,.6)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * 5, sy);
+      ctx.stroke();
+    } else if (pr.rail) {
+      // a rail slug drags a beam back to where it was fired
+      const back = Math.min(120, Math.abs(pr.x - (pr.x0 === undefined ? pr.x : pr.x0)));
+      ctx.strokeStyle = 'rgba(159,233,255,.35)';
+      ctx.lineWidth = 3.4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * back, sy);
+      ctx.stroke();
+      ctx.strokeStyle = '#e9f6ff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * Math.min(back, 40), sy);
+      ctx.stroke();
+      glow(sx, sy, 10, 6, '#45d2ff', 0.8);
+    } else if (pr.seek) {
+      // smart rounds: a green dart with a wavering trail
+      ctx.strokeStyle = 'rgba(125,255,176,.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++) ctx.lineTo(sx - d * k * 2.5, sy + Math.sin(G.t * 0.6 + k) * 1.4);
+      ctx.stroke();
+      fillPoly([sx + d * 3, sy, sx - d * 2, sy - 1.6, sx - d * 2, sy + 1.6], '#7dffb0');
+      glow(sx, sy, 5, 3, '#7dffb0', 0.6);
+    } else {
+      // tracers: pistols short and gold, automatics thin and orange, rifles long and white-hot
+      const k = pr.gk || 'pistol',
+        len = k === 'rifle' ? 16 : k === 'auto' ? 10 : 8,
+        col = k === 'rifle' ? '#fff3c4' : k === 'auto' ? '#ffb347' : '#ffe28a';
+      ctx.strokeStyle = col;
+      ctx.lineWidth = k === 'heavy' ? 2.2 : k === 'auto' ? 1.2 : 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * len, sy);
+      ctx.stroke();
+      glow(sx, sy, 5, 3, col, 0.6);
+    }
   } else if (pr.k === 'wave') {
     ctx.fillStyle = 'rgba(255,106,61,.25)';
     ctx.beginPath();
@@ -19762,7 +20186,7 @@ function render() {
         } else drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
-      if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
+      if (o.e.team === 1 && (o.e.dazeUntil > G.t || reeling(o.e)) && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
@@ -19939,7 +20363,7 @@ function drawDaze(e) {
   const sc = (e.d && e.d.scale) || 1,
     cx = e.x - G.camX,
     cy = e.y - e.z - 60 * sc,
-    left = (e.dazeUntil - G.t) / 60;
+    left = reeling(e) ? 1 : (e.dazeUntil - G.t) / 60;
   ctx.save();
   ctx.globalAlpha = Math.min(1, left * 3);
   for (let i = 0; i < 3; i++) {
@@ -20129,7 +20553,7 @@ function attractStep() {
 // every fighting move in one place, under each set of controls
 const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Combo</b><span>Punch, punch, punch: the third is an uppercut that launches</span>
-<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer. A grab lasts under two seconds</span>
+<b>Daze and grab</b><span>Walk into a foe that's flinching from a hit to grab it. Two hits in a row daze it (stars) so you have longer, and so does dropping it below about 30% health. Punch beside a knocked-down foe to haul it up into a grab. A grab lasts under two seconds</span>
 <b>· Punch</b><span>Punches only: jab, jab, then a hook that knocks them down</span>
 <b>· Kick</b><span>Legs only: knee, knee, then a knee lift that launches them</span>
 <b>· Direction + either</b><span>A throw that way: forward, back (over the shoulder, lands harder), up or down (into another lane). The direction you walked in with counts once you let go of it</span>
@@ -20470,26 +20894,34 @@ function bonusStr(b) {
     .join(' · ');
 }
 function itemLine(it) {
-  if (it.leg) return itemLine0(it) + ` · <span style="color:#ff8a3d">Legendary: ${LEGS[it.leg].fx}</span>`;
+  if (it.leg) return itemLine0(it) + ` · <span style="color:${RCOL[4]}">Legendary: ${LEGS[it.leg].fx}</span>`;
   return itemLine0(it);
 }
 function itemLine0(it) {
   return itemLine1(it) + (it.gmod ? ` · <span style="color:var(--mana)">${GMODS[it.gmod].name}</span>` : '');
 }
 function itemLine1(it) {
-  const bs = BASES[it.slot][it.base] || {};
+  fixItem(it);
+  const bs = BASES[it.slot][it.base] || {},
+    M = MFR[it.mfr];
   const s =
     it.slot === 'armor'
       ? `Armor ${it.arm}`
       : it.slot === 'gun'
         ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
         : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
-  const b = bonusStr(it.bonus);
+  const b = bonusStr(it.bonus),
+    parts = (it.parts || []).map(k => `${PARTS[k].n}: ${partDesc(k, it.slot)}`).join('; '),
+    innate = it.daze && !hasPart(it, 'concuss') ? 'dazes in one hit' : '',
+    oldMod = it.mod && !(it.parts || []).some(k => PARTS[k].mod === it.mod) && !it.leg ? it.mod : null;
   return (
+    (M ? `<span style="color:${M.col}">${esc(M.name)}</span> · ` : '') +
     s +
     (b ? ' · ' + b : '') +
-    (it.mod
-      ? ` · <span style="color:${AFX_COL[it.mod] || 'var(--gold)'}">${AFFIX[it.mod].n}: ${AFFIX[it.mod].desc}</span>`
+    (innate ? ' · ' + innate : '') +
+    (parts ? ` · <span style="color:${RCOL[it.rar]}">${parts}</span>` : '') +
+    (oldMod
+      ? ` · <span style="color:${AFX_COL[oldMod] || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
       : '')
   );
 }
@@ -21015,10 +21447,10 @@ function workbenchHtml() {
         uc = upgradeCost(it),
         okR = canReroll(it) && parts >= REROLL.parts && PARTY.creds >= REROLL.creds,
         okU = canUpgrade(it) && parts >= uc.parts && PARTY.creds >= uc.creds;
-      return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm${okR ? '' : ' ghost'}" data-a="reroll:${s}" ${okR ? '' : 'disabled'}>${it.leg ? 'Legendary' : `${it.mod ? 'Reroll' : 'Add'} affix · ${REROLL.parts}p ¥${REROLL.creds}`}</button><button class="btn sm${okU ? '' : ' ghost'}" data-a="upgrade:${s}" ${okU ? '' : 'disabled'}>${canUpgrade(it) ? `${RAR[it.rar + 1].n} · ${uc.parts}p ¥${uc.creds}` : 'Max rarity'}</button></div></div>`;
+      return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm${okR ? '' : ' ghost'}" data-a="reroll:${s}" ${okR ? '' : 'disabled'}>${it.leg ? 'Legendary' : `Reroll parts · ${REROLL.parts}p ¥${REROLL.creds}`}</button><button class="btn sm${okU ? '' : ' ghost'}" data-a="upgrade:${s}" ${okU ? '' : 'disabled'}>${canUpgrade(it) ? `+1 part (${RAR[it.rar + 1].n}) · ${uc.parts}p ¥${uc.creds}` : it.rar >= 3 ? 'Max at the bench' : 'Max rarity'}</button></div></div>`;
     })
     .join('');
-  return `<h3>Workbench <small style="color:var(--gold);font-weight:400;text-transform:none;letter-spacing:0">${parts} part${parts === 1 ? '' : 's'}</small></h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">Scrap gear from the bag for parts, then rework what ${esc(p.name)} has equipped: reroll the affix, or raise rarity up to Prototype. Legendaries can't be scrapped or reworked.</p><div class="list">${rows || '<p>Nothing equipped.</p>'}</div>`;
+  return `<h3>Workbench <small style="color:var(--gold);font-weight:400;text-transform:none;letter-spacing:0">${parts} part${parts === 1 ? '' : 's'}</small></h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">Scrap gear from the bag for parts, then rework what ${esc(p.name)} has equipped: reroll its parts (same number, new rolls), or add a part to raise its rarity, up to Black-market. Legendary gear only drops, and can't be scrapped or reworked.</p><div class="list">${rows || '<p>Nothing equipped.</p>'}</div>`;
 }
 // Ratchet's gun bench: fit one mod to the current runner's gun
 function gunBenchHtml() {

@@ -147,7 +147,7 @@ const PERKS = [
         y: 150,
         z: 0,
         s: it.name.toUpperCase(),
-        c: ['#efe9ff', '#45d2ff', '#ffc63d'][it.rar],
+        c: RCOL[it.rar],
         life: 80
       });
     }

@@ -349,8 +349,8 @@ __PARTY.bag = [A.mkItem('weapon', 'pipe', 2, 'keen'), A.mkItem('gun', 'light', 0
 const scrap = A.salvageParts(__PARTY.bag[0]);
 click('salvage:' + __PARTY.bag[0].uid);
 ok(
-  scrap === 6 && __PARTY.parts === 6 && __PARTY.bag.length === 1,
-  'scrapping a Prototype Keen pipe gives 6 parts'
+  scrap === 5 && __PARTY.parts === 5 && __PARTY.bag.length === 1,
+  'scrapping a Prototype (two-part) pipe gives 5 parts'
 );
 ok(A.salvageParts(A.mkLegend('ronin')) === 0, "legendaries can't be scrapped");
 P.eq.weapon = A.mkItem('weapon', 'katana', 0);
@@ -358,17 +358,21 @@ A.refresh(P);
 const dm0 = P.eq.weapon.dmg;
 click('upgrade:weapon');
 ok(
-  P.eq.weapon.rar === 1 && P.eq.weapon.dmg > dm0 && /^Tuned Katana/.test(P.eq.weapon.name),
+  P.eq.weapon.rar === 1 &&
+    P.eq.weapon.parts.length === 1 &&
+    P.eq.weapon.dmg >= dm0 &&
+    /Katana$/.test(P.eq.weapon.name),
   'upgrade: Street katana → ' + P.eq.weapon.name
 );
-ok(__PARTY.parts === 2 && __PARTY.creds === 5000 - 80, 'upgrade cost 4 parts and ¥80');
+ok(__PARTY.parts === 1 && __PARTY.creds === 5000 - 80, 'upgrade cost 4 parts and ¥80');
+const partsBefore = P.eq.weapon.parts.join();
 click('reroll:weapon');
-ok(!P.eq.weapon.mod && __PARTY.parts === 2, 'not enough parts: reroll refused');
+ok(P.eq.weapon.parts.join() === partsBefore && __PARTY.parts === 1, 'not enough parts: reroll refused');
 __PARTY.parts = 3;
 click('reroll:weapon');
 ok(
-  P.eq.weapon.mod && __PARTY.parts === 0 && A.LEG.feats.craft1,
-  'reroll adds an affix (' + P.eq.weapon.name + '), Back-Alley Engineer'
+  P.eq.weapon.parts.length === 1 && __PARTY.parts === 0 && A.LEG.feats.craft1,
+  'reroll rolls its parts again (' + P.eq.weapon.name + '), Back-Alley Engineer'
 );
 ok(/Workbench/.test(A.npcHtml('ratchet')), 'workbench listed at Ratchet');
 

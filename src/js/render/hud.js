@@ -696,7 +696,7 @@ function render() {
         } else drawFig(o.e);
       }
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
-      if (o.e.team === 1 && o.e.dazeUntil > G.t && !cl && dazed(o.e)) drawDaze(o.e);
+      if (o.e.team === 1 && (o.e.dazeUntil > G.t || reeling(o.e)) && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
@@ -873,7 +873,7 @@ function drawDaze(e) {
   const sc = (e.d && e.d.scale) || 1,
     cx = e.x - G.camX,
     cy = e.y - e.z - 60 * sc,
-    left = (e.dazeUntil - G.t) / 60;
+    left = reeling(e) ? 1 : (e.dazeUntil - G.t) / 60;
   ctx.save();
   ctx.globalAlpha = Math.min(1, left * 3);
   for (let i = 0; i < 3; i++) {
