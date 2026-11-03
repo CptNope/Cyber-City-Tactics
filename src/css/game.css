@@ -458,10 +458,10 @@ button:focus-visible {
   color: #e6e1f2;
 }
 .r1 {
-  color: var(--mana);
+  color: #7dffb0;
 }
 .r2 {
-  color: var(--gold);
+  color: #45d2ff;
 }
 .up {
   color: var(--ok);
@@ -704,7 +704,10 @@ button:focus-visible {
   }
 }
 .r3 {
-  color: #ff8a3d;
+  color: #b98cff;
+}
+.r4 {
+  color: #ffa630;
 }
 .swatch {
   width: 26px;

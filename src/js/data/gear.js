@@ -120,12 +120,90 @@ const AFFIX = {
   padded: { n: 'Padded', slots: ['armor'], desc: '+25 max HP' }
 };
 const AFX_COL = { shock: '#45d2ff', burn: '#ff6a3d', leech: '#7dffb0' };
+/* Gear works like Borderlands: every piece comes from a manufacturer with its own speciality, and rolls 0–4
+ * parts. The number of parts is its rarity, and its colour: white Street (none), green Tuned (one), blue
+ * Prototype (two), purple Black-market (three), orange Legendary (four, or a named legendary from a feat).
+ * The tier itself adds a little; the parts are what make two katanas play differently. */
 const RAR = [
   { n: 'Street', m: 1 },
-  { n: 'Tuned', m: 1.25 },
-  { n: 'Prototype', m: 1.55 },
-  { n: 'Black-market', m: 1.9 }
+  { n: 'Tuned', m: 1.12 },
+  { n: 'Prototype', m: 1.25 },
+  { n: 'Black-market', m: 1.4 },
+  { n: 'Legendary', m: 1.55 }
 ];
+// Manufacturers: who makes what, their colour on the item card and the weapon, and the parts they favour
+const MFR = {
+  kagemori: {
+    name: 'Kagemori',
+    col: '#ff3d4a',
+    spec: 'Precision: crits',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'agi',
+    likes: ['keen', 'keen', 'sight', 'swift', 'attr', 'plated']
+  },
+  rustline: {
+    name: 'Rustline Forge',
+    col: '#ff8a3d',
+    spec: 'Raw damage and knockback',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'str',
+    likes: ['heavy', 'heavy', 'brutal', 'burn', 'attr', 'plated', 'spiked']
+  },
+  voltaic: {
+    name: 'Voltaic',
+    col: '#45d2ff',
+    spec: 'Shock and fire; its melee weapons always daze',
+    slots: ['weapon', 'gun'],
+    attr: 'hak',
+    likes: ['shock', 'shock', 'burn', 'swift', 'concuss', 'drum']
+  },
+  hexwright: {
+    name: 'Hexwright',
+    col: '#b98cff',
+    spec: 'Magic: mana, spell power, leeching',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'mag',
+    likes: ['attr', 'attr', 'leech', 'warded', 'keen', 'padded']
+  },
+  ironside: {
+    name: 'Ironside Arms',
+    col: '#c9d1e0',
+    spec: 'Speed: faster swings and fire, bigger mags',
+    slots: ['weapon', 'gun', 'armor'],
+    attr: 'bod',
+    likes: ['swift', 'swift', 'drum', 'heavy', 'padded', 'plated']
+  }
+};
+// Parts: what each one does, the word it lends the item's name, and which slots can have it
+const PARTS = {
+  heavy: { n: 'Heavy', slots: ['weapon', 'gun'], desc: '+20% damage' },
+  brutal: { n: 'Brutal', slots: ['weapon'], desc: 'knocks foes further' },
+  keen: { n: 'Keen', slots: ['weapon', 'gun'], desc: '+8% crit chance' },
+  sight: { n: 'Scoped', slots: ['gun'], desc: '+6% crit chance and crits hit harder' },
+  swift: {
+    n: 'Swift',
+    slots: ['weapon', 'gun', 'armor'],
+    desc: 'attacks recover 20% faster',
+    adesc: 'move 8% faster'
+  },
+  concuss: { n: 'Concussive', slots: ['weapon'], desc: 'one hit dazes a foe (ready to grab)' },
+  drum: { n: 'Drum-fed', slots: ['gun'], desc: 'ammo pickups give 50% more rounds' },
+  attr: { n: 'Augmented', slots: ['weapon', 'gun', 'armor'], desc: '+2 more to the maker’s attribute' },
+  shock: { n: 'Shock', slots: ['weapon', 'gun'], mod: 'shock' },
+  burn: { n: 'Incendiary', slots: ['weapon', 'gun'], mod: 'burn' },
+  leech: { n: 'Leeching', slots: ['weapon', 'gun'], mod: 'leech' },
+  plated: { n: 'Plated', slots: ['armor'], desc: '+30% armor' },
+  spiked: { n: 'Spiked', slots: ['armor'], mod: 'spiked' },
+  padded: { n: 'Padded', slots: ['armor'], mod: 'padded' },
+  warded: { n: 'Warded', slots: ['armor'], desc: '+2 Magic' }
+};
+const partDesc = (k, slot) => {
+  const P = PARTS[k];
+  if (P.mod) return AFFIX[P.mod].desc;
+  return slot === 'armor' && P.adesc ? P.adesc : P.desc;
+};
+const hasPart = (it, k) => !!(it && it.parts && it.parts.includes(k));
+const makersFor = slot => Object.keys(MFR).filter(k => MFR[k].slots.includes(slot));
 // The party bag holds this many items (it was 12). Shops buy anything in it. The stash (Den locker and Sprawl
 // safehouse, shared) holds STASH_MAX more and never leaves home.
 const BAG_MAX = 40,
@@ -144,7 +222,8 @@ const BAG_SORTS = {
   new: (a, b) => (b.got || 0) - (a.got || 0)
 };
 const bagSort = () => BAG_SORTS[prefs.bagSort] || BAG_SORTS.best;
-const RCOL = ['#efe9ff', '#45d2ff', '#ffc63d', '#ff8a3d'];
+// rarity colours, Borderlands order: white, green, blue, purple, orange
+const RCOL = ['#efe9ff', '#7dffb0', '#45d2ff', '#b98cff', '#ffa630'];
 const SPELLS = {
   fire: {
     name: 'Fireball',
@@ -314,62 +393,124 @@ function applyArch(p, key) {
   p.mp = p.maxMp;
 }
 
-function mkItem(slot, base, rar, mod) {
-  const b = BASES[slot][base] || Object.values(BASES[slot])[0],
-    r = RAR[rar];
-  if (mod === true) {
-    const ms = Object.keys(AFFIX).filter(k => AFFIX[k].slots.includes(slot));
-    mod = pick(ms);
-  }
+// Make an item: base from BASES, `rar` parts (0–4) favouring its maker's speciality. `mod` true asks for an
+// elemental or affix part among them; a string asks for that affix. `mfr` picks the maker (random otherwise).
+function mkItem(slot, base, rar, mod, mfr) {
+  const b = BASES[slot][base] ? BASES[slot][base] : Object.values(BASES[slot])[0];
+  if (!BASES[slot][base]) base = Object.keys(BASES[slot])[0];
   const it = {
     uid: Math.random().toString(36).slice(2, 9),
     slot,
     base,
-    rar,
-    name: (rar ? r.n + ' ' : '') + (mod ? AFFIX[mod].n + ' ' : '') + b.name,
+    rar: 0,
+    mfr: MFR[mfr] && MFR[mfr].slots.includes(slot) ? mfr : pick(makersFor(slot)),
+    parts: [],
     bonus: Object.assign({}, b.bonus || {})
   };
-  if (mod) it.mod = mod;
-  if (b.dmg) it.dmg = Math.round(b.dmg * r.m);
-  if (b.arm) it.arm = Math.round(b.arm * r.m);
   if (b.reach) it.reach = b.reach;
   if (b.fire) it.fire = b.fire;
   if (b.look) it.look = b.look;
-  const ks = Object.keys(ATTRS);
-  for (let i = 0; i < rar; i++) {
-    const k = pick(ks);
-    it.bonus[k] = (it.bonus[k] || 0) + 1;
+  const want = typeof mod === 'string' ? Object.keys(PARTS).find(k => PARTS[k].mod === mod) : null;
+  if (want) it.parts.push(want);
+  else if (mod === true && rar > 0) {
+    const ms = Object.keys(PARTS).filter(k => PARTS[k].mod && PARTS[k].slots.includes(slot));
+    it.parts.push(pick(ms));
   }
-  it.price = Math.round(b.price * (1 + rar * 0.7) * (mod ? 1.3 : 1));
+  while (it.parts.length < Math.min(4, rar)) addPart(it);
+  applyParts(it);
+  return it;
+}
+// one more part, picked from the maker's favourites most of the time; at most one affix part per item
+function addPart(it) {
+  const M = MFR[it.mfr],
+    ok = k =>
+      PARTS[k] &&
+      PARTS[k].slots.includes(it.slot) &&
+      (!PARTS[k].mod || !it.parts.some(q => PARTS[q].mod)) &&
+      (k === 'attr' || k === 'heavy' || !it.parts.includes(k));
+  const fav = M.likes.filter(ok),
+    any = Object.keys(PARTS).filter(ok),
+    pool = fav.length && Math.random() < 0.75 ? fav : any;
+  if (pool.length) it.parts.push(pick(pool));
+}
+// work out an item's numbers, name and price from its base, maker and parts
+function applyParts(it) {
+  const b = BASES[it.slot][it.base],
+    M = MFR[it.mfr] || MFR.ironside;
+  it.rar = it.leg ? 4 : Math.min(4, it.parts.length);
+  const r = RAR[it.rar],
+    n = k => it.parts.filter(q => q === k).length;
+  it.bonus = Object.assign({}, b.bonus || {});
+  if (b.dmg) it.dmg = Math.round(b.dmg * r.m * (1 + 0.2 * n('heavy')));
+  if (b.arm) it.arm = Math.round(b.arm * r.m * (1 + 0.3 * n('plated')));
+  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more
+  const ap = it.rar + 2 * n('attr');
+  if (ap) it.bonus[M.attr] = (it.bonus[M.attr] || 0) + ap;
+  if (n('warded')) it.bonus.mag = (it.bonus.mag || 0) + 2;
+  it.crit = 0.08 * n('keen') + 0.06 * n('sight');
+  it.critMul = n('sight') ? 1.25 : 1;
+  it.speed = it.slot !== 'armor' && n('swift') ? 0.8 : 1;
+  it.daze = !!(n('concuss') || (it.slot === 'weapon' && it.mfr === 'voltaic'));
+  it.kb = n('brutal') ? 1.6 : it.mfr === 'rustline' && it.slot === 'weapon' ? 1.2 : 1;
+  const mp = it.parts.find(q => PARTS[q].mod);
+  it.mod = mp ? PARTS[mp].mod : it.legMod || null;
+  if (!it.mod) delete it.mod;
+  if (!it.leg) {
+    const lead = it.parts.find(q => q !== 'attr') || it.parts[0];
+    it.name = M.name + ' ' + (lead ? PARTS[lead].n + ' ' : '') + b.name;
+  }
+  it.price = Math.round(b.price * (1 + it.rar * 0.6) * (it.leg ? 2 : 1));
+}
+// older saves: items from before makers and parts get a maker (fixed by their id) and parts to match their tier
+function fixItem(it) {
+  if (!it || it.mfr || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  const ks = makersFor(it.slot);
+  let h = 0;
+  for (const c of String(it.uid)) h = (h * 31 + c.charCodeAt(0)) | 0;
+  it.mfr = ks[Math.abs(h) % ks.length];
+  const keepName = it.leg ? it.name : null,
+    oldMod = it.mod;
+  it.parts = [];
+  if (oldMod && !it.leg) {
+    const k =
+      oldMod === 'keen'
+        ? 'keen'
+        : Object.keys(PARTS).find(q => PARTS[q].mod === oldMod && PARTS[q].slots.includes(it.slot));
+    if (k) it.parts.push(k);
+  }
+  if (it.leg && oldMod) it.legMod = oldMod;
+  const want = it.leg ? 2 : Math.min(3, it.rar || 0);
+  while (it.parts.length < want) addPart(it);
+  applyParts(it);
+  if (keepName) it.name = keepName;
   return it;
 }
 /* Salvage and crafting at Ratchet's: scrap gear into parts, then spend parts to reroll an affix or raise rarity. */
-const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2 + (it.mod ? 1 : 0));
+const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2);
 const REROLL = { parts: 3, creds: 40 };
 const upgradeCost = it => ({ parts: 4 * (it.rar + 1), creds: 80 * (it.rar + 1) });
-const canUpgrade = it => !!it && !it.leg && it.rar < 2;
+const canUpgrade = it => !!it && !it.leg && it.rar < 3; // Ratchet adds parts up to Black-market; Legendary only drops
 const canReroll = it => !!it && !it.leg;
 function renameItem(it) {
-  const b = BASES[it.slot][it.base];
-  it.name = (it.rar ? RAR[it.rar].n + ' ' : '') + (it.mod ? AFFIX[it.mod].n + ' ' : '') + b.name;
-  it.price = Math.round(b.price * (1 + it.rar * 0.7) * (it.mod ? 1.3 : 1));
+  fixItem(it);
+  applyParts(it);
 }
+// Ratchet's reroll: the same number of parts, rolled again
 function rerollItem(it) {
   if (!canReroll(it)) return false;
-  const ms = Object.keys(AFFIX).filter(k => AFFIX[k].slots.includes(it.slot) && k !== it.mod);
-  it.mod = pick(ms);
-  renameItem(it);
+  fixItem(it);
+  const n = it.parts.length || 1;
+  it.parts = [];
+  while (it.parts.length < n) addPart(it);
+  applyParts(it);
   return true;
 }
+// Ratchet's upgrade: one more part, so one tier up
 function upgradeItem(it) {
   if (!canUpgrade(it)) return false;
-  const b = BASES[it.slot][it.base];
-  it.rar++;
-  if (b.dmg) it.dmg = Math.round(b.dmg * RAR[it.rar].m);
-  if (b.arm) it.arm = Math.round(b.arm * RAR[it.rar].m);
-  const k = pick(Object.keys(ATTRS));
-  it.bonus[k] = (it.bonus[k] || 0) + 1;
-  renameItem(it);
+  fixItem(it);
+  addPart(it);
+  applyParts(it);
   return true;
 }
 function randItem(stage, boost) {
@@ -377,7 +518,8 @@ function randItem(stage, boost) {
   const bases = Object.keys(BASES[slot]);
   const top = clamp(Math.floor(stage) + 1 + (boost ? 1 : 0), 0, bases.length - 1);
   const base = bases[ri(Math.max(0, top - 2), top)];
-  const roll = Math.random() + stage * 0.12 + (boost ? 0.45 : 0);
-  const rar = roll > 1.15 ? 2 : roll > 0.68 ? 1 : 0;
-  return mkItem(slot, base, rar, Math.random() < [0, 0.4, 0.8][rar]);
+  // how many parts it rolls is its rarity; deeper districts and elites and bosses (boost) roll more
+  const roll = Math.random() + stage * 0.1 + (boost ? 0.4 : 0);
+  const rar = roll > 1.6 ? 4 : roll > 1.25 ? 3 : roll > 0.95 ? 2 : roll > 0.6 ? 1 : 0;
+  return mkItem(slot, base, rar);
 }

@@ -44,7 +44,11 @@ function upEnemy(e) {
     }
   }
   physics(e);
-  if (e.state === 'grabbed') return;
+  if (e.state === 'grabbed') {
+    // nobody holding them any more (a grab that ended some other way): back on their feet
+    if (!PL.some(p => p.grab === e)) setS(e, 'idle');
+    return;
+  }
   if (e.d.passive) {
     if (e.state === 'dead') {
       if (e.t > 40) e.gone = true;

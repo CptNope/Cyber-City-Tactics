@@ -147,6 +147,7 @@ function eff(p) {
 }
 function refresh(p) {
   initSkills(p);
+  for (const k in p.eq) fixItem(p.eq[k]); // gear from before makers and parts
   const a = eff(p),
     w = p.eq.weapon,
     g = p.eq.gun,
@@ -166,8 +167,10 @@ function refresh(p) {
       cy.wired * 0.04 +
       (cy.eyes || 0) * 0.08 +
       (wb.crit || 0) +
-      ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0),
-    spd: 1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08,
+      ((w && w.mod === 'keen') || (g && g.mod === 'keen') ? 0.08 : 0) +
+      ((w && w.crit) || 0) +
+      ((g && g.crit) || 0),
+    spd: (1.55 + Math.max(0, a.agi) * 0.045 + cy.wired * 0.08) * (hasPart(ar, 'swift') ? 1.08 : 1),
     spell: a.mag * 4,
     regen: Math.round(Math.max(12, 46 - a.mag * 3) * (has(p, 'flow') ? 0.6 : 1)),
     breaker: !!wb.breaker,
@@ -208,6 +211,11 @@ function saveGame(phase) {
   };
   store.set('cs_save3', JSON.parse(JSON.stringify(o)));
 }
+// bring every item the party owns up to date (makers and parts arrived after some saves were made)
+function fixGear() {
+  for (const it of (PARTY.bag || []).concat(PARTY.stash || [], G.stock || [])) fixItem(it);
+  for (const p of PL) for (const k in p.eq) fixItem(p.eq[k]);
+}
 function loadGame(s) {
   G.coop = !!s.coop;
   Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
@@ -235,6 +243,7 @@ function loadGame(s) {
   G.debrief = s.debrief || null;
   G.choices = isObj(s.choices) ? s.choices : {};
   G.bestCombo = s.bestCombo || 0;
+  fixGear();
   G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
 const karmaNext = l => 50 + l * 45;

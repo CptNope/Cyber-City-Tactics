@@ -181,7 +181,9 @@ function hurt(t, dmg, dir, o) {
           (o.bullet && has(o.src, 'deadeye') ? 0.15 : 0) +
           (o.bullet && gmodOf(o.src) === 'laser' ? 0.1 : 0))
   ) {
-    dmg *= o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8;
+    dmg *=
+      (o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8) *
+      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1);
     crit = true;
   }
   dmg = Math.max(1, Math.round(dmg));
@@ -191,7 +193,8 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && legOf(t, 'armor') === 'dragonscale')
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
   const heavy = !!(t.d && t.d.heavy);
-  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3);
+  const wkb = o.melee && o.src && o.src.eq && o.src.eq.weapon ? o.src.eq.weapon.kb || 1 : 1; // Brutal and Rustline knock further
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb;
   if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
@@ -363,6 +366,12 @@ function hurt(t, dmg, dir, o) {
   }
   if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
+    if (t.team === 1 && o.src && o.src.team === 0 && grabbable(Object.assign({}, t, { state: 'idle' })))
+      tip(
+        'haul',
+        'Knocked down? PUNCH beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.',
+        'Knocked down? Press J beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.'
+      );
     t.vz = 2.8;
     t.vx = dir * 2.2;
     t.hits = 0;
@@ -371,7 +380,14 @@ function hurt(t, dmg, dir, o) {
     setS(t, 'hurt');
     if (t.team === 0) sfx.hurt();
     // two hits in a row leave a foe dazed (stars over its head): walk into it and you grab it
-    else if (o.src && o.src.team === 0 && o.melee && t.hits >= 2 && grabbable(t)) {
+    // (a Concussive or Voltaic weapon dazes on the first hit)
+    else if (
+      o.src &&
+      o.src.team === 0 &&
+      o.melee &&
+      (t.hits >= 2 || (o.src.eq && o.src.eq.weapon && o.src.eq.weapon.daze)) &&
+      grabbable(t)
+    ) {
       t.dazeUntil = G.t + (hasTech(o.src, 'grip') ? 110 : 60);
       tip(
         'grab',

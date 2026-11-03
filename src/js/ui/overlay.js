@@ -390,10 +390,10 @@ function workbenchHtml() {
         uc = upgradeCost(it),
         okR = canReroll(it) && parts >= REROLL.parts && PARTY.creds >= REROLL.creds,
         okU = canUpgrade(it) && parts >= uc.parts && PARTY.creds >= uc.creds;
-      return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm${okR ? '' : ' ghost'}" data-a="reroll:${s}" ${okR ? '' : 'disabled'}>${it.leg ? 'Legendary' : `${it.mod ? 'Reroll' : 'Add'} affix · ${REROLL.parts}p ¥${REROLL.creds}`}</button><button class="btn sm${okU ? '' : ' ghost'}" data-a="upgrade:${s}" ${okU ? '' : 'disabled'}>${canUpgrade(it) ? `${RAR[it.rar + 1].n} · ${uc.parts}p ¥${uc.creds}` : 'Max rarity'}</button></div></div>`;
+      return `<div class="item"><div><div class="nm r${it.rar}">${esc(it.name)}</div><div class="ds">${itemLine(it)}</div></div><div class="acts"><button class="btn sm${okR ? '' : ' ghost'}" data-a="reroll:${s}" ${okR ? '' : 'disabled'}>${it.leg ? 'Legendary' : `Reroll parts · ${REROLL.parts}p ¥${REROLL.creds}`}</button><button class="btn sm${okU ? '' : ' ghost'}" data-a="upgrade:${s}" ${okU ? '' : 'disabled'}>${canUpgrade(it) ? `+1 part (${RAR[it.rar + 1].n}) · ${uc.parts}p ¥${uc.creds}` : it.rar >= 3 ? 'Max at the bench' : 'Max rarity'}</button></div></div>`;
     })
     .join('');
-  return `<h3>Workbench <small style="color:var(--gold);font-weight:400;text-transform:none;letter-spacing:0">${parts} part${parts === 1 ? '' : 's'}</small></h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">Scrap gear from the bag for parts, then rework what ${esc(p.name)} has equipped: reroll the affix, or raise rarity up to Prototype. Legendaries can't be scrapped or reworked.</p><div class="list">${rows || '<p>Nothing equipped.</p>'}</div>`;
+  return `<h3>Workbench <small style="color:var(--gold);font-weight:400;text-transform:none;letter-spacing:0">${parts} part${parts === 1 ? '' : 's'}</small></h3>${whoTabs()}<p style="font-size:13px;color:var(--muted)">Scrap gear from the bag for parts, then rework what ${esc(p.name)} has equipped: reroll its parts (same number, new rolls), or add a part to raise its rarity, up to Black-market. Legendary gear only drops, and can't be scrapped or reworked.</p><div class="list">${rows || '<p>Nothing equipped.</p>'}</div>`;
 }
 // Ratchet's gun bench: fit one mod to the current runner's gun
 function gunBenchHtml() {

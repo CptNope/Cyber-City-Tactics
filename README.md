@@ -348,14 +348,50 @@ Old saves pick up skill points for the levels they already earned.
 ## Gear
 Your runner has three slots: melee weapon, gun and armor.
 
-Rarity sets the stat multiplier and the number of bonus attributes:
+Gear works like Borderlands. Every piece comes from a **manufacturer** with its own speciality, and rolls **0–4 parts**. The number of parts is its rarity and its colour, so a glance at the name tells you how much it has going on:
 
-| Rarity | Multiplier | Bonus attributes |
+| Rarity | Colour | Parts | Stat multiplier |
+|---|---|---|---|
+| Street | White | none | ×1.0 |
+| Tuned | Green | one | ×1.12 |
+| Prototype | Blue | two | ×1.25 |
+| Black-market | Purple | three | ×1.4 |
+| Legendary | Orange | four, or a named legendary from a feat (with its unique effect) | ×1.55 |
+
+Every tier also adds a point to the maker's own attribute. Items are named maker first, then their lead part: *Kagemori Keen Katana*, *Rustline Forge Heavy Sawed-off shotgun*. The item card lists the maker and every part.
+
+**Manufacturers:**
+
+| Maker | Colour | Speciality | Attribute |
+|---|---|---|---|
+| Kagemori | Red | Precision: crit chance and crit damage | Agility |
+| Rustline Forge | Orange | Raw damage; its melee weapons knock foes further | Strength |
+| Voltaic | Cyan | Shock and fire; **its melee weapons always daze in one hit** (ready to grab) | Hacking |
+| Hexwright | Violet | Magic, spell power, leeching | Magic |
+| Ironside Arms | Steel | Speed: faster swings and fire, bigger mags | Body |
+
+Makers favour their own parts about three times in four. Voltaic makes no armor.
+
+**Parts:**
+
+| Part | Slots | Effect |
 |---|---|---|
-| Street | ×1.0 | none |
-| Tuned | ×1.25 | one |
-| Prototype | ×1.55 | two |
-| Black-market (legendary) | ×1.9 | three, plus a unique effect |
+| Heavy | Weapon, gun | +20% damage |
+| Brutal | Weapon | Knocks foes further |
+| Keen | Weapon, gun | +8% crit chance |
+| Scoped | Gun | +6% crit chance, and crits hit 25% harder |
+| Swift | Weapon, gun, armor | Attacks recover 20% faster (armor: move 8% faster) |
+| Concussive | Weapon | One hit dazes a foe, ready to grab |
+| Drum-fed | Gun | Ammo pickups give 50% more rounds |
+| Augmented | Any | +2 more to the maker's attribute |
+| Shock, Incendiary, Leeching | Weapon, gun | The affixes below (one per item) |
+| Plated | Armor | +30% armor |
+| Spiked, Padded | Armor | The affixes below |
+| Warded | Armor | +2 Magic |
+
+Older saves keep their gear: each piece is given a maker (fixed by its id) and parts to match its old rarity, keeping any affix it had.
+
+**How they look.** Every weapon has its own shape in your hand, with a band in its maker's colour on the grip: a pipe with its elbow joint, spurred knuckles, a crackling shock baton, a curved katana, a red-headed axe, a monowhip that curls off the handle and lashes out straight, a gravity hammer. Guns have their own silhouettes and shots too: pistol and heavy-pistol tracers, orange automatic fire, a fan of buckshot with sparks and smoke, a long rifle tracer, the smartgun's wavering green dart, a rail slug dragging a beam, and a grenade trailing smoke.
 
 Better gear shows up as you go deeper into the campaign, the Arena or the Sprawl.
 
@@ -393,12 +429,12 @@ Every weapon has its own heavy blow (hold punch, then release).
 | Suppressor | ¥180 | Cops you shoot down in the Sprawl add no heat |
 | Underbarrel launcher | ¥300 | Every 20 seconds, a shot also lobs a free grenade |
 
-**Salvage and crafting.** At Ratchet's (the Den and Sprawl safehouses), scrap gear from the bag for parts: 1 part, plus 2 per rarity tier, plus 1 for an affix. Legendaries can't be scrapped. Then spend parts at the workbench on what the current runner has equipped:
+**Salvage and crafting.** At Ratchet's (the Den and Sprawl safehouses), scrap gear from the bag for parts: 1, plus 2 per rarity tier. Legendaries can't be scrapped. Then spend parts at the workbench on what the current runner has equipped:
 
 | Job | Cost | Result |
 |---|---|---|
-| Reroll affix | 3 parts + ¥40 | A new random affix (or a first one if it had none) |
-| Upgrade rarity | 4 parts + ¥80 per tier | Street → Tuned → Prototype: more damage or armor, plus one attribute point |
+| Reroll parts | 3 parts + ¥40 | The same number of parts, rolled again |
+| Add a part | 4 parts + ¥80 per tier | One more part, so one tier up: Street → Tuned → Prototype → Black-market. Legendary gear only drops |
 
 **Comparing gear.** Walk near gear on the floor and a small card shows its name and how its damage or armor compares to what you're wearing (▲ better, ▼ worse).
 
@@ -414,7 +450,7 @@ Every weapon has its own heavy blow (hold punch, then release).
 | Exo-frame | Heaviest; +2 Strength, −1 Agility |
 
 ### Affixes
-Tuned and Prototype items can roll an affix, which shows in the item's name (for example, *Tuned Incendiary Railgun*).
+Affixes come as parts (at most one per item), so they show in the name when they lead (for example, *Voltaic Incendiary Railgun*).
 
 | Affix | Slots | Effect |
 |---|---|---|
@@ -482,7 +518,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
-- **Grabs (Double Dragon style):** walk into a foe while it's flinching from a hit to grab it. Two hits in a row daze it (stars circle its head) for about a second, so you have time to walk in. A grab lasts under two seconds (three with Grip actuators). While you hold it:
+- **Grabs (Double Dragon style):** walk into a foe while it's flinching from a hit to grab it. Two hits in a row daze it (stars circle its head) for about a second, so you have time to walk in. However strong you get, there are always ways in: a foe under about 30% health reels (stars again) and can be grabbed; **punch beside a knocked-down foe to haul it up into a grab**, River City style; and Voltaic or Concussive weapons daze in one hit. A grab lasts under two seconds (three with Grip actuators). While you hold it:
   - **Punch:** punches only. A jab, a jab, then a hook that knocks them down.
   - **Kick:** legs only. A knee, a knee, then a knee lift that launches them (catch them with a jump kick).
   - **A direction plus punch or kick:** a throw that way. Forward; back for an over-the-shoulder slam behind you (it lands harder); up or down to throw them into another lane, bowling over whoever stands there. The direction you were already holding when you walked in doesn't throw until you let go of it or change it, so walking in never throws by accident.

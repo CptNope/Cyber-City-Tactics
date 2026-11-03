@@ -25,7 +25,7 @@ const plain = lvl => {
   let best = null;
   for (let i = 0; i < 12; i++) {
     const r = hpAt(lvl);
-    if (!best || r.hp < best.hp) best = r;
+    best = best ? { hp: Math.min(best.hp, r.hp), dmg: Math.min(best.dmg, r.dmg) } : r;
   }
   return best;
 };

@@ -76,6 +76,7 @@ const TESTS = [
   { file: 'streetfoes', minPass: 17 },
   { file: 'grabs', minPass: 22 },
   { file: 'balance', minPass: 4 },
+  { file: 'gear', minPass: 20 },
   { file: 'stealth', minPass: 46 },
   { file: 'flight', minPass: 34 },
   { file: 'shop', minPass: 41 },

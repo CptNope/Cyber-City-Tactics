@@ -1118,7 +1118,7 @@ function drawFig(e) {
   ctx.fillRect(bf[0] - 3, bf[1] - 2.5, 7, 3);
   const armorCol =
     isP && e.eq.armor && e.eq.armor.rar
-      ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18'][e.eq.armor.rar]
+      ? ['', e.idx ? '#6a2f80' : '#1d3f63', '#4a3a18', '#3a2a50', '#4a3010'][e.eq.armor.rar]
       : null;
   const cTop = fl ? '#fff' : armorCol || coat;
   if (style === 'runner' || style === 'mage' || style === 'doc' || style === 'beard' || style === 'vamp') {
@@ -1437,73 +1437,9 @@ function drawFig(e) {
     ctx.fillStyle = 'rgba(255,255,255,.4)';
     ctx.fillRect(fh[0] + 2, sh[1], 1, 26);
   }
-  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll') {
-    const w = e.eq.weapon,
-      L = { pipe: 9, baton: 9, blade: 15, whip: 18, knucks: 2, axe: 11, hammer: 11 }[w.look] || 9,
-      ang = swing ? -0.15 : -1.1;
-    ctx.strokeStyle =
-      w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0
-        ? AFX_COL[w.mod]
-        : {
-            pipe: '#8a8f9c',
-            baton: '#45d2ff',
-            blade: '#e9f6ff',
-            whip: '#ff3d8b',
-            knucks: '#ffc63d',
-            axe: '#8a6a52',
-            hammer: '#6b6280'
-          }[w.look] || '#8a8f9c';
-    ctx.lineWidth = w.look === 'whip' ? 0.8 : 1.6;
-    ctx.beginPath();
-    ctx.moveTo(fh[0], fh[1]);
-    ctx.lineTo(fh[0] + Math.cos(ang) * L, fh[1] + Math.sin(ang) * L);
-    ctx.stroke();
-    const tx = fh[0] + Math.cos(ang) * L,
-      ty = fh[1] + Math.sin(ang) * L;
-    if (w.look === 'hammer') {
-      ctx.save();
-      ctx.translate(tx, ty);
-      ctx.rotate(ang);
-      ctx.fillStyle = '#3a3150';
-      ctx.fillRect(-2, -4.5, 6, 9);
-      ctx.fillStyle = '#b98cff';
-      ctx.globalAlpha *= 0.8;
-      ctx.fillRect(3, -4.5, 1.4, 9);
-      ctx.restore();
-    }
-    if (w.look === 'axe') {
-      ctx.save();
-      ctx.translate(tx, ty);
-      ctx.rotate(ang);
-      fillPoly([-3, 0, 1, -1, 3, 6, -3, 4], '#d6dbe6');
-      ctx.restore();
-    }
-    if (w.look === 'knucks') {
-      ctx.fillStyle = '#ffc63d';
-      ctx.fillRect(fh[0] - 1, fh[1] - 2.5, 3.5, 5);
-    }
-  }
-  if (gun) {
-    const big = isP && e.eq.gun && e.eq.gun.fire !== 'single';
-    ctx.fillStyle = '#14121a';
-    ctx.fillRect(fh[0], fh[1] - 2.5, big ? 13 : 9, 3.2);
-    ctx.fillRect(fh[0] + 1, fh[1], 2.4, 3.5);
-    if (
-      (st === 'shoot' && (t < 4 || (big && e.eq.gun.fire === 'burst' && t % 4 < 2))) ||
-      (st === 'aim' && t >= 20 && t < 25)
-    )
-      fillPoly(
-        [
-          fh[0] + (big ? 13 : 9),
-          fh[1] - 3,
-          fh[0] + (big ? 20 : 16),
-          fh[1] - 1,
-          fh[0] + (big ? 13 : 9),
-          fh[1] + 1
-        ],
-        '#ffe28a'
-      );
-  }
+  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
+    drawWeapon(e.eq.weapon, fh, swing, t, st, fl);
+  if (gun) drawGun(isP ? e.eq.gun : null, fh, st, t, fl, st === 'aim' && t >= 20 && t < 25);
   if (style === 'blade') {
     ctx.strokeStyle = fl ? '#fff' : '#e9f6ff';
     ctx.lineWidth = 1.4;
@@ -1573,6 +1509,185 @@ function drawFig(e) {
     fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
   }
 }
+/* ---------- weapons in hand ----------
+ * Each melee weapon has its own shape, drawn along the arm's angle from the hand (fh): the grip carries a
+ * band in its maker's colour, and an affix flickers its colour along the business end. */
+function drawWeapon(w, fh, swing, t, st, fl) {
+  const look = w.look || 'pipe',
+    ang = swing ? -0.15 : -1.1,
+    M = MFR[w.mfr],
+    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? AFX_COL[w.mod] : null;
+  ctx.save();
+  ctx.translate(fh[0], fh[1]);
+  if (look === 'knucks') {
+    // brass over the fist, with spurs
+    ctx.fillStyle = fl ? '#fff' : fx || '#ffc63d';
+    ctx.fillRect(-1.5, -3, 4, 6);
+    fillPoly([2.5, -3, 5, -2.2, 2.5, -1.2], '#e9f6ff');
+    fillPoly([2.5, 0.2, 5, 1, 2.5, 2], '#e9f6ff');
+    if (M) {
+      ctx.fillStyle = M.col;
+      ctx.fillRect(-1.5, 2, 4, 1);
+    }
+    ctx.restore();
+    return;
+  }
+  ctx.rotate(ang);
+  // the grip, with the maker's band
+  ctx.fillStyle = '#1a1622';
+  ctx.fillRect(-2, -1.1, 5, 2.2);
+  if (M) {
+    ctx.fillStyle = M.col;
+    ctx.fillRect(1.5, -1.2, 1.4, 2.4);
+  }
+  if (look === 'pipe') {
+    ctx.fillStyle = fl ? '#fff' : '#8a8f9c';
+    ctx.fillRect(3, -1.1, 8, 2.2);
+    ctx.fillStyle = '#5a5e6a';
+    ctx.fillRect(10, -1.6, 2.2, 3.2); // the elbow joint
+    if (fx) glow(11, 0, 5, 3, fx, 0.5);
+  } else if (look === 'baton') {
+    ctx.fillStyle = '#2a2e3a';
+    ctx.fillRect(3, -1.2, 4, 2.4);
+    ctx.fillStyle = fl ? '#fff' : '#9fe9ff';
+    ctx.fillRect(7, -0.9, 5, 1.8);
+    glow(12, 0, 6, 4, fx || '#45d2ff', 0.55 + 0.25 * Math.sin(G.t * 0.7));
+    if ((G.t + t) % 6 < 2) {
+      ctx.strokeStyle = '#e9f6ff';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(8, -1);
+      ctx.lineTo(10, -3);
+      ctx.lineTo(11, -0.5);
+      ctx.lineTo(13, -2.5);
+      ctx.stroke();
+    }
+  } else if (look === 'blade') {
+    // a guard, then a long, faintly curved edge with a bright cutting line
+    ctx.fillStyle = '#ffc63d';
+    ctx.fillRect(3, -2.4, 1.2, 4.8);
+    ctx.fillStyle = fl ? '#fff' : '#c9d2e6';
+    ctx.beginPath();
+    ctx.moveTo(4.2, -1);
+    ctx.quadraticCurveTo(12, -1.8, 19, -0.2);
+    ctx.lineTo(4.2, 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = fx || '#ffffff';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(4.5, -0.9);
+    ctx.quadraticCurveTo(12, -1.7, 18.6, -0.3);
+    ctx.stroke();
+    if (swing) glow(14, -1, 8, 3, fx || '#e9f6ff', 0.35);
+  } else if (look === 'whip') {
+    // a monofilament: a glowing line that curls off the handle and lashes straight out on a swing
+    const reach = swing ? 26 : 16,
+      wave = swing ? 0.6 : 3.5,
+      ph = G.t * 0.25;
+    ctx.strokeStyle = fl ? '#fff' : fx || '#ff3d8b';
+    ctx.lineWidth = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(3, 0);
+    for (let k = 1; k <= 10; k++) {
+      const u = k / 10,
+        x = 3 + u * reach,
+        y = Math.sin(u * 5 + ph) * wave * u + (swing ? 0 : u * u * 9);
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    const ex = 3 + reach,
+      ey = swing ? Math.sin(5 + ph) * wave : Math.sin(5 + ph) * wave + 9;
+    glow(ex, ey, 4, 4, fx || '#ff3d8b', 0.7);
+  } else if (look === 'axe') {
+    ctx.fillStyle = '#6a4a32';
+    ctx.fillRect(3, -1, 9, 2);
+    ctx.fillStyle = fl ? '#fff' : '#d6dbe6';
+    fillPoly([9, -1, 13, -5.5, 15, -5, 14.2, 1.2, 11, 1], ctx.fillStyle);
+    fillPoly([9.5, -1, 12.8, -4.8, 13.4, -4.6, 10.4, 0.4], '#c43a3a');
+    if (fx) glow(13, -2, 5, 4, fx, 0.5);
+  } else if (look === 'hammer') {
+    ctx.fillStyle = '#4a4458';
+    ctx.fillRect(3, -0.9, 9, 1.8);
+    ctx.fillStyle = fl ? '#fff' : '#2c2838';
+    ctx.fillRect(11, -5, 6, 10);
+    ctx.fillStyle = '#b98cff';
+    ctx.globalAlpha *= 0.85;
+    ctx.fillRect(16.2, -5, 1.2, 10);
+    ctx.globalAlpha = 1;
+    glow(14, 0, 9, 9, fx || '#b98cff', 0.25 + 0.15 * Math.sin(G.t * 0.2));
+  }
+  ctx.restore();
+}
+/* Guns in hand: each base has its own silhouette, and its own muzzle flash when it fires. Foes' guns are the
+ * plain pistol. */
+const GUN_SHAPE = {
+  light: { len: 8, h: 3, grip: 1, flash: 'small' },
+  heavy: { len: 10, h: 3.8, grip: 1, flash: 'small' },
+  smg: { len: 10, h: 3.2, grip: 1, mag: 1, flash: 'small' },
+  shot: { len: 11, h: 4, grip: 1, twin: 1, flash: 'cone' },
+  rifle: { len: 15, h: 3.2, grip: 1, mag: 1, stock: 1, flash: 'star' },
+  smart: { len: 14, h: 3.4, grip: 1, stock: 1, scope: '#7dffb0', flash: 'star' },
+  rail: { len: 17, h: 3, grip: 1, stock: 1, coils: 1, flash: 'rail' },
+  launcher: { len: 13, h: 5.5, grip: 1, tube: 1, flash: 'puff' }
+};
+function drawGun(g, fh, st, t, fl, aimFlash) {
+  const S = GUN_SHAPE[(g && g.base) || 'light'] || GUN_SHAPE.light,
+    M = g && MFR[g.mfr],
+    x = fh[0],
+    y = fh[1] - S.h + 0.6;
+  ctx.fillStyle = fl ? '#fff' : '#14121a';
+  ctx.fillRect(x, y, S.len, S.h);
+  if (S.twin) {
+    ctx.fillStyle = '#3a3448';
+    ctx.fillRect(x + 4, y + S.h / 2 - 0.3, S.len - 4, 0.6);
+  }
+  if (S.tube) {
+    ctx.fillStyle = '#2e3a26';
+    ctx.fillRect(x + 2, y - 0.5, S.len - 2, S.h + 1);
+  }
+  if (S.stock) {
+    ctx.fillStyle = '#14121a';
+    fillPoly([x, y, x - 5, y + 1, x - 5, y + S.h + 1.5, x, y + S.h], '#14121a');
+  }
+  ctx.fillStyle = '#14121a';
+  ctx.fillRect(x + 1, y + S.h, 2.4, 3.4); // grip
+  if (S.mag) ctx.fillRect(x + 5, y + S.h, 2, 4);
+  if (S.scope) {
+    ctx.fillRect(x + 4, y - 2, 6, 1.8);
+    ctx.fillStyle = S.scope;
+    ctx.fillRect(x + 9.2, y - 1.8, 0.8, 1.4);
+  }
+  if (S.coils) {
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = (G.t >> 2) % 3 === i ? '#9fe9ff' : '#2a6a8a';
+      ctx.fillRect(x + 6 + i * 3.2, y - 0.6, 1.4, S.h + 1.2);
+    }
+  }
+  if (M) {
+    ctx.fillStyle = M.col;
+    ctx.fillRect(x + 2, y + S.h - 0.9, 3, 0.9);
+  }
+  const fire =
+    (st === 'shoot' && t < 4) || aimFlash || (st === 'shoot' && g && g.fire === 'burst' && t % 4 < 2);
+  if (!fire) return;
+  const mx = x + S.len,
+    my = y + S.h / 2;
+  if (S.flash === 'cone') {
+    // a shotgun's blast: a wide fan of flame
+    fillPoly([mx, my - 1.5, mx + 13, my - 7, mx + 16, my, mx + 13, my + 7, mx, my + 1.5], '#ffb347');
+    fillPoly([mx, my - 1, mx + 9, my - 3.5, mx + 11, my, mx + 9, my + 3.5, mx, my + 1], '#fff3c4');
+  } else if (S.flash === 'rail') {
+    ctx.fillStyle = '#e9f6ff';
+    ctx.fillRect(mx, my - 0.8, 14, 1.6);
+    glow(mx + 4, my, 10, 6, '#45d2ff', 0.8);
+  } else if (S.flash === 'puff') {
+    glow(mx + 3, my, 8, 7, '#c9c2d8', 0.6);
+  } else if (S.flash === 'star') {
+    fillPoly([mx, my - 1, mx + 9, my, mx, my + 1], '#ffe28a');
+    fillPoly([mx + 2, my - 4, mx + 4, my, mx + 2, my + 4], '#ffe28a');
+  } else fillPoly([mx, my - 2, mx + 7, my, mx, my + 2], '#ffe28a');
+}
 function drawProj(pr) {
   const sx = pr.x - G.camX,
     sy = pr.y - pr.z;
@@ -1615,13 +1730,55 @@ function drawProj(pr) {
     return;
   }
   if (pr.k === 'bullet') {
-    ctx.strokeStyle = pr.rail ? '#45d2ff' : pr.seek ? '#7dffb0' : '#ffe28a';
-    ctx.lineWidth = pr.rail ? 2.4 : 1.6;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(sx - Math.sign(pr.vx) * (pr.rail ? 22 : 9), sy);
-    ctx.stroke();
-    glow(sx, sy, pr.rail ? 9 : 5, pr.rail ? 5 : 3, ctx.strokeStyle, 0.6);
+    const d = Math.sign(pr.vx);
+    if (pr.pellet) {
+      // buckshot: hot little pellets with short streaks
+      ctx.fillStyle = '#ffd27a';
+      ctx.fillRect(sx - 1, sy - 1, 2, 2);
+      ctx.strokeStyle = 'rgba(255,179,71,.6)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * 5, sy);
+      ctx.stroke();
+    } else if (pr.rail) {
+      // a rail slug drags a beam back to where it was fired
+      const back = Math.min(120, Math.abs(pr.x - (pr.x0 === undefined ? pr.x : pr.x0)));
+      ctx.strokeStyle = 'rgba(159,233,255,.35)';
+      ctx.lineWidth = 3.4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * back, sy);
+      ctx.stroke();
+      ctx.strokeStyle = '#e9f6ff';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * Math.min(back, 40), sy);
+      ctx.stroke();
+      glow(sx, sy, 10, 6, '#45d2ff', 0.8);
+    } else if (pr.seek) {
+      // smart rounds: a green dart with a wavering trail
+      ctx.strokeStyle = 'rgba(125,255,176,.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let k = 0; k <= 6; k++) ctx.lineTo(sx - d * k * 2.5, sy + Math.sin(G.t * 0.6 + k) * 1.4);
+      ctx.stroke();
+      fillPoly([sx + d * 3, sy, sx - d * 2, sy - 1.6, sx - d * 2, sy + 1.6], '#7dffb0');
+      glow(sx, sy, 5, 3, '#7dffb0', 0.6);
+    } else {
+      // tracers: pistols short and gold, automatics thin and orange, rifles long and white-hot
+      const k = pr.gk || 'pistol',
+        len = k === 'rifle' ? 16 : k === 'auto' ? 10 : 8,
+        col = k === 'rifle' ? '#fff3c4' : k === 'auto' ? '#ffb347' : '#ffe28a';
+      ctx.strokeStyle = col;
+      ctx.lineWidth = k === 'heavy' ? 2.2 : k === 'auto' ? 1.2 : 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx - d * len, sy);
+      ctx.stroke();
+      glow(sx, sy, 5, 3, col, 0.6);
+    }
   } else if (pr.k === 'wave') {
     ctx.fillStyle = 'rgba(255,106,61,.25)';
     ctx.beginPath();
