@@ -128,6 +128,8 @@ Everything is in `localStorage` under `cs_*` keys (listed in the README). `store
 
 ## Recipes
 
+**Enemy strength.** `spawnEnemy()` (game/flow.js) multiplies a foe's health and damage by the district (`G.stage`), the difficulty (`DIFF`), New Game+ (`ngMul()`) and the party's level (`lvlMul()`, which returns 1 during driving, drone and flight jobs and training).
+
 **A new enemy.** Add an entry to `DEF` in data/content.js (copy a similar one: `ranged`, `lunge`, `teleport`, `shield`, `grab`, `thrower`, `flurry` and the other flags switch on existing behaviors in game/enemies.js). Add a bestiary line to `BEST` in data/legend-data.js. Spawn it from a district's wave list in `STAGES`, an Arena pool in modes/arena.js, or a Sprawl faction in `FAC` (modes/sprawl.js).
 
 **A new weapon, gun or armor.** Add a base to `BASES` in data/gear.js. Guns pick a `fire` mode; new fire modes go in `fireBullet()` (game/runners.js). Order matters: bases later in each list drop later in the game.

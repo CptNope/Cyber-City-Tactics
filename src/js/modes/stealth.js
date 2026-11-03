@@ -495,17 +495,40 @@ function owPing(wx, S) {
     }
 }
 // a shock dart: from behind it drops anyone; from the front it just tells them you're there
-function stealthDart(p) {
-  p.drone.dartT = 50;
-  sfx.zap();
+const DART_R = 60; // how far a shock dart reaches along the floor
+// the guard a dart would hit: the nearest one standing within reach
+function dartTarget(p) {
   let best = null;
   for (const e of G.ents) {
     if (!e.guard || e.state === 'down') continue;
     const dx = e.x - p.x;
-    if (Math.abs(dx) > 40 || p.z > 90) continue;
+    if (Math.abs(dx) > DART_R) continue;
     if (!best || Math.abs(dx) < Math.abs(best.x - p.x)) best = e;
   }
-  if (!best) return;
+  return best;
+}
+const dartBehind = (p, e) => e.face * (p.x - e.x) < 0;
+function stealthDart(p) {
+  p.drone.dartT = 50;
+  sfx.zap();
+  const best = dartTarget(p);
+  if (!best) {
+    // a miss still flies, so you can see what the button does
+    for (let i = 0; i < 5; i++)
+      G.parts.push({
+        x: p.x + p.face * i * 9,
+        y: SF.floor,
+        z: p.z - i * 4,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        life: 6 + i,
+        c: '#45d2ff',
+        sz: 1.4
+      });
+    say(p, 'NO ONE IN RANGE', '#a79dc2', 40, 30, true);
+    return;
+  }
   for (let i = 0; i < 5; i++)
     G.parts.push({
       x: p.x + ((best.x - p.x) * i) / 5,
@@ -518,7 +541,7 @@ function stealthDart(p) {
       c: '#45d2ff',
       sz: 1.6
     });
-  const behind = best.face * (p.x - best.x) < 0;
+  const behind = dartBehind(p, best);
   if (behind) {
     setS(best, 'down');
     best.elem = 'shock';

@@ -1131,7 +1131,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+78cc317';
+const APP_VERSION = '2.0.0+c2686af';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2067,10 +2067,18 @@ function updateTouchUI() {
     kick = 'DROP';
   } else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
     punch = 'LIFT';
+  if (G.stealth && p.drone) {
+    // a drone's buttons: hack, dart, cloak
+    punch = 'HACK';
+    kick = 'DART';
+  }
   setLbl('punch', punch);
   setLbl('kick', kick);
   setLbl('jump', p.state === 'grab' ? 'LEAP' : 'JUMP');
-  setLbl('dodge', p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE');
+  setLbl(
+    'dodge',
+    G.stealth && p.drone ? 'CLOAK' : p.state === 'grab' && hasTech(p, 'slam') ? 'SWING' : 'DODGE'
+  );
   const sid = p.spells[p.spell],
     sp = SPELLS[sid];
   setLbl('spell', `${SPSHORT[sid]}<small>${spellCost(p, sp)}</small>`, p.mp < spellCost(p, sp) || G.den);
@@ -5456,11 +5464,24 @@ function spawnPassive(kind, x, y) {
   G.ents.push(e);
   return e;
 }
+// Foes grow with the runners as well as with the district, so a strong party still has a fight on its hands:
+// a regular foe takes four or five punches at any level, which is also what leaves time to daze and grab it.
+// Driving, drone and flight jobs keep their own tuning (their crews have fixed strength).
+const partyLvl = () => {
+  const a = PL.filter(p => !p.out);
+  return a.length ? a.reduce((t, p) => t + (p.lvl || 1), 0) / a.length : 1;
+};
+function lvlMul() {
+  if (G.drive || G.stealth || (G.flight && !G.flight.roof) || G.training) return { hp: 1, dmg: 1 };
+  const l = Math.max(0, partyLvl() - 1);
+  return { hp: 1 + 0.09 * l, dmg: 1 + 0.08 * l };
+}
 function spawnEnemy(kind, side) {
   const d = DEF[kind],
     DF = DIFF[G.diff],
     NG = ngMul(),
-    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp;
+    LV = lvlMul(),
+    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp * LV.hp;
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -5479,7 +5500,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg),
+    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg * LV.dmg),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,
@@ -13033,17 +13054,40 @@ function owPing(wx, S) {
     }
 }
 // a shock dart: from behind it drops anyone; from the front it just tells them you're there
-function stealthDart(p) {
-  p.drone.dartT = 50;
-  sfx.zap();
+const DART_R = 60; // how far a shock dart reaches along the floor
+// the guard a dart would hit: the nearest one standing within reach
+function dartTarget(p) {
   let best = null;
   for (const e of G.ents) {
     if (!e.guard || e.state === 'down') continue;
     const dx = e.x - p.x;
-    if (Math.abs(dx) > 40 || p.z > 90) continue;
+    if (Math.abs(dx) > DART_R) continue;
     if (!best || Math.abs(dx) < Math.abs(best.x - p.x)) best = e;
   }
-  if (!best) return;
+  return best;
+}
+const dartBehind = (p, e) => e.face * (p.x - e.x) < 0;
+function stealthDart(p) {
+  p.drone.dartT = 50;
+  sfx.zap();
+  const best = dartTarget(p);
+  if (!best) {
+    // a miss still flies, so you can see what the button does
+    for (let i = 0; i < 5; i++)
+      G.parts.push({
+        x: p.x + p.face * i * 9,
+        y: SF.floor,
+        z: p.z - i * 4,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        life: 6 + i,
+        c: '#45d2ff',
+        sz: 1.4
+      });
+    say(p, 'NO ONE IN RANGE', '#a79dc2', 40, 30, true);
+    return;
+  }
   for (let i = 0; i < 5; i++)
     G.parts.push({
       x: p.x + ((best.x - p.x) * i) / 5,
@@ -13056,7 +13100,7 @@ function stealthDart(p) {
       c: '#45d2ff',
       sz: 1.6
     });
-  const behind = best.face * (p.x - best.x) < 0;
+  const behind = dartBehind(p, best);
   if (behind) {
     setS(best, 'down');
     best.elem = 'shock';
@@ -18017,6 +18061,24 @@ function drawStealthCones() {
     );
   }
   ctx.restore();
+  // a guard a drone could dart: say whether it would drop them (from behind) or just give you away
+  for (const p of PL) {
+    if (!p.drone || p.out || S.done) continue;
+    const e = dartTarget(p);
+    if (!e) continue;
+    const ok = dartBehind(p, e),
+      ex = e.x - cx;
+    ctx.fillStyle = 'rgba(11,8,18,.8)';
+    ctx.fillRect(ex - 40, sfY(78) - 11, 80, 15);
+    txt(
+      p.drone.dartT ? 'RELOADING' : ok ? ctl('KICK TO DART', 'K TO DART') : 'GET BEHIND THEM',
+      ex,
+      sfY(78),
+      10,
+      p.drone.dartT ? '#6b6280' : ok ? '#ffc63d' : '#a79dc2',
+      'center'
+    );
+  }
   if (S.ow) drawOverwatch(S);
 }
 // overwatch's reticle: brackets over the floor, the camera or laser a loop would take, and the ping's reach

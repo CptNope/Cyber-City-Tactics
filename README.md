@@ -131,7 +131,7 @@ Between districts you walk **the Den**, a street hub where you talk to the local
 
 What they say changes after each job.
 
-- **Difficulty:** Street, Runner or Prime.
+- **Difficulty:** Street, Runner or Prime. Foes also grow with your runners: each party level adds about 9% to their health and 8% to their damage on top of the district's own scaling, so a regular foe takes four or five punches at any level and a powerful party still has a fight (jobs keep their own tuning).
 - **New Game+:** after the final boss you can start again with your runners, levels, gear, skills, cyberware and spells. Enemies hit harder, elites are more common and loot is better. You can repeat it as often as you like.
 - **Boss rematches:** beaten bosses can come back mid-district, already enraged: Gutter King, chromed; Razor Mei, under contract; and Voss.exe.
 - **Mutators:** optional modifiers you switch on before a run. Each one adds 20% karma and counts toward the mutator feats.
@@ -191,7 +191,9 @@ A rigger's job: each runner flies a small drone through a corp floor seen in cro
 | Cloak | **O** or Left Shift | A couple of seconds unseen, from the battery under the drone |
 | Repair | **H** | 30 HP from the shared medkits |
 
-Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. **To finish:** fly right to the terminal (an arrow at the screen's edge and the distance at the top of the screen point the way), drop low beside it and punch to start the hack ("PUNCH TO HACK" shows when you're close enough; "FLY LOWER" if you're too high), win the hack to pull the files, then fly on to the exit vent at the far end, which unlocks once you have them; dart the job's target from behind for a bonus (¥200 and 40 karma), and get out with no alarms at all to ghost it (another ¥150).
+Ceiling cameras sweep cones of light and guards see ahead of them. Walls only let you through at their vents, and laser gates blink on and off (they flicker just before they switch on). Anything that sees you fills the meter over your drone; fill it and the alarm goes up a level, a guard walks in, and everyone gets sharper. Guards shoot at drones once the alarm is up. Three alarms and the floor locks down. **Darts:** kick fires a shock dart at the nearest guard within reach. Get behind them first: "K TO DART" (or "KICK TO DART") shows over a guard you can drop, "GET BEHIND THEM" over one facing you. On touch the buttons read HACK, DART and CLOAK.
+
+**To finish:** fly right to the terminal (an arrow at the screen's edge and the distance at the top of the screen point the way), drop low beside it and punch to start the hack ("PUNCH TO HACK" shows when you're close enough; "FLY LOWER" if you're too high), win the hack to pull the files, then fly on to the exit vent at the far end, which unlocks once you have them; dart the job's target from behind for a bonus (¥200 and 40 karma), and get out with no alarms at all to ghost it (another ¥150).
 
 **Overwatch co-op.** Pick **Overwatch co-op** on the Jobs board and runner 2 stays off the floor, on the building's network: their stick moves a reticle over the floor, **PUNCH** (comma on the keyboard) loops the camera or laser under it for seven seconds, and **KICK** (period) pings a noise that pulls nearby guards off their patrols to look, which turns their backs for a dart. Overwatch starts with three loops and three pings, and gets a loop back (up to five) for every guard the drone drops. A ping pulls guards within about a third of the screen of the reticle. Online, your friend (runner 2) runs overwatch.
 
