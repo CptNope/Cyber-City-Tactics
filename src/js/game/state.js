@@ -311,6 +311,18 @@ function gainKarma(n) {
       p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
       peak('lvl', p.lvl);
       say(p, 'LEVEL ' + p.lvl, '#ffc63d', 88, 80);
+      const mt = MASTERY_LV.indexOf(p.lvl);
+      if (mt >= 0)
+        (G.toasts = G.toasts || []).push({
+          s:
+            (p.name || 'Runner') +
+            ': ' +
+            (ARCH[p.arch] || ARCH.runner).spName +
+            ' mastery ' +
+            ['I', 'II', 'III'][mt],
+          d: mt < 2 ? 'Your special is 25% stronger.' : MASTERY[p.arch] || '',
+          life: 300
+        });
       sfx.level();
       buzz([20, 40, 20]);
       burst(p.x, p.y, 30, '#ffc63d', 16);

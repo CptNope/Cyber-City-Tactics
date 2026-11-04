@@ -210,3 +210,21 @@ const spellCost = (p, sp) =>
         (setOn(p, 'hexwright', 3) ? 0.8 : 1)
     )
   );
+
+/* ---------- archetype mastery ---------- */
+// Past level 15 an archetype's own special keeps growing: Mastery I at 15 and II at 20 each make it 25% stronger
+// (more healing, longer, more targets, harder), and III at 25 changes how it works.
+const MASTERY_LV = [15, 20, 25];
+const masteryTier = p => (p ? MASTERY_LV.filter(l => (p.lvl || 1) >= l).length : 0);
+const masteryPow = p => 1 + 0.25 * Math.min(2, masteryTier(p)); // I and II
+const MASTERY = {
+  runner: 'Adrenaline also clears burning and makes you untouchable for two seconds.',
+  samurai: 'Blade Dance ends in a shockwave each way.',
+  mage: 'Mana Storm sets every enemy it strikes on fire.',
+  gunslinger: 'Rounds fired in Bullet Time pass through everyone in the lane.',
+  shaman: 'Spirit Call binds a third fire spirit.',
+  rigger: 'Drone Swarm launches a fourth drone.',
+  decker: 'Overload also hacks the nearest drone or sentry turret for free.',
+  medic: 'Triage also tops everyone up with 8 rounds and puts out fires.',
+  adept: 'Killing Hands throws a chi blast with every punch.'
+};

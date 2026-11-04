@@ -351,6 +351,22 @@ The fifth tree, **Shaman**, is spirits, totems and curses: magic without the fir
 | 3 | **Withering:** your curses also make foes deal 25% less damage |
 | Capstone | **Spirit Walk:** while a companion or summon fights beside you, take 20% less damage and regain mana 50% faster |
 
+**Archetype mastery.** Past level 15 your archetype's own special keeps growing. Mastery I (level 15) and II (level 20) each make it 25% stronger: more healing, longer, more targets or harder hits. Mastery III (level 25) changes how it works:
+
+| Archetype | Mastery III |
+|---|---|
+| Street Runner | Adrenaline also clears burning and makes you untouchable for two seconds |
+| Street Samurai | Blade Dance ends in a shockwave each way |
+| Combat Mage | Mana Storm sets every enemy it strikes on fire |
+| Gunslinger | Rounds fired in Bullet Time pass through everyone in the lane |
+| Shaman | Spirit Call binds a third fire spirit |
+| Rigger | Drone Swarm launches a fourth drone |
+| Decker | Overload also hacks the nearest drone or sentry turret for free |
+| Street Doc | Triage also tops everyone up with 8 rounds and puts out fires |
+| Physical Adept | Killing Hands throws a chi blast with every punch |
+
+The character sheet shows your mastery and the next tier, and a toast marks each one as you reach it. Mastery belongs to the archetype's special, not to tree active skills.
+
 **Active skills.** Three points in a tree unlock its active skill. On the Skills tab, pick which one the ★ button uses: your archetype's special, or any active skill you've unlocked. It spends the same full meter.
 
 | Tree | Active skill | What it does |

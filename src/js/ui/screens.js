@@ -531,6 +531,16 @@ function activeHtml(p, tr) {
   <p style="font-size:13px;margin:2px 0 6px">${esc(Ac.desc)} ${open ? 'Unlocked.' : `Unlocks with ${ACTIVE_NEED} points in ${TREES[tr].name} (you have ${treePts(p, tr)}).`} It takes the place of your special on the ★ button and uses the same meter.</p>
   <p class="eyebrow" style="margin-bottom:4px">The ★ button uses</p><div class="row">${opts}</div>`;
 }
+// archetype mastery on the sheet: where the runner is, and what's next
+function masteryLine(p) {
+  const mt = masteryTier(p),
+    sp = (ARCH[p.arch] || ARCH.runner).spName;
+  const next = mt < 3 ? `${['I', 'II', 'III'][mt]} at level ${MASTERY_LV[mt]}` : '';
+  const now = mt
+    ? `${esc(sp)} mastery ${['', 'I', 'II', 'III'][mt]}: ${mt >= 2 ? '+50%' : '+25%'}${mt >= 3 ? ', and ' + esc(MASTERY[p.arch] || '').replace(/^./, c => c.toLowerCase()) : ''}.`
+    : '';
+  return `<span style="color:var(--gold)">${now || `Mastery grows the special past level 15 (+25% at 15 and 20; at 25: ${esc(MASTERY[p.arch] || '')})`}${now && next ? ' Next: ' + next + '.' : ''}</span>`;
+}
 // the maker sets a runner has going, for the character sheet
 function setsLine(p) {
   const on = setsOf(p);
@@ -588,7 +598,7 @@ function charHtml() {
   ${setsLine(p)}${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
-  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
+  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). ${masteryLine(p)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
 function jobHtml(C) {
   if (!C) return '';

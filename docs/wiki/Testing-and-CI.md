@@ -30,6 +30,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `lobby.test.js` | headless | 39 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
 | `livingsprawl.test.js` | headless | 32 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
 | `market.test.js` | headless | 15 | District 4, the Undercity Market. |
+| `mastery.test.js` | headless | 19 | Archetype mastery: the tiers, the growing numbers, and every archetype's tier III twist. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

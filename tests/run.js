@@ -75,6 +75,7 @@ const TESTS = [
   { file: 'livingsprawl', minPass: 32 },
   { file: 'story', minPass: 42 },
   { file: 'shaman', minPass: 20 },
+  { file: 'mastery', minPass: 19 },
   { file: 'lobby', minPass: 39 },
   { file: 'drive', minPass: 36 },
   { file: 'sidejob', minPass: 18 },

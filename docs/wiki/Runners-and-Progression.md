@@ -82,6 +82,22 @@ Five trees with rows of skills and a capstone. Each archetype starts with its ow
 
 Shaman mechanics: a curse is `e.curseT` (and `e.curseW` for Withering), applied in `hurt()`; totems live in `G.totems` (`plantTotem`, `totemTick` in game/combat.js) and pulse once a second; `kinMul()` in game/allies.js scales companion hits.
 
+## Archetype mastery
+
+`MASTERY_LV = [15, 20, 25]` in systems/skills.js. `masteryTier(p)` counts the thresholds reached; `masteryPow(p)` is 1, 1.25 or 1.5 (tiers I and II), and `doSpecial()` scales the archetype special's healing, duration, targets or damage by it. Tier III adds the twist in `MASTERY[arch]`:
+
+| Archetype | Scaled by I–II | III |
+|---|---|---|
+| runner | heal, rush length | clears burning, 2 s untouchable |
+| samurai | dash damage, grace | a `wave` each way |
+| mage | targets (6 → 8 → 10), damage | targets burn |
+| gunslinger | slow-mo and free ammo length | `bulletPierce` while free ammo lasts |
+| shaman | spirits' life | a third spirit |
+| rigger | drones' life | a fourth drone |
+| decker | shock damage, stun length | `hackFoe(p, nearest, true)` |
+| medic | heal (50% → 60% → 70%), grace | +8 rounds, fires out |
+| adept | Killing Hands length | `chiPunch`: a chi blast on every punch |
+
 ## Active skills
 
 Three points in a tree (`ACTIVE_NEED`) unlock its active skill (`ACTIVES` in systems/skills.js). `p.spSel` (saved with the runner) picks what the ★ button does; `spKey(p)` falls back to the archetype's special when the pick isn't unlocked. `doSpecial()` hands active skills to `doActive()`, and each spends the full meter like a special.
