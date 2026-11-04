@@ -343,7 +343,7 @@ function settingsHtml() {
   </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
 }
 const AN = { bod: 'BOD', str: 'STR', agi: 'AGI', mag: 'MAG', hak: 'HAK' };
-const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor' };
+const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor', deck: 'Cyberdeck' };
 function bonusStr(b) {
   return Object.keys(b || {})
     .filter(k => b[k])
@@ -364,10 +364,12 @@ function itemLine1(it) {
   const s =
     it.slot === 'armor'
       ? `Armor ${it.arm}`
-      : it.slot === 'gun'
-        ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
-        : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
-  const b = bonusStr(it.bonus),
+      : it.slot === 'deck'
+        ? `Hacking +${it.hack || 0}${bs.note ? ', ' + bs.note : ''}`
+        : it.slot === 'gun'
+          ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
+          : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
+  const b = bonusStr(it.slot === 'deck' ? Object.assign({}, it.bonus, { hak: 0 }) : it.bonus), // a deck's Hacking is already in its line
     parts = (it.parts || []).map(k => `${PARTS[k].n}: ${partDesc(k, it.slot)}`).join('; '),
     innate = it.daze && !hasPart(it, 'concuss') ? 'dazes in one hit' : '',
     oldMod = it.mod && !(it.parts || []).some(k => PARTS[k].mod === it.mod) && !it.leg ? it.mod : null;
@@ -397,7 +399,7 @@ const sortSeg = () =>
     .join('')}</div>`;
 function cmp(it, p) {
   const cur = p.eq[it.slot],
-    k = it.slot === 'armor' ? 'arm' : 'dmg';
+    k = it.slot === 'armor' ? 'arm' : it.slot === 'deck' ? 'hack' : 'dmg';
   const d = (it[k] || 0) - (cur ? cur[k] || 0 : 0);
   return d > 0
     ? `<span class="up">▲ ${d}</span>`
@@ -448,7 +450,37 @@ function skillsHtml() {
     .join('<div class="sk-link" style="--tc:' + T.col + '"></div>');
   return `${whoTabs()}${sheetTabs(p)}<div class="row" style="justify-content:space-between;align-items:baseline"><p class="eyebrow">${p.name} · level ${p.lvl}</p><b style="color:var(--gold);font-variant-numeric:tabular-nums">${p.spts} skill point${p.spts === 1 ? '' : 's'}</b></div>
   ${tt}<p style="color:var(--muted);margin:8px 0 4px;font-size:13px">${T.blurb} You earn a skill point every level. Each row needs points spent higher up the tree; the capstone also needs level 8. Decker skills help the whole team.</p>
-  <div class="sk-tree">${rows}</div>`;
+  <div class="sk-tree">${rows}</div>${activeHtml(p, tr)}`;
+}
+// the tree's active skill, and which one the ★ button uses
+function activeHtml(p, tr) {
+  const Ac = ACTIVES[tr];
+  if (!Ac) return '';
+  const open = activeOpen(p, tr),
+    on = spKey(p) === tr,
+    pick = (k, label, sel) =>
+      `<button class="btn sm${sel ? '' : ' ghost'}" data-a="spsel:${k}" aria-pressed="${sel}">${esc(label)}</button>`;
+  const opts =
+    pick('arch', '★ ' + (ARCH[p.arch] || ARCH.runner).spName, spKey(p) === 'arch') +
+    Object.keys(ACTIVES)
+      .filter(k => activeOpen(p, k))
+      .map(k => pick(k, '★ ' + ACTIVES[k].name, spKey(p) === k))
+      .join('');
+  return `<h3 style="margin-top:12px">Active skill · <span style="color:${TREES[tr].col}">${esc(Ac.name)}</span>${on ? ' <small style="color:var(--gold)">on ★</small>' : ''}</h3>
+  <p style="font-size:13px;margin:2px 0 6px">${esc(Ac.desc)} ${open ? 'Unlocked.' : `Unlocks with ${ACTIVE_NEED} points in ${TREES[tr].name} (you have ${treePts(p, tr)}).`} It takes the place of your special on the ★ button and uses the same meter.</p>
+  <p class="eyebrow" style="margin-bottom:4px">The ★ button uses</p><div class="row">${opts}</div>`;
+}
+// the maker sets a runner has going, for the character sheet
+function setsLine(p) {
+  const on = setsOf(p);
+  if (!on.length)
+    return '<p style="color:var(--muted);font-size:13px"><b style="color:var(--text)">Sets:</b> none. Two or three pieces from one maker (weapon, gun, armor, cyberdeck) add a set bonus.</p>';
+  return `<p style="font-size:13px"><b>Sets:</b> ${on
+    .map(
+      ({ m, n }) =>
+        `<span style="color:${MFR[m].col}">${esc(SETS[m].name)} ${Math.min(3, n)}/3</span>: ${esc(SETS[m].two)}${n >= 3 ? '; ' + esc(SETS[m].three) : ` <span style="color:var(--muted)">(3: ${esc(SETS[m].three)})</span>`}`
+    )
+    .join(' · ')}</p>`;
 }
 function charHtml() {
   if (G.sheetTab === 'skills') return skillsHtml();
@@ -462,28 +494,24 @@ function charHtml() {
         `<div class="attr"><span class="k">${ATTRS[k].name}</span><span class="v"><span>${a[k]}${a[k] !== p.attr[k] ? `<small style="font-size:13px;color:var(--mana)"> (${p.attr[k]}+${a[k] - p.attr[k]})</small>` : ''}</span>${p.pts > 0 && p.attr[k] < 10 ? `<button class="btn sm" data-a="attr:${k}" aria-label="Raise ${ATTRS[k].name}">+1</button>` : ''}</span><span class="h">${ATTRS[k].hint}</span></div>`
     )
     .join('');
-  const eq = ['weapon', 'gun', 'armor']
-    .map(s => {
-      const it = p.eq[s];
-      return `<div class="item"><div><div class="ds">${SLOTN[s]}</div><div class="nm ${it ? 'r' + it.rar : ''}">${it ? esc(it.name) : s === 'weapon' ? 'Bare cyberfists' : 'Nothing'}</div>${it ? `<div class="ds">${itemLine(it)}</div>` : ''}</div><div class="acts">${it ? `<button class="btn sm ghost" data-a="unequip:${s}">Unequip</button>` : ''}</div></div>`;
-    })
-    .join('');
+  const eq = SLOTS.map(s => {
+    const it = p.eq[s];
+    return `<div class="item"><div><div class="ds">${SLOTN[s]}</div><div class="nm ${it ? 'r' + it.rar : ''}">${it ? esc(it.name) : s === 'weapon' ? 'Bare cyberfists' : 'Nothing'}</div>${it ? `<div class="ds">${itemLine(it)}</div>` : ''}</div><div class="acts">${it ? `<button class="btn sm ghost" data-a="unequip:${s}">Unequip</button>` : ''}</div></div>`;
+  }).join('');
   // grouped by slot, best first, so a big bag stays scannable
   const bag = PARTY.bag.length
-    ? ['weapon', 'gun', 'armor']
-        .map(slot => {
-          const its = PARTY.bag.filter(it => it.slot === slot).sort(bagSort());
-          return its.length
-            ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
-                its
-                  .map(
-                    it =>
-                      `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button>${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button>`}</div></div>`
-                  )
-                  .join('')
-            : '';
-        })
-        .join('')
+    ? SLOTS.map(slot => {
+        const its = PARTY.bag.filter(it => it.slot === slot).sort(bagSort());
+        return its.length
+          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+              its
+                .map(
+                  it =>
+                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button>${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button>`}</div></div>`
+                )
+                .join('')
+          : '';
+      }).join('')
     : '<p>The bag is empty. Gear drops from enemies and bosses, and Ratchet sells it in the Den.</p>';
   const spells = p.spells
     .map(
@@ -496,10 +524,10 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   ${G.cjob ? '<p style="color:var(--gold);font-size:13px">On Juno\'s side job: gear stays as it is until you\'re back in the Den.</p>' : ''}<h3>Equipped</h3><div class="list">${eq}</div>
-  ${chromeLine(p)}
+  ${setsLine(p)}${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
-  <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
+  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
 function jobHtml(C) {
   if (!C) return '';

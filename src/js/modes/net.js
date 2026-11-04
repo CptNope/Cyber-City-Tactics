@@ -1150,7 +1150,7 @@ function netSelect() {
 }
 // The friend's own character sheet: it draws from the mirrored runner, and the buttons that change something
 // are run on the host, as runner 2, with the same code a local click would use.
-const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock']);
+const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock', 'spsel']);
 // Shops the friend shares with the host: they see the same counter and buy and sell as runner 2
 const NET_SHARED = new Set(['npc', 'shop', 'trader', 'locker', 'safe']);
 const NET_SHOP = new Set([
@@ -1229,7 +1229,8 @@ function netActOk(a) {
     cyber: typeof CYBER !== 'undefined' && CYBER,
     tech: typeof TECH !== 'undefined' && TECH,
     hire: typeof ALLIES !== 'undefined' && ALLIES,
-    learn: typeof SPELLS !== 'undefined' && SPELLS
+    learn: typeof SPELLS !== 'undefined' && SPELLS,
+    spsel: arg === 'arch' ? { arch: 1 } : typeof ACTIVES !== 'undefined' && ACTIVES
   }[name];
   if (tbl !== undefined && !netOwn(tbl, arg)) return false;
   if (name === 'spell') return !!p && /^\d+$/.test(arg) && +arg < (p.spells || []).length;

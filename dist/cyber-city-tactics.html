@@ -1134,7 +1134,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+ba1a164';
+const APP_VERSION = '2.0.0+7a5de9e';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -3404,8 +3404,23 @@ const BASES = {
     cloak: { name: 'Thermoptic cloak', arm: 5, price: 260, bonus: { agi: 2, hak: 1 } },
     vest: { name: 'Riot vest', arm: 9, price: 200 },
     exo: { name: 'Exo-frame', arm: 13, price: 340, bonus: { str: 2, agi: -1 } }
+  },
+  // Cyberdecks: the fourth slot. Hack adds to Hacking (wider hacking windows); some forgive a miss or slow
+  // the cursor, and the Decker tree's Short Circuit hits harder with a better deck
+  deck: {
+    street: { name: 'Street deck', hack: 1, price: 80 },
+    cobalt: { name: 'Cobalt deck', hack: 2, price: 180, miss: 1, note: 'one extra miss allowed on hacks' },
+    wraith: {
+      name: 'Wraith deck',
+      hack: 3,
+      price: 320,
+      slow: 0.8,
+      note: 'the hacking cursor runs 20% slower'
+    }
   }
 };
+// every gear slot, in the order the sheet lists them
+const SLOTS = ['weapon', 'gun', 'armor', 'deck'];
 // Gun mods: fitted at Ratchet's bench, one per gun, and they stay with the gun
 const GMODS = {
   mag: { name: 'Extended mag', desc: 'Ammo pickups give 50% more rounds.', price: 150 },
@@ -3457,7 +3472,7 @@ const MFR = {
     name: 'Kagemori',
     col: '#ff3d4a',
     spec: 'Precision: crits',
-    slots: ['weapon', 'gun', 'armor'],
+    slots: ['weapon', 'gun', 'armor', 'deck'],
     attr: 'agi',
     likes: ['keen', 'keen', 'sight', 'swift', 'attr', 'plated']
   },
@@ -3473,7 +3488,7 @@ const MFR = {
     name: 'Voltaic',
     col: '#45d2ff',
     spec: 'Shock and fire; its melee weapons always daze',
-    slots: ['weapon', 'gun'],
+    slots: ['weapon', 'gun', 'deck'],
     attr: 'hak',
     likes: ['shock', 'shock', 'burn', 'swift', 'concuss', 'drum']
   },
@@ -3481,7 +3496,7 @@ const MFR = {
     name: 'Hexwright',
     col: '#b98cff',
     spec: 'Magic: mana, spell power, leeching',
-    slots: ['weapon', 'gun', 'armor'],
+    slots: ['weapon', 'gun', 'armor', 'deck'],
     attr: 'mag',
     likes: ['attr', 'attr', 'leech', 'warded', 'keen', 'padded']
   },
@@ -3508,7 +3523,14 @@ const PARTS = {
   },
   concuss: { n: 'Concussive', slots: ['weapon'], desc: 'one hit dazes a foe (ready to grab)' },
   drum: { n: 'Drum-fed', slots: ['gun'], desc: 'ammo pickups give 50% more rounds' },
-  attr: { n: 'Augmented', slots: ['weapon', 'gun', 'armor'], desc: '+2 more to the maker’s attribute' },
+  attr: {
+    n: 'Augmented',
+    slots: ['weapon', 'gun', 'armor', 'deck'],
+    desc: '+2 more to the maker’s attribute',
+    ddesc: '+2 more Hacking'
+  },
+  buffer: { n: 'Buffered', slots: ['deck'], desc: 'one extra miss allowed on hacks' },
+  overclock: { n: 'Overclocked', slots: ['deck'], desc: 'the hacking cursor runs 15% slower' },
   shock: { n: 'Shock', slots: ['weapon', 'gun'], mod: 'shock' },
   burn: { n: 'Incendiary', slots: ['weapon', 'gun'], mod: 'burn' },
   leech: { n: 'Leeching', slots: ['weapon', 'gun'], mod: 'leech' },
@@ -3520,7 +3542,7 @@ const PARTS = {
 const partDesc = (k, slot) => {
   const P = PARTS[k];
   if (P.mod) return AFFIX[P.mod].desc;
-  return slot === 'armor' && P.adesc ? P.adesc : P.desc;
+  return slot === 'armor' && P.adesc ? P.adesc : slot === 'deck' && P.ddesc ? P.ddesc : P.desc;
 };
 const hasPart = (it, k) => !!(it && it.parts && it.parts.includes(k));
 const makersFor = slot => Object.keys(MFR).filter(k => MFR[k].slots.includes(slot));
@@ -3734,7 +3756,7 @@ function mkItem(slot, base, rar, mod, mfr) {
   if (want) it.parts.push(want);
   else if (mod === true && rar > 0) {
     const ms = Object.keys(PARTS).filter(k => PARTS[k].mod && PARTS[k].slots.includes(slot));
-    it.parts.push(pick(ms));
+    if (ms.length) it.parts.push(pick(ms)); // no affix fits a cyberdeck: it rolls ordinary parts instead
   }
   while (it.parts.length < Math.min(4, rar)) addPart(it);
   applyParts(it);
@@ -3763,9 +3785,17 @@ function applyParts(it) {
   it.bonus = Object.assign({}, b.bonus || {});
   if (b.dmg) it.dmg = Math.round(b.dmg * r.m * (1 + 0.2 * n('heavy')));
   if (b.arm) it.arm = Math.round(b.arm * r.m * (1 + 0.3 * n('plated')));
-  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more
-  const ap = it.rar + 2 * n('attr');
-  if (ap) it.bonus[M.attr] = (it.bonus[M.attr] || 0) + ap;
+  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more.
+  // A cyberdeck's points all go to Hacking, on top of the deck's own
+  const ap = it.rar + 2 * n('attr'),
+    at = it.slot === 'deck' ? 'hak' : M.attr;
+  if (ap) it.bonus[at] = (it.bonus[at] || 0) + ap;
+  if (b.hack) {
+    it.hack = b.hack + ap;
+    it.bonus.hak = (it.bonus.hak || 0) + b.hack;
+    it.miss = (b.miss || 0) + n('buffer');
+    it.slow = (b.slow || 1) * (n('overclock') ? 0.85 : 1);
+  }
   if (n('warded')) it.bonus.mag = (it.bonus.mag || 0) + 2;
   it.crit = 0.08 * n('keen') + 0.06 * n('sight');
   it.critMul = n('sight') ? 1.25 : 1;
@@ -3845,7 +3875,7 @@ function upgradeItem(it) {
   return true;
 }
 function randItem(stage, boost) {
-  const slot = pick(['weapon', 'gun', 'armor', 'weapon', 'gun']);
+  const slot = pick(['weapon', 'gun', 'armor', 'weapon', 'gun', 'armor', 'weapon', 'gun', 'deck']);
   const bases = Object.keys(BASES[slot]);
   const top = clamp(Math.floor(stage) + 1 + (boost ? 1 : 0), 0, bases.length - 1);
   const base = bases[ri(Math.max(0, top - 2), top)];
@@ -3854,6 +3884,33 @@ function randItem(stage, boost) {
   const rar = roll > 1.6 ? 4 : roll > 1.25 ? 3 : roll > 0.95 ? 2 : roll > 0.6 ? 1 : 0;
   return mkItem(slot, base, rar);
 }
+
+/* ---------- maker sets ---------- */
+// Two or three pieces from the same maker (weapon, gun, armor, cyberdeck) add a bonus on top of the gear's own.
+// Voltaic makes no armor, so its three are weapon, gun and deck.
+const SETS = {
+  kagemori: {
+    name: 'Kagemori Precision',
+    two: '+6% crit chance',
+    three: 'crits deal 25% more, and the parry window is wider'
+  },
+  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 35% faster' },
+  voltaic: {
+    name: 'Voltaic Live Wire',
+    two: 'melee hits arc to the nearest other foe for 30% damage',
+    three: 'the arc dazes it too, and hacking windows are 15% wider'
+  },
+  hexwright: { name: 'Hexwright Coven', two: '+15% max mana', three: 'spells cost 20% less mana' },
+  ironside: { name: 'Ironside Bulwark', two: 'move 6% faster', three: 'take 15% less damage' }
+};
+// how many of a runner's equipped pieces come from this maker
+const setN = (p, m) => (p && p.eq ? SLOTS.filter(s => p.eq[s] && p.eq[s].mfr === m).length : 0);
+const setOn = (p, m, n) => setN(p, m) >= n;
+// the sets a runner has going, for the sheet: [{m, n}]
+const setsOf = p =>
+  Object.keys(SETS)
+    .map(m => ({ m, n: setN(p, m) }))
+    .filter(x => x.n >= 2);
 
 /* ===== src/js/data/world.js ===== */
 /* Cyber City Tactics · src/js/data/world.js
@@ -5012,6 +5069,28 @@ const SKILLS = {
     desc: 'Failed hacks never trip alarms, and break-ins add one less heat star.'
   }
 };
+// Active skills: three points in a tree unlock its active skill, which can take the ★ special's place
+// (pick it on the Skills tab). It spends the same full meter.
+const ACTIVE_NEED = 3;
+const ACTIVES = {
+  brawler: {
+    name: 'Ground Slam',
+    desc: 'Leap and slam the street: a shockwave both ways knocks down everyone close and hurts them.'
+  },
+  gunner: {
+    name: 'Fan the Hammer',
+    desc: 'Six rounds fanned out in front, fast, without using ammo. Each hits like your gun.'
+  },
+  mage: { name: 'Summon Spirit', desc: 'A fire spirit fights at your side for 15 seconds.' },
+  decker: {
+    name: 'Short Circuit',
+    desc: 'Every drone, ICE, mech, cop and guard on screen shorts out: stunned for 3 seconds and shocked. A better cyberdeck hits harder.'
+  }
+};
+const activeOpen = (p, t) => !!ACTIVES[t] && treePts(p, t) >= ACTIVE_NEED;
+// what the ★ button will do right now: an unlocked active skill the runner picked, else the archetype's special
+const spKey = p => (p && p.spSel && p.spSel !== 'arch' && activeOpen(p, p.spSel) ? p.spSel : 'arch');
+const spName = p => (spKey(p) === 'arch' ? (ARCH[p.arch] || ARCH.runner).spName : ACTIVES[spKey(p)].name);
 const ROW_NEED = [0, 1, 2, 4],
   ROW_LVL = [1, 1, 4, 8];
 const ARCH_SKILL = {
@@ -5051,7 +5130,15 @@ function respec(p) {
   return n;
 }
 const spellCost = (p, sp) =>
-  Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1) * (evOn('spiritstorm') ? 0.5 : 1)));
+  Math.max(
+    1,
+    Math.round(
+      sp.cost *
+        (has(p, 'thrift') ? 0.75 : 1) *
+        (evOn('spiritstorm') ? 0.5 : 1) *
+        (setOn(p, 'hexwright', 3) ? 0.8 : 1)
+    )
+  );
 
 /* ===== src/js/systems/haggle.js ===== */
 /* Cyber City Tactics · src/js/systems/haggle.js
@@ -5182,7 +5269,8 @@ const RUNNER_KEYS = [
   'sk',
   'spts',
   'coat',
-  'trail'
+  'trail',
+  'spSel'
 ];
 function newRunner(idx) {
   const p = {
@@ -5210,8 +5298,9 @@ function newRunner(idx) {
     attr: { bod: 2, str: 2, agi: 2, mag: 2, hak: 1 },
     cy: { arm: 0, wired: 0, plate: 0 },
     tech: {},
-    eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0) },
+    eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0), deck: null },
     spells: ['fire'],
+    spSel: 'arch', // what the ★ button does: the archetype's special, or an unlocked tree's active skill
     spell: 0,
     hp: 1,
     mp: 1,
@@ -5279,6 +5368,10 @@ function refresh(p) {
     breaker: !!wb.breaker,
     spellMul: has(p, 'focus') ? 1.2 : 1
   };
+  // maker sets: two pieces from one maker, then three
+  if (setOn(p, 'kagemori', 2)) p.D.crit += 0.06;
+  if (setOn(p, 'rustline', 2)) p.D.melee *= 1.1;
+  if (setOn(p, 'ironside', 2)) p.D.spd *= 1.06;
   if (typeof G !== 'undefined' && modOn('brawl')) p.D.melee *= 1.4;
   if (p.arch === 'adept') p.D.melee *= 1.3;
   p.maxHp =
@@ -5288,6 +5381,7 @@ function refresh(p) {
     (ar && ar.mod === 'padded' ? 25 : 0) +
     (ar && ar.leg === 'wyrmheart' ? 40 : 0);
   p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6 - techN(p) * TECH_MANA);
+  if (setOn(p, 'hexwright', 2)) p.maxMp = Math.round(p.maxMp * 1.15);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
@@ -5347,7 +5441,7 @@ function restoreRunner(r, i) {
     p.sk = null;
     p.spts = undefined;
   }
-  for (const s of ['weapon', 'gun', 'armor']) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
+  for (const s of SLOTS) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
   p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, p.cy);
   p.attr = Object.assign({ bod: 2, str: 2, agi: 2, mag: 2, hak: 1 }, p.attr);
   if (!isObj(p.tech)) p.tech = {};
@@ -5932,7 +6026,7 @@ function hurt(t, dmg, dir, o) {
     t.team === 0 &&
     t.kind === 'player' &&
     t.state === 'roll' &&
-    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) &&
+    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) + (setOn(t, 'kagemori', 3) ? 3 : 0) &&
     o.att &&
     o.att.team === 1 &&
     !o.bullet &&
@@ -6050,9 +6144,11 @@ function hurt(t, dmg, dir, o) {
   ) {
     dmg *=
       (o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8) *
-      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1);
+      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1) *
+      (setOn(o.src, 'kagemori', 3) ? 1.25 : 1);
     crit = true;
   }
+  if (t.team === 0 && t.kind === 'player' && setOn(t, 'ironside', 3)) dmg *= 0.85; // the Ironside set
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -6210,6 +6306,9 @@ function hurt(t, dmg, dir, o) {
     taunt(t, 1);
   }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
+  // the Voltaic set: a melee hit arcs to the nearest other foe
+  if (o.melee && !o.arc && o.src && o.src.kind === 'player' && t.team === 1 && setOn(o.src, 'voltaic', 2))
+    voltArc(t, dmg, o.src);
   if (t.hp <= 0) {
     kill(t, dir, o);
     return true;
@@ -6514,6 +6613,28 @@ function parry(p, e) {
   buzz(20);
   bump('parries');
   tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
+}
+function voltArc(from, dmg, src) {
+  let best = null,
+    bd = 64;
+  for (const e of G.ents) {
+    if (e === from || e.team !== 1 || e.state === 'dead' || (e.d && e.d.passive)) continue;
+    const d = Math.hypot(e.x - from.x, (e.y - from.y) * 2);
+    if (d < bd) {
+      bd = d;
+      best = e;
+    }
+  }
+  if (!best) return;
+  G.fx.push({ k: 'zap', x: best.x, y: best.y, z: best.z + 24, c: '#45d2ff', life: 10, max: 10, r: 0 });
+  hurt(best, Math.max(1, Math.round(dmg * 0.3)), best.x >= from.x ? 1 : -1, {
+    arc: true,
+    src,
+    col: '#45d2ff',
+    kb: 1,
+    ax: from.x
+  });
+  if (setOn(src, 'voltaic', 3) && best.state !== 'dead' && grabbable(best)) best.dazeUntil = G.t + 60;
 }
 const canJuggle = (t, src) =>
   t.state === 'down' &&
@@ -6970,8 +7091,13 @@ function doSpecial(p) {
   bump('specials');
   buzz([30, 30, 60]);
   G.flash = Math.max(G.flash, 0.25);
-  G.texts.push({ x: p.x, y: p.y, z: 84, s: A0.spName.toUpperCase(), c: '#ffc63d', life: 70, big: true });
+  G.texts.push({ x: p.x, y: p.y, z: 84, s: spName(p).toUpperCase(), c: '#ffc63d', life: 70, big: true });
   G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ffc63d', life: 22, max: 22, r: 70 });
+  const ak = spKey(p);
+  if (ak !== 'arch') {
+    doActive(p, ak);
+    return;
+  }
   if (p.arch === 'samurai') {
     p.danceHit = [];
     p.inv = Math.max(p.inv, 36);
@@ -7047,6 +7173,79 @@ function doSpecial(p) {
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
+// the four trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
+function doActive(p, k) {
+  bump('actives');
+  if (k === 'brawler') {
+    // Ground Slam: a hop, then the street cracks both ways
+    p.vz = 3.2;
+    setS(p, 'jump');
+    G.shake = 10;
+    sfx.boom();
+    const dmg = Math.round(14 + p.D.melee * 1.2);
+    for (const s of [-1, 1])
+      G.projs.push({ k: 'wave', team: 0, src: p, x: p.x + s * 12, y: p.y, z: 0, vx: s * 4.2, dmg, life: 28 });
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || (e.d && (e.d.passive || e.d.fly))) continue;
+      if (Math.abs(e.x - p.x) < 44 && Math.abs(e.y - p.y) < 16)
+        hurt(e, dmg, e.x >= p.x ? 1 : -1, { kd: true, big: true, src: p, ax: p.x, melee: true });
+    }
+    burst(p.x, p.y, 2, '#ff3d8b', 18);
+  } else if (k === 'gunner') {
+    // Fan the Hammer: six rounds across the lanes, no ammo spent
+    const g = p.eq.gun,
+      dmg = Math.max(8, p.D.gun || 10);
+    setS(p, 'shoot');
+    for (let i = 0; i < 6; i++)
+      G.projs.push({
+        k: 'bullet',
+        team: 0,
+        src: p,
+        z: p.z + 30,
+        gk: 'pistol',
+        x: p.x + p.face * (18 - i * 9),
+        y: clamp(p.y + (i - 2.5) * 5, FY0 + 6, FY1),
+        vx: p.face * 6.6,
+        dmg,
+        life: 90,
+        x0: p.x + p.face * 18,
+        pierce: has(p, 'pierce') ? 1 : 0,
+        hit: []
+      });
+    sfx.shot();
+    if (!g) say(p, 'BARE HANDS? STILL COUNTS', '#ffe28a', 40, 30, true);
+  } else if (k === 'mage') {
+    // Summon Spirit: a fire spirit for 15 seconds
+    setS(p, 'cast');
+    p.t = 10;
+    spawnSummon('ember', p, 900, 1);
+    sfx.spell();
+  } else if (k === 'decker') {
+    // Short Circuit: everything electronic on screen shorts out
+    sfx.zap();
+    G.flash = Math.max(G.flash, 0.4);
+    const dk = p.eq.deck,
+      hk = (p.D.a.hak || 1) + (dk ? dk.hack || 0 : 0);
+    let n = 0;
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || e.x < G.camX - 8 || e.x > G.camX + W + 8) continue;
+      if (!isTech(e)) continue;
+      n++;
+      e.stunT = 180;
+      e.cool = Math.max(e.cool || 0, 180);
+      G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#45d2ff', life: 14, max: 14, r: 0 });
+      G.zaps.push({ tg: e, delay: 4 + Math.floor(Math.random() * 10), dmg: 12 + hk * 5, src: p, bul: true });
+    }
+    if (!n) say(p, 'NOTHING TO SHORT OUT', '#a79dc2', 60, 40, true);
+  }
+}
+// drones, ICE, mechs, cops and corp guards: what the Decker tree's Short Circuit can short out
+const isTech = e =>
+  !!e.d &&
+  ((e.d.fly && !e.d.spirit) ||
+    e.d.mech ||
+    e.d.ice ||
+    ['ice', 'blackice', 'glitch', 'cop', 'sec', 'riot', 'interceptor', 'drone'].includes(e.kind));
 function useItem(p) {
   if (PARTY.med > 0 && p.hp < p.maxHp) {
     PARTY.med--;
@@ -7115,8 +7314,9 @@ function upRunner(p) {
   // hold PUNCH to charge a heavy blow; release to swing
   const canCharge = !G.den && !p.holding && p.state !== 'grab' && p.z === 0;
   if (I.held.punch && canCharge) {
-    p.chargeT = (p.chargeT || 0) + 1;
-    if (p.chargeT === 32) {
+    const c0 = p.chargeT || 0;
+    p.chargeT = c0 + (setOn(p, 'rustline', 3) ? 1.5 : 1); // the Rustline set charges faster
+    if (c0 < 32 && p.chargeT >= 32) {
       sfx.zap();
       G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 2, c: '#ff3d8b', life: 14, max: 14, r: 22 });
     }
@@ -8449,6 +8649,12 @@ function upEnemy(e) {
     return;
   }
   if (e.inv > 0) e.inv--;
+  if (e.stunT > 0) {
+    // shorted out by a Short Circuit: sparking, frozen in place
+    e.stunT--;
+    if (e.stunT % 12 === 0) burst(e.x, e.y, e.z + 30, '#45d2ff', 3);
+    return;
+  }
   if (e.state === 'beg') {
     // on their knees: leave them be and they pay you off
     if (e.t >= 150) spare(e);
@@ -9556,7 +9762,7 @@ function update() {
       const hb = hitbox(t);
       if (pr.z < hb[0] || pr.z > hb[1]) continue;
       if (pr.k === 'wave') {
-        if (t.team !== 0) continue;
+        if (pr.team === 1 ? t.team !== 0 : t.team !== 1) continue; // a mech's hits runners; a Ground Slam's, foes
       }
       if (pr.k === 'bullet' && t.d && t.d.noBullet) {
         if (!pr.warned) {
@@ -9573,7 +9779,14 @@ function update() {
         hurt(t, pr.dmg, Math.sign(pr.vx), { kd: true, big: true, src: pr.src, ax: pr.x - pr.vx * 10 });
         shatter(pr);
       } else if (pr.k === 'wave') {
-        hurt(t, pr.dmg, Math.sign(pr.vx), { kd: true, big: true, col: '#ff6a3d', ax: pr.x - pr.vx * 10 });
+        hurt(t, pr.dmg, Math.sign(pr.vx), {
+          kd: true,
+          big: true,
+          col: '#ff6a3d',
+          ax: pr.x - pr.vx * 10,
+          src: pr.src || undefined
+        });
+        (pr.hit = pr.hit || []).push(t);
         continue;
       } else
         hurt(t, pr.dmg, Math.sign(pr.vx), {
@@ -10767,7 +10980,7 @@ function nearTrader(p) {
 function bmOffer() {
   const w = G.wd;
   if (!w.bm) {
-    const slot = pick(['weapon', 'gun', 'armor']),
+    const slot = pick(SLOTS),
       bases = Object.keys(BASES[slot]),
       base = bases[clamp(Math.floor(w.level / 2) + 2, 1, bases.length - 1)],
       it = mkItem(slot, base, 3, true);
@@ -11350,21 +11563,25 @@ function worldWipe() {
 /* ----- hacking ----- */
 function startHack(b, vault) {
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
-    tier = vault ? 4 : b.tier;
+    tier = vault ? 4 : b.tier,
+    decks = active()
+      .map(p => p.eq && p.eq.deck)
+      .filter(Boolean);
   G.hack = {
     b,
     vault: vault || null,
     tier,
     pos: 0,
     dir: 1,
-    speed: 0.42 + 0.2 * tier,
+    speed: (0.42 + 0.2 * tier) * Math.min(1, ...decks.map(d => d.slow || 1)), // a deck can slow the cursor
     need: tier + 1,
     hits: 0,
     miss: 0,
-    maxMiss: 2 + (anyHas('spare') ? 1 : 0),
+    maxMiss: 2 + (anyHas('spare') ? 1 : 0) + Math.max(0, ...decks.map(d => d.miss || 0)),
     w:
       clamp(0.1 + hak * 0.03 - tier * 0.02, 0.06, 0.32) *
       (anyHas('probe') ? 1.25 : 1) *
+      (active().some(p => setOn(p, 'voltaic', 3)) ? 1.15 : 1) *
       (evOn('blackout') ? 1.3 : 1),
     zone: 0.5,
     flash: 0,
@@ -15738,7 +15955,7 @@ function netSelect() {
 }
 // The friend's own character sheet: it draws from the mirrored runner, and the buttons that change something
 // are run on the host, as runner 2, with the same code a local click would use.
-const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock']);
+const NET_REMOTE = new Set(['skill', 'attr', 'equip', 'unequip', 'spell', 'drop', 'lock', 'spsel']);
 // Shops the friend shares with the host: they see the same counter and buy and sell as runner 2
 const NET_SHARED = new Set(['npc', 'shop', 'trader', 'locker', 'safe']);
 const NET_SHOP = new Set([
@@ -15817,7 +16034,8 @@ function netActOk(a) {
     cyber: typeof CYBER !== 'undefined' && CYBER,
     tech: typeof TECH !== 'undefined' && TECH,
     hire: typeof ALLIES !== 'undefined' && ALLIES,
-    learn: typeof SPELLS !== 'undefined' && SPELLS
+    learn: typeof SPELLS !== 'undefined' && SPELLS,
+    spsel: arg === 'arch' ? { arch: 1 } : typeof ACTIVES !== 'undefined' && ACTIVES
   }[name];
   if (tbl !== undefined && !netOwn(tbl, arg)) return false;
   if (name === 'spell') return !!p && /^\d+$/.test(arg) && +arg < (p.spells || []).length;
@@ -20215,7 +20433,8 @@ function wrapTip(s, max) {
   return out;
 }
 // Floating comparison card over gear on the floor, shown when a runner is close
-const cmpVal = it => (!it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.dmg || 0);
+const cmpVal = it =>
+  !it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.slot === 'deck' ? it.hack || 0 : it.dmg || 0;
 function drawCompare() {
   for (const k of G.picks) {
     if (k.k !== 'gear' || !k.item) continue;
@@ -20224,7 +20443,7 @@ function drawCompare() {
     const it = k.item,
       cur = p.eq[it.slot],
       d = cmpVal(it) - cmpVal(cur),
-      lbl = it.slot === 'armor' ? 'ARM ' : 'DMG ';
+      lbl = it.slot === 'armor' ? 'ARM ' : it.slot === 'deck' ? 'HACK ' : 'DMG ';
     const nm = it.name.toUpperCase(),
       w = Math.max(84, (ctx.font = '600 10px Teko, Impact, sans-serif') && ctx.measureText(nm).width + 16),
       x = clamp(k.x - G.camX - w / 2, 2, W - w - 2),
@@ -21502,7 +21721,7 @@ function settingsHtml() {
   </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
 }
 const AN = { bod: 'BOD', str: 'STR', agi: 'AGI', mag: 'MAG', hak: 'HAK' };
-const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor' };
+const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor', deck: 'Cyberdeck' };
 function bonusStr(b) {
   return Object.keys(b || {})
     .filter(k => b[k])
@@ -21523,10 +21742,12 @@ function itemLine1(it) {
   const s =
     it.slot === 'armor'
       ? `Armor ${it.arm}`
-      : it.slot === 'gun'
-        ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
-        : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
-  const b = bonusStr(it.bonus),
+      : it.slot === 'deck'
+        ? `Hacking +${it.hack || 0}${bs.note ? ', ' + bs.note : ''}`
+        : it.slot === 'gun'
+          ? `Damage ${it.dmg}, ${FIRE[it.fire]}`
+          : `Melee +${it.dmg}, reach +${it.reach || 0}${bs.note ? ', ' + bs.note : ''}`;
+  const b = bonusStr(it.slot === 'deck' ? Object.assign({}, it.bonus, { hak: 0 }) : it.bonus), // a deck's Hacking is already in its line
     parts = (it.parts || []).map(k => `${PARTS[k].n}: ${partDesc(k, it.slot)}`).join('; '),
     innate = it.daze && !hasPart(it, 'concuss') ? 'dazes in one hit' : '',
     oldMod = it.mod && !(it.parts || []).some(k => PARTS[k].mod === it.mod) && !it.leg ? it.mod : null;
@@ -21556,7 +21777,7 @@ const sortSeg = () =>
     .join('')}</div>`;
 function cmp(it, p) {
   const cur = p.eq[it.slot],
-    k = it.slot === 'armor' ? 'arm' : 'dmg';
+    k = it.slot === 'armor' ? 'arm' : it.slot === 'deck' ? 'hack' : 'dmg';
   const d = (it[k] || 0) - (cur ? cur[k] || 0 : 0);
   return d > 0
     ? `<span class="up">▲ ${d}</span>`
@@ -21607,7 +21828,37 @@ function skillsHtml() {
     .join('<div class="sk-link" style="--tc:' + T.col + '"></div>');
   return `${whoTabs()}${sheetTabs(p)}<div class="row" style="justify-content:space-between;align-items:baseline"><p class="eyebrow">${p.name} · level ${p.lvl}</p><b style="color:var(--gold);font-variant-numeric:tabular-nums">${p.spts} skill point${p.spts === 1 ? '' : 's'}</b></div>
   ${tt}<p style="color:var(--muted);margin:8px 0 4px;font-size:13px">${T.blurb} You earn a skill point every level. Each row needs points spent higher up the tree; the capstone also needs level 8. Decker skills help the whole team.</p>
-  <div class="sk-tree">${rows}</div>`;
+  <div class="sk-tree">${rows}</div>${activeHtml(p, tr)}`;
+}
+// the tree's active skill, and which one the ★ button uses
+function activeHtml(p, tr) {
+  const Ac = ACTIVES[tr];
+  if (!Ac) return '';
+  const open = activeOpen(p, tr),
+    on = spKey(p) === tr,
+    pick = (k, label, sel) =>
+      `<button class="btn sm${sel ? '' : ' ghost'}" data-a="spsel:${k}" aria-pressed="${sel}">${esc(label)}</button>`;
+  const opts =
+    pick('arch', '★ ' + (ARCH[p.arch] || ARCH.runner).spName, spKey(p) === 'arch') +
+    Object.keys(ACTIVES)
+      .filter(k => activeOpen(p, k))
+      .map(k => pick(k, '★ ' + ACTIVES[k].name, spKey(p) === k))
+      .join('');
+  return `<h3 style="margin-top:12px">Active skill · <span style="color:${TREES[tr].col}">${esc(Ac.name)}</span>${on ? ' <small style="color:var(--gold)">on ★</small>' : ''}</h3>
+  <p style="font-size:13px;margin:2px 0 6px">${esc(Ac.desc)} ${open ? 'Unlocked.' : `Unlocks with ${ACTIVE_NEED} points in ${TREES[tr].name} (you have ${treePts(p, tr)}).`} It takes the place of your special on the ★ button and uses the same meter.</p>
+  <p class="eyebrow" style="margin-bottom:4px">The ★ button uses</p><div class="row">${opts}</div>`;
+}
+// the maker sets a runner has going, for the character sheet
+function setsLine(p) {
+  const on = setsOf(p);
+  if (!on.length)
+    return '<p style="color:var(--muted);font-size:13px"><b style="color:var(--text)">Sets:</b> none. Two or three pieces from one maker (weapon, gun, armor, cyberdeck) add a set bonus.</p>';
+  return `<p style="font-size:13px"><b>Sets:</b> ${on
+    .map(
+      ({ m, n }) =>
+        `<span style="color:${MFR[m].col}">${esc(SETS[m].name)} ${Math.min(3, n)}/3</span>: ${esc(SETS[m].two)}${n >= 3 ? '; ' + esc(SETS[m].three) : ` <span style="color:var(--muted)">(3: ${esc(SETS[m].three)})</span>`}`
+    )
+    .join(' · ')}</p>`;
 }
 function charHtml() {
   if (G.sheetTab === 'skills') return skillsHtml();
@@ -21621,28 +21872,24 @@ function charHtml() {
         `<div class="attr"><span class="k">${ATTRS[k].name}</span><span class="v"><span>${a[k]}${a[k] !== p.attr[k] ? `<small style="font-size:13px;color:var(--mana)"> (${p.attr[k]}+${a[k] - p.attr[k]})</small>` : ''}</span>${p.pts > 0 && p.attr[k] < 10 ? `<button class="btn sm" data-a="attr:${k}" aria-label="Raise ${ATTRS[k].name}">+1</button>` : ''}</span><span class="h">${ATTRS[k].hint}</span></div>`
     )
     .join('');
-  const eq = ['weapon', 'gun', 'armor']
-    .map(s => {
-      const it = p.eq[s];
-      return `<div class="item"><div><div class="ds">${SLOTN[s]}</div><div class="nm ${it ? 'r' + it.rar : ''}">${it ? esc(it.name) : s === 'weapon' ? 'Bare cyberfists' : 'Nothing'}</div>${it ? `<div class="ds">${itemLine(it)}</div>` : ''}</div><div class="acts">${it ? `<button class="btn sm ghost" data-a="unequip:${s}">Unequip</button>` : ''}</div></div>`;
-    })
-    .join('');
+  const eq = SLOTS.map(s => {
+    const it = p.eq[s];
+    return `<div class="item"><div><div class="ds">${SLOTN[s]}</div><div class="nm ${it ? 'r' + it.rar : ''}">${it ? esc(it.name) : s === 'weapon' ? 'Bare cyberfists' : 'Nothing'}</div>${it ? `<div class="ds">${itemLine(it)}</div>` : ''}</div><div class="acts">${it ? `<button class="btn sm ghost" data-a="unequip:${s}">Unequip</button>` : ''}</div></div>`;
+  }).join('');
   // grouped by slot, best first, so a big bag stays scannable
   const bag = PARTY.bag.length
-    ? ['weapon', 'gun', 'armor']
-        .map(slot => {
-          const its = PARTY.bag.filter(it => it.slot === slot).sort(bagSort());
-          return its.length
-            ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
-                its
-                  .map(
-                    it =>
-                      `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button>${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button>`}</div></div>`
-                  )
-                  .join('')
-            : '';
-        })
-        .join('')
+    ? SLOTS.map(slot => {
+        const its = PARTY.bag.filter(it => it.slot === slot).sort(bagSort());
+        return its.length
+          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+              its
+                .map(
+                  it =>
+                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm" data-a="equip:${it.uid}">Equip</button>${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="drop:${it.uid}">Drop</button>`}</div></div>`
+                )
+                .join('')
+          : '';
+      }).join('')
     : '<p>The bag is empty. Gear drops from enemies and bosses, and Ratchet sells it in the Den.</p>';
   const spells = p.spells
     .map(
@@ -21655,10 +21902,10 @@ function charHtml() {
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
   ${G.cjob ? '<p style="color:var(--gold);font-size:13px">On Juno\'s side job: gear stays as it is until you\'re back in the Den.</p>' : ''}<h3>Equipped</h3><div class="list">${eq}</div>
-  ${chromeLine(p)}
+  ${setsLine(p)}${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
-  <h3>Special · ${esc(ARCH[p.arch].spName)}</h3><p>${esc(ARCH[p.arch].spDesc)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
+  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
 function jobHtml(C) {
   if (!C) return '';
@@ -21899,18 +22146,16 @@ function sellHtml(kind) {
   if (!bag.length) return `<h3>Sell</h3><p>Nothing in the bag to sell.</p>`;
   const commons = bag.filter(it => it.rar === 0 && !it.lock),
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
-  const groups = ['weapon', 'gun', 'armor']
-    .map(slot => {
-      const its = bag.filter(it => it.slot === slot).sort(bagSort());
-      if (!its.length) return '';
-      return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
-        .map(
-          it =>
-            `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
-        )
-        .join('')}`;
-    })
-    .join('');
+  const groups = SLOTS.map(slot => {
+    const its = bag.filter(it => it.slot === slot).sort(bagSort());
+    if (!its.length) return '';
+    return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
+      .map(
+        it =>
+          `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
+      )
+      .join('')}`;
+  }).join('');
   return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Sell · bag ${bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
   ${commons.length >= 2 ? `<div class="row"><button class="btn sm" data-a="sellcommon:${kind}">Sell all ${commons.length} Street-grade items · ¥${cTotal}</button></div>` : ''}
   <div class="list">${groups}</div>`;
@@ -21922,20 +22167,18 @@ function stashHtml() {
     st = (PARTY.stash = PARTY.stash || []),
     p = PL[G.sheetIdx] || PL[0];
   const col = (list, act, label, room) =>
-    ['weapon', 'gun', 'armor']
-      .map(slot => {
-        const its = list.filter(it => it.slot === slot).sort(bagSort());
-        return its.length
-          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
-              its
-                .map(
-                  it =>
-                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
-                )
-                .join('')
-          : '';
-      })
-      .join('') || '<p>Empty.</p>';
+    SLOTS.map(slot => {
+      const its = list.filter(it => it.slot === slot).sort(bagSort());
+      return its.length
+        ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+            its
+              .map(
+                it =>
+                  `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
+              )
+              .join('')
+        : '';
+    }).join('') || '<p>Empty.</p>';
   return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Stash · ${st.length}/${STASH_MAX}</h3>${sortSeg()}</div>
   <p style="color:var(--muted);font-size:13px">Shared between Ratchet's locker in the Den and your safehouse in the Sprawl. Stashed gear can't be sold by accident and stays put while you're out on the street.</p>
   <div class="list">${col(st, 'unstash', bag.length < BAG_MAX ? 'Take' : 'Bag full', bag.length < BAG_MAX)}</div>
@@ -22056,8 +22299,7 @@ function mapHtml() {
 function workbenchHtml() {
   const p = PL[G.sheetIdx] || PL[0],
     parts = PARTY.parts || 0;
-  const rows = ['weapon', 'gun', 'armor']
-    .filter(s => p.eq[s])
+  const rows = SLOTS.filter(s => p.eq[s])
     .map(s => {
       const it = p.eq[s],
         uc = upgradeCost(it),
@@ -22987,6 +23229,14 @@ ov.addEventListener('click', e => {
     }
     case 'spell':
       p.spell = +arg;
+      rerender();
+      break;
+    case 'spsel':
+      // what the ★ button does: the archetype's special or an unlocked active skill
+      if (arg === 'arch' || activeOpen(p, arg)) {
+        p.spSel = arg;
+        sfx.click();
+      }
       rerender();
       break;
     case 'buy':

@@ -79,7 +79,8 @@ const RUNNER_KEYS = [
   'sk',
   'spts',
   'coat',
-  'trail'
+  'trail',
+  'spSel'
 ];
 function newRunner(idx) {
   const p = {
@@ -107,8 +108,9 @@ function newRunner(idx) {
     attr: { bod: 2, str: 2, agi: 2, mag: 2, hak: 1 },
     cy: { arm: 0, wired: 0, plate: 0 },
     tech: {},
-    eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0) },
+    eq: { weapon: null, gun: mkItem('gun', 'light', 0), armor: mkItem('armor', 'coat', 0), deck: null },
     spells: ['fire'],
+    spSel: 'arch', // what the ★ button does: the archetype's special, or an unlocked tree's active skill
     spell: 0,
     hp: 1,
     mp: 1,
@@ -176,6 +178,10 @@ function refresh(p) {
     breaker: !!wb.breaker,
     spellMul: has(p, 'focus') ? 1.2 : 1
   };
+  // maker sets: two pieces from one maker, then three
+  if (setOn(p, 'kagemori', 2)) p.D.crit += 0.06;
+  if (setOn(p, 'rustline', 2)) p.D.melee *= 1.1;
+  if (setOn(p, 'ironside', 2)) p.D.spd *= 1.06;
   if (typeof G !== 'undefined' && modOn('brawl')) p.D.melee *= 1.4;
   if (p.arch === 'adept') p.D.melee *= 1.3;
   p.maxHp =
@@ -185,6 +191,7 @@ function refresh(p) {
     (ar && ar.mod === 'padded' ? 25 : 0) +
     (ar && ar.leg === 'wyrmheart' ? 40 : 0);
   p.maxMp = Math.max(10, 24 + a.mag * 12 - cyN * 6 - techN(p) * TECH_MANA);
+  if (setOn(p, 'hexwright', 2)) p.maxMp = Math.round(p.maxMp * 1.15);
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
@@ -244,7 +251,7 @@ function restoreRunner(r, i) {
     p.sk = null;
     p.spts = undefined;
   }
-  for (const s of ['weapon', 'gun', 'armor']) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
+  for (const s of SLOTS) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
   p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, p.cy);
   p.attr = Object.assign({ bod: 2, str: 2, agi: 2, mag: 2, hak: 1 }, p.attr);
   if (!isObj(p.tech)) p.tech = {};

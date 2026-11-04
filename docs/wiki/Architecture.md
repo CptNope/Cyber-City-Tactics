@@ -92,7 +92,7 @@ classDiagram
   class Runner {
     idx, arch, lvl, karma
     attr, sk, cy, tech
-    eq: weapon / gun / armor
+    eq: weapon / gun / armor / deck
     D: derived stats
     grab, heldBy, holding
   }

@@ -95,6 +95,28 @@ const SKILLS = {
     desc: 'Failed hacks never trip alarms, and break-ins add one less heat star.'
   }
 };
+// Active skills: three points in a tree unlock its active skill, which can take the ★ special's place
+// (pick it on the Skills tab). It spends the same full meter.
+const ACTIVE_NEED = 3;
+const ACTIVES = {
+  brawler: {
+    name: 'Ground Slam',
+    desc: 'Leap and slam the street: a shockwave both ways knocks down everyone close and hurts them.'
+  },
+  gunner: {
+    name: 'Fan the Hammer',
+    desc: 'Six rounds fanned out in front, fast, without using ammo. Each hits like your gun.'
+  },
+  mage: { name: 'Summon Spirit', desc: 'A fire spirit fights at your side for 15 seconds.' },
+  decker: {
+    name: 'Short Circuit',
+    desc: 'Every drone, ICE, mech, cop and guard on screen shorts out: stunned for 3 seconds and shocked. A better cyberdeck hits harder.'
+  }
+};
+const activeOpen = (p, t) => !!ACTIVES[t] && treePts(p, t) >= ACTIVE_NEED;
+// what the ★ button will do right now: an unlocked active skill the runner picked, else the archetype's special
+const spKey = p => (p && p.spSel && p.spSel !== 'arch' && activeOpen(p, p.spSel) ? p.spSel : 'arch');
+const spName = p => (spKey(p) === 'arch' ? (ARCH[p.arch] || ARCH.runner).spName : ACTIVES[spKey(p)].name);
 const ROW_NEED = [0, 1, 2, 4],
   ROW_LVL = [1, 1, 4, 8];
 const ARCH_SKILL = {
@@ -134,4 +156,12 @@ function respec(p) {
   return n;
 }
 const spellCost = (p, sp) =>
-  Math.max(1, Math.round(sp.cost * (has(p, 'thrift') ? 0.75 : 1) * (evOn('spiritstorm') ? 0.5 : 1)));
+  Math.max(
+    1,
+    Math.round(
+      sp.cost *
+        (has(p, 'thrift') ? 0.75 : 1) *
+        (evOn('spiritstorm') ? 0.5 : 1) *
+        (setOn(p, 'hexwright', 3) ? 0.8 : 1)
+    )
+  );

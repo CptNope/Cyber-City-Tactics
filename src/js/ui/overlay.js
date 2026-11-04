@@ -226,18 +226,16 @@ function sellHtml(kind) {
   if (!bag.length) return `<h3>Sell</h3><p>Nothing in the bag to sell.</p>`;
   const commons = bag.filter(it => it.rar === 0 && !it.lock),
     cTotal = commons.reduce((s, it) => s + sellPrice(it, kind), 0);
-  const groups = ['weapon', 'gun', 'armor']
-    .map(slot => {
-      const its = bag.filter(it => it.slot === slot).sort(bagSort());
-      if (!its.length) return '';
-      return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
-        .map(
-          it =>
-            `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
-        )
-        .join('')}`;
-    })
-    .join('');
+  const groups = SLOTS.map(slot => {
+    const its = bag.filter(it => it.slot === slot).sort(bagSort());
+    if (!its.length) return '';
+    return `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>${its
+      .map(
+        it =>
+          `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts">${lockBtn(it)}${it.lock ? '' : `<button class="btn sm ghost" data-a="sell:${it.uid}:${kind}">Sell ¥${sellPrice(it, kind)}</button>${fence && salvageParts(it) ? `<button class="btn sm ghost" data-a="salvage:${it.uid}">Scrap +${salvageParts(it)} parts</button>` : ''}`}</div></div>`
+      )
+      .join('')}`;
+  }).join('');
   return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Sell · bag ${bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">${fence ? `Pays ${pct}% of value.` : `Pays ${pct}% of value. Ratchet in the Den pays more.`}</p>
   ${commons.length >= 2 ? `<div class="row"><button class="btn sm" data-a="sellcommon:${kind}">Sell all ${commons.length} Street-grade items · ¥${cTotal}</button></div>` : ''}
   <div class="list">${groups}</div>`;
@@ -249,20 +247,18 @@ function stashHtml() {
     st = (PARTY.stash = PARTY.stash || []),
     p = PL[G.sheetIdx] || PL[0];
   const col = (list, act, label, room) =>
-    ['weapon', 'gun', 'armor']
-      .map(slot => {
-        const its = list.filter(it => it.slot === slot).sort(bagSort());
-        return its.length
-          ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
-              its
-                .map(
-                  it =>
-                    `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
-                )
-                .join('')
-          : '';
-      })
-      .join('') || '<p>Empty.</p>';
+    SLOTS.map(slot => {
+      const its = list.filter(it => it.slot === slot).sort(bagSort());
+      return its.length
+        ? `<p class="eyebrow">${SLOTN[slot]} · ${its.length}</p>` +
+            its
+              .map(
+                it =>
+                  `<div class="item${it.lock ? ' locked' : ''}"><div><div class="nm r${it.rar}">${lockName(it)}</div><div class="ds">${itemLine(it)} · ${cmp(it, p)}</div></div><div class="acts"><button class="btn sm ghost" data-a="${act}:${it.uid}" ${room ? '' : 'disabled'}>${label}</button></div></div>`
+              )
+              .join('')
+        : '';
+    }).join('') || '<p>Empty.</p>';
   return `<div class="row" style="justify-content:space-between;align-items:center"><h3>Stash · ${st.length}/${STASH_MAX}</h3>${sortSeg()}</div>
   <p style="color:var(--muted);font-size:13px">Shared between Ratchet's locker in the Den and your safehouse in the Sprawl. Stashed gear can't be sold by accident and stays put while you're out on the street.</p>
   <div class="list">${col(st, 'unstash', bag.length < BAG_MAX ? 'Take' : 'Bag full', bag.length < BAG_MAX)}</div>
@@ -383,8 +379,7 @@ function mapHtml() {
 function workbenchHtml() {
   const p = PL[G.sheetIdx] || PL[0],
     parts = PARTY.parts || 0;
-  const rows = ['weapon', 'gun', 'armor']
-    .filter(s => p.eq[s])
+  const rows = SLOTS.filter(s => p.eq[s])
     .map(s => {
       const it = p.eq[s],
         uc = upgradeCost(it),

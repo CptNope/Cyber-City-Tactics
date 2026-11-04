@@ -82,7 +82,7 @@ function hurt(t, dmg, dir, o) {
     t.team === 0 &&
     t.kind === 'player' &&
     t.state === 'roll' &&
-    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) &&
+    t.t <= PARRY_WINDOW + (t.cy && t.cy.boost ? 6 : 0) + (setOn(t, 'kagemori', 3) ? 3 : 0) &&
     o.att &&
     o.att.team === 1 &&
     !o.bullet &&
@@ -200,9 +200,11 @@ function hurt(t, dmg, dir, o) {
   ) {
     dmg *=
       (o.bullet && has(o.src, 'deadeye') ? 2.5 : 1.8) *
-      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1);
+      (o.bullet && o.src.eq && o.src.eq.gun ? o.src.eq.gun.critMul || 1 : 1) *
+      (setOn(o.src, 'kagemori', 3) ? 1.25 : 1);
     crit = true;
   }
+  if (t.team === 0 && t.kind === 'player' && setOn(t, 'ironside', 3)) dmg *= 0.85; // the Ironside set
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -360,6 +362,9 @@ function hurt(t, dmg, dir, o) {
     taunt(t, 1);
   }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
+  // the Voltaic set: a melee hit arcs to the nearest other foe
+  if (o.melee && !o.arc && o.src && o.src.kind === 'player' && t.team === 1 && setOn(o.src, 'voltaic', 2))
+    voltArc(t, dmg, o.src);
   if (t.hp <= 0) {
     kill(t, dir, o);
     return true;
@@ -664,6 +669,28 @@ function parry(p, e) {
   buzz(20);
   bump('parries');
   tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
+}
+function voltArc(from, dmg, src) {
+  let best = null,
+    bd = 64;
+  for (const e of G.ents) {
+    if (e === from || e.team !== 1 || e.state === 'dead' || (e.d && e.d.passive)) continue;
+    const d = Math.hypot(e.x - from.x, (e.y - from.y) * 2);
+    if (d < bd) {
+      bd = d;
+      best = e;
+    }
+  }
+  if (!best) return;
+  G.fx.push({ k: 'zap', x: best.x, y: best.y, z: best.z + 24, c: '#45d2ff', life: 10, max: 10, r: 0 });
+  hurt(best, Math.max(1, Math.round(dmg * 0.3)), best.x >= from.x ? 1 : -1, {
+    arc: true,
+    src,
+    col: '#45d2ff',
+    kb: 1,
+    ax: from.x
+  });
+  if (setOn(src, 'voltaic', 3) && best.state !== 'dead' && grabbable(best)) best.dazeUntil = G.t + 60;
 }
 const canJuggle = (t, src) =>
   t.state === 'down' &&

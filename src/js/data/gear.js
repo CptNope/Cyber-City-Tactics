@@ -84,8 +84,23 @@ const BASES = {
     cloak: { name: 'Thermoptic cloak', arm: 5, price: 260, bonus: { agi: 2, hak: 1 } },
     vest: { name: 'Riot vest', arm: 9, price: 200 },
     exo: { name: 'Exo-frame', arm: 13, price: 340, bonus: { str: 2, agi: -1 } }
+  },
+  // Cyberdecks: the fourth slot. Hack adds to Hacking (wider hacking windows); some forgive a miss or slow
+  // the cursor, and the Decker tree's Short Circuit hits harder with a better deck
+  deck: {
+    street: { name: 'Street deck', hack: 1, price: 80 },
+    cobalt: { name: 'Cobalt deck', hack: 2, price: 180, miss: 1, note: 'one extra miss allowed on hacks' },
+    wraith: {
+      name: 'Wraith deck',
+      hack: 3,
+      price: 320,
+      slow: 0.8,
+      note: 'the hacking cursor runs 20% slower'
+    }
   }
 };
+// every gear slot, in the order the sheet lists them
+const SLOTS = ['weapon', 'gun', 'armor', 'deck'];
 // Gun mods: fitted at Ratchet's bench, one per gun, and they stay with the gun
 const GMODS = {
   mag: { name: 'Extended mag', desc: 'Ammo pickups give 50% more rounds.', price: 150 },
@@ -137,7 +152,7 @@ const MFR = {
     name: 'Kagemori',
     col: '#ff3d4a',
     spec: 'Precision: crits',
-    slots: ['weapon', 'gun', 'armor'],
+    slots: ['weapon', 'gun', 'armor', 'deck'],
     attr: 'agi',
     likes: ['keen', 'keen', 'sight', 'swift', 'attr', 'plated']
   },
@@ -153,7 +168,7 @@ const MFR = {
     name: 'Voltaic',
     col: '#45d2ff',
     spec: 'Shock and fire; its melee weapons always daze',
-    slots: ['weapon', 'gun'],
+    slots: ['weapon', 'gun', 'deck'],
     attr: 'hak',
     likes: ['shock', 'shock', 'burn', 'swift', 'concuss', 'drum']
   },
@@ -161,7 +176,7 @@ const MFR = {
     name: 'Hexwright',
     col: '#b98cff',
     spec: 'Magic: mana, spell power, leeching',
-    slots: ['weapon', 'gun', 'armor'],
+    slots: ['weapon', 'gun', 'armor', 'deck'],
     attr: 'mag',
     likes: ['attr', 'attr', 'leech', 'warded', 'keen', 'padded']
   },
@@ -188,7 +203,14 @@ const PARTS = {
   },
   concuss: { n: 'Concussive', slots: ['weapon'], desc: 'one hit dazes a foe (ready to grab)' },
   drum: { n: 'Drum-fed', slots: ['gun'], desc: 'ammo pickups give 50% more rounds' },
-  attr: { n: 'Augmented', slots: ['weapon', 'gun', 'armor'], desc: '+2 more to the maker’s attribute' },
+  attr: {
+    n: 'Augmented',
+    slots: ['weapon', 'gun', 'armor', 'deck'],
+    desc: '+2 more to the maker’s attribute',
+    ddesc: '+2 more Hacking'
+  },
+  buffer: { n: 'Buffered', slots: ['deck'], desc: 'one extra miss allowed on hacks' },
+  overclock: { n: 'Overclocked', slots: ['deck'], desc: 'the hacking cursor runs 15% slower' },
   shock: { n: 'Shock', slots: ['weapon', 'gun'], mod: 'shock' },
   burn: { n: 'Incendiary', slots: ['weapon', 'gun'], mod: 'burn' },
   leech: { n: 'Leeching', slots: ['weapon', 'gun'], mod: 'leech' },
@@ -200,7 +222,7 @@ const PARTS = {
 const partDesc = (k, slot) => {
   const P = PARTS[k];
   if (P.mod) return AFFIX[P.mod].desc;
-  return slot === 'armor' && P.adesc ? P.adesc : P.desc;
+  return slot === 'armor' && P.adesc ? P.adesc : slot === 'deck' && P.ddesc ? P.ddesc : P.desc;
 };
 const hasPart = (it, k) => !!(it && it.parts && it.parts.includes(k));
 const makersFor = slot => Object.keys(MFR).filter(k => MFR[k].slots.includes(slot));
@@ -414,7 +436,7 @@ function mkItem(slot, base, rar, mod, mfr) {
   if (want) it.parts.push(want);
   else if (mod === true && rar > 0) {
     const ms = Object.keys(PARTS).filter(k => PARTS[k].mod && PARTS[k].slots.includes(slot));
-    it.parts.push(pick(ms));
+    if (ms.length) it.parts.push(pick(ms)); // no affix fits a cyberdeck: it rolls ordinary parts instead
   }
   while (it.parts.length < Math.min(4, rar)) addPart(it);
   applyParts(it);
@@ -443,9 +465,17 @@ function applyParts(it) {
   it.bonus = Object.assign({}, b.bonus || {});
   if (b.dmg) it.dmg = Math.round(b.dmg * r.m * (1 + 0.2 * n('heavy')));
   if (b.arm) it.arm = Math.round(b.arm * r.m * (1 + 0.3 * n('plated')));
-  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more
-  const ap = it.rar + 2 * n('attr');
-  if (ap) it.bonus[M.attr] = (it.bonus[M.attr] || 0) + ap;
+  // every tier adds a point to the maker's attribute (as tiers always added a point); Augmented parts add two more.
+  // A cyberdeck's points all go to Hacking, on top of the deck's own
+  const ap = it.rar + 2 * n('attr'),
+    at = it.slot === 'deck' ? 'hak' : M.attr;
+  if (ap) it.bonus[at] = (it.bonus[at] || 0) + ap;
+  if (b.hack) {
+    it.hack = b.hack + ap;
+    it.bonus.hak = (it.bonus.hak || 0) + b.hack;
+    it.miss = (b.miss || 0) + n('buffer');
+    it.slow = (b.slow || 1) * (n('overclock') ? 0.85 : 1);
+  }
   if (n('warded')) it.bonus.mag = (it.bonus.mag || 0) + 2;
   it.crit = 0.08 * n('keen') + 0.06 * n('sight');
   it.critMul = n('sight') ? 1.25 : 1;
@@ -525,7 +555,7 @@ function upgradeItem(it) {
   return true;
 }
 function randItem(stage, boost) {
-  const slot = pick(['weapon', 'gun', 'armor', 'weapon', 'gun']);
+  const slot = pick(['weapon', 'gun', 'armor', 'weapon', 'gun', 'armor', 'weapon', 'gun', 'deck']);
   const bases = Object.keys(BASES[slot]);
   const top = clamp(Math.floor(stage) + 1 + (boost ? 1 : 0), 0, bases.length - 1);
   const base = bases[ri(Math.max(0, top - 2), top)];
@@ -534,3 +564,30 @@ function randItem(stage, boost) {
   const rar = roll > 1.6 ? 4 : roll > 1.25 ? 3 : roll > 0.95 ? 2 : roll > 0.6 ? 1 : 0;
   return mkItem(slot, base, rar);
 }
+
+/* ---------- maker sets ---------- */
+// Two or three pieces from the same maker (weapon, gun, armor, cyberdeck) add a bonus on top of the gear's own.
+// Voltaic makes no armor, so its three are weapon, gun and deck.
+const SETS = {
+  kagemori: {
+    name: 'Kagemori Precision',
+    two: '+6% crit chance',
+    three: 'crits deal 25% more, and the parry window is wider'
+  },
+  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 35% faster' },
+  voltaic: {
+    name: 'Voltaic Live Wire',
+    two: 'melee hits arc to the nearest other foe for 30% damage',
+    three: 'the arc dazes it too, and hacking windows are 15% wider'
+  },
+  hexwright: { name: 'Hexwright Coven', two: '+15% max mana', three: 'spells cost 20% less mana' },
+  ironside: { name: 'Ironside Bulwark', two: 'move 6% faster', three: 'take 15% less damage' }
+};
+// how many of a runner's equipped pieces come from this maker
+const setN = (p, m) => (p && p.eq ? SLOTS.filter(s => p.eq[s] && p.eq[s].mfr === m).length : 0);
+const setOn = (p, m, n) => setN(p, m) >= n;
+// the sets a runner has going, for the sheet: [{m, n}]
+const setsOf = p =>
+  Object.keys(SETS)
+    .map(m => ({ m, n: setN(p, m) }))
+    .filter(x => x.n >= 2);

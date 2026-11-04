@@ -74,6 +74,17 @@ Four trees with rows of skills and a capstone. Each archetype starts with its ow
 | mage | 2 | Siphon | Every kill restores 4 mana. |
 | mage | 3 | Archon | Every fourth spell is free and hits twice as hard. |
 
+## Active skills
+
+Three points in a tree (`ACTIVE_NEED`) unlock its active skill (`ACTIVES` in systems/skills.js). `p.spSel` (saved with the runner) picks what the ★ button does; `spKey(p)` falls back to the archetype's special when the pick isn't unlocked. `doSpecial()` hands active skills to `doActive()`, and each spends the full meter like a special.
+
+| Tree | Active | Effect |
+|---|---|---|
+| Brawler | Ground Slam | hop, `kd` everyone within 44 px, and a `wave` projectile each way for 14 + 1.2 × melee |
+| Gunslinger | Fan the Hammer | six bullets across the lanes at gun damage, no ammo spent |
+| Mage | Summon Spirit | `spawnSummon('ember', p, 900)`: a fire spirit for 15 s |
+| Decker | Short Circuit | every `isTech` foe on screen gets `stunT = 180` (frozen) and a zap of 12 + 5 × (Hacking + deck) |
+
 ## Cyberware
 
 | Cyberware | Where | Max level | Effect |

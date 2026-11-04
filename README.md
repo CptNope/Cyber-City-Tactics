@@ -340,6 +340,15 @@ Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills
 | 3 | **Whirlwind:** heavy blows hit behind you too | **Ricochet:** critical bullets bounce to a second enemy | **Siphon:** every kill restores 4 mana | **Fence Contacts:** sell for 15% more, buy for 10% less |
 | Capstone | **Berserker:** below 40% HP, +40% damage and −20% damage taken | **Deadeye:** +15% gun crit, gun crits deal 2.5× | **Archon:** every 4th spell is free and hits twice as hard | **Ghost Protocol:** failed hacks never trip alarms; break-ins add one less heat star |
 
+**Active skills.** Three points in a tree unlock its active skill. On the Skills tab, pick which one the ★ button uses: your archetype's special, or any active skill you've unlocked. It spends the same full meter.
+
+| Tree | Active skill | What it does |
+|---|---|---|
+| Brawler | **Ground Slam** | Leap and slam the street: a shockwave both ways knocks down everyone close and hurts them |
+| Gunslinger | **Fan the Hammer** | Six rounds fanned across the lanes in front, fast, without using ammo |
+| Mage | **Summon Spirit** | A fire spirit fights at your side for 15 seconds |
+| Decker | **Short Circuit** | Every drone, ICE, mech, cop and guard on screen is stunned for 3 seconds and shocked; a better cyberdeck hits harder |
+
 Old saves pick up skill points for the levels they already earned.
 
 **Neural reset.** Changed your mind? Doc Kessler sells a reset that refunds every skill point except your archetype's starting skill, for ¥60 per level.
@@ -347,7 +356,7 @@ Old saves pick up skill points for the levels they already earned.
 ---
 
 ## Gear
-Your runner has three slots: melee weapon, gun and armor.
+Your runner has four slots: melee weapon, gun, armor and cyberdeck.
 
 Gear works like Borderlands. Every piece comes from a **manufacturer** with its own speciality, and rolls **0–4 parts**. The number of parts is its rarity and its colour, so a glance at the name tells you how much it has going on:
 
@@ -371,7 +380,27 @@ Every tier also adds a point to the maker's own attribute. Items are named maker
 | Hexwright | Violet | Magic, spell power, leeching | Magic |
 | Ironside Arms | Steel | Speed: faster swings and fire, bigger mags | Body |
 
-Makers favour their own parts about three times in four. Voltaic makes no armor.
+Makers favour their own parts about three times in four. Voltaic makes no armor. Kagemori, Voltaic and Hexwright also make cyberdecks.
+
+**Maker sets.** Two or three pieces from the same maker (any of weapon, gun, armor and cyberdeck) add a set bonus on top of the gear's own. The character sheet shows the sets you have going.
+
+| Set | 2 pieces | 3 pieces |
+|---|---|---|
+| Kagemori Precision | +6% crit chance | crits deal 25% more, and the parry window is wider |
+| Rustline Bruiser | +10% melee damage | heavy blows charge 35% faster |
+| Voltaic Live Wire | melee hits arc to the nearest other foe for 30% damage | the arc dazes it too, and hacking windows are 15% wider |
+| Hexwright Coven | +15% max mana | spells cost 20% less mana |
+| Ironside Bulwark | move 6% faster | take 15% less damage |
+
+**Cyberdecks.** The fourth slot. A deck adds to Hacking, which widens hacking windows, and the Decker tree's Short Circuit hits harder with a better one. Decks drop as loot and turn up in shops like any gear, and their parts all go to Hacking.
+
+| Deck | Hacking | Also |
+|---|---|---|
+| Street deck | +1 | |
+| Cobalt deck | +2 | one extra miss allowed on hacks |
+| Wraith deck | +3 | the hacking cursor runs 20% slower |
+
+Deck parts: Augmented (+2 more Hacking), Buffered (one extra miss allowed), Overclocked (the cursor runs 15% slower).
 
 **Parts:**
 

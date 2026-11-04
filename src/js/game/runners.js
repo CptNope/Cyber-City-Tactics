@@ -92,8 +92,13 @@ function doSpecial(p) {
   bump('specials');
   buzz([30, 30, 60]);
   G.flash = Math.max(G.flash, 0.25);
-  G.texts.push({ x: p.x, y: p.y, z: 84, s: A0.spName.toUpperCase(), c: '#ffc63d', life: 70, big: true });
+  G.texts.push({ x: p.x, y: p.y, z: 84, s: spName(p).toUpperCase(), c: '#ffc63d', life: 70, big: true });
   G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#ffc63d', life: 22, max: 22, r: 70 });
+  const ak = spKey(p);
+  if (ak !== 'arch') {
+    doActive(p, ak);
+    return;
+  }
   if (p.arch === 'samurai') {
     p.danceHit = [];
     p.inv = Math.max(p.inv, 36);
@@ -169,6 +174,79 @@ function doSpecial(p) {
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
+// the four trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
+function doActive(p, k) {
+  bump('actives');
+  if (k === 'brawler') {
+    // Ground Slam: a hop, then the street cracks both ways
+    p.vz = 3.2;
+    setS(p, 'jump');
+    G.shake = 10;
+    sfx.boom();
+    const dmg = Math.round(14 + p.D.melee * 1.2);
+    for (const s of [-1, 1])
+      G.projs.push({ k: 'wave', team: 0, src: p, x: p.x + s * 12, y: p.y, z: 0, vx: s * 4.2, dmg, life: 28 });
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || (e.d && (e.d.passive || e.d.fly))) continue;
+      if (Math.abs(e.x - p.x) < 44 && Math.abs(e.y - p.y) < 16)
+        hurt(e, dmg, e.x >= p.x ? 1 : -1, { kd: true, big: true, src: p, ax: p.x, melee: true });
+    }
+    burst(p.x, p.y, 2, '#ff3d8b', 18);
+  } else if (k === 'gunner') {
+    // Fan the Hammer: six rounds across the lanes, no ammo spent
+    const g = p.eq.gun,
+      dmg = Math.max(8, p.D.gun || 10);
+    setS(p, 'shoot');
+    for (let i = 0; i < 6; i++)
+      G.projs.push({
+        k: 'bullet',
+        team: 0,
+        src: p,
+        z: p.z + 30,
+        gk: 'pistol',
+        x: p.x + p.face * (18 - i * 9),
+        y: clamp(p.y + (i - 2.5) * 5, FY0 + 6, FY1),
+        vx: p.face * 6.6,
+        dmg,
+        life: 90,
+        x0: p.x + p.face * 18,
+        pierce: has(p, 'pierce') ? 1 : 0,
+        hit: []
+      });
+    sfx.shot();
+    if (!g) say(p, 'BARE HANDS? STILL COUNTS', '#ffe28a', 40, 30, true);
+  } else if (k === 'mage') {
+    // Summon Spirit: a fire spirit for 15 seconds
+    setS(p, 'cast');
+    p.t = 10;
+    spawnSummon('ember', p, 900, 1);
+    sfx.spell();
+  } else if (k === 'decker') {
+    // Short Circuit: everything electronic on screen shorts out
+    sfx.zap();
+    G.flash = Math.max(G.flash, 0.4);
+    const dk = p.eq.deck,
+      hk = (p.D.a.hak || 1) + (dk ? dk.hack || 0 : 0);
+    let n = 0;
+    for (const e of G.ents) {
+      if (e.team !== 1 || e.state === 'dead' || e.x < G.camX - 8 || e.x > G.camX + W + 8) continue;
+      if (!isTech(e)) continue;
+      n++;
+      e.stunT = 180;
+      e.cool = Math.max(e.cool || 0, 180);
+      G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#45d2ff', life: 14, max: 14, r: 0 });
+      G.zaps.push({ tg: e, delay: 4 + Math.floor(Math.random() * 10), dmg: 12 + hk * 5, src: p, bul: true });
+    }
+    if (!n) say(p, 'NOTHING TO SHORT OUT', '#a79dc2', 60, 40, true);
+  }
+}
+// drones, ICE, mechs, cops and corp guards: what the Decker tree's Short Circuit can short out
+const isTech = e =>
+  !!e.d &&
+  ((e.d.fly && !e.d.spirit) ||
+    e.d.mech ||
+    e.d.ice ||
+    ['ice', 'blackice', 'glitch', 'cop', 'sec', 'riot', 'interceptor', 'drone'].includes(e.kind));
 function useItem(p) {
   if (PARTY.med > 0 && p.hp < p.maxHp) {
     PARTY.med--;
@@ -237,8 +315,9 @@ function upRunner(p) {
   // hold PUNCH to charge a heavy blow; release to swing
   const canCharge = !G.den && !p.holding && p.state !== 'grab' && p.z === 0;
   if (I.held.punch && canCharge) {
-    p.chargeT = (p.chargeT || 0) + 1;
-    if (p.chargeT === 32) {
+    const c0 = p.chargeT || 0;
+    p.chargeT = c0 + (setOn(p, 'rustline', 3) ? 1.5 : 1); // the Rustline set charges faster
+    if (c0 < 32 && p.chargeT >= 32) {
       sfx.zap();
       G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 2, c: '#ff3d8b', life: 14, max: 14, r: 22 });
     }

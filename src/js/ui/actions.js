@@ -718,6 +718,14 @@ ov.addEventListener('click', e => {
       p.spell = +arg;
       rerender();
       break;
+    case 'spsel':
+      // what the ★ button does: the archetype's special or an unlocked active skill
+      if (arg === 'arch' || activeOpen(p, arg)) {
+        p.spSel = arg;
+        sfx.click();
+      }
+      rerender();
+      break;
     case 'buy':
       {
         const mc = Math.round(30 * buyMul());

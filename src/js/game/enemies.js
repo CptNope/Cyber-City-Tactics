@@ -76,6 +76,12 @@ function upEnemy(e) {
     return;
   }
   if (e.inv > 0) e.inv--;
+  if (e.stunT > 0) {
+    // shorted out by a Short Circuit: sparking, frozen in place
+    e.stunT--;
+    if (e.stunT % 12 === 0) burst(e.x, e.y, e.z + 30, '#45d2ff', 3);
+    return;
+  }
   if (e.state === 'beg') {
     // on their knees: leave them be and they pay you off
     if (e.t >= 150) spare(e);

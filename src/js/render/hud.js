@@ -112,7 +112,8 @@ function wrapTip(s, max) {
   return out;
 }
 // Floating comparison card over gear on the floor, shown when a runner is close
-const cmpVal = it => (!it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.dmg || 0);
+const cmpVal = it =>
+  !it ? 0 : it.slot === 'armor' ? it.arm || 0 : it.slot === 'deck' ? it.hack || 0 : it.dmg || 0;
 function drawCompare() {
   for (const k of G.picks) {
     if (k.k !== 'gear' || !k.item) continue;
@@ -121,7 +122,7 @@ function drawCompare() {
     const it = k.item,
       cur = p.eq[it.slot],
       d = cmpVal(it) - cmpVal(cur),
-      lbl = it.slot === 'armor' ? 'ARM ' : 'DMG ';
+      lbl = it.slot === 'armor' ? 'ARM ' : it.slot === 'deck' ? 'HACK ' : 'DMG ';
     const nm = it.name.toUpperCase(),
       w = Math.max(84, (ctx.font = '600 10px Teko, Impact, sans-serif') && ctx.measureText(nm).width + 16),
       x = clamp(k.x - G.camX - w / 2, 2, W - w - 2),
