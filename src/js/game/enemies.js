@@ -57,7 +57,8 @@ function upEnemy(e) {
   }
   if (e.state === 'dead') {
     if (e.d.fly && e.z <= 0) e.z = 0;
-    if (e.t > 70) e.gone = true;
+    // a fireteam member lies there a while longer if their medic is still up to come for them
+    if (e.t > (e.unit && !e.revived && unitMedic(e) ? 420 : 70)) e.gone = true;
     return;
   }
   if (e.inv > 0 && (e.state === 'down' || e.state === 'hurt')) e.inv--; // a release's grace runs out on the floor too
@@ -73,6 +74,7 @@ function upEnemy(e) {
   }
   if (e.state === 'hurt') {
     if (e.t > 14) setS(e, 'idle');
+    e.healT = 0; // a medic hit mid-revive starts over
     return;
   }
   if (e.inv > 0) e.inv--;
@@ -112,6 +114,7 @@ function upEnemy(e) {
   }
   e.tgt = pickTarget(e);
   const p = e.tgt;
+  if (e.unit && p && unitTick(e, d, p)) return;
   if (d.fly && e.state !== 'vent') {
     e.hover += 0.08;
     const zt = (d.spirit ? 18 : d.ice ? 20 : 24) + Math.sin(e.hover) * 3;
@@ -461,6 +464,109 @@ function upEnemy(e) {
     if (e.state !== 'walk') setS(e, 'walk');
     e.walk += 1;
   } else if (e.state !== 'idle') setS(e, 'idle');
+}
+
+/* ---------- Kagemori fireteams ----------
+ * A unit (e.unit) of four that fights together: the spotter marks a runner (everything hits them a quarter
+ * harder while the spotter stands), the riot trooper plants itself between the runners and the gunner, and the
+ * medic walks to anyone on the team who drops and gets them back up once. */
+const TEAM_KINDS = ['spotter', 'riot', 'sec', 'medic'];
+const MARK_T = 300; // how long a mark lasts, in steps
+const HEAL_T = 90; // how long a medic works on a downed teammate
+const unitOf = e => G.ents.filter(o => o !== e && o.unit === e.unit && o.team === 1);
+const unitMedic = e =>
+  G.ents.find(o => o.unit === e.unit && o.d && o.d.role === 'medic' && o.state !== 'dead' && o !== e);
+const marked = p => p && p.markT > G.t && p.markBy && p.markBy.state !== 'dead' && !p.markBy.gone;
+/** A wave's spawn list with 'team' expanded into a fireteam, each entry [kind, unit id or 0]. */
+function teamSpawnList(list) {
+  const out = [];
+  for (const k of list)
+    if (k === 'team') {
+      G.unitN = (G.unitN || 0) + 1;
+      for (const t of TEAM_KINDS) out.push([t, G.unitN]);
+    } else out.push([k, 0]);
+  return out;
+}
+function spawnTeam(side) {
+  G.unitN = (G.unitN || 0) + 1;
+  return TEAM_KINDS.map((k, i) => {
+    const e = spawnEnemy(k, side);
+    e.unit = G.unitN;
+    e.x += side * i * 16;
+    return e;
+  });
+}
+function walkTo(e, tx, ty) {
+  const s = e.d.spd * e.spdMul;
+  let mx = clamp(tx - e.x, -s, s),
+    my = clamp(ty - e.y, -s * 0.7, s * 0.7);
+  if (Math.abs(tx - e.x) < 1.2) mx = 0;
+  if (Math.abs(ty - e.y) < 1) my = 0;
+  e.x += mx;
+  e.y = clamp(e.y + my, FY0 + 6, FY1);
+  if (mx || my) {
+    if (e.state !== 'walk') setS(e, 'walk');
+    e.walk += 1;
+  } else if (e.state !== 'idle') setS(e, 'idle');
+}
+/** The role's own step; true when it took the step (the usual AI is skipped). */
+function unitTick(e, d, p) {
+  if (d.role === 'spot') {
+    // keep the laser on whoever's closest: a fresh mark at most every three seconds while they're in sight
+    if (!marked(p) && Math.abs(p.x - e.x) < 260 && !(e.markCD > G.t)) {
+      p.markT = G.t + MARK_T;
+      p.markBy = e;
+      e.markCD = G.t + 180;
+      say(p, 'MARKED', '#ff6a3d', 70, 40, true);
+      sfx.click();
+    }
+    return false; // then shoot and keep distance like any gunner
+  }
+  if (!['idle', 'walk'].includes(e.state)) return false;
+  if (d.role === 'medic') {
+    const down = unitOf(e).find(o => o.state === 'dead' && !o.revived && !o.gone && !(o.d && o.d.boss));
+    if (!down) {
+      e.healT = 0;
+      // nobody to patch up: hang back behind the team, and fight if a runner walks up
+      if (Math.abs(p.x - e.x) < d.reach + 2 && Math.abs(p.y - e.y) < 7) return false;
+      const mates = unitOf(e).filter(o => o.state !== 'dead');
+      if (!mates.length) return false;
+      const mx = mates.reduce((t, o) => t + o.x, 0) / mates.length;
+      walkTo(e, clamp(mx - Math.sign(p.x - mx || 1) * 40, G.camX + 16, G.camX + W - 16), mates[0].y);
+      return true;
+    }
+    if (Math.abs(down.x - e.x) > 14 || Math.abs(down.y - e.y) > 6) {
+      e.healT = 0;
+      walkTo(e, down.x, down.y);
+      return true;
+    }
+    e.face = down.x >= e.x ? 1 : -1;
+    if (e.state !== 'idle') setS(e, 'idle');
+    e.healT = (e.healT || 0) + 1;
+    if (e.healT % 15 === 0) burst(down.x, down.y, 14, '#7dffb0', 3);
+    if (e.healT >= HEAL_T) {
+      e.healT = 0;
+      down.revived = true;
+      down.hp = Math.round(down.maxHp * 0.5);
+      down.gone = false;
+      down.inv = 40;
+      down.vx = down.vz = 0;
+      setS(down, 'idle');
+      G.texts.push({ x: down.x, y: down.y, z: 70, s: 'BACK UP', c: '#ff3d4a', life: 50, sm: true });
+    }
+    return true;
+  }
+  if (d.shield) {
+    // stand between the closest runner and the gunner, unless a runner is already in reach
+    const g = unitOf(e).find(o => o.d && o.d.ranged && o.state !== 'dead');
+    if (!g || (Math.abs(p.x - e.x) < d.reach + 10 && Math.abs(p.y - e.y) < 8)) return false;
+    const side = Math.sign(p.x - g.x) || 1;
+    e.face = side;
+    walkTo(e, clamp(g.x + side * 26, G.camX + 16, G.camX + W - 16), g.y);
+    if (e.state === 'walk') e.face = side;
+    return true;
+  }
+  return false;
 }
 
 /* Ssareth. Two phases, run on e.ph rather than the animation state:

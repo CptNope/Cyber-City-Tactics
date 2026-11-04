@@ -528,8 +528,12 @@ ov.addEventListener('click', e => {
       }
       rerender();
       break;
+    case 'buyup':
+      if (buyUp(arg)) sfx.buy();
+      rerender();
+      break;
     case 'laylow': {
-      const lc = 60 * G.wd.heat * G.wd.level;
+      const lc = layCost(G.wd);
       if (G.wd.heat && PARTY.creds >= lc) {
         PARTY.creds -= lc;
         G.wd.heat = 0;
@@ -554,6 +558,7 @@ ov.addEventListener('click', e => {
       G.wd.rep = rep;
       G.wd.fac = fac || {};
       G.wd.copKills = ck;
+      safeArmory();
       G.stock = [
         randItem(G.wd.level, false),
         randItem(G.wd.level, false),

@@ -210,6 +210,7 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && o.att && o.att.curseT > G.t && o.att.curseW) dmg *= 0.75;
   if (t.kind === 'ally' && anyHas('kin')) dmg *= 0.8;
   if (t.kind === 'player' && has(t, 'swalk') && spiritNear(t)) dmg *= 0.8;
+  if (t.kind === 'player' && marked(t)) dmg *= 1.25; // a fireteam spotter's laser is on them
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -532,6 +533,11 @@ function kill(t, dir, o) {
   t.hp = 0;
   if (t.team === 0) {
     t.dead = true;
+    return;
+  }
+  // a foe a medic already got back up pays out once: no second drops, karma or contract count
+  if (t.revived) {
+    t.revived = 'twice';
     return;
   }
   const d = t.d;

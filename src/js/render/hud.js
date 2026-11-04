@@ -749,6 +749,8 @@ function render() {
       if (o.e.team === 1 && (o.e.dazeUntil > G.t || reeling(o.e)) && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
       if (o.e.team === 1 && o.e.curseT > G.t && o.e.state !== 'dead' && !cl) drawCurse(o.e);
+      if (o.e.kind === 'player' && marked(o.e)) drawMark(o.e);
+      if (o.e.team === 1 && o.e.healT > 0 && o.e.state !== 'dead') drawHealing(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -951,6 +953,36 @@ function drawTotem(T) {
   ctx.globalAlpha = 1;
 }
 // a curse: a small green sigil turning over the foe's head
+// a spotter's mark: a thin red laser from the spotter's helmet and a reticle on the runner
+function drawMark(p) {
+  const s = p.markBy,
+    px = p.x - G.camX,
+    py = p.y - p.z - 34,
+    sx = s.x - G.camX,
+    sy = s.y - s.z - 46;
+  ctx.strokeStyle = 'rgba(255,106,61,.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(px, py);
+  ctx.stroke();
+  const r = 9 + (RM ? 0 : Math.sin(G.t * 0.2));
+  ctx.strokeStyle = '#ff6a3d';
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, 6.29);
+  ctx.moveTo(px - r - 3, py);
+  ctx.lineTo(px - r + 3, py);
+  ctx.moveTo(px + r - 3, py);
+  ctx.lineTo(px + r + 3, py);
+  ctx.stroke();
+}
+// a medic at work over a downed teammate: a fill bar to beat
+function drawHealing(e) {
+  const sx = e.x - G.camX,
+    top = e.y - e.z - 64;
+  txt('+', sx, top - 4, 12, '#7dffb0', 'center');
+  bar(sx - 12, top, 24, 3, e.healT, HEAL_T, '#7dffb0');
+}
 function drawCurse(e) {
   const sx = e.x - G.camX,
     sy = e.y - e.z - 58 * ((e.d && e.d.scale) || 1),

@@ -156,7 +156,7 @@ function renderOv() {
   }
   if (m === 'wiped') {
     h = `<div class="card"><p class="eyebrow">The Sprawl · block ${G.wd.level}</p><h2 style="color:var(--neon)">Flatlined</h2>
-    <p class="say"><b>Kit</b>My people dragged you back to the safehouse. The medics took ¥${G.wipeLost}. Good news: nobody's looking for a corpse, so the heat is off.</p>
+    <p class="say"><b>${G.wipeMed ? 'Doc' : 'Kit'}</b>${G.wipeMed ? "Kit's people brought you in and I patched you up in the med bay. No charge, this once: next time on this block, the medics bill you." : `My people dragged you back to the safehouse. The medics took ¥${G.wipeLost}.`} Good news: nobody's looking for a corpse, so the heat is off.</p>
     <div class="row"><button class="btn" data-a="wake">Get back up</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
   }
   if (m === 'over') {
@@ -590,7 +590,9 @@ function newRun(coop, noBrief) {
     stash: [],
     med: 2,
     contract: null,
-    ally: null
+    ally: null,
+    crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
+    safe: {}
   });
   G.debrief = null;
   G.stock = [];

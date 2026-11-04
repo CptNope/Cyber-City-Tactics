@@ -499,6 +499,8 @@ function startWorld(coop, ch) {
     med: 2,
     contract: null,
     ally: null,
+    crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
+    safe: {},
     ice: 2
   });
   G.wd = ch ? newWorld(ch.level, ch.seed) : newWorld(1);
@@ -539,7 +541,8 @@ function saveWorld() {
             bountyDone: w.bountyDone,
             courDone: w.courDone,
             clock: w.clock,
-            prog: w.prog
+            prog: w.prog,
+            medUsed: !!w.medUsed
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -598,6 +601,7 @@ function loadWorld(s) {
   fixGear();
 }
 function enterStreet(x) {
+  safeScan();
   G.world = true;
   G.dun = null;
   G.den = false;
@@ -850,7 +854,7 @@ function worldTick() {
   const cops = G.ents.filter(e => e.kind === 'cop' && e.state !== 'dead').length;
   if (w.heat > 0) {
     if (!cops) {
-      w.heatT += evOn('lockdown') ? 0.5 : 1;
+      w.heatT += (evOn('lockdown') ? 0.5 : 1) * (hasUp('bolt') ? 2 : 1);
       if (w.heatT > 1500) {
         w.heat--;
         w.heatT = 0;

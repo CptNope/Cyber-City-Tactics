@@ -179,6 +179,8 @@ Side jobs from Juno that aren't a brawl, on the **Jobs** board on the title scre
 
 Gang bikers pull alongside and swing chains; shove one into a civilian car and the car does the rest. Wrecks spill loot onto the road just ahead (creds, ammo, medkits, mana and sometimes gear): steer over it to grab it. Ride into traffic or onto oil and you crash, then you're back on the bike a moment later (lose all your HP and the wait is longer). On the last stretch a **Kagemori Interceptor** van hunts you: it sits a lane over and swerves into you; fists only bruise its plating, but kicks and bullets crack it. Cross the finish before the clock runs out to get paid, with bonuses for takedowns, time left and wrecking the Interceptor. Best times are kept on the device.
 
+**The car chase: Kagemori Pursuit** (Arcology roads, ¥380). The crew shares one open-top car instead of bikes. Runner 1 drives with the same controls, and **punch or kick slams the car** into whoever is alongside. Runner 2 rides in the back and **shoots from the window** with their gun button (no ammo used; hold left to fire behind) or casts. Solo, a **roof gun** fires at the nearest target on its own. The car has 140 HP and takes every hit meant for the crew, but it's wider than a bike, so traffic is harder to slip past. Kagemori **pursuit cars** keep coming up from behind to ram (one at a time, two in co-op, one more past the halfway mark), and the Interceptor still waits at the end.
+
 | Job | District | Clock |
 |---|---|---|
 | The Causeway Run | Rustline Barrens | 1:50 |
@@ -617,6 +619,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
+- **Kagemori fireteams** fight as a unit of four, at the Arcology's door and in half the inner rooms of black sites. The **spotter** puts a red laser on the nearest runner: while it's on you, everything hits you 25% harder, until the spotter goes down. The **riot trooper** plants itself between you and the **gunner**, shield first. The **medic** hangs back, then walks to anyone on the team who drops and gets them back up at half health after a second and a half; hit the medic while they work and they start over. A foe gets one second chance, and pays out only the first time. Take the spotter first, then the medic.
 - **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
 - **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 60%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
 - **Feral spirits** drift through the Undercity and hidden shrines. They copy the last spell any runner cast: fireballs and bolts come back at you, an echoed heal patches up nearby enemies, and an echoed barrier shields the spirit. Bullets pass through them.
@@ -675,6 +678,17 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 **Turrets, and hacking in a fight.** Black sites and precincts bolt sentry turrets to the back wall of their inner rooms. A turret never moves, flinches or falls; it tracks along the wall and fires down its lane, so get out of it. A drone or turret that's shorted out (the Decker's Overload, the Decker tree's Short Circuit, a shock hit) or badly damaged can be hacked: **PUNCH beside it** (the button reads HACK). A hacked drone joins you for 20 seconds; a hacked turret fights for you until its hijack runs out. The odds rise with Hacking (and your cyberdeck), and deckers are better at it; a miss zaps you and shuts the window for a moment. Couriers can't be hacked: shoot them down.
 
+**Safehouse upgrades.** The safehouse's **Upgrades** tab sells four, each bought once and kept with your Sprawl save:
+
+| Upgrade | Cost | What it does |
+|---|---|---|
+| Med bay | ¥600 | Once a block, a wipe costs nothing: Doc patches everyone up and the medics take no creds |
+| Scanner | ¥450 | Every hidden door on a block shows from the moment you arrive |
+| Bolt-hole | ¥400 | Laying low costs half, and heat cools twice as fast with no cops around |
+| Armory | ¥500 | Every new block starts with 20 more rounds for each runner and a medkit (up to 5) |
+
+Build all four for the *Home Sweet Home* feat.
+
 **Heat (0–5 stars).** Bad break-ins and killing cops raise heat. Cops patrol the street more often the hotter you are; drones join at 3 stars and riot cops at 4. Heat drops a star after 25 seconds with no cops around, or you can pay to lay low at the safehouse.
 
 **Street cred.** Good targets and street gangs raise it; bad targets and cop kills lower it.
@@ -730,7 +744,7 @@ Slaying Ssareth earns *Who Lights the Way*, the Wyrmslayer coat and the Wyrmhear
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 77 goals across every mode, for example:
+**Feats.** 78 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

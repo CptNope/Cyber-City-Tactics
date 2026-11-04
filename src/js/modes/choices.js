@@ -78,7 +78,7 @@ function choiceSpawn(si, w) {
   const S = STAGES[si];
   if (S && S.name === 'Kagemori Arcology' && !w.boss) {
     if (choiceOf('books') === 'sell') list.push('sec');
-    else if (choiceOf('books') === 'leak' && list.length > 2) list.pop();
+    else if (choiceOf('books') === 'leak' && list.length + (list.includes('team') ? 3 : 0) > 2) list.pop(); // a fireteam counts as four
   }
   if (S && S.name === 'Kagemori Host' && choiceOf('voss') === 'wipe')
     list = list.map(k => (k === 'archmage!' ? 'ice' : k));

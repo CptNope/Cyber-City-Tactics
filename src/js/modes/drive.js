@@ -5,6 +5,11 @@
  * bikers swing chains, and near the end a Kagemori Interceptor van hunts you down. Crash and you're back on
  * the bike a moment later, lighter in HP and in time.
  *
+ * The car chase (Kagemori Pursuit) puts the crew in one car instead: runner 1 drives (the same controls, and
+ * punch or kick slams the car into whoever is alongside), runner 2 leans out of the window with their gun
+ * (no ammo used; hold left to fire behind), and solo an autogun on the roof does the shooting. Kagemori
+ * pursuit cars ram from behind all the way, and the Interceptor still waits at the end.
+ *
  * Everything on the road is an ordinary entity in G.ents (riders carry a `bk` bike, vehicles a `veh` kind), so
  * couch co-op and online co-op work exactly as they do on foot: the friend's runner is just another rider.
  * update() hands the whole step to driveUpdate() while G.drive is set.
@@ -36,8 +41,27 @@ const DRIVE_JOBS = {
     karma: 160,
     fail: 'BOXED IN',
     failTxt: 'The crews boxed you in before you cleared the market. Juno only pays for the takedowns.'
+  },
+  chase: {
+    name: 'Kagemori Pursuit',
+    sub: "Pixel's stolen Kagemori car, out of the Arcology garage with the corp's pursuit cars on the bumper",
+    stage: 4,
+    len: 11500,
+    time: 100 * 60,
+    bikers: 0.8,
+    traffic: 1.15,
+    car: true,
+    pursuit: 1,
+    pay: 380,
+    karma: 180,
+    fail: 'BOXED IN',
+    failTxt:
+      'Kagemori boxed the car in before you cleared the arcology roads. Juno only pays for the takedowns.'
   }
 };
+const CAR = { autoT: 38, autoDmg: 12, slack: 26 };
+const carOf = () => (G.drive && driveJob().car ? PL[0] : null); // the driver
+const isPass = p => !!(p && p.bk && p.bk.pass);
 const DRIVE = {
   cruise: 3.4,
   max: 5.4,
@@ -86,7 +110,8 @@ function startDrive(id, coop) {
     bossDown: false,
     spawnX: 520,
     carX: 380,
-    oilX: 1500
+    oilX: 1500,
+    pcarX: 900
   };
   G.ddist = 0;
   G.dtime = 0;
@@ -96,16 +121,36 @@ function startDrive(id, coop) {
     driveMount(p);
     G.ents.push(p);
   }
+  if (J.car) carSeat();
   makeRain(S.rain || S.weather === 'sleet');
   G.fade = 1;
   G.banner = 150;
   musicPlay('d' + Math.min(J.stage, 5));
   setMode('play');
+  if (J.car)
+    tip(
+      'chase',
+      'Runner 1 drives: PUNCH or KICK slams the car into whoever is alongside. Runner 2 shoots from the window (GUN, no ammo used; hold ← to fire behind). Solo, the roof gun fires by itself.',
+      'Runner 1 drives (D throttle, A brake, W/S lanes): J or K slams the car into whoever is alongside. Runner 2 shoots from the window with their gun key (no ammo used). Solo, the roof gun fires by itself.'
+    );
   tip(
     'drive',
     'Hold → to throttle and ← to brake, ↑ ↓ to change lanes. PUNCH and KICK riders alongside, DODGE for nitro, JUMP over oil.',
     'Hold D to throttle and A to brake, W and S to change lanes. J and K hit riders alongside, U shoots, O is nitro, Space hops oil.'
   );
+}
+// the car chase: runner 1 drives the car; anyone else rides in it, at the window
+function carSeat() {
+  PL.forEach((p, i) => {
+    if (!p.bk) driveMount(p);
+    p.bk.car = i === 0;
+    p.bk.pass = i > 0;
+    if (i === 0) {
+      p.bk.autoT = CAR.autoT;
+      p.maxHp = Math.max(p.maxHp, 140); // the car takes the hits for the crew
+      p.hp = p.maxHp;
+    }
+  });
 }
 // put a runner on a bike (at the start, or a second runner joining mid-run)
 function driveMount(p) {
@@ -137,6 +182,7 @@ function driveUpdate() {
       p.x = G.camX + 60;
       p.y = clamp(p.y, DRIVE.top, DRIVE.bot);
       if (!G.ents.includes(p)) G.ents.push(p);
+      if (J.car) carSeat();
     }
   if (!D.done) G.dtime++;
   for (const p of PL) driveRider(p);
@@ -174,6 +220,7 @@ function driveRider(p) {
   const I = INP[p.idx] || { held: {}, pressed: {} },
     b = p.bk;
   if (!b) return;
+  if (b.pass) return carPassenger(p, I);
   p.t++;
   if (p.inv > 0) p.inv--;
   if (p.flash > 0) p.flash--;
@@ -242,6 +289,7 @@ function driveRider(p) {
   }
   const st = p.state,
     t = p.t;
+  if (b.car) carAutogun(p);
   if (st === 'ride') {
     if (I.pressed.punch) setS(p, 'rpunch');
     else if (I.pressed.kick) setS(p, 'rkick');
@@ -463,6 +511,7 @@ function drivePickups() {
 }
 // a runner goes down: the bike skids out, they lose a moment and some HP
 function driveCrash(p, frames, dmg) {
+  if (isPass(p)) return carOf() && driveCrash(carOf(), frames, dmg);
   const b = p.bk;
   if (!b || b.crash > 0 || p.inv > 0) return;
   p.hp -= dmg;
@@ -485,6 +534,7 @@ function driveCrash(p, frames, dmg) {
   sfx.heavy();
 }
 function driveHurt(p, dmg) {
+  if (isPass(p)) return carOf() && driveHurt(carOf(), dmg); // anything that hits the window hits the car
   if (!p.bk || p.bk.crash > 0 || p.inv > 0) return;
   p.hp -= dmg;
   p.flash = 8;
@@ -498,7 +548,7 @@ function driveHurt(p, dmg) {
 const driveTarget = e => {
   let best = null;
   for (const p of PL) {
-    if (p.out || !p.bk) continue;
+    if (p.out || !p.bk || p.bk.pass) continue; // in the chase, they go for the car
     const d = Math.abs(p.x - e.x) + Math.abs(p.y - e.y) * 2 + (p.bk.crash > 0 ? 400 : 0);
     if (!best || d < best.d) best = { p, d };
   }
@@ -596,14 +646,15 @@ function driveVan(e) {
 }
 // civilian cars, oil and riders running into each other
 function driveTraffic() {
-  const riders = G.ents.filter(e => e.bk && e.ride && e.state !== 'dead');
+  const riders = G.ents.filter(e => e.bk && e.ride && e.state !== 'dead' && !e.bk.pass);
   for (const o of G.ents) {
     if (o.veh !== 'car' && o.veh !== 'oil') continue;
     for (const r of riders) {
       if (r.z > (o.veh === 'oil' ? 2 : 8)) continue;
+      const big = r.bk.car ? 1.4 : 1; // a car is a bigger thing to fit between the traffic
       if (
-        Math.abs(r.x - o.x) > (o.veh === 'oil' ? 18 : 30 * VEH_SCALE) ||
-        Math.abs(r.y - o.y) > (o.veh === 'oil' ? 6 : 9 * VEH_SCALE)
+        Math.abs(r.x - o.x) > (o.veh === 'oil' ? 18 : 30 * VEH_SCALE) * big ||
+        Math.abs(r.y - o.y) > (o.veh === 'oil' ? 6 : 9 * VEH_SCALE) * big
       )
         continue;
       if (r.kind === 'player') {
@@ -694,6 +745,27 @@ function driveSpawns(D, J) {
     });
     D.oilX += rand(1300, 2300);
   }
+  // the chase: Kagemori pursuit cars keep coming up from behind to ram
+  if (J.pursuit && cx > D.pcarX && cx < bossAt) {
+    const live = G.ents.filter(e => e.pcar && e.state !== 'dead').length;
+    if (live < (G.coop ? 2 : 1) + (cx > J.len * 0.4 ? 1 : 0)) {
+      const v = spawnEnemy('interceptor', -1);
+      v.elite = null;
+      v.veh = 'van';
+      v.pcar = true;
+      v.name = 'Pursuit car';
+      v.hp = v.maxHp = Math.round(v.maxHp * 0.3);
+      v.dmg = Math.round(v.dmg * 0.6);
+      v.x = cx - 120;
+      v.y = rand(DRIVE.top + 6, DRIVE.bot);
+      v.face = 1;
+      v.bk = { v: DRIVE.max + 0.8 };
+      v.cool = 90;
+      v.ramT = 0;
+      setS(v, 'ride');
+    }
+    D.pcarX += rand(700, 1100) / J.pursuit;
+  }
   // the Interceptor comes for you on the last stretch
   if (!D.boss && cx > bossAt) {
     D.boss = true;
@@ -709,6 +781,40 @@ function driveSpawns(D, J) {
     setS(v, 'ride');
     musicPlay('boss');
   }
+}
+/* ---------- the car chase ---------- */
+// the passenger rides at the window: no steering, a gun that doesn't use ammo, spells as usual
+function carPassenger(p, I) {
+  const c = carOf();
+  p.t++;
+  if (p.flash > 0) p.flash--;
+  if (!c) return;
+  p.x = c.x - 22; // the back seat
+  p.y = c.y + 0.5; // drawn after the car body, so they sit in it rather than behind it
+  p.z = c.z;
+  p.face = I.held.left ? -1 : 1;
+  if (G.drive.done || c.bk.crash > 0) return;
+  if (p.state === 'rshoot' && p.t >= 10) setS(p, 'ride');
+  if (p.state !== 'ride') setS(p, 'ride');
+  if (I.pressed.gun || I.pressed.punch) {
+    setS(p, 'rshoot');
+    p.t = 0;
+    sfx.shot();
+    const { t, dir } = driveAim(p, I, 300, CAR.slack);
+    driveTracer(p, dir, t ? t.x : p.x + dir * 300, '#ffe28a', 40);
+    if (t) driveHit(p, t, 12 + attrOf(p, 'agi') * 1.8, true);
+  } else if (I.pressed.spell) driveCast(p, I);
+}
+// solo: a roof gun fires at the nearest thing ahead or behind every so often
+function carAutogun(p) {
+  if (PL.some(q => q.bk && q.bk.pass && !q.out) || p.bk.crash > 0 || G.drive.done) return;
+  if (--p.bk.autoT > 0) return;
+  p.bk.autoT = CAR.autoT;
+  const { t, dir } = driveAim(p, null, 260, CAR.slack);
+  if (!t) return;
+  sfx.shot();
+  driveTracer(p, dir, t.x, '#45d2ff', 42);
+  driveHit(p, t, CAR.autoDmg + p.lvl, true);
 }
 function driveEnd(win) {
   const D = G.drive;
@@ -777,9 +883,9 @@ function jobsHtml() {
     .map(k => {
       const J = DRIVE_JOBS[k],
         r = rec[k];
-      return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:var(--gold)">Driving · ${STAGES[J.stage].name}</span></div>
+      return `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(J.name)}</b><span class="st" style="color:var(--gold)">${J.car ? 'Car chase' : 'Driving'} · ${STAGES[J.stage].name}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(J.sub)}. ${fmtTime(J.time)} on the clock.${r && r.best ? ` Your best: ${fmtTime(r.best)}, ${r.takedowns} takedowns.` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="drive:${k}:1">Ride solo</button><button class="btn sm ghost" data-a="drive:${k}:2">Ride co-op</button></div></div>`;
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="drive:${k}:1">${J.car ? 'Drive solo' : 'Ride solo'}</button><button class="btn sm ghost" data-a="drive:${k}:2">${J.car ? 'Driver and gunner' : 'Ride co-op'}</button></div></div>`;
     })
     .join('');
   const frec = store.load('cs_flight') || {};

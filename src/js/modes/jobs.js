@@ -102,7 +102,16 @@ function jobCrew(coop) {
       p.mp = p.maxMp;
     }
   }
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, {
+    creds: 0,
+    bag: [],
+    stash: [],
+    med: 2,
+    contract: null,
+    ally: null,
+    crew: {},
+    safe: {}
+  });
 }
 // karma earned on a job: on the runners now, and counted so it survives the trip back to the Den
 function jobKarma(n) {

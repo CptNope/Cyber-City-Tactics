@@ -110,7 +110,11 @@ const BEST = {
     'Rustline crews. Cheap chrome, cheap knives, a lot of nerve. They grab (a "!" warns you; mash to break free) and pick up cans, crates and drums to throw.',
   orc: 'Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around.',
   sec: 'Kagemori security on a corp salary. They shoot first and file reports later.',
-  riot: 'Shields stop punches from the front. Kick them, throw something, or get behind.',
+  riot: 'Shields stop punches from the front. Kick them, throw something, or get behind. In a fireteam, they stand in front of the gunner.',
+  spotter:
+    'Fireteam eyes. A red laser means you are marked: everything hits you a quarter harder until the spotter goes down. Take them out first.',
+  medic:
+    'Fireteam medics walk to anyone on their team who drops and get them back up. Hit a medic while they work and they start over; a foe gets one second chance.',
   shaman: 'Street shamans throw spells from the back line. Close the distance fast.',
   ghoul: 'They lunge from far away. Roll through and punish the recovery.',
   spirit: 'Bound fire spirits. Bullets pass right through them; use fists, blades or magic.',
@@ -292,6 +296,7 @@ const FEATS = [
   { id: 'w25', name: 'Gladiator', desc: 'Reach Arena wave 25.', lp: 25, stat: 'wave', n: 25 },
   { id: 'daily', name: 'Daily Grind', desc: 'Play a daily challenge.', lp: 5 },
   { id: 'gaunt3', name: 'Run the Gauntlet', desc: 'Clear three districts in one Gauntlet run.', lp: 10 },
+  { id: 'homely', name: 'Home Sweet Home', desc: 'Build every safehouse upgrade in the Sprawl.', lp: 15 },
   { id: 'loyal', name: 'Ride or Die', desc: 'Earn a hired crew member’s full loyalty.', lp: 15 },
   { id: 'gauntwin', name: 'No Second Chances', desc: 'Clear every district of a Gauntlet run.', lp: 30 },
   { id: 'streak', name: 'Habit Forming', desc: 'Play the daily challenge three days in a row.', lp: 15 },

@@ -63,8 +63,73 @@ function wheel(x, y, r, spin) {
     ctx.stroke();
   }
 }
+// the car chase: an open-top Kagemori car under the driver (the passenger sits in the back seat, drawn by it)
+function drawRideCar(e) {
+  const sx = e.x - G.camX - 8,
+    gy = e.y - e.z,
+    down = e.state === 'down',
+    L = 30,
+    spin = (e.walk || 0) * 0.22;
+  if (e.inv > 0 && !down && (G.t >> 2) % 2) return;
+  shadow(sx, e.y, 34 * VEH_SCALE);
+  ctx.save();
+  ctx.translate(sx, gy);
+  ctx.scale(VEH_SCALE, VEH_SCALE);
+  if (down) ctx.rotate(0.06 * Math.sin(G.t * 0.6));
+  ctx.fillStyle = e.flash > 0 && e.flash % 2 ? '#ffffff' : '#20232f';
+  ctx.beginPath();
+  ctx.moveTo(-L, -6);
+  ctx.lineTo(-L, -20);
+  ctx.lineTo(-L + 8, -22);
+  ctx.lineTo(L - 12, -22);
+  ctx.lineTo(L, -15);
+  ctx.lineTo(L, -6);
+  ctx.closePath();
+  ctx.fill();
+  // a rear fin, the door seams and the corp stripe
+  ctx.fillRect(-L, -26, 7, 4);
+  ctx.strokeStyle = 'rgba(255,255,255,.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-6, -21);
+  ctx.lineTo(-6, -8);
+  ctx.moveTo(10, -21);
+  ctx.lineTo(10, -8);
+  ctx.stroke();
+  ctx.fillStyle = '#45d2ff';
+  ctx.fillRect(-L, -15, L * 2, 1.5);
+  ctx.strokeStyle = 'rgba(159,233,255,.55)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(L - 14, -18);
+  ctx.lineTo(L - 18, -25); // the windshield
+  ctx.stroke();
+  glow(L + 4, -12, 18, 7, '#ffe28a', 0.35);
+  ctx.fillStyle = '#ffe28a';
+  ctx.fillRect(L - 3, -14, 3, 3);
+  ctx.fillStyle = '#ff3d4a';
+  ctx.fillRect(-L, -14, 2, 3);
+  if (!PL.some(q => q.bk && q.bk.pass && !q.out)) {
+    // solo: the roof gun on a post behind the seats
+    ctx.fillStyle = '#5a5266';
+    ctx.fillRect(-L + 6, -28, 2, 10);
+    ctx.fillRect(-L + 3, -30, 12, 3);
+  }
+  wheel(-L + 10, -6, 6, spin);
+  wheel(L - 10, -6, 6, spin);
+  ctx.restore();
+  // the nitro bar, as on a bike
+  if (!down) {
+    ctx.fillStyle = 'rgba(11,8,18,.7)';
+    ctx.fillRect(sx - 13, e.y + 3, 26, 3);
+    ctx.fillStyle = e.bk.nitro >= DRIVE.nitroCost ? '#45d2ff' : '#3a5a70';
+    ctx.fillRect(sx - 12, e.y + 4, (24 * e.bk.nitro) / 100, 1.5);
+  }
+}
 // a bike under its rider; crashed, it lies on its side and skids
 function drawBike(e) {
+  if (e.bk && e.bk.pass) return; // in the car's back seat
+  if (e.bk && e.bk.car) return drawRideCar(e);
   const sx = e.x - G.camX,
     gy = e.y - e.z,
     down = e.state === 'dead' || e.state === 'down',

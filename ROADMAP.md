@@ -191,11 +191,11 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 ### The crew
 - [x] ~~**Crew contracts.**~~ Shipped: Kestrel (Blade Rush), Pixel (Shutdown) and Moss (Mending) from Kit, in the companion slot. They take a cut of each payday, wait to be revived when they go down, and gain loyalty; at five their special changes. Still to come: a personal side job for each at full loyalty.
 - [ ] **Loyalty and betrayal (S).** A hired runner with low loyalty may walk off with a share of the loot if you keep skipping their cut, or sell your position to a hostile crew (a hit squad that arrives knowing where you are).
-- [ ] **The safehouse grows (M).** Spend creds on safehouse upgrades that change how the Sprawl plays: a workbench (craft without Ratchet), a med bay (one free revive a block), a scanner (shows the block's hidden doors), a garage (bike upgrades for driving jobs). Each is a choice, because creds spent here aren't spent on gear.
+- [x] ~~**The safehouse grows.**~~ Shipped: a med bay (one free wipe a block), a scanner (hidden doors found on arrival), a bolt-hole (half-price laying low, heat cools twice as fast) and an armory (ammo and a medkit each block). The safehouse already has Ratchet's bench, so the workbench became the bolt-hole; a garage for bike upgrades is still to come.
 
 ### Jobs, round two
 - [x] ~~**Doors the hack can open.**~~ Shipped: security doors with keypads (a keypad sequence) that open a shortcut past the vent but let the guards see through, and a wall safe (a network trace) with creds and gear.
-- [ ] **Car chase (M).** The driving job's "still to come": a rigger drives a car in the depth lanes while the partner leans out to shoot. Solo, the autogun from flight takes the window.
+- [x] ~~**Car chase.**~~ Shipped as Kagemori Pursuit: one open-top car, runner 1 driving and slamming riders, runner 2 shooting from the back seat (a roof gun solo), and pursuit cars ramming from behind.
 - [ ] **Delivery run (S).** A driving variant where the cargo has its own health bar: speed pays, but every crash and every hit costs the client's goods.
 - [ ] **Heist planning (L).** A multi-stage job on a Kagemori tower: pick an entry (drone stealth through the vents, a flight drop on the roof, or a loud front door brawl), and each choice changes the next stage's guards, alarm level and loot. The job modes that exist become the stages.
 
@@ -207,7 +207,7 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 
 ### Combat and enemies
 - [ ] **Status effects on enemies too (S).** Moved here from above: some enemies use shock and fire rounds against you, with counters from armor affixes.
-- [ ] **Enemy squads with roles (M).** Kagemori teams that act as a unit: a spotter marks you (more damage taken while marked), a shield trooper covers the gunner, a medic revives the downed unless you get to them first. Target order becomes the puzzle.
+- [x] ~~**Enemy squads with roles.**~~ Shipped as Kagemori fireteams: a spotter who marks you (+25% damage taken), a riot trooper covering the gunner, and a medic who gets one teammate after another back up, once each, unless you hit them first. In the Arcology and black sites.
 - [ ] **Environmental finishers (S).** Throw a dazed foe into a live wire, a fire barrel or a car's path for a finisher that drops their loot early. Builds on props, hazards and wall bounces.
 - [ ] **A rival runner (M).** A named runner who appears in three districts and two Sprawl blocks, levelling with you, using your own archetype's moves against you, and remembering how you beat them last time (they learn to parry your favourite combo).
 
