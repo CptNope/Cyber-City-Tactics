@@ -28,7 +28,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `graphics.test.js` | headless | 38 | Drawing rules that are easy to break and hard to spot. |
 | `legend.test.js` | headless | 41 | Feats, legendaries, the Codex, lore, Decker unlock, bounties, hidden doors, couriers, daily challenge. |
 | `lobby.test.js` | headless | 39 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
-| `livingsprawl.test.js` | headless | 27 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
+| `livingsprawl.test.js` | headless | 32 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
 | `market.test.js` | headless | 15 | District 4, the Undercity Market. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
@@ -43,8 +43,8 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `sprawl-coop.test.js` | headless | 5 | Two runners clear a Sprawl building together (bot; can occasionally lose a fight). |
 | `sprawl.test.js` | headless | 28 | The Sprawl. |
 | `stealth.test.js` | headless | 46 | Drone stealth jobs (modes/stealth.js). |
-| `story.test.js` | headless | 34 | Story scenes (open, boss, skip, once per run), music moods, motion, contrast and colour-blind settings, key remapping and the double-tap heavy blow. |
-| `streetfights.test.js` | headless | 28 | Street weapons, foes who carry and fetch them, wall bounces and juggles, mercy, runners and boss taunts. |
+| `story.test.js` | headless | 37 | Story scenes (open, boss, skip, once per run), music moods, motion, contrast and colour-blind settings, key remapping and the double-tap heavy blow. |
+| `streetfights.test.js` | headless | 33 | Street weapons, foes who carry and fetch them, wall bounces and juggles, mercy, runners and boss taunts. |
 | `streetfoes.test.js` | headless | 17 | Foes who fight like the runners. |
 | `timing.test.js` | headless | 27 | The frame loop. |
 | `training.test.js` | headless |  | Bot completes all fourteen training drills; boss rematches spawn. |

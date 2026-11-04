@@ -4,6 +4,7 @@
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 function setMode(m) {
+  if (m !== 'settings') G.rebind = null; // a key change left half-done never grabs a key in play
   if (m === 'title' && NET.role === 'host' && NET.live) m = 'nethub'; // online, the hub stands in for the title
   if (legDirty) saveLeg();
   // closing the character sheet means you've seen what's new in the bag

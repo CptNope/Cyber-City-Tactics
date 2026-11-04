@@ -226,15 +226,14 @@ function doActive(p, k) {
     // Short Circuit: everything electronic on screen shorts out
     sfx.zap();
     G.flash = Math.max(G.flash, 0.4);
-    const dk = p.eq.deck,
-      hk = (p.D.a.hak || 1) + (dk ? dk.hack || 0 : 0);
+    const hk = p.D.a.hak || 1; // Hacking already counts the cyberdeck
     let n = 0;
     for (const e of G.ents) {
       if (e.team !== 1 || e.state === 'dead' || e.x < G.camX - 8 || e.x > G.camX + W + 8) continue;
       if (!isTech(e)) continue;
       n++;
-      e.stunT = 180;
-      e.cool = Math.max(e.cool || 0, 180);
+      if (!e.d.boss) e.stunT = 180; // bosses take the shock but never freeze
+      e.cool = Math.max(e.cool || 0, e.d.boss ? 90 : 180);
       G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#45d2ff', life: 14, max: 14, r: 0 });
       G.zaps.push({ tg: e, delay: 4 + Math.floor(Math.random() * 10), dmg: 12 + hk * 5, src: p, bul: true });
     }
@@ -275,6 +274,7 @@ function hackFoe(p, e) {
   if (e.d.turret) {
     e.team = 0;
     e.owner = p;
+    e.D = { armor: 6, crit: 0, melee: 0, spd: 0 }; // team-0 targets read their stats from D when hit
     e.hackedT = 1200;
     e.stunT = 0;
     e.cool = 20;
@@ -301,6 +301,7 @@ const isTech = e =>
   ((e.d.fly && !e.d.spirit) ||
     e.d.mech ||
     e.d.ice ||
+    e.d.turret ||
     ['ice', 'blackice', 'glitch', 'cop', 'sec', 'riot', 'interceptor', 'drone'].includes(e.kind));
 function useItem(p) {
   if (PARTY.med > 0 && p.hp < p.maxHp) {

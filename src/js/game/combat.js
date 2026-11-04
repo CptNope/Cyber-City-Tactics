@@ -716,6 +716,9 @@ function mercyRoll(t, o) {
   if (!M || t.mercy || t.hp >= t.maxHp * 0.18 || t.d.boss || t.elite || t.squad || t.hunter || t.courier)
     return false;
   if (G.training || G.mode !== 'play' || modOn('pacifist') || t.state === 'grabbed' || t.holdP) return false;
+  if (!o || !o.src || o.src.team !== 0) return false; // only a runner's beating makes them quit
+  const C = PARTY.contract; // an open contract's targets fight to the end, so it can always be finished
+  if (C && !C.done && !C.failed && (C.key === t.kind || (C.key === 'chip' && t.kind === 'sec'))) return false;
   t.mercy = 'rolled';
   const r = Math.random();
   const say1 = () =>
@@ -752,6 +755,7 @@ function spare(t) {
   G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: 'SPARED · ¥' + v, c: '#7dffb0', life: 60, sm: true });
   bump('spared');
   if (G.run) G.run.spared = (G.run.spared || 0) + 1;
+  t.inv = 9999; // spared and paid: they leave untouched (no second payout)
   if (G.world && G.wd && (t.kind === 'cop' || t.kind === 'sec')) G.wd.rep = Math.min(100, G.wd.rep + 1);
   setS(t, 'flee');
 }

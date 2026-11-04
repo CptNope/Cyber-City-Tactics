@@ -205,3 +205,48 @@ const cour = A.spawnEnemy('drone', 1);
 cour.courier = true;
 cour.hp = 1;
 ok(!A.hackOpen(cour), 'couriers can’t be hacked: shoot them down');
+
+/* ---------- refinements ---------- */
+// a hacked turret can take hits from foes, and its wreck is cleared away
+G.ents = G.ents.filter(e => e.team !== 1 && !(e.d && e.d.turret));
+const ht = A.spawnEnemy('turret', 1);
+ht.x = P2.x + 40;
+ht.y = P2.y;
+ht.stunT = 100;
+Math.random = () => 0.01;
+A.hackFoe(P2, ht);
+Math.random = realRandom;
+let threw2 = null;
+try {
+  A.hurt(ht, 5, 1, { att: { team: 1, x: ht.x + 10 } });
+  G.projs.push({ k: 'bullet', team: 1, x: ht.x + 8, y: ht.y, z: 30, vx: -4, dmg: 5, life: 20, hit: [] });
+  step(10);
+} catch (err) {
+  threw2 = err;
+}
+ok(!threw2 && ht.hp < ht.maxHp, 'foes can hit a hacked turret without breaking the frame');
+A.hurt(ht, 999, 1, { att: { team: 1, x: ht.x } });
+for (let i = 0; i < 60 && G.ents.includes(ht); i++) step(1);
+ok(!G.ents.includes(ht), 'a wrecked hacked turret is cleared away');
+// Short Circuit shorts out turrets, and never freezes a boss
+G.ents = G.ents.filter(e => e.team !== 1);
+const t3 = A.spawnEnemy('turret', 1),
+  bb = A.spawnEnemy('blackice', 1);
+t3.x = P2.x + 60;
+bb.x = P2.x + 100;
+P2.spSel = 'decker';
+P2.sk = Object.assign(P2.sk || {}, { probe: 1, spare: 1, jam: 1 });
+P2.sp = 100;
+A.doSpecial(P2);
+ok(t3.stunT > 0 && A.hackOpen(t3), 'Short Circuit shorts out a turret, opening it to a hack');
+ok(!(bb.stunT > 0), 'but never freezes a boss');
+// a junk room number in a save is dropped
+A.loadWorld({
+  wd: { level: 1, seed: 5, prog: { 3: 1.5, 4: 'x', 5: 2 } },
+  runners: [{ arch: 'runner' }],
+  party: {}
+});
+ok(
+  G.wd.prog[3] === undefined && G.wd.prog[4] === undefined && G.wd.prog[5] === 2,
+  'only whole room numbers survive a load'
+);

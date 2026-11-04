@@ -83,7 +83,7 @@ Three points in a tree (`ACTIVE_NEED`) unlock its active skill (`ACTIVES` in sys
 | Brawler | Ground Slam | hop, `kd` everyone within 44 px, and a `wave` projectile each way for 14 + 1.2 × melee |
 | Gunslinger | Fan the Hammer | six bullets across the lanes at gun damage, no ammo spent |
 | Mage | Summon Spirit | `spawnSummon('ember', p, 900)`: a fire spirit for 15 s |
-| Decker | Short Circuit | every `isTech` foe on screen gets `stunT = 180` (frozen) and a zap of 12 + 5 × (Hacking + deck) |
+| Decker | Short Circuit | every `isTech` foe on screen gets `stunT = 180` (frozen) and a zap of 12 + 5 × Hacking (which includes the deck) |
 
 ## Cyberware
 

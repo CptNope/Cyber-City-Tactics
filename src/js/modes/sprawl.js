@@ -590,6 +590,8 @@ function loadWorld(s) {
   if (!isObj(G.wd.fac)) G.wd.fac = {};
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
+  for (const k of Object.keys(G.wd.prog))
+    if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();

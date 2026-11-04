@@ -152,6 +152,7 @@ e.z = 10;
 ok(!A.strike(P, 30, 3, {}), 'a foe knocked down without a bounce is not juggled');
 
 /* ---------- mercy ---------- */
+__PARTY.contract = null; // an open contract's targets never quit (checked at the end)
 calm();
 Math.random = () => 0.01;
 e = foe('ganger', 22, { hp: 999, maxHp: 999 });
@@ -216,3 +217,47 @@ ok(
   'Street Mercy and Off the Wall feats'
 );
 ok(A.TRAIN.length === 14 && /pipe/.test(A.TRAIN[13].k), 'a fourteenth training drill teaches street weapons');
+
+/* ---------- refinements ---------- */
+// only a runner's beating makes a foe quit, and a spared foe leaves untouchable
+__PARTY.contract = null;
+calm();
+Math.random = () => 0.01;
+e = foe('orc', 22, { hp: 999, maxHp: 999 });
+e.hp = 100;
+A.hurt(e, 5, 1, { melee: true });
+ok(e.state !== 'beg' && e.state !== 'flee', 'a hit with no runner behind it never makes a foe quit');
+A.hurt(e, 95, 1, { src: P, melee: true });
+Math.random = realRandom;
+ok(e.state === 'beg' && e.hp === 1, 'the blow that would finish a regular can be the moment it begs');
+for (let i = 0; i < 160 && e.state === 'beg'; i++) step(1);
+const credsSpared = __PARTY.creds,
+  karmaSpared = P.karma + P.lvl * 1000;
+A.hurt(e, 999, 1, { src: P, melee: true });
+ok(
+  e.state === 'flee' && P.karma + P.lvl * 1000 === karmaSpared && __PARTY.creds === credsSpared,
+  'a spared foe leaves untouched: no second payout'
+);
+// an open contract's targets always fight to the end
+calm();
+__PARTY.contract = {
+  key: 'ganger',
+  need: 8,
+  count: 0,
+  done: false,
+  failed: false,
+  title: 't',
+  goal: 'g',
+  idx: 0
+};
+Math.random = () => 0.01;
+e = foe('ganger', 22, { hp: 999, maxHp: 999 });
+e.hp = 100;
+A.hurt(e, 95, 1, { src: P, melee: true });
+Math.random = realRandom;
+ok(e.state !== 'beg' && e.state !== 'flee', 'a contract’s targets never beg or run while it is open');
+__PARTY.contract = null;
+// a street weapon stays on the street it was found on
+P.club = { kind: 'pipe', uses: 3 };
+A.startStage(1);
+ok(!__PL()[0].club, 'a street weapon doesn’t follow you to the next district');

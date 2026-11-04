@@ -127,6 +127,7 @@ const prefs = Object.assign(
 const goodCol = () => (prefs.cb ? '#45d2ff' : '#7dffb0');
 const badCol = () => (prefs.cb ? '#ffa630' : '#ff3d8b');
 function applyPrefs() {
+  if (!isObj(prefs.keys)) prefs.keys = {};
   RM =
     prefs.motion === 'reduced'
       ? true

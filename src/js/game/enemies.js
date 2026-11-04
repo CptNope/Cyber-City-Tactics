@@ -682,7 +682,12 @@ function echoSpell(e) {
 // A turret turns to the nearest target in reach (runners, or once hacked, foes), and fires down that lane.
 // A hacked one fights for the runners until its hijack runs out, then shuts down.
 function turretTick(e) {
-  if (e.state === 'dead') return;
+  if (e.flash > 0) e.flash--;
+  if (e.state === 'dead') {
+    // a wrecked hacked turret isn't run by upEnemy: clear it away here
+    if (e.team === 0 && ++e.t > 40) e.gone = true;
+    return;
+  }
   if (e.team === 0) {
     e.hackedT--;
     if (e.hackedT <= 0) {

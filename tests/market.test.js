@@ -70,6 +70,7 @@ P.mp = 0;
 const victim = A.spawnEnemy('ganger', 1);
 victim.inv = 0;
 victim.hp = 1;
+victim.mercy = 'rolled'; // no begging here: this checks what a takedown pays
 A.hurt(victim, 10, 1, { melee: true, src: P });
 ok(P.hp >= 58 && P.mp >= 5, "Vesper's Fang: a takedown restores 8 HP and 5 mana");
 ok(A.FEATBY.b_vesper && A.FEATBY.b_vesper.leg === 'vfang', 'beating her is a feat that unlocks the Fang');

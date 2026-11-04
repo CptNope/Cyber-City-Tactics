@@ -59,6 +59,8 @@ const NET_GDENY = new Set([
   'pendMuts',
   'pendCoat',
   'pendTrail',
+  'rebind',
+  'showKeys',
   'booted',
   'sheetIdx',
   'sheetTab',

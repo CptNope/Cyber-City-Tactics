@@ -576,7 +576,7 @@ const SETS = {
     two: '+6% crit chance',
     three: 'crits deal 25% more, and the parry window is wider'
   },
-  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 35% faster' },
+  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 50% faster' },
   voltaic: {
     name: 'Voltaic Live Wire',
     two: 'melee hits arc to the nearest other foe for 30% damage',

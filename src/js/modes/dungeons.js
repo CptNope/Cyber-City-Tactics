@@ -9,7 +9,7 @@ function enterBuilding(b) {
   newRunStats();
   // the building remembers how far you got: leave halfway and you come back to the room you left
   G.wd.prog = G.wd.prog || {};
-  const back = clamp(G.wd.prog[b.id] || 0, 0, G.dun.rooms - 1);
+  const back = clamp(Number.isInteger(G.wd.prog[b.id]) ? G.wd.prog[b.id] : 0, 0, G.dun.rooms - 1);
   enterRoom(back);
   if (back > 0)
     G.texts.push({
