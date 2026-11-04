@@ -718,7 +718,8 @@ function upRunner(p) {
         hackFoe(p, hk); // a shorted-out drone or turret: turn it
         return;
       }
-      if (prop && isClub(prop) && (!foeNear || !p.club)) {
+      if (prop && isClub(prop) && !p.sprint && (!foeNear || !p.club)) {
+        // (out of a sprint, PUNCH is always the shoulder charge)
         takeClub(p, prop); // a street weapon: grab it even mid-fight
         setS(p, 'lift');
         p.t = 8; // a quick scoop, not a two-handed lift

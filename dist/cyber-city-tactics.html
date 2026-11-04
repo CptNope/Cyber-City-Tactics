@@ -1178,7 +1178,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+b9e2d38';
+const APP_VERSION = '2.0.0+13d1edf';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -8118,7 +8118,8 @@ function upRunner(p) {
         hackFoe(p, hk); // a shorted-out drone or turret: turn it
         return;
       }
-      if (prop && isClub(prop) && (!foeNear || !p.club)) {
+      if (prop && isClub(prop) && !p.sprint && (!foeNear || !p.club)) {
+        // (out of a sprint, PUNCH is always the shoulder charge)
         takeClub(p, prop); // a street weapon: grab it even mid-fight
         setS(p, 'lift');
         p.t = 8; // a quick scoop, not a two-handed lift
