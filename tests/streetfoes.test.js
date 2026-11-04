@@ -17,6 +17,7 @@ const P = __PL()[0],
 const calm = () => {
   G.ents = G.ents.filter(e => e.team !== 1);
   G.props = [];
+  G.projs = [];
   for (const q of __PL()) {
     if (q.state !== 'idle') A.setS(q, 'idle');
     q.hp = q.maxHp;
@@ -37,6 +38,7 @@ const foe = (k, dx) => {
   e.tgt = P;
   e.face = dx > 0 ? -1 : 1;
   e.cool = 1e9;
+  e.club = null; // no street weapons here: these checks are about grabs, flurries and props
   return e;
 };
 // an orc grabs

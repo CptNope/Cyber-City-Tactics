@@ -1,4 +1,4 @@
-/* Bot completes all thirteen training drills; boss rematches spawn. */
+/* Bot completes all fourteen training drills; boss rematches spawn. */
 require('./harness');
 const A = __api;
 const G = __G,
@@ -178,6 +178,17 @@ for (; f < 60 * 240 && G.mode !== 'trained'; f++) {
   if (s === 12) {
     rel();
     if (f % 30 === 0) tap('KeyF');
+  }
+  if (s === 13) {
+    // pick up the pipe, then swing it at the ganger
+    const o = foe('ganger');
+    if (!P.club) {
+      const pr = G.props.find(x => x.kind === 'pipe');
+      if (pr && walkTo(pr.x, pr.y, 6) && f % 10 === 0) tap('KeyJ');
+    } else if (o && walkTo(o.x - 22, o.y, 3)) {
+      P.face = 1;
+      if (f % 20 === 0) tap('KeyJ');
+    }
   }
   step(1);
 }

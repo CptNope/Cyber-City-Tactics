@@ -331,6 +331,15 @@ function nextArenaWave() {
       z: 0
     });
   }
+  // one street weapon on the floor most waves
+  if (!G.props.some(isClub) && wr() < 0.7)
+    G.props.push(
+      clubProp(
+        CLUB_KINDS[Math.floor(wr() * CLUB_KINDS.length)],
+        90 + Math.floor(wr() * 300),
+        FY0 + 20 + Math.floor(wr() * (FY1 - FY0 - 30))
+      )
+    );
   const boss = w % 5 === 0;
   let list = [];
   if (boss) {

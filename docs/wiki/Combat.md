@@ -130,3 +130,67 @@ Doc sells them in the Den, and clinics sell them in the Sprawl. Each costs 4 max
 - **Special (★):** the meter fills as you fight. Punch and kick together (or the special button) unleash the archetype's special.
 - **Parry:** dodge within about 0.13 s of a melee hit landing. You take nothing, the attacker staggers, and your next hit within 1.5 s crits.
 - **Props:** cans, crates and explosive drums. Lift with punch, throw with punch, drop with kick. A drum explodes on whichever side didn't throw it.
+
+## River City street fights
+
+### Street weapons
+
+Pipes, chains and bats are props with a `uses` count (`CLUBS` in data/content.js; logic in game/props.js). Two lie along every district (`startStage`), most Arena waves add one, and `CLUB_FOES` gives gangers, bikers and orcs a chance to walk in carrying one.
+
+| Weapon | Swing damage | Extra reach | Swings that land | Knockback | Foe damage × | Finisher |
+|---|---|---|---|---|---|---|
+| Lead pipe | +7 | +6 | 8 | 6 | 1.3 | uppercut |
+| Bike chain | +5 | +16 | 10 | 4 | 1.2 | uppercut |
+| Spiked bat | +10 | +9 | 5 | 8 | 1.45 | knocks down |
+
+```mermaid
+flowchart LR
+  G[On the ground] -- PUNCH beside it --> H[In hand: e.club]
+  H -- PUNCH: a swing lands --> W{uses left?}
+  W -- yes --> H
+  W -- no --> X[Breaks]
+  H -- PUNCH in the air --> T[Thrown: a 'prop' projectile]
+  T -- hits or lands --> G2[On the ground, one use less]
+  H -- knocked down or killed --> G
+```
+
+- A runner's punch picks a weapon up even mid-fight, as long as they aren't already holding one. Swings are 15% slower, and Mach fists and Swift weapons don't apply while you hold one.
+- Foes with a weapon add its reach and multiply their damage; the bat's swing knocks down. Gangers walk over to pick one up off the street, and throw it from 50–200 px in the same lane.
+
+### Wall bounces and juggles
+
+`wallBounce(e)` in game/runners.js runs in `physics()` for a foe knocked down and still in the air.
+
+| Condition | Value |
+|---|---|
+| Walls | the screen's edges while `G.lock` holds the camera (always in the Arena, buildings and training); otherwise the street's own ends |
+| Needs | in the air (z ≥ 6), moving at least 1.5 px a step, not a boss, once per knockdown |
+| Bounce | reverses at 75% speed, pops up (vz ≥ 3), takes 3 + 5% of max HP |
+| Juggle | `canJuggle`: a runner's hits land on a bounced foe still in the air, up to three, each one relaunching it |
+
+### Mercy, runners and taunts
+
+```mermaid
+stateDiagram-v2
+  [*] --> Fighting
+  Fighting --> Rolled: hit under 18% HP (once)
+  Rolled --> Fighting: no luck
+  Rolled --> Beg: MERCY.beg chance
+  Rolled --> Flee: MERCY.run chance
+  Beg --> Spared: 150 steps untouched
+  Beg --> Dead: any runner hit finishes them
+  Spared --> Flee: drops 1.5× creds, 60% karma
+  Flee --> Gone: off the screen
+  Flee --> Dead: caught
+```
+
+| Foe | Begs | Runs |
+|---|---|---|
+| Ganger | 35% | – |
+| Orc | 20% | – |
+| Cop | 25% | – |
+| Biker | – | 35% |
+| Corp security | – | 30% |
+| Thrall | – | 20% |
+
+Bosses, elites, hit squads, bounty hunters and couriers never quit, and nobody begs in Training or under Pacifist. Sparing counts toward the Street Mercy feat (10), and wall bounces toward Off the Wall (25). Sparing a cop or guard in the Sprawl lifts your street cred by one. Bosses say a line from `TAUNTS` when they enrage (half health) and again under a quarter.

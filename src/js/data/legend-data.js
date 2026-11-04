@@ -221,6 +221,8 @@ const FEATS = [
     n: 1000
   },
   { id: 'el25', name: 'Elite Hunter', desc: 'Take down 25 elites.', lp: 15, stat: 'elites', n: 25 },
+  { id: 'mercy', name: 'Street Mercy', desc: 'Spare 10 foes who begged.', lp: 10, stat: 'spared', n: 10 },
+  { id: 'walls', name: 'Off the Wall', desc: 'Bounce 25 foes off a wall.', lp: 10, stat: 'walls', n: 25 },
   { id: 'c25', name: 'Chain Reaction', desc: 'Land a 25-hit combo.', lp: 10, stat: 'combo', n: 25 },
   {
     id: 'c60',

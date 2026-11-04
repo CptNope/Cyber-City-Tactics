@@ -9,12 +9,14 @@ function physics(e) {
     e.vz -= 0.28;
     e.z += e.vz;
     e.x += e.vx;
+    wallBounce(e);
     if (e.z <= 0) {
       if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;
       e.vz = 0;
       const landDir = Math.sign(e.vx) || 1;
       e.vx = 0;
+      if (e.bounced && e.team === 1) e.bounced = false; // landed: the juggle window closes
       if (e.thrown) {
         const src = e.thrown;
         e.thrown = null;
@@ -40,6 +42,33 @@ function physics(e) {
       }
     }
   }
+}
+// River City wall bounce: a foe knocked flying into the edge of the screen comes back off it, still in the air,
+// and can be juggled (see canJuggle) until it lands
+function wallBounce(e) {
+  if (e.team !== 1 || e.state !== 'down' || e.bounced || e.z < 6 || Math.abs(e.vx) < 1.5 || !e.d || e.d.boss)
+    return;
+  if (G.mode !== 'play' || G.den || G.drive || G.flight || G.stealth) return;
+  // the walls: the screen's edges while a fight holds the camera, else the street's own ends
+  const S = curS(),
+    held = G.lock != null || G.arena || G.dun || G.training,
+    open = G.world && !G.dun,
+    lo = open ? 10 : G.camX + 10,
+    hi = held ? G.camX + W - 10 : (S && S.len ? S.len : G.camX + W) - 10;
+  if (e.x > lo && e.x < hi) return;
+  e.x = clamp(e.x, lo, hi);
+  e.vx = -e.vx * 0.75;
+  e.vz = Math.max(e.vz, 3);
+  e.bounced = true;
+  const dmg = Math.round(3 + e.maxHp * 0.05);
+  e.hp -= dmg;
+  G.shake = Math.max(G.shake, 5);
+  burst(e.x, e.y, e.z + 20, '#a79dc2', 10);
+  sfx.heavy();
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 50, s: 'WALL! ' + dmg, c: '#ffc63d', life: 34, sm: true });
+  bump('walls');
+  if (G.training) G.tf.wall = true;
+  if (e.hp <= 0) kill(e, Math.sign(e.vx) || 1, {});
 }
 function spGain(p, n) {
   if (!p || p.team !== 0 || G.den) return;
@@ -316,12 +345,22 @@ function upRunner(p) {
     const t = p.t,
       m = D.melee,
       R = D.reach;
+    const C = p.club && CLUBS[p.club.kind];
     if (p.state === 'punch' && t === 4 && !G.den) {
-      if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
+      if (C) {
+        if (strike(p, 22 + R + C.reach, 4 + m * 0.65 + C.dmg, { kb: C.kb, club: true })) clubWear(p);
+        else sfx.whiff();
+      } else if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
     if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
     if (p.state === 'upper' && t === 6 && !G.den) {
-      if (!strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker }))
+      if (C) {
+        if (strike(p, 24 + R + C.reach, 8 + m * 0.9 + C.dmg * 1.3, { kd: true, kb: C.kb + 2, club: true }))
+          clubWear(p);
+        else sfx.whiff();
+      } else if (
+        !strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker })
+      )
         sfx.whiff();
     }
     if (p.state === 'kick' && t === 7 && !G.den) {
@@ -528,6 +567,12 @@ function upRunner(p) {
           (e.x - p.x) * p.face < 30
       );
       const downed = !G.den && !prop && haulTarget(p);
+      if (prop && isClub(prop) && (!foeNear || !p.club)) {
+        takeClub(p, prop); // a street weapon: grab it even mid-fight
+        setS(p, 'lift');
+        p.t = 8; // a quick scoop, not a two-handed lift
+        return;
+      }
       if (downed) {
         haulUp(p, downed);
         return;
@@ -536,7 +581,7 @@ function upRunner(p) {
         p.didHit = false;
         setS(p, 'dashp');
         sfx.heavy();
-      } else if (prop && !foeNear) {
+      } else if (prop && !foeNear && !isClub(prop)) {
         G.props.splice(G.props.indexOf(prop), 1);
         p.holding = prop;
         setS(p, 'lift');
@@ -547,7 +592,7 @@ function upRunner(p) {
         p.lastPunch = G.t;
         if (p.combo >= 3) {
           p.combo = 0;
-          if (hasTech(p, 'mach') && !G.den) startFlurry(p, 'mach');
+          if (hasTech(p, 'mach') && !G.den && !p.club) startFlurry(p, 'mach');
           else setS(p, 'upper');
         } else setS(p, 'punch');
       }
@@ -606,6 +651,8 @@ function upRunner(p) {
         p.walk += spd / 1.75;
       } else if (p.state !== 'idle') setS(p, 'idle');
     }
+  } else if (p.state === 'jump' && I.pressed.punch && p.club && !G.den) {
+    throwClub(p); // a street weapon thrown from the air
   } else if (p.state === 'jump' && (I.pressed.punch || I.pressed.kick)) {
     p.state = 'jkick';
     p.didHit = 0;
@@ -812,7 +859,8 @@ function busyFor(p, busy) {
   let n = busy[s];
   if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) n *= 0.66;
   if (s === 'kick' && hasTech(p, 'piston')) n *= 0.66;
-  if ((s === 'punch' || s === 'upper') && w && w.speed) n *= w.speed; // a Swift weapon
+  if ((s === 'punch' || s === 'upper') && w && w.speed && !p.club) n *= w.speed; // a Swift weapon
+  if ((s === 'punch' || s === 'upper') && p.club) n *= 1.15; // a street weapon swings a little slower
   if (s === 'shoot' && g && g.speed) n *= g.speed; // a Swift gun
   return Math.round(n);
 }

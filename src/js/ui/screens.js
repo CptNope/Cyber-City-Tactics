@@ -16,6 +16,9 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Flying kick</b><span>Jump, then punch or kick</span>
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
 <b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
+<b>Street weapons</b><span>Punch beside a lead pipe, bike chain or spiked bat to pick it up. Every punch swings it (more damage and reach) until it breaks; punch in the air throws it. Get knocked down and you drop it. Gangers, bikers and orcs grab them too</span>
+<b>Wall bounce</b><span>Knock a foe into the edge of the screen while a fight holds it: they bounce back off it, still in the air, and you can juggle them up to three times before they land</span>
+<b>Mercy</b><span>Some beaten foes beg on their knees: leave them a moment and they pay you off and leave, for karma. Hit them and it's over. Others just run</span>
 <b>Shields</b><span>Kicks and heavy blows break riot shields</span>
 <b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
 <b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
@@ -23,7 +26,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
-<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10.</p>`;
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10. Bosses talk when they enrage and again on their last legs.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
   const cy = Object.keys(CYBER)

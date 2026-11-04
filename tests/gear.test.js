@@ -103,6 +103,8 @@ ok(G.projs.filter(q => q.pellet).length === 5, 'a shotgun fires a fan of five pe
 const calm = () => {
   if (P.grab) A.releaseGrab(P);
   G.ents = G.ents.filter(e => e.team !== 1);
+  G.props = G.props.filter(o => !A.isClub(o)); // a pipe underfoot would turn a punch into a pick-up
+  P.club = null;
   for (let i = 0; i < 60 && P.state !== 'idle'; i++) step(1);
   P.face = 1;
   P.inv = 999;
@@ -114,6 +116,7 @@ const foe = dx => {
   e.elite = null;
   e.cool = e.coolMul = 1e9;
   e.dmg = 0;
+  e.club = null;
   return e;
 };
 calm();

@@ -12,7 +12,7 @@ mindmap
       The Sprawl: open world
       Arena: endless waves
       Jobs: drive, drone, flight
-      Training: thirteen drills
+      Training: fourteen drills
     Fighting
       Combos and heavy blows
       Daze, grab, throw, pile drive
