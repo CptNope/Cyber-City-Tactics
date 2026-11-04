@@ -148,3 +148,27 @@ Three points in a tree (`ACTIVE_NEED`) unlock its active skill (`ACTIVES` in sys
 | Chain Lightning | 22 | 4 | ¥240 | Old Wen | Arcs through up to three enemies in front of you. |
 | Frost Nova | 26 | 5 | ¥380 | talisman shops | A ring of ice around you: damages everything close and slows every enemy for three seconds. |
 | Soul Drain | 16 | 4 | ¥320 | talisman shops | A dark bolt that heals you for half the damage it deals. |
+
+## Crew contracts
+
+Named runners hired from Kit (game/crew.js). They use the companion code in allies.js: `ALLIES.kestrel`, `.pixel` and `.moss` are hidden bodies (never a random Arena companion), `PARTY.ally` holds whoever is hired, and `upAlly()` calls `crewTick()` each step, which fires `crewSpecial()` every 720 steps when there's a target for it.
+
+```mermaid
+flowchart LR
+  H["hireCrew(id): fee, takes the companion slot"] --> F[fights beside you]
+  F -->|special every 12 s| S["crewSpecial()"]
+  F -->|HP 0| D["crewDownTick(): waits, REVIVE marker"]
+  D -->|a runner beside them 90 steps| F
+  F --> P{"payday: contract or cache"}
+  P -->|"crewPay(): cut"| L{"standing?"}
+  L -- yes --> UP["loyalty +1 (PARTY.crew)"]
+  UP -->|"5"| T[special changes]
+```
+
+| Crew | Fee | Cut | Special | Loyal (5) |
+|---|---|---|---|---|
+| Kestrel | ¥150 | 20% | Blade Rush: everything in a line to the target, 18 + 2.4 × level | twice, and dazes |
+| Pixel | ¥160 | 25% | Shutdown: `stunT` 150 on every machine on screen (needs one to fire) | also `hackFoe()` one, for free |
+| Moss | ¥140 | 20% | Mending: 12% health to every runner, a curse on foes within 120 | also `revive()` a downed partner |
+
+The campaign's payday is `stageClear()` when the contract is done (`G.debrief.cut`); the Sprawl's is `lootChest()`, where the cut comes off the creds that drop. Loyalty lives in `PARTY.crew[id].loy` (0–5), saved with the party and reset if malformed.

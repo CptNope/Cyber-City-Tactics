@@ -482,6 +482,7 @@ function boostTo(p, lvl) {
   p.mp = p.maxMp;
 }
 function startWorld(coop, ch) {
+  G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;

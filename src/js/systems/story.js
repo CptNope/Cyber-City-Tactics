@@ -65,6 +65,7 @@ const CUT_MIN = 24, // steps before a press can move a line on (so a held punch 
 // scenes only where the story is: the campaign proper, once per run
 const cutOK = () =>
   prefs.story !== false &&
+  !(G.gaunt && !G.arena && !G.world) && // the Gauntlet's random order would tell the story out of order
   G.mode === 'play' &&
   !G.arena &&
   !G.world &&

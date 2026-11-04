@@ -1320,7 +1320,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+e7c3e98';
+const APP_VERSION = '2.0.0+cc9af2f';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1494,7 +1494,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
    Share one and a friend plays the same street (same buildings, event and bounty) or the same arena
    waves and perk offers. */
 const seedCode = (mode, n, level) =>
-  (mode === 'sprawl' ? 'S' + level : 'A') + '-' + (n >>> 0).toString(36).toUpperCase();
+  (mode === 'sprawl' ? 'S' + level : mode === 'gauntlet' ? 'G' : 'A') +
+  '-' +
+  (n >>> 0).toString(36).toUpperCase();
 function parseSeed(raw) {
   const s = String(raw || '')
     .toUpperCase()
@@ -1504,6 +1506,8 @@ function parseSeed(raw) {
   if (m) return { mode: 'sprawl', level: Math.min(20, +m[1]), seed: parseInt(m[2], 36), code: s };
   m = s.match(/^A-([0-9A-Z]{1,7})$/);
   if (m) return { mode: 'arena', seed: parseInt(m[1], 36), code: s };
+  m = s.match(/^G-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'gauntlet', seed: parseInt(m[1], 36), code: s };
   return null;
 }
 const newSeed = () => Math.floor(Math.random() * 2e9);
@@ -4940,6 +4944,9 @@ const FEATS = [
   { id: 'w10', name: 'Survivor', desc: 'Reach Arena wave 10.', lp: 10, stat: 'wave', n: 10 },
   { id: 'w25', name: 'Gladiator', desc: 'Reach Arena wave 25.', lp: 25, stat: 'wave', n: 25 },
   { id: 'daily', name: 'Daily Grind', desc: 'Play a daily challenge.', lp: 5 },
+  { id: 'gaunt3', name: 'Run the Gauntlet', desc: 'Clear three districts in one Gauntlet run.', lp: 10 },
+  { id: 'loyal', name: 'Ride or Die', desc: 'Earn a hired crew member’s full loyalty.', lp: 15 },
+  { id: 'gauntwin', name: 'No Second Chances', desc: 'Clear every district of a Gauntlet run.', lp: 30 },
   { id: 'streak', name: 'Habit Forming', desc: 'Play the daily challenge three days in a row.', lp: 15 },
   { id: 'weekly', name: 'Seven-Day Itch', desc: 'Play a weekly challenge.', lp: 5 },
   { id: 'lore5', name: 'Rumor Mill', desc: 'Find 5 lore shards.', lp: 10, stat: 'shards', n: 5 },
@@ -5390,6 +5397,7 @@ const CUT_MIN = 24, // steps before a press can move a line on (so a held punch 
 // scenes only where the story is: the campaign proper, once per run
 const cutOK = () =>
   prefs.story !== false &&
+  !(G.gaunt && !G.arena && !G.world) && // the Gauntlet's random order would tell the story out of order
   G.mode === 'play' &&
   !G.arena &&
   !G.world &&
@@ -6032,6 +6040,7 @@ function saveWarn(ok) {
   return ok;
 }
 function saveGame(phase) {
+  if (gauntOn()) return; // the Gauntlet never saves, and must never overwrite the campaign's save
   const o = {
     v: 4, // 4: six districts (the Undercity Market is district 4)
     phase,
@@ -6456,6 +6465,7 @@ function dropRunner2() {
   if (PL[0].out && G.mode !== 'title') {
     if (G.arena) arenaOver();
     else if (G.world) worldWipe();
+    else if (gauntOn()) gauntEnd(false);
     else if (!G.training && !G.drive && !G.stealth && !G.flight) {
       musicPlay(null);
       setMode('over');
@@ -6518,12 +6528,15 @@ function lvlMul() {
   const l = Math.max(0, partyLvl() - 1);
   return { hp: 1 + 0.09 * l, dmg: 1 + 0.08 * l };
 }
+// how far into the run this fight is: the district, or in the Gauntlet (any district in any order) how many
+// districts in you are, so a late district drawn first plays like a first one
+const depth = () => (gauntOn() ? G.gaunt.i : G.stage);
 function spawnEnemy(kind, side) {
   const d = DEF[kind],
     DF = DIFF[G.diff],
     NG = ngMul(),
     LV = lvlMul(),
-    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp * LV.hp;
+    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp;
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -6542,7 +6555,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg * LV.dmg),
+    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,
@@ -6558,7 +6571,7 @@ function spawnEnemy(kind, side) {
   if (
     !d.boss &&
     G.mode !== 'title' &&
-    (modOn('elite') || Math.random() < DF.elite + NG.elite + G.stage * 0.02)
+    (modOn('elite') || Math.random() < DF.elite + NG.elite + depth() * 0.02)
   ) {
     const ks = Object.keys(ELITES).filter(k => !(k === 'vampiric' && d.spirit));
     const k = pick(ks);
@@ -8957,6 +8970,10 @@ function respawn(p) {
         worldWipe();
         return;
       }
+      if (gauntOn()) {
+        gauntEnd(false);
+        return;
+      }
       logRun(
         'Campaign',
         'Flatlined',
@@ -9301,6 +9318,10 @@ function upAlly(e) {
       return;
     }
   }
+  if (e.state === 'dead' && !e.summon && CREW[e.ally]) {
+    crewDownTick(e); // crew members wait to be revived
+    return;
+  }
   if (e.state === 'dead') {
     if (!e.reported) {
       e.reported = true;
@@ -9347,6 +9368,7 @@ function upAlly(e) {
       tg = o;
     }
   }
+  if (!e.summon && CREW[e.ally]) crewTick(e, tg);
   e.cool--;
   if (e.state === 'windup') {
     if (e.t === 10) {
@@ -9366,7 +9388,7 @@ function upAlly(e) {
   if (!tg) {
     tx = lead.x - lead.face * 28;
     ty = lead.y + (e.d.fly ? -8 : 12);
-  } else if (e.ally === 'drone') {
+  } else if (e.ally === 'drone' || ALLIES[e.ally].ranged) {
     tx = tg.x + (tg.x < e.x ? 80 : -80);
     ty = tg.y;
     e.face = tg.x >= e.x ? 1 : -1;
@@ -9426,12 +9448,310 @@ function upAlly(e) {
   }
 }
 function drawAllyBar(e) {
+  if (e.state === 'dead' && e.downed) {
+    // a downed crew member: a marker to walk to, filling as you stand by them
+    const sx = e.x - G.camX,
+      top = e.y - 34;
+    txt('REVIVE', sx, top - 6, 9, '#7dffb0', 'center');
+    bar(sx - 14, top, 28, 3, e.rev || 0, CREW_REV, '#7dffb0');
+    return;
+  }
   if (e.state === 'dead') return;
   if (e.summon && e.life < 120 && (G.t >> 2) % 2) return;
   const sx = e.x - G.camX,
     top = e.d.fly ? e.y - e.z - 18 : e.y - e.z - 60 * (e.d.scale || 1);
   fillPoly([sx - 3, top - 8, sx + 3, top - 8, sx, top - 4], '#7dffb0');
   if (e.hp < e.maxHp) bar(sx - 12, top - 2, 24, 2, e.hp, e.maxHp, '#7dffb0');
+}
+
+/* ===== src/js/game/crew.js ===== */
+/* Cyber City Tactics · src/js/game/crew.js
+ * Crew contracts: named runners you hire from Kit, in the Den or at the safehouse. A crew member takes the
+ * companion slot (one at a time, so it's a crew member or a drone, merc or spirit), fights with a special of
+ * their own on a cooldown, and takes a cut of each payday: a district's contract in the campaign, each
+ * building's cache in the Sprawl. Go down on the job and they wait to be revived (stand by them); a payday
+ * where they're standing earns loyalty, and at full loyalty their special changes.
+ *
+ * Their state lives in PARTY.crew ({ id: { loy } }), so it's saved with the party like everything else.
+ * Loaded as a classic script after allies.js: every file shares one global scope, in the order in index.html. */
+const CREW_LOY = 5; // loyalty at which the special changes
+const CREW_REV = 90; // steps standing beside a downed crew member to get them up
+const CREW = {
+  kestrel: {
+    name: 'Kestrel',
+    role: 'Street samurai',
+    fee: 150,
+    cut: 0.2,
+    sp: 'Blade Rush',
+    spDesc: 'dashes through the nearest foes, cutting everything in a line',
+    loyDesc: 'Blade Rush cuts twice and dazes what it hits',
+    line: 'You pay, I cut. Skip the pay and I stop cutting.'
+  },
+  pixel: {
+    name: 'Pixel',
+    role: 'Decker',
+    fee: 160,
+    cut: 0.25,
+    sp: 'Shutdown',
+    spDesc: 'stuns every drone, turret, mech and ICE on screen; snipes with a smartgun between',
+    loyDesc: 'Shutdown also hacks one machine to fight for you',
+    line: "I'm not a fighter. I'm the reason the turrets stop shooting at you."
+  },
+  moss: {
+    name: 'Moss',
+    role: 'Street shaman',
+    fee: 140,
+    cut: 0.2,
+    sp: 'Mending',
+    spDesc: 'heals every runner a little and curses the foes around her',
+    loyDesc: 'Mending also gets a downed partner back on their feet',
+    line: 'The spirits like you. I reserve judgment.'
+  }
+};
+// their bodies, for the shared companion code (hidden: never a random Arena companion, and not in Kit's list)
+Object.assign(ALLIES, {
+  kestrel: {
+    name: 'Kestrel',
+    hidden: true,
+    crew: true,
+    hp: 120,
+    armor: 6,
+    d: { scale: 1, style: 'blade' },
+    pal: {
+      skin: '#e0b08f',
+      coat: '#3a1c2e',
+      coat2: '#2b1422',
+      pants: '#1c1a28',
+      hair: '#ff3d8b',
+      acc: '#ff3d8b',
+      boot: '#141018'
+    }
+  },
+  pixel: {
+    name: 'Pixel',
+    hidden: true,
+    crew: true,
+    ranged: true,
+    hp: 85,
+    armor: 3,
+    d: { scale: 0.95, style: 'cap' },
+    pal: {
+      skin: '#a8724f',
+      coat: '#1e3346',
+      coat2: '#16263a',
+      pants: '#22202e',
+      hair: '#45d2ff',
+      acc: '#45d2ff',
+      boot: '#121418'
+    }
+  },
+  moss: {
+    name: 'Moss',
+    hidden: true,
+    crew: true,
+    hp: 100,
+    armor: 4,
+    d: { scale: 1, style: 'feathers' },
+    pal: {
+      skin: '#c98a6b',
+      coat: '#2f3f2a',
+      coat2: '#24321f',
+      pants: '#2a2622',
+      hair: '#b98cff',
+      acc: '#b98cff',
+      boot: '#161412'
+    }
+  }
+});
+const crewOf = () => (PARTY.ally && CREW[PARTY.ally.type] ? PARTY.ally.type : null);
+const crewRec = id => {
+  PARTY.crew = isObj(PARTY.crew) ? PARTY.crew : {};
+  if (!isObj(PARTY.crew[id])) PARTY.crew[id] = { loy: 0 };
+  PARTY.crew[id].loy = clamp(+PARTY.crew[id].loy || 0, 0, CREW_LOY);
+  return PARTY.crew[id];
+};
+const crewLoyal = id => crewRec(id).loy >= CREW_LOY;
+const crewFee = id => Math.round(CREW[id].fee * buyMul());
+const crewEnt = () => G.ents.find(e => e.kind === 'ally' && !e.summon && CREW[e.ally]);
+
+function hireCrew(id) {
+  const C = CREW[id];
+  if (!C || crewOf() === id || PARTY.creds < crewFee(id)) return false;
+  PARTY.creds -= crewFee(id);
+  PARTY.ally = null;
+  crewRec(id);
+  const e = spawnAlly(id);
+  e.spT = 300;
+  return true;
+}
+
+/** Payday: the crew member takes their cut, and earns loyalty if they're on their feet for it. */
+// (fromDrop: the money is still on the floor, so the caller drops less instead of it coming out of PARTY.creds)
+function crewPay(amount, what, fromDrop) {
+  const id = crewOf();
+  if (!id || !(amount > 0)) return 0;
+  const C = CREW[id],
+    e = crewEnt(),
+    up = e && e.state !== 'dead',
+    cut = fromDrop ? Math.round(amount * C.cut) : Math.min(PARTY.creds, Math.round(amount * C.cut));
+  if (!fromDrop) PARTY.creds -= cut;
+  const r = crewRec(id),
+    was = r.loy;
+  if (up) r.loy = Math.min(CREW_LOY, r.loy + 1);
+  if (r.loy >= CREW_LOY && was < CREW_LOY) feat('loyal');
+  const lead = alive()[0] || PL[0];
+  if (lead)
+    G.texts.push({
+      x: (e || lead).x,
+      y: (e || lead).y,
+      z: 96,
+      s: `${C.name.toUpperCase()} TAKES ¥${cut}${up ? '' : ' · WAS DOWN, NO LOYALTY'}`,
+      c: up ? '#ffc63d' : '#a79dc2',
+      life: 100,
+      sm: true
+    });
+  if (r.loy >= CREW_LOY && was < CREW_LOY && lead)
+    G.texts.push({
+      x: lead.x,
+      y: lead.y,
+      z: 118,
+      s: C.name.toUpperCase() + ' IS LOYAL',
+      c: '#7dffb0',
+      life: 120
+    });
+  G.crewCut = { id, cut, what, loy: r.loy };
+  return cut;
+}
+
+/** Downed: they wait where they fell. A runner standing beside them for a moment gets them back up. */
+function crewDownTick(e) {
+  if (!e.downed) {
+    e.downed = true;
+    e.rev = 0;
+    // if nobody gets them up, the next street sees them patched up to a quarter
+    if (PARTY.ally) PARTY.ally.hp = Math.max(1, Math.round(e.maxHp * 0.25));
+    const p = alive()[0];
+    if (p) say(p, CREW[e.ally].name.toUpperCase() + ' IS DOWN', '#ff3d8b', 80, 80);
+  }
+  const near = alive().some(p => Math.abs(p.x - e.x) < 30 && Math.abs(p.y - e.y) < 16);
+  e.rev = near ? e.rev + 1 : Math.max(0, e.rev - 2);
+  if (e.rev >= CREW_REV) {
+    e.downed = false;
+    e.rev = 0;
+    e.hp = Math.round(e.maxHp * 0.5);
+    e.inv = 90;
+    e.gone = false;
+    setS(e, 'idle');
+    if (PARTY.ally) PARTY.ally.hp = e.hp;
+    burst(e.x, e.y, 20, '#7dffb0', 12);
+    say(e, 'BACK UP', '#7dffb0', 70, 50, true);
+    bump('crewrev');
+  }
+}
+
+/** Their special, on its own cooldown, when there's something to use it on. */
+function crewSpecial(e, tg) {
+  const id = e.ally,
+    C = CREW[id],
+    loyal = crewLoyal(id),
+    lead = alive()[0] || PL[0],
+    lv = lead.lvl || 1;
+  if (id === 'kestrel') {
+    // a dash through the line toward the target: everything within reach of the path is cut
+    const dir = tg.x >= e.x ? 1 : -1,
+      x0 = e.x,
+      x1 = clamp(tg.x + dir * 40, G.camX + 10, G.camX + W - 10);
+    e.x = x1;
+    e.y = tg.y;
+    e.face = dir;
+    const hits = G.ents.filter(
+      o =>
+        o.team === 1 &&
+        o.state !== 'dead' &&
+        !(o.d && o.d.passive) &&
+        (o.x - x0) * dir >= -10 &&
+        (o.x - x1) * dir <= 10 &&
+        Math.abs(o.y - tg.y) < 22
+    );
+    for (let k = 0; k < (loyal ? 2 : 1); k++)
+      for (const o of hits) {
+        hurt(o, (18 + lv * 2.4) * kinMul(), dir, { src: lead, col: '#ff3d8b', ax: e.x, kb: 5, big: true });
+        if (loyal && !(o.d && o.d.boss) && o.state !== 'dead') o.dazeUntil = G.t + 60;
+      }
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 20, c: '#ff3d8b', life: 14, max: 14, r: 24 });
+    sfx.heavy();
+  } else if (id === 'pixel') {
+    const techs = G.ents.filter(
+      o => o.team === 1 && o.state !== 'dead' && isTech(o) && o.x > G.camX - 10 && o.x < G.camX + W + 10
+    );
+    if (!techs.length) return false;
+    for (const o of techs) {
+      if (!(o.d && o.d.boss)) o.stunT = Math.max(o.stunT || 0, 150);
+      G.fx.push({ k: 'zap', x: o.x, y: o.y, z: o.z + 20, c: '#45d2ff', life: 14, max: 14, r: 0 });
+    }
+    if (loyal) {
+      const h = techs.find(o => hackOpen(o) && !(o.d && o.d.boss));
+      if (h && lead) hackFoe(lead, h, true);
+    }
+    sfx.zap();
+  } else if (id === 'moss') {
+    let did = false;
+    for (const p of active()) {
+      if (p.hp < p.maxHp) did = true;
+      p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.12));
+    }
+    for (const o of G.ents)
+      if (o.team === 1 && o.state !== 'dead' && Math.abs(o.x - e.x) < 120 && Math.abs(o.y - e.y) < 40) {
+        o.curseT = G.t + 300;
+        did = true;
+      }
+    if (loyal) {
+      const down = PL.find(p => p.outX != null && p.out);
+      if (down) {
+        revive(down, lead);
+        did = true;
+      }
+    }
+    if (!did) return false;
+    burst(e.x, e.y, 26, '#b98cff', 14);
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 10, c: '#b98cff', life: 20, max: 20, r: 60 });
+    sfx.spell();
+  }
+  say(
+    e,
+    C.sp.toUpperCase(),
+    id === 'kestrel' ? '#ff3d8b' : id === 'pixel' ? '#45d2ff' : '#b98cff',
+    72,
+    40,
+    true
+  );
+  return true;
+}
+/** Called from upAlly each step for a crew member who is up and fighting. */
+function crewTick(e, tg) {
+  if (e.spT === undefined) e.spT = 300;
+  if (e.spT > 0) e.spT--;
+  else if (tg && crewSpecial(e, tg)) e.spT = 720;
+  else e.spT = 60; // nothing to use it on yet: look again in a second
+}
+
+/* ---------- Kit's card ---------- */
+function crewHtml() {
+  const cur = crewOf();
+  return `<h3>Crew for hire</h3><p class="ds">A named runner takes your companion slot, fights with a special of their own, and takes a cut of every payday (a district's contract, a building's cache). Be standing at payday and they get more loyal; at full loyalty their special changes. Go down and they wait for you to stand by them.</p>
+    <div class="list">${Object.keys(CREW)
+      .map(id => {
+        const C = CREW[id],
+          r = crewRec(id),
+          fee = crewFee(id),
+          have = cur === id,
+          ok = !have && PARTY.creds >= fee;
+        return `<div class="item"><div><div class="nm">${esc(C.name)} <span style="color:var(--muted);font-weight:400">· ${esc(C.role)} · ${Math.round(C.cut * 100)}% cut</span></div>
+          <div class="ds">“${esc(C.line)}” <b>${esc(C.sp)}:</b> ${esc(C.spDesc)}.</div>
+          <div class="ds">Loyalty <span class="loy" aria-label="${r.loy} of ${CREW_LOY}">${'◆'.repeat(r.loy)}${'◇'.repeat(CREW_LOY - r.loy)}</span>${r.loy >= CREW_LOY ? ` · <b style="color:var(--ok)">${esc(C.loyDesc)}</b>` : ` · at ${CREW_LOY}: ${esc(C.loyDesc)}`}</div></div>
+          <div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="hirecrew:${id}" ${ok ? '' : 'disabled'}>${have ? 'With you' : '¥' + fee}</button></div></div>`;
+      })
+      .join('')}</div>`;
 }
 
 /* ===== src/js/game/enemies.js ===== */
@@ -10951,6 +11271,7 @@ function stageClear() {
       feat('pacifist');
     }
     PARTY.creds += def.creds;
+    deb.cut = crewPay(def.creds, 'contract');
     if (def.prize) {
       deb.prize = randItem(3, true);
     }
@@ -10979,6 +11300,7 @@ function stageClear() {
   G.texts.push({ x: G.camX + W / 2, y: 150, z: 0, s: 'DISTRICT CLEAR', c: '#ffc63d', life: 90, big: true });
   G.outro = 90;
   G.afterOutro = () => {
+    if (gauntOn()) return gauntCleared();
     if (G.stage >= STAGES.length - 1) {
       feat('win');
       if (G.coop) feat('coopwin');
@@ -11529,6 +11851,7 @@ function boostTo(p, lvl) {
   p.mp = p.maxMp;
 }
 function startWorld(coop, ch) {
+  G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;
@@ -12487,7 +12810,8 @@ function lootChest(t) {
         (1 + G.wd.level * 0.15) *
         (night ? 1.25 : 1) // night caches are fuller
     );
-  drop('cred', t.x - 10, t.y + 10, { v: c });
+  // a hired crew member takes their cut of the cache before it hits the floor
+  drop('cred', t.x - 10, t.y + 10, { v: c - crewPay(c, 'cache', true) });
   if (b.type === 'secret') {
     if (b.final && !LEG.legs.includes('lantern'))
       drop('gear', t.x + 40, t.y + 6, { item: mkLegend('lantern') });
@@ -12601,7 +12925,7 @@ function worldWipe() {
 /* ----- hacking ----- */
 function startHack(b, vault) {
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
-    tier = vault ? 4 : b.tier,
+    tier = vault ? vault.lockTier || 4 : b.tier,
     decks = active()
       .map(p => p.eq && p.eq.deck)
       .filter(Boolean);
@@ -12639,7 +12963,9 @@ function startHack(b, vault) {
 }
 // which lock a building has
 function hackKindFor(b, vault) {
-  if (vault || G.stealth || !b || prefs.hackKind === 'classic') return 'lock';
+  if (prefs.hackKind === 'classic') return 'lock';
+  if (vault && vault.hackKind) return vault.hackKind; // a stealth door or safe names its own lock
+  if (vault || G.stealth || !b) return 'lock';
   return { hideout: 'seq', precinct: 'trace', blacksite: 'wall' }[b.type] || 'lock';
 }
 const HACK_NAMES = {
@@ -12962,7 +13288,7 @@ function hackWin() {
     G.hack = null;
     sfx.level();
     setMode('play');
-    if (G.stealth) stealthHackDone();
+    if (G.stealth) stealthHackDone(v);
     else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
     return;
   }
@@ -12988,7 +13314,7 @@ function hackFail() {
     G.hack = null;
     sfx.hurt();
     setMode('play');
-    if (G.stealth) stealthHackDone();
+    if (G.stealth) stealthHackDone(v);
     else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
     return;
   }
@@ -13192,6 +13518,7 @@ const TRAIN = [
   }
 ];
 function startTraining() {
+  G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;
@@ -13380,7 +13707,7 @@ const MUTD = {
   pacifist: 'Clear a district without firing a gun for double contract karma.'
 };
 const mutN = () => (!G.arena && !G.world && !G.training && G.muts ? G.muts.length : 0);
-const maxLives = () => (mutN() && G.muts.includes('iron') ? 1 : 3);
+const maxLives = () => (gauntOn() || (mutN() && G.muts.includes('iron')) ? 1 : 3);
 // Seeded streams so everyone gets the same waves and perk offers in a given week
 const wr = () => (G.rngW ? G.rngW() : Math.random()),
   pr = () => (G.rngP ? G.rngP() : Math.random());
@@ -13529,6 +13856,7 @@ const PERKS = [
   }
 ];
 function startArena(coop, challenge) {
+  G.gaunt = null;
   if (NET.role === 'host' && NET.live) coop = true; // the friend online is always runner 2
   G.diff = challenge ? 1 : G.pendDiff;
   G.ng = 0;
@@ -13765,6 +14093,150 @@ function scoreTable(hl) {
   return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : (DIFF[e.diff] || DIFF[1]).name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
 }
 
+/* ===== src/js/modes/gauntlet.js ===== */
+/* Cyber City Tactics · src/js/modes/gauntlet.js
+ * The Gauntlet, a roguelite run: one life each, every district of the campaign in a random order, a random
+ * mutator on each, and a perk pick (from the Arena's perks) after every boss instead of the Den. No saves:
+ * fall and the run is over, scored by how deep you got. Every run has a seed (G-XXXX) so it can be shared and
+ * replayed, and there's a gauntlet of the day that everyone gets the same.
+ *
+ * It runs on the campaign's own districts, contracts and loot (G.stage is the district being played); G.gaunt
+ * holds the run: { seed, code, order, muts, i, perks, daily }. Saves are skipped while it's set.
+ * Loaded as a classic script after arena.js (PERKS, MUTS): every file shares one global scope. */
+
+// One Life is the rule here, and Pacifist only pays in the campaign's contracts: neither is drawn
+const GAUNT_MUTS = ['glass', 'elite', 'brawl', 'turbo', 'fog', 'split'];
+const gauntDayCode = () => 'G-' + (hstr('gauntlet ' + dayId(new Date())) >>> 0).toString(36).toUpperCase();
+const gauntOn = () => !!(G.gaunt && !G.arena && !G.world && !G.training);
+
+/** The run a seed makes: the district order and a mutator for each, the same on every device. */
+function gauntPlan(seed) {
+  const r = srng(seed),
+    order = STAGES.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return { order, muts: order.map(() => GAUNT_MUTS[Math.floor(r() * GAUNT_MUTS.length)]) };
+}
+function gauntStart(coop, code, daily) {
+  const ch = parseSeed(code);
+  const seed = ch && ch.mode === 'gauntlet' ? ch.seed : newSeed();
+  newRun(coop, true); // the campaign's runners, party and stats, without its briefing (that would save)
+  const plan = gauntPlan(seed);
+  G.gaunt = {
+    seed,
+    code: seedCode('gauntlet', seed),
+    order: plan.order,
+    muts: plan.muts,
+    i: 0,
+    perks: [],
+    daily: !!daily
+  };
+  G.rngP = srng(hstr(G.gaunt.code + 'p'));
+  if (daily) feat('daily');
+  gauntBrief();
+}
+/** The briefing for the next district on the list, with its mutator. */
+function gauntBrief() {
+  const g = G.gaunt;
+  G.muts = [g.muts[g.i]];
+  briefing(g.order[g.i], false);
+}
+/** A district cleared: the last one wins the run, any other offers a perk and moves on. */
+function gauntCleared() {
+  const g = G.gaunt;
+  if (g.i >= g.order.length - 1) return gauntEnd(true);
+  g.i++;
+  if (g.i >= 3) feat('gaunt3');
+  for (const p of PL) {
+    p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.4));
+    p.mp = p.maxMp;
+  }
+  const ok = PERKS.filter(p => p.ok() && p.id !== 'life'); // one life is the rule: no second winds
+  const out = [];
+  while (out.length < 3 && ok.length) out.push(ok.splice(Math.floor(pr() * ok.length), 1)[0]);
+  G.perks = out.map(p => p.id);
+  musicPlay('title');
+  setMode('perk');
+}
+function gauntPerk(pk) {
+  pk.go();
+  G.gaunt.perks.push(pk.id);
+  sfx.level();
+  gauntBrief();
+}
+const gauntScore = (g, win) =>
+  g.i * 1000 + (win ? 2000 : 0) + ((G.run && G.run.kills) || 0) * 10 + ((G.run && G.run.bosses) || 0) * 250;
+/** The run is over: won, or the last runner standing went down. */
+function gauntEnd(win) {
+  const g = G.gaunt;
+  const cleared = win ? g.order.length : g.i;
+  const score = gauntScore(g, win);
+  if (win) feat('gauntwin');
+  const rec = store.load('cs_gaunt') || {};
+  const best = rec.best || { score: 0 };
+  rec.runs = (rec.runs || 0) + 1;
+  if (score > best.score) rec.best = { score, cleared, code: g.code, date: dayId(new Date()) };
+  if (g.daily) {
+    const day = dayId(new Date());
+    if (!rec.day || rec.day.id !== day || score > rec.day.score) rec.day = { id: day, score, cleared };
+  }
+  store.set('cs_gaunt', rec);
+  logRun('Gauntlet', win ? 'Ran it all' : 'Fell in district ' + (g.i + 1), score.toLocaleString() + ' pts');
+  G.gres = { win, cleared, score, best: rec.best, newBest: rec.best.score === score && score > 0 };
+  musicPlay(win ? 'title' : null);
+  setMode('gauntover');
+}
+
+/* ---------- screens ---------- */
+function gauntPickHtml() {
+  const rec = store.load('cs_gaunt') || {},
+    day = gauntDayCode(),
+    dp = gauntPlan(parseSeed(day).seed),
+    today = rec.day && rec.day.id === dayId(new Date()) ? rec.day : null;
+  return `<div class="card"><p class="eyebrow">The Gauntlet · roguelite</p><h2>One life. Every district.</h2>
+    <p>All ${STAGES.length} districts in a random order, each with a random mutator. One life each: fall and the run is over. After every boss, pick one of three perks instead of going back to the Den. No saves, no retries; score by how deep you get.</p>
+    ${archHtml()}
+    <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
+    <div class="job"><div class="row" style="justify-content:space-between"><b>Gauntlet of the day · ${esc(day)}</b><span class="st" style="color:var(--gold)">starts in ${esc(STAGES[dp.order[0]].name)} · ${esc(MUTS[dp.muts[0]])}</span></div>
+    <span style="color:var(--muted);font-size:13px">The same districts, mutators and perk offers for everyone today.${today ? ` Your best today: ${today.score.toLocaleString()} (${today.cleared} cleared).` : ''}</span>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="gauntday1">Run it solo</button><button class="btn sm ghost" data-a="gauntday2">Run it co-op</button></div></div>
+    <div class="job"><b>Run a seed</b><span style="color:var(--muted);font-size:13px">A friend's Gauntlet code, like <b style="white-space:nowrap">G-K2F9QX</b>, plays their exact run.</span>
+    <div class="row" style="align-items:center"><input id="gauntSeed" class="seedin" value="${esc(G.gauntPre || '')}" placeholder="G-K2F9QX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" aria-label="Gauntlet seed"><button class="btn sm" data-a="gauntseed1">Play solo</button><button class="btn sm ghost" data-a="gauntseed2">Co-op</button></div>
+    ${G.seedErr ? '<span style="color:var(--neon);font-size:13px">That isn\'t a Gauntlet code. They start with G-.</span>' : ''}</div>
+    <div class="row"><button class="btn" data-a="gaunt1">New run solo</button><button class="btn ghost" data-a="gaunt2">New run co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    ${rec.best ? `<p class="ds">Best: ${rec.best.score.toLocaleString()} points, ${rec.best.cleared} of ${STAGES.length} districts (${esc(rec.best.code)}) · ${rec.runs} run${rec.runs === 1 ? '' : 's'}</p>` : ''}</div>`;
+}
+/** The line under the briefing: where in the run you are, this district's mutator, and the perks so far. */
+function gauntBriefLine() {
+  const g = G.gaunt,
+    m = g.muts[g.i];
+  return `<div class="job" style="border-color:var(--gold)"><div class="row" style="justify-content:space-between"><b>Gauntlet · district ${g.i + 1} of ${g.order.length}</b><span class="st" style="color:var(--gold)">${esc(MUTS[m])}</span></div>
+    <span style="color:var(--muted);font-size:13px">${esc(MUTD[m])} One life each.${g.perks.length ? ' Perks: ' + g.perks.map(id => esc(PERKS.find(p => p.id === id).name)).join(', ') + '.' : ''} Seed ${esc(g.code)}.</span></div>`;
+}
+const gauntShareLine = () => {
+  const r = G.gres || {},
+    g = G.gaunt || {};
+  return `Cyber City Tactics Gauntlet ${g.code}${g.daily ? ' (today’s)' : ''}: ${r.win ? 'ran all ' + r.cleared + ' districts' : r.cleared + ' district' + (r.cleared === 1 ? '' : 's') + ' cleared'}, ${(r.score || 0).toLocaleString()} points. Same run: ${HOME}?seed=${g.code}`;
+};
+function gauntOverHtml() {
+  const r = G.gres || {},
+    g = G.gaunt || { order: [], perks: [] };
+  return `<div class="card"><p class="eyebrow">The Gauntlet · ${esc(g.code || '')}${G.coop ? ' · co-op' : ''} · ${DIFF[G.diff].name}</p><h1>${r.win ? 'Ran the Gauntlet' : (r.score || 0).toLocaleString()}</h1>
+    <p>${r.win ? `Every district, one life, ${(r.score || 0).toLocaleString()} points.` : `Flatlined in ${esc(STAGES[g.order[g.i]] ? STAGES[g.order[g.i]].name : 'the street')}, district ${g.i + 1} of ${g.order.length}. ${r.cleared} cleared.`}${r.newBest ? ' Your best run yet.' : r.best ? ` Best: ${r.best.score.toLocaleString()}.` : ''}</p>
+    <div class="list">${g.order
+      .map(
+        (si, k) =>
+          `<div class="item"><div><div class="nm">${k + 1}. ${esc(STAGES[si].name)}</div><div class="ds">${esc(MUTS[g.muts[k]])}</div></div><div class="acts">${k < r.cleared ? '✓ Cleared' : k === g.i && !r.win ? 'Fell here' : '—'}</div></div>`
+      )
+      .join('')}</div>
+    ${statsHtml()}
+    <h3>Brag</h3><div class="sharebox" id="shareTxt">${esc(gauntShareLine())}</div>
+    <div class="row"><button class="btn sm" data-a="copyshare" id="copyBtn">Copy</button></div>
+    <div class="row"><button class="btn" data-a="gauntagain">Same seed again</button><button class="btn ghost" data-a="gauntpick">New run</button><button class="btn ghost" data-a="quit">Title</button></div></div>`;
+}
+
 /* ===== src/js/modes/jobs.js ===== */
 /* Cyber City Tactics · src/js/modes/jobs.js
  * What every job (driving, and the missions to come) shares: banking the take. A job is a standalone run with
@@ -13842,6 +14314,7 @@ const sideJobAt = st => CAMPAIGN_JOBS[st % CAMPAIGN_JOBS.length];
 const sideJobDef = c => JOB_KINDS[c.kind].jobs()[c.id];
 // the crew for a job: fresh level-4 runners from the Jobs board, or the campaign's own for one of Juno's
 function jobCrew(coop) {
+  if (!G.cjob) G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   if (G.cjob) {
@@ -14783,6 +15256,9 @@ function driveOverHtml() {
  * at their vents, and laser gates blink on and off. Being seen fills your drone's detection meter; fill it and
  * the alarm goes up a level (three and the floor locks down). Punch at the terminal to hack it (the usual
  * minigame), kick to fire a shock dart into someone from behind, and leave through the vent at the far end.
+ * Some walls are security doors with a keypad beside them: crack it (a keypad sequence) and the door slides up,
+ * a shortcut past the vent that also lets the guards and cameras beyond see through. A wall safe off the route
+ * (a network trace) holds creds and gear for anyone willing to spend the time.
  *
  * Like the driving jobs, everything lives in G.ents and plain G fields (the layout in G.stealth; camera sweeps
  * and laser timing come from G.t), so couch and online co-op need nothing extra: each runner flies a drone.
@@ -14799,6 +15275,8 @@ const STEALTH_JOBS = {
     walls: 4,
     pay: 320,
     karma: 150,
+    doors: 2,
+    safe: 260,
     target: 'Aide Morrow'
   },
   clinic: {
@@ -14812,6 +15290,8 @@ const STEALTH_JOBS = {
     walls: 3,
     pay: 240,
     karma: 110,
+    doors: 1,
+    safe: 180,
     target: 'Doc Varga'
   }
 };
@@ -14893,8 +15373,8 @@ function startStealth(id, coop, ow) {
     );
   tip(
     'stealth',
-    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks.",
-    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks."
+    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks. PUNCH at a keypad opens its door; the safe holds a bonus.",
+    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks. J at a keypad opens its door; the safe holds a bonus."
   );
 }
 // the floor's layout from a fresh seed: cameras, walls with vents, laser gates, guard patrols, the terminal,
@@ -14933,7 +15413,55 @@ function stealthLayout(J) {
   const term = { x: Math.round(L * 0.55), y: SF.floor, z: 30, done: false, vaultDone: false, bonus: false };
   const tx = Math.round(L * 0.82);
   guardSpecs.push({ x1: tx - 80, x2: tx + 80, target: J.target });
-  return { seed, cams, walls, lasers, guardSpecs, term, exit: L - 70, data: false, aide: false, tries: 0 };
+  // security doors: the first walls get a keypad on the near side (the hack kind lives on the lock itself)
+  const doors = [];
+  // (by the wall's index, not a reference: the layout goes into online snapshots, which can't hold a cycle)
+  walls
+    .map((w, wi) => ({ w, wi }))
+    .sort((a, b) => a.w.x - b.w.x)
+    .slice(0, J.doors || 0)
+    .forEach(({ w, wi }) => {
+      w.door = true;
+      doors.push({
+        x: w.x - 30,
+        y: SF.floor,
+        z: 30,
+        hackKind: 'seq',
+        lockTier: 2,
+        wi,
+        open: false,
+        vaultDone: false
+      });
+    });
+  // the wall safe, in a side office before the terminal, away from the walls
+  let sx = Math.round(L * 0.3);
+  while (walls.some(w => Math.abs(w.x - sx) < 60) || lasers.some(l => Math.abs(l.x - sx) < 40)) sx += 37;
+  const safe = J.safe
+    ? {
+        x: sx,
+        y: SF.floor,
+        z: 30,
+        hackKind: 'trace',
+        lockTier: 2,
+        open: false,
+        vaultDone: false,
+        pay: J.safe
+      }
+    : null;
+  return {
+    seed,
+    cams,
+    walls,
+    lasers,
+    guardSpecs,
+    term,
+    doors,
+    safe,
+    exit: L - 70,
+    data: false,
+    aide: false,
+    tries: 0
+  };
 }
 function stealthMount(p) {
   p.drone = { vx: 0, vz: 0, cloak: 0, batt: 100, seen: 0, shotT: 0, dartT: 0 };
@@ -14983,6 +15511,8 @@ function stealthUpdate() {
   const ow = owOf();
   if (ow) stealthOverwatch(ow, S);
   for (const c of S.cams) if (c.offT > 0) c.offT--;
+  for (const d of S.doors || []) if (d.lockT > 0) d.lockT--;
+  if (S.safe && S.safe.lockT > 0) S.safe.lockT--;
   for (const l of S.lasers) if (l.offT > 0) l.offT--;
   for (const e of G.ents) if (e.guard) stealthPatrol(e, S);
   // the camera follows the drones along the floor
@@ -15189,19 +15719,38 @@ function stealthAlarm(p) {
   // reinforcements walk in ahead of you
   if (G.salarm < 3) stealthGuard({ x1: p.x + 140, x2: p.x + 300 });
 }
-function stealthInteract(p, S) {
+// the keypad, safe or terminal a drone is close enough (and low enough) to plug into
+function stealthLockAt(p, S) {
+  if (p.z >= 70) return null;
   const T = S.term;
-  if (!T.done && Math.abs(p.x - T.x) < 38 && p.z < 70) {
+  if (!T.done && Math.abs(p.x - T.x) < 38) return T;
+  for (const d of S.doors || []) if (!d.open && !(d.lockT > 0) && Math.abs(p.x - d.x) < 24) return d;
+  const sf = S.safe;
+  if (sf && !sf.open && !(sf.lockT > 0) && Math.abs(p.x - sf.x) < 30) return sf;
+  return null;
+}
+function stealthInteract(p, S) {
+  const T = S.term,
+    lk = stealthLockAt(p, S);
+  if (lk === T) {
     S.tries++;
     startHack({ tier: 3, name: 'Kagemori terminal', type: 'blacksite' }, T);
     return;
   }
+  if (lk) {
+    lk.vaultDone = false;
+    lk.bonus = false;
+    startHack({ tier: lk.lockTier, name: lk.wi >= 0 ? 'Security door' : 'Wall safe', type: 'blacksite' }, lk);
+    return;
+  }
   if (!S.data && Math.abs(p.x - S.exit) < 60) say(p, 'GET THE DATA FIRST', '#a79dc2', 60, 40, true);
 }
-// after the hacking minigame: the files are yours, or the terminal locks and the alarm goes up a notch
-function stealthHackDone() {
+// after the hacking minigame: the files are yours, or the terminal locks and the alarm goes up a notch.
+// A door or the safe: it opens, or it locks for a few seconds and the drone gets a burst of attention
+function stealthHackDone(v) {
   const S = G.stealth,
     T = S && S.term;
+  if (S && v && v !== T) return stealthLockDone(S, v);
   if (!T || !T.vaultDone || T.done) return;
   if (T.bonus) {
     T.done = true;
@@ -15215,6 +15764,31 @@ function stealthHackDone() {
       stealthAlarm(p);
     }
   }
+}
+function stealthLockDone(S, v) {
+  if (!v.bonus) {
+    v.lockT = 240;
+    const p = active().find(q => q.drone && !q.out);
+    if (p) p.drone.seen = Math.min(99, p.drone.seen + 55);
+    G.texts.push({ x: v.x, y: SF.floor, z: 70, s: 'LOCKED · 4 s', c: '#ff3d4a', life: 70 });
+    return;
+  }
+  v.open = true;
+  const w = v.wi >= 0 && S.walls[v.wi];
+  if (w) {
+    // the door slides up into the ceiling: fly through at any height, but it's open for everyone's eyes too
+    w.open = true;
+    w.gap0 = w.gap;
+    w.gap = [-40, SF.ceil + 40];
+    S.doorsOpen = (S.doorsOpen || 0) + 1;
+    G.texts.push({ x: w.x, y: SF.floor, z: 80, s: 'DOOR OPEN', c: '#7dffb0', life: 70 });
+  } else {
+    S.safeGot = { creds: v.pay, item: randItem(stealthJob().stage, true) };
+    PARTY.creds += v.pay;
+    PARTY.bag.push(gotItem(S.safeGot.item));
+    G.texts.push({ x: v.x, y: SF.floor, z: 80, s: 'SAFE CRACKED · ¥' + v.pay, c: '#ffc63d', life: 90 });
+  }
+  sfx.level();
 }
 /* ---------- overwatch ---------- */
 function stealthOverwatch(p, S) {
@@ -15379,6 +15953,8 @@ function stealthFinish() {
     alarm: G.salarm,
     ghost,
     aide: S.aide,
+    doors: S.doorsOpen || 0,
+    safe: S.safeGot || null,
     pay,
     karma,
     coop: G.coop,
@@ -15395,6 +15971,7 @@ function stealthOverHtml() {
     <div class="list">
       <div class="item"><div><div class="nm">The files</div></div><div class="acts">${r.win ? 'Pulled' : 'Left behind'}</div></div>
       <div class="item"><div><div class="nm">${esc(J.target)}</div></div><div class="acts">${r.aide ? 'Darted (+¥200)' : 'Untouched'}</div></div>
+      ${J.doors || J.safe ? `<div class="item"><div><div class="nm">Doors and the safe</div></div><div class="acts">${r.doors || 0} door${r.doors === 1 ? '' : 's'} opened · ${r.safe ? `safe cracked (¥${r.safe.creds} and ${esc(r.safe.item.name)})` : 'safe untouched'}</div></div>` : ''}
       <div class="item"><div><div class="nm">Ghost bonus</div></div><div class="acts">${r.ghost ? 'No alarms (+¥150)' : 'Alarm ' + (r.alarm || 0)}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
@@ -16197,7 +16774,9 @@ const NET_WAIT = {
   jobs: 'Your partner is picking a job.',
   driveover: 'The run is over. Your partner can ride it again or pick another job.',
   stealthover: 'The job is over. Your partner can fly it again or pick another job.',
-  flightover: 'The flight is over. Your partner can fly it again or pick another job.'
+  flightover: 'The flight is over. Your partner can fly it again or pick another job.',
+  gauntpick: 'Your partner is setting up a Gauntlet run.',
+  gauntover: 'The Gauntlet run is over. Your partner can run it again.'
 };
 const NET = {
   role: null, // 'host' | 'guest' | null
@@ -17152,7 +17731,8 @@ function netHtml(m) {
       NET.hm === 'win' ||
       NET.hm === 'driveover' ||
       NET.hm === 'stealthover' ||
-      NET.hm === 'flightover';
+      NET.hm === 'flightover' ||
+      NET.hm === 'gauntover';
     const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
     const txt =
       NET.hm === 'arenaover'
@@ -20557,7 +21137,7 @@ function drawFacility() {
   // walls, open only at their vents
   for (const w of S.walls) {
     const x = w.x - cx;
-    if (x < -30 || x > W + 30) continue;
+    if (x < -30 || x > W + 30 || w.open) continue;
     ctx.fillStyle = '#262a38';
     ctx.fillRect(x - w.w / 2, top, w.w, sfY(w.gap[1]) - top);
     ctx.fillRect(x - w.w / 2, sfY(w.gap[0]), w.w, SF.floor - sfY(w.gap[0]));
@@ -20565,6 +21145,70 @@ function drawFacility() {
     ctx.fillRect(x - w.w / 2, top, 1, SF.floor - top);
     ctx.strokeStyle = 'rgba(159,233,255,.25)';
     ctx.strokeRect(x - w.w / 2 + 0.5, sfY(w.gap[1]) + 0.5, w.w - 1, sfY(w.gap[0]) - sfY(w.gap[1]) - 1);
+  }
+  // security doors: hazard stripes and a light while shut, a strip in the ceiling once open; and their keypads
+  for (const w of S.walls) {
+    if (!w.door) continue;
+    const x = w.x - cx;
+    if (x < -30 || x > W + 30) continue;
+    if (w.open) {
+      ctx.fillStyle = '#262a38';
+      ctx.fillRect(x - w.w / 2, top, w.w, 8);
+      ctx.fillStyle = '#7dffb0';
+      ctx.fillRect(x - 2, top + 9, 4, 2);
+    } else {
+      ctx.fillStyle = 'rgba(255,198,61,.28)';
+      // stripes on the steel, never across the vent, which stays the slow way through
+      for (let y = top + 4; y < SF.floor - 4; y += 12)
+        if (y + 4 < sfY(w.gap[1]) || y > sfY(w.gap[0])) ctx.fillRect(x - w.w / 2 + 2, y, w.w - 4, 4);
+      ctx.fillStyle = '#ff3d4a';
+      ctx.fillRect(x - 2, top + 2, 4, 2);
+    }
+  }
+  const lockCol = l => (l.open ? '#7dffb0' : l.lockT > 0 ? '#ff3d4a' : '#ffc63d');
+  for (const d of S.doors || []) {
+    const x = d.x - cx;
+    if (x < -20 || x > W + 20) continue;
+    ctx.fillStyle = '#20232f';
+    ctx.fillRect(x - 6, SF.floor - 40, 12, 16);
+    ctx.fillStyle = lockCol(d);
+    ctx.globalAlpha = d.open ? 0.9 : 0.6 + 0.3 * Math.sin(G.t * 0.12);
+    for (let i = 0; i < 4; i++) ctx.fillRect(x - 4 + (i % 2) * 5, SF.floor - 37 + (i >> 1) * 5, 3, 3);
+    ctx.globalAlpha = 1;
+    if (!d.open) txt('KEYPAD', x, SF.floor - 44, 8, '#a79dc2', 'center');
+  }
+  if (S.safe) {
+    const sf = S.safe,
+      x = sf.x - cx;
+    if (x > -30 && x < W + 30) {
+      ctx.fillStyle = '#1b1d27';
+      ctx.fillRect(x - 15, SF.floor - 44, 30, 26);
+      ctx.strokeStyle = lockCol(sf);
+      ctx.strokeRect(x - 14.5, SF.floor - 43.5, 29, 25);
+      ctx.beginPath();
+      ctx.arc(x, SF.floor - 31, 6, 0, 6.29);
+      ctx.stroke();
+      if (!sf.open) glow(x, SF.floor - 31, 22, 16, '#ffc63d', 0.12);
+      txt(sf.open ? 'EMPTY' : 'SAFE', x, SF.floor - 49, 9, lockCol(sf), 'center');
+    }
+  }
+  // a drone low enough beside a keypad or the safe: say what to press
+  const lockNear = PL.map(p => p.drone && !p.out && stealthLockAt(p, S)).find(l => l && l !== S.term);
+  if (lockNear) {
+    const x = lockNear.x - cx;
+    ctx.fillStyle = 'rgba(11,8,18,.8)';
+    ctx.fillRect(x - 50, SF.floor - 76, 100, 16);
+    txt(
+      ctl(
+        lockNear.wi >= 0 ? 'PUNCH: OPEN DOOR' : 'PUNCH: CRACK SAFE',
+        lockNear.wi >= 0 ? 'J: OPEN DOOR' : 'J: CRACK SAFE'
+      ),
+      x,
+      SF.floor - 64,
+      11,
+      '#ffc63d',
+      'center'
+    );
   }
   // laser gates
   for (const l of S.lasers) {
@@ -23492,7 +24136,7 @@ function renderOv() {
     if (G.mode === 'title') G.pendDiff = sv && DIFF[sv.diff] ? sv.diff : 1;
     h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
     <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="gauntpick">Gauntlet</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {
     h = `<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained ? '' : '<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
@@ -23521,6 +24165,8 @@ function renderOv() {
   if (m === 'jobs') h = jobsHtml();
   if (m === 'driveover') h = driveOverHtml();
   if (m === 'stealthover') h = stealthOverHtml();
+  if (m === 'gauntpick') h = gauntPickHtml();
+  if (m === 'gauntover') h = gauntOverHtml();
   if (m === 'flightover') h = flightOverHtml();
   if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost' || m === 'nethub')
     h = netHtml(m);
@@ -23564,7 +24210,7 @@ function renderOv() {
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
   if (m === 'perk') {
-    h = `<div class="card"><p class="eyebrow">Arena · wave ${G.awave} cleared · score ${G.score.toLocaleString()}</p><h2>Pick a perk</h2>
+    h = `<div class="card"><p class="eyebrow">${gauntOn() ? `Gauntlet · ${G.gaunt.i} of ${G.gaunt.order.length} cleared · next: ${esc(STAGES[G.gaunt.order[G.gaunt.i]].name)}` : `Arena · wave ${G.awave} cleared · score ${G.score.toLocaleString()}`}</p><h2>Pick a perk</h2>
     <div class="list">${G.perks
       .map(id => {
         const pk = PERKS.find(x => x.id === id);
@@ -23587,8 +24233,8 @@ function renderOv() {
     const C = CONTRACTS[G.stage],
       S = STAGES[G.stage];
     h = `<div class="card"><p class="eyebrow">Job ${G.stage + 1} of ${STAGES.length} · ${esc(S.name)} · ${DIFF[G.diff].name}${G.ng ? ' NG+' + G.ng : ''}</p><h2>${esc(C.title)}</h2>
-    <p class="say"><b>Juno · fixer</b>${esc(C.say)}</p>${jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="go">Take the job</button><button class="btn ghost" data-a="sheet">Character</button>${G.briefFromDen ? '<button class="btn ghost" data-a="notyet">Not yet</button>' : ''}</div></div>`;
+    <p class="say"><b>Juno · fixer</b>${esc(C.say)}</p>${gauntOn() ? gauntBriefLine() : ''}${jobHtml(PARTY.contract)}
+    <div class="row"><button class="btn" data-a="go">Take the job</button><button class="btn ghost" data-a="sheet">Character</button>${G.briefFromDen && !gauntOn() ? '<button class="btn ghost" data-a="notyet">Not yet</button>' : ''}</div></div>`;
   }
   if (m === 'sheet') {
     h = `<div class="card"><p class="eyebrow">${G.ret === 'brief' ? 'Before the job' : G.ret === 'den' ? 'The Den' : G.ret === 'perk' ? 'Arena · between waves' : G.arena ? 'Paused · arena wave ' + G.awave : G.world ? 'The Sprawl · block ' + G.wd.level : 'Paused · district ' + (G.stage + 1)}</p><h2>Runners</h2>${charHtml()}${G.ret === 'play' && !G.arena ? jobHtml(PARTY.contract) : ''}
@@ -23658,6 +24304,8 @@ function renderOv() {
       'arenapick',
       'perk',
       'arenaover',
+      'gauntpick',
+      'gauntover',
       'trainpick',
       'trained',
       'bcard',
@@ -23955,7 +24603,7 @@ function npcHtml(id) {
     sayTxt =
       'Need backup? I rent muscle, metal and the odd spirit. One at a time, and no refunds if they get scrapped. I patch up whatever you bring back.';
     const cur = PARTY.ally;
-    body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. If it goes down on a job, it's gone.</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
+    body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. ${CREW[cur.type] ? 'If they go down on a job, stand by them to get them up.' : "If it goes down on a job, it's gone."}</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
     <div class="list">${Object.keys(ALLIES)
       .filter(k => !ALLIES[k].hidden)
       .map(k => {
@@ -23965,7 +24613,8 @@ function npcHtml(id) {
           ok = !have && PARTY.creds >= ac;
         return `<div class="item"><div><div class="nm">${esc(A.name)}</div><div class="ds">${esc(A.desc)} ${A.hp} HP base, grows with your level.${cur && !have ? ' Replaces your current companion.' : ''}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="hire:${k}" ${ok ? '' : 'disabled'}>${have ? 'Hired' : '¥' + ac}</button></div></div>`;
       })
-      .join('')}</div>`;
+      .join('')}</div>
+    ${crewHtml()}`;
   } else if (id === 'wen') {
     sayTxt =
       "Magic isn't bought, it's earned. But I can sell you the formula. Whether you can hold it is your business.";
@@ -24025,8 +24674,9 @@ function togglePause() {
   else if (G.mode === 'npc') setMode('den');
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
-function newRun(coop) {
+function newRun(coop, noBrief) {
   G.training = false;
+  G.gaunt = null; // gauntStart() sets it again after this
   // a runner kept for a dropped partner belongs to the old run
   if (typeof NET !== 'undefined' && !NET.live) NET.away = null;
   G.choices = {};
@@ -24053,7 +24703,7 @@ function newRun(coop) {
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;
-  briefing(0, false);
+  if (!noBrief) briefing(0, false); // the Gauntlet briefs its own first district (and must not save)
 }
 
 /* ===== src/js/ui/actions.js ===== */
@@ -24208,8 +24858,47 @@ ov.addEventListener('click', e => {
       }
       break;
     }
+    case 'gauntpick':
+      G.seedErr = false;
+      setMode('gauntpick');
+      keep = false;
+      break;
+    case 'gaunt1':
+    case 'gaunt2':
+      gauntStart(a === 'gaunt2');
+      keep = false;
+      break;
+    case 'gauntday1':
+    case 'gauntday2':
+      G.pendDiff = 1;
+      gauntStart(a === 'gauntday2', gauntDayCode(), true);
+      keep = false;
+      break;
+    case 'gauntseed1':
+    case 'gauntseed2': {
+      const inp = document.getElementById('gauntSeed'),
+        ch = parseSeed(inp && inp.value);
+      if (!ch || ch.mode !== 'gauntlet') {
+        G.seedErr = true;
+        renderOv();
+        break;
+      }
+      G.seedErr = false;
+      G.gauntPre = '';
+      gauntStart(a === 'gauntseed2', ch.code);
+      keep = false;
+      break;
+    }
+    case 'gauntagain': {
+      const g = G.gaunt;
+      if (!g) break;
+      G.pendDiff = G.diff;
+      gauntStart(G.coop, g.code, g.daily);
+      keep = false;
+      break;
+    }
     case 'copyshare': {
-      const t = shareLine(),
+      const t = G.mode === 'gauntover' ? gauntShareLine() : shareLine(),
         btn = document.getElementById('copyBtn');
       const done = ok => {
         if (btn) btn.textContent = ok ? 'Copied' : 'Select the text above to copy';
@@ -24236,7 +24925,8 @@ ov.addEventListener('click', e => {
     }
     case 'perk': {
       const pk = PERKS.find(x => x.id === arg);
-      if (pk && G.mode === 'perk') {
+      if (pk && G.mode === 'perk' && gauntOn()) gauntPerk(pk);
+      else if (pk && G.mode === 'perk') {
         pk.go();
         sfx.level();
         setMode('play');
@@ -24982,6 +25672,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'hirecrew':
+      if (hireCrew(arg)) sfx.buy();
+      rerender();
+      break;
     case 'dismiss':
       PARTY.ally = null;
       G.ents = G.ents.filter(e => e.kind !== 'ally');
@@ -25269,7 +25963,11 @@ function pwaShortcut() {
   if (sd) {
     // a shared challenge link: open the right start screen with the seed filled in
     G.seedPre = sd.code;
-    setMode(sd.mode === 'arena' ? 'arenapick' : 'worldpick');
+    if (sd.mode === 'gauntlet') {
+      G.seedPre = '';
+      G.gauntPre = sd.code;
+    }
+    setMode(sd.mode === 'arena' ? 'arenapick' : sd.mode === 'gauntlet' ? 'gauntpick' : 'worldpick');
     try {
       history.replaceState(null, '', location.pathname);
     } catch (err) {}

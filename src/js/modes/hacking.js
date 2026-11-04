@@ -7,7 +7,7 @@
 /* ----- hacking ----- */
 function startHack(b, vault) {
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
-    tier = vault ? 4 : b.tier,
+    tier = vault ? vault.lockTier || 4 : b.tier,
     decks = active()
       .map(p => p.eq && p.eq.deck)
       .filter(Boolean);
@@ -45,7 +45,9 @@ function startHack(b, vault) {
 }
 // which lock a building has
 function hackKindFor(b, vault) {
-  if (vault || G.stealth || !b || prefs.hackKind === 'classic') return 'lock';
+  if (prefs.hackKind === 'classic') return 'lock';
+  if (vault && vault.hackKind) return vault.hackKind; // a stealth door or safe names its own lock
+  if (vault || G.stealth || !b) return 'lock';
   return { hideout: 'seq', precinct: 'trace', blacksite: 'wall' }[b.type] || 'lock';
 }
 const HACK_NAMES = {
@@ -368,7 +370,7 @@ function hackWin() {
     G.hack = null;
     sfx.level();
     setMode('play');
-    if (G.stealth) stealthHackDone();
+    if (G.stealth) stealthHackDone(v);
     else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT OPEN · BREAK IT', c: '#ffc63d', life: 90 });
     return;
   }
@@ -394,7 +396,7 @@ function hackFail() {
     G.hack = null;
     sfx.hurt();
     setMode('play');
-    if (G.stealth) stealthHackDone();
+    if (G.stealth) stealthHackDone(v);
     else G.texts.push({ x: v.x, y: v.y, z: 60, s: 'VAULT SEALED · CACHE ONLY', c: '#ff3d8b', life: 90 });
     return;
   }

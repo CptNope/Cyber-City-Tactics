@@ -1239,6 +1239,10 @@ function respawn(p) {
         worldWipe();
         return;
       }
+      if (gauntOn()) {
+        gauntEnd(false);
+        return;
+      }
       logRun(
         'Campaign',
         'Flatlined',

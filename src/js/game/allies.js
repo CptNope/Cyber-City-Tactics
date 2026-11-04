@@ -102,6 +102,10 @@ function upAlly(e) {
       return;
     }
   }
+  if (e.state === 'dead' && !e.summon && CREW[e.ally]) {
+    crewDownTick(e); // crew members wait to be revived
+    return;
+  }
   if (e.state === 'dead') {
     if (!e.reported) {
       e.reported = true;
@@ -148,6 +152,7 @@ function upAlly(e) {
       tg = o;
     }
   }
+  if (!e.summon && CREW[e.ally]) crewTick(e, tg);
   e.cool--;
   if (e.state === 'windup') {
     if (e.t === 10) {
@@ -167,7 +172,7 @@ function upAlly(e) {
   if (!tg) {
     tx = lead.x - lead.face * 28;
     ty = lead.y + (e.d.fly ? -8 : 12);
-  } else if (e.ally === 'drone') {
+  } else if (e.ally === 'drone' || ALLIES[e.ally].ranged) {
     tx = tg.x + (tg.x < e.x ? 80 : -80);
     ty = tg.y;
     e.face = tg.x >= e.x ? 1 : -1;
@@ -227,6 +232,14 @@ function upAlly(e) {
   }
 }
 function drawAllyBar(e) {
+  if (e.state === 'dead' && e.downed) {
+    // a downed crew member: a marker to walk to, filling as you stand by them
+    const sx = e.x - G.camX,
+      top = e.y - 34;
+    txt('REVIVE', sx, top - 6, 9, '#7dffb0', 'center');
+    bar(sx - 14, top, 28, 3, e.rev || 0, CREW_REV, '#7dffb0');
+    return;
+  }
   if (e.state === 'dead') return;
   if (e.summon && e.life < 120 && (G.t >> 2) % 2) return;
   const sx = e.x - G.camX,

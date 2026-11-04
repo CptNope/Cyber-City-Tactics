@@ -5,6 +5,9 @@
  * at their vents, and laser gates blink on and off. Being seen fills your drone's detection meter; fill it and
  * the alarm goes up a level (three and the floor locks down). Punch at the terminal to hack it (the usual
  * minigame), kick to fire a shock dart into someone from behind, and leave through the vent at the far end.
+ * Some walls are security doors with a keypad beside them: crack it (a keypad sequence) and the door slides up,
+ * a shortcut past the vent that also lets the guards and cameras beyond see through. A wall safe off the route
+ * (a network trace) holds creds and gear for anyone willing to spend the time.
  *
  * Like the driving jobs, everything lives in G.ents and plain G fields (the layout in G.stealth; camera sweeps
  * and laser timing come from G.t), so couch and online co-op need nothing extra: each runner flies a drone.
@@ -22,6 +25,8 @@ const STEALTH_JOBS = {
     walls: 4,
     pay: 320,
     karma: 150,
+    doors: 2,
+    safe: 260,
     target: 'Aide Morrow'
   },
   clinic: {
@@ -35,6 +40,8 @@ const STEALTH_JOBS = {
     walls: 3,
     pay: 240,
     karma: 110,
+    doors: 1,
+    safe: 180,
     target: 'Doc Varga'
   }
 };
@@ -116,8 +123,8 @@ function startStealth(id, coop, ow) {
     );
   tip(
     'stealth',
-    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks.",
-    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks."
+    "Stick to fly, up and down to climb. Stay out of the light cones. PUNCH hacks the terminal, KICK darts a guard from behind (dart the job's target for a bonus), DODGE cloaks. PUNCH at a keypad opens its door; the safe holds a bonus.",
+    "A/D to fly, W/S to climb and drop. Stay out of the light cones. J hacks the terminal, K darts a guard from behind (dart the job's target for a bonus), O cloaks. J at a keypad opens its door; the safe holds a bonus."
   );
 }
 // the floor's layout from a fresh seed: cameras, walls with vents, laser gates, guard patrols, the terminal,
@@ -156,7 +163,55 @@ function stealthLayout(J) {
   const term = { x: Math.round(L * 0.55), y: SF.floor, z: 30, done: false, vaultDone: false, bonus: false };
   const tx = Math.round(L * 0.82);
   guardSpecs.push({ x1: tx - 80, x2: tx + 80, target: J.target });
-  return { seed, cams, walls, lasers, guardSpecs, term, exit: L - 70, data: false, aide: false, tries: 0 };
+  // security doors: the first walls get a keypad on the near side (the hack kind lives on the lock itself)
+  const doors = [];
+  // (by the wall's index, not a reference: the layout goes into online snapshots, which can't hold a cycle)
+  walls
+    .map((w, wi) => ({ w, wi }))
+    .sort((a, b) => a.w.x - b.w.x)
+    .slice(0, J.doors || 0)
+    .forEach(({ w, wi }) => {
+      w.door = true;
+      doors.push({
+        x: w.x - 30,
+        y: SF.floor,
+        z: 30,
+        hackKind: 'seq',
+        lockTier: 2,
+        wi,
+        open: false,
+        vaultDone: false
+      });
+    });
+  // the wall safe, in a side office before the terminal, away from the walls
+  let sx = Math.round(L * 0.3);
+  while (walls.some(w => Math.abs(w.x - sx) < 60) || lasers.some(l => Math.abs(l.x - sx) < 40)) sx += 37;
+  const safe = J.safe
+    ? {
+        x: sx,
+        y: SF.floor,
+        z: 30,
+        hackKind: 'trace',
+        lockTier: 2,
+        open: false,
+        vaultDone: false,
+        pay: J.safe
+      }
+    : null;
+  return {
+    seed,
+    cams,
+    walls,
+    lasers,
+    guardSpecs,
+    term,
+    doors,
+    safe,
+    exit: L - 70,
+    data: false,
+    aide: false,
+    tries: 0
+  };
 }
 function stealthMount(p) {
   p.drone = { vx: 0, vz: 0, cloak: 0, batt: 100, seen: 0, shotT: 0, dartT: 0 };
@@ -206,6 +261,8 @@ function stealthUpdate() {
   const ow = owOf();
   if (ow) stealthOverwatch(ow, S);
   for (const c of S.cams) if (c.offT > 0) c.offT--;
+  for (const d of S.doors || []) if (d.lockT > 0) d.lockT--;
+  if (S.safe && S.safe.lockT > 0) S.safe.lockT--;
   for (const l of S.lasers) if (l.offT > 0) l.offT--;
   for (const e of G.ents) if (e.guard) stealthPatrol(e, S);
   // the camera follows the drones along the floor
@@ -412,19 +469,38 @@ function stealthAlarm(p) {
   // reinforcements walk in ahead of you
   if (G.salarm < 3) stealthGuard({ x1: p.x + 140, x2: p.x + 300 });
 }
-function stealthInteract(p, S) {
+// the keypad, safe or terminal a drone is close enough (and low enough) to plug into
+function stealthLockAt(p, S) {
+  if (p.z >= 70) return null;
   const T = S.term;
-  if (!T.done && Math.abs(p.x - T.x) < 38 && p.z < 70) {
+  if (!T.done && Math.abs(p.x - T.x) < 38) return T;
+  for (const d of S.doors || []) if (!d.open && !(d.lockT > 0) && Math.abs(p.x - d.x) < 24) return d;
+  const sf = S.safe;
+  if (sf && !sf.open && !(sf.lockT > 0) && Math.abs(p.x - sf.x) < 30) return sf;
+  return null;
+}
+function stealthInteract(p, S) {
+  const T = S.term,
+    lk = stealthLockAt(p, S);
+  if (lk === T) {
     S.tries++;
     startHack({ tier: 3, name: 'Kagemori terminal', type: 'blacksite' }, T);
     return;
   }
+  if (lk) {
+    lk.vaultDone = false;
+    lk.bonus = false;
+    startHack({ tier: lk.lockTier, name: lk.wi >= 0 ? 'Security door' : 'Wall safe', type: 'blacksite' }, lk);
+    return;
+  }
   if (!S.data && Math.abs(p.x - S.exit) < 60) say(p, 'GET THE DATA FIRST', '#a79dc2', 60, 40, true);
 }
-// after the hacking minigame: the files are yours, or the terminal locks and the alarm goes up a notch
-function stealthHackDone() {
+// after the hacking minigame: the files are yours, or the terminal locks and the alarm goes up a notch.
+// A door or the safe: it opens, or it locks for a few seconds and the drone gets a burst of attention
+function stealthHackDone(v) {
   const S = G.stealth,
     T = S && S.term;
+  if (S && v && v !== T) return stealthLockDone(S, v);
   if (!T || !T.vaultDone || T.done) return;
   if (T.bonus) {
     T.done = true;
@@ -438,6 +514,31 @@ function stealthHackDone() {
       stealthAlarm(p);
     }
   }
+}
+function stealthLockDone(S, v) {
+  if (!v.bonus) {
+    v.lockT = 240;
+    const p = active().find(q => q.drone && !q.out);
+    if (p) p.drone.seen = Math.min(99, p.drone.seen + 55);
+    G.texts.push({ x: v.x, y: SF.floor, z: 70, s: 'LOCKED · 4 s', c: '#ff3d4a', life: 70 });
+    return;
+  }
+  v.open = true;
+  const w = v.wi >= 0 && S.walls[v.wi];
+  if (w) {
+    // the door slides up into the ceiling: fly through at any height, but it's open for everyone's eyes too
+    w.open = true;
+    w.gap0 = w.gap;
+    w.gap = [-40, SF.ceil + 40];
+    S.doorsOpen = (S.doorsOpen || 0) + 1;
+    G.texts.push({ x: w.x, y: SF.floor, z: 80, s: 'DOOR OPEN', c: '#7dffb0', life: 70 });
+  } else {
+    S.safeGot = { creds: v.pay, item: randItem(stealthJob().stage, true) };
+    PARTY.creds += v.pay;
+    PARTY.bag.push(gotItem(S.safeGot.item));
+    G.texts.push({ x: v.x, y: SF.floor, z: 80, s: 'SAFE CRACKED · ¥' + v.pay, c: '#ffc63d', life: 90 });
+  }
+  sfx.level();
 }
 /* ---------- overwatch ---------- */
 function stealthOverwatch(p, S) {
@@ -602,6 +703,8 @@ function stealthFinish() {
     alarm: G.salarm,
     ghost,
     aide: S.aide,
+    doors: S.doorsOpen || 0,
+    safe: S.safeGot || null,
     pay,
     karma,
     coop: G.coop,
@@ -618,6 +721,7 @@ function stealthOverHtml() {
     <div class="list">
       <div class="item"><div><div class="nm">The files</div></div><div class="acts">${r.win ? 'Pulled' : 'Left behind'}</div></div>
       <div class="item"><div><div class="nm">${esc(J.target)}</div></div><div class="acts">${r.aide ? 'Darted (+¥200)' : 'Untouched'}</div></div>
+      ${J.doors || J.safe ? `<div class="item"><div><div class="nm">Doors and the safe</div></div><div class="acts">${r.doors || 0} door${r.doors === 1 ? '' : 's'} opened · ${r.safe ? `safe cracked (¥${r.safe.creds} and ${esc(r.safe.item.name)})` : 'safe untouched'}</div></div>` : ''}
       <div class="item"><div><div class="nm">Ghost bonus</div></div><div class="acts">${r.ghost ? 'No alarms (+¥150)' : 'Alarm ' + (r.alarm || 0)}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>

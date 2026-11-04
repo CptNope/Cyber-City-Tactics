@@ -75,6 +75,7 @@ const sideJobAt = st => CAMPAIGN_JOBS[st % CAMPAIGN_JOBS.length];
 const sideJobDef = c => JOB_KINDS[c.kind].jobs()[c.id];
 // the crew for a job: fresh level-4 runners from the Jobs board, or the campaign's own for one of Juno's
 function jobCrew(coop) {
+  if (!G.cjob) G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   if (G.cjob) {

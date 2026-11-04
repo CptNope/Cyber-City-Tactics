@@ -259,7 +259,11 @@ function pwaShortcut() {
   if (sd) {
     // a shared challenge link: open the right start screen with the seed filled in
     G.seedPre = sd.code;
-    setMode(sd.mode === 'arena' ? 'arenapick' : 'worldpick');
+    if (sd.mode === 'gauntlet') {
+      G.seedPre = '';
+      G.gauntPre = sd.code;
+    }
+    setMode(sd.mode === 'arena' ? 'arenapick' : sd.mode === 'gauntlet' ? 'gauntpick' : 'worldpick');
     try {
       history.replaceState(null, '', location.pathname);
     } catch (err) {}

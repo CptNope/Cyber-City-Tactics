@@ -269,3 +269,88 @@ click('arenapick');
 click('arena1');
 ok(!G.stealth && G.arena, 'the Arena afterwards is back on foot');
 void keep;
+
+/* ---------- doors the hack can open, and the wall safe ---------- */
+A.prefs.hackKind = 'varied';
+A.setMode('title');
+click('jobs');
+click('stealth:arcology:1');
+const D = G.stealth,
+  r = __PL()[0];
+ok(
+  D.doors.length === 2 && D.doors.every(d => D.walls[d.wi].door),
+  'the Arcology floor has two security doors'
+);
+ok(D.safe && D.safe.pay === 260, 'and a wall safe off the route');
+ok(JSON.stringify(D).length > 0, 'the layout has no cycles (it goes into online snapshots)');
+G.ents = G.ents.filter(e => !e.guard);
+D.cams = [];
+D.lasers = [];
+const dr = D.doors[0],
+  wall = D.walls[dr.wi];
+r.drone.seen = 0;
+put(r, dr.x);
+r.z = 30;
+ok(A.stealthLockAt(r, D) === dr, 'a drone low by a keypad can plug in');
+r.z = 100;
+ok(!A.stealthLockAt(r, D), 'not from up by the ceiling');
+r.z = 30;
+tap('KeyJ');
+step(1);
+ok(G.mode === 'hack' && G.hack.kind === 'seq' && G.hack.vault === dr, 'PUNCH at a keypad: a keypad sequence');
+for (let i = 0; i < 600 && G.hack.phase === 'show'; i++) A.hackStep();
+for (const d of G.hack.seq.slice()) A.hackDir(d);
+ok(G.mode === 'play' && dr.open && wall.open, 'crack it and the door slides up');
+r.z = Math.max(wall.gap0[1], 20) + 20 > 118 ? 15 : Math.max(wall.gap0[1] + 20, 20);
+if (r.z > wall.gap0[0] && r.z < wall.gap0[1]) r.z = wall.gap0[1] + 10;
+const before = r.x;
+hold('KeyD', 60);
+ok(r.x > wall.x + 10 && before < wall.x, 'and you fly straight through, at any height');
+ok(!A.stealthBlocked(D, wall.x - 60, 100, wall.x + 60, 15), 'but sight lines go through it too');
+// the safe: fail first
+const sf = D.safe;
+put(r, sf.x);
+r.z = 30;
+const seen0 = r.drone.seen;
+tap('KeyJ');
+step(1);
+ok(G.mode === 'hack' && G.hack.kind === 'trace' && G.hack.vault === sf, 'the safe is a network trace');
+A.hackFail();
+ok(
+  sf.lockT > 0 && r.drone.seen > seen0 && !sf.open,
+  'blow it: the safe locks for a moment, and the floor notices'
+);
+ok(!A.stealthLockAt(r, D), 'no second try until it unlocks');
+step(250);
+ok(A.stealthLockAt(r, D) === sf, 'then it can be tried again');
+r.drone.seen = 0;
+const cr0 = __PARTY.creds,
+  bag0 = __PARTY.bag.length;
+tap('KeyJ');
+step(1);
+A.hackWin();
+ok(
+  sf.open && __PARTY.creds === cr0 + 260 && __PARTY.bag.length === bag0 + 1,
+  'crack it: ¥260 and a piece of gear'
+);
+ok(!A.stealthLockAt(r, D), 'an empty safe stays empty');
+D.data = true;
+D.term.done = true;
+put(r, D.exit);
+step(2);
+for (let i = 0; i < 200 && G.mode === 'play'; i++) step(1);
+ok(
+  G.mode === 'stealthover' && G.sresult.doors === 1 && G.sresult.safe && /safe cracked/.test(els.ov._h),
+  'the job card counts the doors and the safe'
+);
+A.prefs.hackKind = 'classic';
+ok(
+  A.hackKindFor({ type: 'blacksite' }, D.doors[1]) === 'lock',
+  'Classic only puts the timing lock on doors too'
+);
+A.prefs.hackKind = 'varied';
+ok(
+  A.hackKindFor({ type: 'blacksite' }, { vault: 1 }) === 'lock' && A.hackKindFor(null, D.term) === 'lock',
+  'the terminal and Sprawl vaults keep the timing lock'
+);
+A.prefs.hackKind = 'classic';

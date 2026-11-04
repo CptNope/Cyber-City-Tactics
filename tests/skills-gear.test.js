@@ -237,7 +237,8 @@ ok(
   P.eq.weapon = A.mkItem('weapon', 'baton', 0, 'shock');
   A.refresh(P);
   let st = 0;
-  for (let i = 0; i < 40; i++) {
+  // 200 tries, so chance alone almost never lands outside the bounds (the mean is 50, the spread about 6)
+  for (let i = 0; i < 200; i++) {
     const e = foe('ganger', 20);
     e.hp = e.maxHp = 500;
     e.cool = 0;
@@ -245,7 +246,7 @@ ok(
     if (e.cool >= 90) st++;
     G.ents = G.ents.filter(x => x.team !== 1);
   }
-  ok(st > 3 && st < 20, 'shock stuns about 25%: ' + st + '/40');
+  ok(st > 25 && st < 80, 'shock stuns about 25%: ' + st + '/200');
 }
 {
   const P = fresh('runner');

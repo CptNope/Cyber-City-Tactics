@@ -108,7 +108,9 @@ const NET_WAIT = {
   jobs: 'Your partner is picking a job.',
   driveover: 'The run is over. Your partner can ride it again or pick another job.',
   stealthover: 'The job is over. Your partner can fly it again or pick another job.',
-  flightover: 'The flight is over. Your partner can fly it again or pick another job.'
+  flightover: 'The flight is over. Your partner can fly it again or pick another job.',
+  gauntpick: 'Your partner is setting up a Gauntlet run.',
+  gauntover: 'The Gauntlet run is over. Your partner can run it again.'
 };
 const NET = {
   role: null, // 'host' | 'guest' | null
@@ -1063,7 +1065,8 @@ function netHtml(m) {
       NET.hm === 'win' ||
       NET.hm === 'driveover' ||
       NET.hm === 'stealthover' ||
-      NET.hm === 'flightover';
+      NET.hm === 'flightover' ||
+      NET.hm === 'gauntover';
     const what = NET_WAIT[NET.hm] || 'Your partner is in a menu.';
     const txt =
       NET.hm === 'arenaover'

@@ -286,7 +286,8 @@ function lootChest(t) {
         (1 + G.wd.level * 0.15) *
         (night ? 1.25 : 1) // night caches are fuller
     );
-  drop('cred', t.x - 10, t.y + 10, { v: c });
+  // a hired crew member takes their cut of the cache before it hits the floor
+  drop('cred', t.x - 10, t.y + 10, { v: c - crewPay(c, 'cache', true) });
   if (b.type === 'secret') {
     if (b.final && !LEG.legs.includes('lantern'))
       drop('gear', t.x + 40, t.y + 6, { item: mkLegend('lantern') });

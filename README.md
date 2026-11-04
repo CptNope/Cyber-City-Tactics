@@ -157,6 +157,12 @@ Endless waves on one street, solo or co-op, starting at level 3:
 
 **Weekly challenge:** a seeded Arena run that gives everyone the same waves and perk offers for the ISO week. You play on Runner with one modifier: Glass Cannon, Powder Keg, Elite Week, Spirit Tide or Bare Knuckles. Your weekly best is kept, and the end screen has a Copy / Share button with a brag line and the game's link.
 
+### The Gauntlet (roguelite)
+Every district of the campaign in a random order, each with a random mutator (Glass Cannon, Elite Streets, Bare Knuckles, Turbo, Fog or Split), and **one life each**: fall and the run is over. There's no Den between districts: after each boss you pick one of three Arena perks (never Second wind), heal 40% and go straight on. Foes scale with how many districts you're into the run, not which district it is, so a late district drawn first plays like a first one. No story scenes, and the Gauntlet never saves or touches your campaign save.
+- **Seeds:** every run has a code like **G-K2F9QX** that plays the same districts, mutators and perk offers. Share it from the end screen, or open a `?seed=G-…` link.
+- **Gauntlet of the day:** a seed everyone gets the same today, on Runner; your best today is kept.
+- **Score:** 1,000 a district cleared, 2,000 for running it all, 250 a boss and 10 a takedown. Your best run is kept on the device. Feats: *Run the Gauntlet* (three districts) and *No Second Chances* (all of them).
+
 ### Jobs: driving
 Side jobs from Juno that aren't a brawl, on the **Jobs** board on the title screen (and the online menu). Each runner rides a bike through the street's depth lanes:
 
@@ -201,6 +207,8 @@ Ceiling cameras sweep cones of light and guards see ahead of them. Walls only le
 |---|---|---|
 | Ghost in the Arcology | Kagemori Arcology | Aide Morrow |
 | The Night Clinic | Neon Market | Doc Varga |
+
+**Security doors and the safe.** The first walls on the floor (two in the Arcology, one in the Clinic) are security doors with a keypad on the near side. Drop low by the keypad and punch to crack it (a keypad sequence): the door slides up into the ceiling and you can fly straight through at any height, skipping the vent. But an open door lets cameras and guards see through it too. A wall safe in a side office before the terminal (a network trace) holds ¥260 in the Arcology, ¥180 in the Clinic, and a piece of gear. Blow either hack and the lock shuts for four seconds while the floor takes a hard look at your drone. The job card counts the doors you opened and what the safe gave up.
 
 The floor is laid out fresh every time you fly it.
 
@@ -569,6 +577,18 @@ The character sheet lists everything a runner has installed.
 
 Companions carry between districts and get patched up in the Den, but if one falls on a job it's gone.
 
+**Crew contracts** (also from Kit, in the Den or at the safehouse): named runners who take the companion slot instead, so it's a crew member *or* a companion.
+
+| Crew | Role | Fee | Cut | Special (every 12 s) | At full loyalty |
+|---|---|---|---|---|---|
+| Kestrel | Street samurai | ¥150 | 20% | **Blade Rush:** dashes through the nearest foes, cutting everything in a line | cuts twice and dazes |
+| Pixel | Decker | ¥160 | 25% | **Shutdown:** stuns every drone, turret, mech and ICE on screen; snipes with a smartgun between | also hacks one machine to fight for you |
+| Moss | Street shaman | ¥140 | 20% | **Mending:** heals every runner 12% and curses the foes around her | also gets a downed partner up |
+
+- **The cut:** every payday (a district's contract in the campaign, a building's cache in the Sprawl) they take their share.
+- **Loyalty:** a payday where they're standing earns a point; at five their special changes (feat: *Ride or Die*). Loyalty is saved with the party.
+- **Downed, not gone:** a crew member who falls waits where they dropped with a REVIVE marker. Stand beside them for a moment and they're back at half health. Leave them and they're patched up to a quarter for the next street.
+
 ---
 
 ## Combat
@@ -710,7 +730,7 @@ Slaying Ssareth earns *Who Lights the Way*, the Wyrmslayer coat and the Wyrmhear
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 74 goals across every mode, for example:
+**Feats.** 77 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

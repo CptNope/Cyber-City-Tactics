@@ -93,7 +93,7 @@ function drawFacility() {
   // walls, open only at their vents
   for (const w of S.walls) {
     const x = w.x - cx;
-    if (x < -30 || x > W + 30) continue;
+    if (x < -30 || x > W + 30 || w.open) continue;
     ctx.fillStyle = '#262a38';
     ctx.fillRect(x - w.w / 2, top, w.w, sfY(w.gap[1]) - top);
     ctx.fillRect(x - w.w / 2, sfY(w.gap[0]), w.w, SF.floor - sfY(w.gap[0]));
@@ -101,6 +101,70 @@ function drawFacility() {
     ctx.fillRect(x - w.w / 2, top, 1, SF.floor - top);
     ctx.strokeStyle = 'rgba(159,233,255,.25)';
     ctx.strokeRect(x - w.w / 2 + 0.5, sfY(w.gap[1]) + 0.5, w.w - 1, sfY(w.gap[0]) - sfY(w.gap[1]) - 1);
+  }
+  // security doors: hazard stripes and a light while shut, a strip in the ceiling once open; and their keypads
+  for (const w of S.walls) {
+    if (!w.door) continue;
+    const x = w.x - cx;
+    if (x < -30 || x > W + 30) continue;
+    if (w.open) {
+      ctx.fillStyle = '#262a38';
+      ctx.fillRect(x - w.w / 2, top, w.w, 8);
+      ctx.fillStyle = '#7dffb0';
+      ctx.fillRect(x - 2, top + 9, 4, 2);
+    } else {
+      ctx.fillStyle = 'rgba(255,198,61,.28)';
+      // stripes on the steel, never across the vent, which stays the slow way through
+      for (let y = top + 4; y < SF.floor - 4; y += 12)
+        if (y + 4 < sfY(w.gap[1]) || y > sfY(w.gap[0])) ctx.fillRect(x - w.w / 2 + 2, y, w.w - 4, 4);
+      ctx.fillStyle = '#ff3d4a';
+      ctx.fillRect(x - 2, top + 2, 4, 2);
+    }
+  }
+  const lockCol = l => (l.open ? '#7dffb0' : l.lockT > 0 ? '#ff3d4a' : '#ffc63d');
+  for (const d of S.doors || []) {
+    const x = d.x - cx;
+    if (x < -20 || x > W + 20) continue;
+    ctx.fillStyle = '#20232f';
+    ctx.fillRect(x - 6, SF.floor - 40, 12, 16);
+    ctx.fillStyle = lockCol(d);
+    ctx.globalAlpha = d.open ? 0.9 : 0.6 + 0.3 * Math.sin(G.t * 0.12);
+    for (let i = 0; i < 4; i++) ctx.fillRect(x - 4 + (i % 2) * 5, SF.floor - 37 + (i >> 1) * 5, 3, 3);
+    ctx.globalAlpha = 1;
+    if (!d.open) txt('KEYPAD', x, SF.floor - 44, 8, '#a79dc2', 'center');
+  }
+  if (S.safe) {
+    const sf = S.safe,
+      x = sf.x - cx;
+    if (x > -30 && x < W + 30) {
+      ctx.fillStyle = '#1b1d27';
+      ctx.fillRect(x - 15, SF.floor - 44, 30, 26);
+      ctx.strokeStyle = lockCol(sf);
+      ctx.strokeRect(x - 14.5, SF.floor - 43.5, 29, 25);
+      ctx.beginPath();
+      ctx.arc(x, SF.floor - 31, 6, 0, 6.29);
+      ctx.stroke();
+      if (!sf.open) glow(x, SF.floor - 31, 22, 16, '#ffc63d', 0.12);
+      txt(sf.open ? 'EMPTY' : 'SAFE', x, SF.floor - 49, 9, lockCol(sf), 'center');
+    }
+  }
+  // a drone low enough beside a keypad or the safe: say what to press
+  const lockNear = PL.map(p => p.drone && !p.out && stealthLockAt(p, S)).find(l => l && l !== S.term);
+  if (lockNear) {
+    const x = lockNear.x - cx;
+    ctx.fillStyle = 'rgba(11,8,18,.8)';
+    ctx.fillRect(x - 50, SF.floor - 76, 100, 16);
+    txt(
+      ctl(
+        lockNear.wi >= 0 ? 'PUNCH: OPEN DOOR' : 'PUNCH: CRACK SAFE',
+        lockNear.wi >= 0 ? 'J: OPEN DOOR' : 'J: CRACK SAFE'
+      ),
+      x,
+      SF.floor - 64,
+      11,
+      '#ffc63d',
+      'center'
+    );
   }
   // laser gates
   for (const l of S.lasers) {

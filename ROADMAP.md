@@ -186,15 +186,15 @@ These are the next ways to keep "one more run" alive:
 
 ## Horizon two
 
-The next wave, picked from what playing the shipped systems turned up. Every item still has to work on a phone, in couch co-op and online, and should add a decision rather than a number. **Suggested first three:** Crew contracts, the Roguelite run and Doors the hack can open: each reuses systems that already exist, so they're mostly content and rules.
+The next wave, picked from what playing the shipped systems turned up. Every item still has to work on a phone, in couch co-op and online, and should add a decision rather than a number. **Shipped first:** Crew contracts, the Gauntlet (the roguelite run) and Doors the hack can open.
 
 ### The crew
-- [ ] **Crew contracts (M).** Hire a named NPC runner from the Den for a district or a Sprawl block (Kit's merc, Pixel the decker, a street shaman). They fight beside you with their own archetype special, take a cut of the take, can be downed and revived, and gain loyalty with every job: at high loyalty they unlock a personal side job and a tier III twist of their own. The ally code from companions and crew backup carries most of it.
+- [x] ~~**Crew contracts.**~~ Shipped: Kestrel (Blade Rush), Pixel (Shutdown) and Moss (Mending) from Kit, in the companion slot. They take a cut of each payday, wait to be revived when they go down, and gain loyalty; at five their special changes. Still to come: a personal side job for each at full loyalty.
 - [ ] **Loyalty and betrayal (S).** A hired runner with low loyalty may walk off with a share of the loot if you keep skipping their cut, or sell your position to a hostile crew (a hit squad that arrives knowing where you are).
 - [ ] **The safehouse grows (M).** Spend creds on safehouse upgrades that change how the Sprawl plays: a workbench (craft without Ratchet), a med bay (one free revive a block), a scanner (shows the block's hidden doors), a garage (bike upgrades for driving jobs). Each is a choice, because creds spent here aren't spent on gear.
 
 ### Jobs, round two
-- [ ] **Doors the hack can open (S).** In drone stealth, terminals open locked doors, shortcuts and a vault room off the main route, using the new hacking minigames.
+- [x] ~~**Doors the hack can open.**~~ Shipped: security doors with keypads (a keypad sequence) that open a shortcut past the vent but let the guards see through, and a wall safe (a network trace) with creds and gear.
 - [ ] **Car chase (M).** The driving job's "still to come": a rigger drives a car in the depth lanes while the partner leans out to shoot. Solo, the autogun from flight takes the window.
 - [ ] **Delivery run (S).** A driving variant where the cargo has its own health bar: speed pays, but every crash and every hit costs the client's goods.
 - [ ] **Heist planning (L).** A multi-stage job on a Kagemori tower: pick an entry (drone stealth through the vents, a flight drop on the roof, or a loud front door brawl), and each choice changes the next stage's guards, alarm level and loot. The job modes that exist become the stages.
@@ -217,7 +217,7 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 - [ ] **Cyberware with drawbacks (S).** Rare implants with a real cost: a reflex wire that doubles the parry window but halves mana, an armoured skin that stops dodging. Doc can pull them back out for a price.
 
 ### Modes
-- [ ] **Roguelite run (M).** Promoted from the parking lot: one life, a random order of districts with random mutators, a perk choice after every boss (from the Arena's perks), and a legend-rank bonus for how far you get. Seeded, so it fits the daily challenge and share codes.
+- [x] ~~**Roguelite run.**~~ Shipped as the Gauntlet: every district in a random order with a random mutator, one life, a perk after each boss, foes scaled by depth, G-XXXX seeds, a gauntlet of the day, a score and two feats.
 - [ ] **Boss rush (S).** Every boss back to back, with a perk between each, on a timer. Unlocked by finishing the campaign; best times saved per difficulty.
 - [ ] **Photo mode (S).** Promoted from the parking lot: pause, free the camera across the street, hide the HUD, pick a filter (neon, noir, VHS), and save the picture. Uses the downloads path that Save backup uses.
 
