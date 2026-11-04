@@ -201,7 +201,9 @@ G.wd.patT = 99999;
 step(1505);
 ok(G.wd.heat === h0, 'heat decays a star after ~25s with no cops: ' + G.wd.heat);
 // hack fail on a bad building adds heat + lockout
-const biz = findB(b => b.type === 'business') || findB(b => !__api.isGood(b));
+const biz =
+  findB(b => b.type === 'business') ||
+  findB(b => b.id && b.type !== 'secret' && !__api.isGood(b) && !__api.isShop(b)); // never the safehouse
 if (biz) {
   const hb = G.wd.heat;
   goDoor2(biz);
