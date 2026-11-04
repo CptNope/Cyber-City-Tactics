@@ -379,6 +379,13 @@ function upRunner(p) {
   physics(p);
   const rg = has(p, 'swalk') && spiritNear(p) ? Math.max(1, Math.round(D.regen / 1.5)) : D.regen; // Spirit Walk
   if (p.mp < p.maxMp && G.t % rg === 0) p.mp++;
+  // say so when a passive skill switches on (the HUD frames the health bar while it lasts)
+  if (G.t % 6 === 0 && p.state !== 'dead') {
+    const tags = skillTags(p),
+      was = p.tagsOn || '';
+    for (const t of tags) if (!was.split(',').includes(t.k)) say(p, t.n, t.col, 70, 40, true);
+    p.tagsOn = tags.map(t => t.k).join(',');
+  }
   if (p.state === 'dead') {
     if (p.t > 100) respawn(p);
     return;

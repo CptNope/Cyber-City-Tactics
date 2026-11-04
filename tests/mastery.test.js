@@ -141,3 +141,45 @@ P.lvl = 19;
 P.karma = 0;
 A.gainKarma(A.karmaNext(19) + 1);
 ok(P.lvl >= 20 && G.toasts.some(t => /mastery II/.test(t.s)), 'reaching a mastery level says so');
+
+/* ---------- skill effects in the HUD ---------- */
+P = setup('runner', 10);
+P.sk = Object.assign(P.sk, { berserk: 1 });
+P.hp = P.maxHp;
+ok(!A.skillTags(P).length, 'Berserker at full health: nothing to show');
+P.hp = Math.floor(P.maxHp * 0.3);
+ok(
+  A.skillTags(P).some(t => t.k === 'berserk'),
+  'below 40% HP the HUD marks Berserker as on'
+);
+G.texts = [];
+step(7);
+ok(
+  G.texts.some(t => t.s === 'BERSERK'),
+  'and says so as it switches on'
+);
+G.texts = [];
+step(12);
+ok(!G.texts.some(t => t.s === 'BERSERK'), 'once');
+P = setup('mage', 10);
+P.sk = Object.assign(P.sk, { archon: 1 });
+const drawn = [];
+const realFill = A.ctx.fillText;
+A.ctx.fillText = function (s) {
+  drawn.push(String(s));
+  return realFill && realFill.apply(this, arguments);
+};
+P.casts = 1;
+A.drawPanel(P, 10);
+ok(
+  drawn.some(s => /◆◇◇/.test(s)),
+  'Archon: the spell line counts the casts toward the free one'
+);
+drawn.length = 0;
+P.casts = 3;
+A.drawPanel(P, 10);
+ok(
+  drawn.some(s => /FREE ×2/.test(s)),
+  'and says when the next one is free'
+);
+A.ctx.fillText = realFill;

@@ -14,7 +14,7 @@ Plain JavaScript drawing on a `<canvas>`, with HTML menus over it. There's no fr
 | `src/js/modes/` | Mode rules: Sprawl, black market, choices, dungeons, hacking, training, Arena, jobs (driving, drone, flight), online co-op |
 | `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()` |
 | `src/js/ui/` | HTML menus: title attract, screens, overlay and `setMode`, the single action handler |
-| `src/js/pwa.js`, `src/js/main.js` | Install, updates and backups; the game loop and boot |
+| `src/js/pwa.js`, `src/js/sync.js`, `src/js/main.js` | Install, updates and backups; save codes and the sync file; the game loop and boot |
 | `sw.js` | Service worker: precaches the build for offline play |
 | `server/` | The online lobby: a Cloudflare Worker with room codes and TURN relay passes |
 | `tools/` | `build.mjs` (version stamp, precache list, single-file build), local server, screenshot and trailer capture, local lobby |
@@ -32,7 +32,7 @@ flowchart LR
   GAME --> MODES["modes/<br/>sprawl → blackmarket → choices → dungeons → hacking → training → arena → jobs → drive → stealth → flight → net"]
   MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud"]
   REND --> UI["ui/<br/>attract → screens → overlay → actions"]
-  UI --> PWA[pwa.js] --> MAIN[main.js: boots]
+  UI --> PWA[pwa.js] --> SYNC[sync.js] --> MAIN[main.js: boots]
 ```
 
 ## A frame

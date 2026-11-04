@@ -2,6 +2,29 @@
 
 Everything is stored in the browser's `localStorage` under `cs_*` keys, through `store` in core/utils.js. `store.load(key)` reads a slot **and checks its shape** against `SAVE_SHAPES`, returning `null` for anything malformed, so an old, partial or hand-edited save is ignored instead of crashing a menu. Settings can export every key to a backup file and import it again (pwa.js).
 
+## Cloud save (sync.js)
+
+No server: the bundle that a backup file holds (`saveBundle()`: every `cs_*` key, the date and a change stamp) can also travel as a **save code** or through a **sync file**.
+
+```mermaid
+flowchart LR
+  W["store.set / store.del on a cs_ key"] --> T["syncTouch(): cct_sync.stamp = now"]
+  T -->|linked| F["syncFlush() after 4 s:<br/>write the bundle to the file"]
+  F --> S["cct_sync.synced = stamp"]
+  B["launch: syncBoot()"] --> H{"handle in IndexedDB?<br/>permission granted?"}
+  H -- no permission --> P["paused: Resume in Settings"]
+  H -- yes --> A["syncAdopt(): read the file"]
+  A -->|"file stamp > local stamp"| Q["hold: ask to load<br/>or keep this device's"]
+  A -->|"older, empty or not ours"| F
+```
+
+- **Stamps, not dates.** `cct_sync` in localStorage (outside the `cs_` keys, so never in a bundle) holds `stamp`, bumped on every save write, and `synced`, the stamp last written to or read from the file. A file is "newer" only when its bundle's stamp is above this device's stamp.
+- **Nothing loads silently.** A newer file becomes a pending import (`G.importData.from = 'sync'`); until the player answers, the file is not written (`SYNC.state = 'hold'`), and leaving Settings keeps the question. *Keep this device's saves* restamps them above the file's and writes them out.
+- **Loading a backup file or a save code** counts as the newest change (`stamp = now`), so it goes out to a linked file; loading from the sync file sets both stamps to the file's.
+- **Save codes** are `CCTSz` + base64url of the deflated bundle (`CCTSp` + plain base64url where `CompressionStream` is missing). Online invite codes start `CCT1`, so neither box accepts the other's code.
+- **The file handle** is kept in IndexedDB (`cct` → `kv` → `syncFile`). Browsers drop the write permission on restart, so `syncBoot()` sees `prompt` and waits for *Resume*, a click, which `requestPermission()` needs.
+- The sync file needs `showSaveFilePicker` (Chrome and Edge), and is hidden in the claude.ai preview, where pickers are blocked; save codes work everywhere.
+
 | Key | What | Written by | Read by |
 |---|---|---|---|
 | `cs_save3` | The campaign: stage, phase (Den or briefing), difficulty, NG+, mutators, party, runners, shop stock, debrief, choices, side jobs | `saveGame()` | `loadGame()`, Continue |

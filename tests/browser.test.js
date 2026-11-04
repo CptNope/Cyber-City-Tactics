@@ -249,6 +249,54 @@ const { pathToFileURL } = require('url');
         }),
         'accessibility settings switch the page’s motion, contrast and colour classes'
       );
+      // save codes: make one, paste it back, and Settings offers to load it
+      await page.evaluate(() => {
+        G.setRet = 'play';
+        setMode('settings');
+      });
+      await page.click('#ov [data-a="codemake"]');
+      await page.waitForSelector('#ov .codebox textarea[readonly]');
+      const sc = await page.$eval('#ov .codebox textarea', t => t.value);
+      ok(/^CCTSz[A-Za-z0-9_-]{40,}$/.test(sc), `Settings makes a save code (${sc.length} characters)`);
+      await page.click('#ov [data-a="codeenter"]');
+      await page.fill('#codeIn', sc);
+      await page.click('#ov [data-a="codeload"]');
+      await page.waitForFunction(() => G.importData && G.importData.from === 'code', null, { timeout: 5000 });
+      ok(
+        await page.evaluate(() =>
+          /Replace your saves with this code/.test(document.getElementById('ov').innerHTML)
+        ),
+        'and a pasted code is offered back, asking first'
+      );
+      ok(
+        await page.evaluate(
+          () => SYNC.ok && /data-a="synclink"/.test(document.getElementById('ov').innerHTML)
+        ),
+        'Chromium offers a sync file'
+      );
+      await page.click('#ov [data-a="importno"]');
+      // a real file handle (the origin-private file system stands in for a picked file) gets every save.
+      // (Reading a stored handle back from IndexedDB crashes headless Chromium here, so the restart half is
+      // covered by sync.test.js with a fake handle.)
+      ok(
+        await page.evaluate(async () => {
+          const dir = await navigator.storage.getDirectory(),
+            h = await dir.getFileHandle('cct-sync.json', { create: true });
+          await syncAdopt(h);
+          store.set('cs_stealth', { best: 9 });
+          await syncFlush();
+          const saved = JSON.parse(await (await h.getFile()).text());
+          return (
+            SYNC.state === 'on' &&
+            saved.app === 'cyber-city-tactics' &&
+            JSON.parse(saved.data.cs_stealth).best === 9
+          );
+        }),
+        'a linked file gets every save as the game writes them'
+      );
+      await page.evaluate(() => syncUnlink());
+      await page.click('#ov [data-a="setdone"]');
+      ok((await mode()) === 'play', 'back to the street');
       const x0 = await page.evaluate(() => PL[0].x);
       await page.evaluate(() => (window.__pad.axes[0] = 1));
       await page.waitForTimeout(500);
