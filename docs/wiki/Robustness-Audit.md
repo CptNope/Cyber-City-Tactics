@@ -41,7 +41,7 @@ pie showData
 | M7 | Low–med | Training left `G.training` on, dodging One Life | `newRun` and briefings switch it off |
 | M8 | Low | The stealth terminal's hack card said "undefined", and backing off avoided the penalty | the terminal gets a name and tier; backing off a vault or terminal fails the hack |
 | M9 | Low | The daily challenge permanently changed runner 1's class | the challenge class applies only to that run |
-| M10 | Note | Quitting mid-building in the Sprawl allows re-entering to farm rooms | noted for a balance pass; not changed |
+| M10 | Note | Quitting mid-building in the Sprawl allowed re-entering to farm rooms | Fixed later in the living Sprawl: buildings remember the room you left (`w.prog`) |
 
 ## Combat
 

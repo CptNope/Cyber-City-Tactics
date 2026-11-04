@@ -46,7 +46,8 @@ Base numbers before scaling (see below). Bosses enrage at half health.
 | `glitch` | Glitch | 30 | 8 | 20 | 1.2 | 60 |  | Corrupted code with a body. Kill one and it splits in two. |
 | `ice` | ICE sentry | 30 | 9 |  | 0.9 | 110 | ranged:laser, fly | ICE sentries teleport and fire laser spreads. Watch the windup. |
 | `blackice` | Black ICE | 330 | 16 |  | 0.7 | 120 | boss, fly, beam | Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents. |
-| `drone` | Drone | 18 | 7 |  | 1.1 | 125 | ranged:bullet, fly | Rigger drones keep their distance and shoot. Jump-kick them out of the air. |
+| `drone` | Drone | 18 | 7 |  | 1.1 | 125 | ranged:bullet, fly | Rigger drones keep their distance and shoot. Jump-kick them out of the air. Short one out and PUNCH beside it to hack it. |
+| `turret` | Sentry turret | 60 | 8 |  | 0 | 95 | turret, heavy | Sentry turrets hold the back wall of black sites and precincts. Get out of their lane, or short one out and hack it. |
 | `troll` | Gutter King | 220 | 15 | 30 | 0.75 | 80 | boss, charge, grab | The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves, and don't stand still in front of him: he grabs, and it ta |
 | `blade` | Razor Mei | 200 | 13 | 26 | 1.15 | 55 | boss, charge, flurry:mach | Razor Mei dashes through you, then chains three dashes when she's enraged. A ring and "!!" mean a punch flurry: roll through it or parry it. |
 | `saint` | The Hollow Saint | 240 | 13 | 24 | 1 | 70 | boss, lunge, summon | The Hollow Saint summons spirits and slams the floor. Keep moving. |

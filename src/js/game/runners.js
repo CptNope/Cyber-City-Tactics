@@ -165,6 +165,7 @@ function doSpecial(p) {
           bul: true
         });
       e.cool = Math.max(e.cool || 0, 240);
+      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, 120); // shorted out: open to a hack
       if (!e.d.boss && !e.d.fly && !e.d.passive && e.state !== 'down') setS(e, 'hurt');
     }
   } else {
@@ -239,6 +240,60 @@ function doActive(p, k) {
     }
     if (!n) say(p, 'NOTHING TO SHORT OUT', '#a79dc2', 60, 40, true);
   }
+}
+/* ---------- hacking in a fight ---------- */
+// A drone or sentry turret that's shorted out (Short Circuit, the decker's Overload, a shock hit) or badly
+// damaged has a window open: PUNCH beside it to hack it. Drones turn into your own for 20 seconds; turrets
+// fight for you until their hijack runs out. Hacking (and a cyberdeck) raises the odds; a miss zaps you.
+const hackOpen = e =>
+  e.team === 1 &&
+  e.state !== 'dead' &&
+  !e.courier &&
+  !(e.d && e.d.boss) &&
+  (e.kind === 'drone' || (e.d && e.d.turret)) &&
+  G.t >= (e.hackLock || 0) &&
+  (e.stunT > 0 || e.hp < e.maxHp * 0.4 || (e.state === 'hurt' && e.elem === 'shock'));
+function hackTarget(p) {
+  if (G.mode !== 'play' || G.drive || G.flight || G.stealth) return null;
+  return G.ents.find(e => hackOpen(e) && Math.abs(e.x - p.x) < 36 && Math.abs(e.y - p.y) < 16) || null;
+}
+const hackChance = p => clamp(0.45 + (p.D.a.hak || 1) * 0.06 + (p.arch === 'decker' ? 0.15 : 0), 0.45, 0.95);
+function hackFoe(p, e) {
+  setS(p, 'cast');
+  p.t = 12;
+  sfx.zap();
+  G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#7dffb0', life: 14, max: 14, r: 0 });
+  if (G.training) G.tf.qhack = true;
+  if (Math.random() >= hackChance(p)) {
+    e.hackLock = G.t + 90;
+    e.stunT = 0;
+    hurt(p, 3, e.x >= p.x ? -1 : 1, { col: '#45d2ff', att: e });
+    say(p, 'HACK FAILED', '#ff3d8b', 40, 30, true);
+    return false;
+  }
+  bump('qhacks');
+  if (e.d.turret) {
+    e.team = 0;
+    e.owner = p;
+    e.hackedT = 1200;
+    e.stunT = 0;
+    e.cool = 20;
+    e.name = 'Hacked turret';
+  } else {
+    // a drone: it drops out of the fight and comes back on your side
+    const a = spawnSummon('drone', p, 1200, 0);
+    a.x = e.x;
+    a.y = e.y;
+    a.z = e.z;
+    a.name = 'Hacked drone';
+    e.gone = true;
+  }
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 46, s: 'HACKED', c: '#7dffb0', life: 60 });
+  tip(
+    'qhack',
+    'Hacked! Shorted-out or badly damaged drones and turrets can be turned. Your Hacking raises the odds.'
+  );
+  return true;
 }
 // drones, ICE, mechs, cops and corp guards: what the Decker tree's Short Circuit can short out
 const isTech = e =>
@@ -646,6 +701,11 @@ function upRunner(p) {
           (e.x - p.x) * p.face < 30
       );
       const downed = !G.den && !prop && haulTarget(p);
+      const hk = !G.den && hackTarget(p);
+      if (hk) {
+        hackFoe(p, hk); // a shorted-out drone or turret: turn it
+        return;
+      }
       if (prop && isClub(prop) && (!foeNear || !p.club)) {
         takeClub(p, prop); // a street weapon: grab it even mid-fight
         setS(p, 'lift');

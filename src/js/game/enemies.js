@@ -99,6 +99,7 @@ function upEnemy(e) {
   }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.turret) return turretTick(e);
   if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
     // shadows cloak whenever they aren't attacking, and drop the cloak for a while when hit
@@ -676,6 +677,60 @@ function echoSpell(e) {
       life: 170,
       r: 5
     });
+}
+/* ---------- sentry turrets ---------- */
+// A turret turns to the nearest target in reach (runners, or once hacked, foes), and fires down that lane.
+// A hacked one fights for the runners until its hijack runs out, then shuts down.
+function turretTick(e) {
+  if (e.state === 'dead') return;
+  if (e.team === 0) {
+    e.hackedT--;
+    if (e.hackedT <= 0) {
+      burst(e.x, e.y, 30, '#a79dc2', 12);
+      G.texts.push({ x: e.x, y: e.y, z: 50, s: 'HIJACK ENDED', c: '#a79dc2', life: 50, sm: true });
+      e.gone = true;
+      return;
+    }
+  }
+  if (e.stunT > 0) return; // shorted out (enemies.js upEnemy counts it down for foes)
+  const foes =
+    e.team === 0 ? G.ents.filter(x => x.team === 1 && x.state !== 'dead' && !(x.d && x.d.passive)) : alive();
+  let tgt = null,
+    bd = 1e9;
+  for (const x of foes) {
+    const dx = Math.abs(x.x - e.x);
+    if (dx > e.d.range) continue;
+    const dd = dx + Math.abs(x.y - e.y) * 3;
+    if (dd < bd) {
+      bd = dd;
+      tgt = x;
+    }
+  }
+  if (!tgt) return;
+  e.face = tgt.x >= e.x ? 1 : -1;
+  // it tracks along the back wall toward the target's lane, slowly
+  e.y = clamp(e.y + clamp(tgt.y - e.y, -0.4, 0.4), FY0 + 6, FY1);
+  if (e.cool > 0) {
+    e.cool--;
+    return;
+  }
+  if (Math.abs(tgt.y - e.y) > 10) return;
+  e.cool = e.d.cool * (e.coolMul || 1) * (e.team === 0 ? 0.7 : 1);
+  e.flash = 2;
+  G.projs.push({
+    k: 'bullet',
+    team: e.team,
+    src: e.team === 0 ? e.owner || null : null,
+    x: e.x + e.face * 14,
+    y: e.y,
+    z: 30,
+    gk: 'heavy',
+    vx: e.face * 6.4,
+    dmg: e.team === 0 ? Math.round(10 + (e.owner ? e.owner.D.gun * 0.6 : 0)) : e.dmg,
+    life: 70,
+    hit: []
+  });
+  sfx.zap();
 }
 function enrage(e) {
   e.enraged = true;

@@ -679,7 +679,47 @@ function drawMist(e) {
   ctx.fillRect(sx - 3, sy - 34, 2, 1.5);
   ctx.fillRect(sx + 2, sy - 34, 2, 1.5);
 }
+// a sentry turret on its post: red eye for theirs, green once hacked; sparks while shorted out
+function drawTurret(e) {
+  const sx = e.x - G.camX,
+    sy = e.y,
+    ours = e.team === 0,
+    fl = e.flash > 0,
+    dead = e.state === 'dead';
+  if (dead && e.t > 30 && (G.t >> 2) % 2) return;
+  shadow(sx, sy, 12);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.fillStyle = '#2a2e3a';
+  ctx.fillRect(-2, -26, 4, 26); // the post
+  ctx.fillStyle = '#3a3f4e';
+  ctx.fillRect(-7, -4, 14, 4); // the foot
+  ctx.scale(e.face || 1, 1);
+  ctx.fillStyle = fl ? '#fff' : dead ? '#1a1622' : '#4a5064';
+  ctx.fillRect(-9, -38, 18, 13); // the head
+  ctx.fillStyle = '#1a1622';
+  ctx.fillRect(8, -34, 10, 4); // the barrel
+  const eye = dead
+    ? '#3a3150'
+    : e.stunT > 0
+      ? (G.t >> 2) % 2
+        ? '#45d2ff'
+        : '#1a1622'
+      : ours
+        ? '#7dffb0'
+        : '#ff3d4a';
+  ctx.fillStyle = eye;
+  ctx.fillRect(2, -35, 4, 3);
+  if (!dead) glow(4, -33.5, 7, 4, eye, 0.5);
+  if (fl) {
+    ctx.fillStyle = '#ffe28a';
+    ctx.fillRect(18, -35, 4, 6); // muzzle flash
+  }
+  ctx.restore();
+  if (e.stunT > 0 && G.t % 6 === 0) burst(e.x, e.y, 32, '#45d2ff', 1);
+}
 function drawFig(e) {
+  if (e.d && e.d.turret) return drawTurret(e);
   if (e.mist > 0) return drawMist(e);
   if (e.d && e.d.passive) return drawPassive(e);
   if (e.d && e.d.ice) return drawIce(e);

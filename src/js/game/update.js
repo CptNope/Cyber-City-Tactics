@@ -35,6 +35,7 @@ function update() {
   const slowSkip = G.slowFoes > 0 && G.t % 2 === 1;
   if (G.slowFoes > 0) G.slowFoes--;
   for (const e of G.ents) if (e.team === 1 && (!slowSkip || e.d.passive)) upEnemy(e);
+  for (const e of G.ents) if (e.team === 0 && e.d && e.d.turret) turretTick(e); // a hacked turret
   for (const z of G.zaps) {
     z.delay--;
     if (z.delay === 0) {

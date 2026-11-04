@@ -290,7 +290,8 @@ function updateTouchUI() {
   } else if (p.holding) {
     punch = 'THROW';
     kick = 'DROP';
-  } else if (p.club && p.z > 0) punch = 'THROW';
+  } else if (G.mode === 'play' && hackTarget(p)) punch = 'HACK';
+  else if (p.club && p.z > 0) punch = 'THROW';
   else if (
     G.mode === 'play' &&
     !p.club &&

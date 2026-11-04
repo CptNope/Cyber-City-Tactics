@@ -44,3 +44,50 @@ flowchart TD
 | manhunt | Manhunt | Someone put a price on your head. Bounty hunters come for you now and then, and each one carries a fat payout. |
 
 Also on the street: heat (0–5 stars; cops, then drones and riot cops), street cred, Sable's black-market cart, Juno's bounty building, Kagemori courier drones, hidden doors, and the Lantern Vault once all 24 lore shards are found.
+
+## Day and night
+
+`w.clock` counts steps on the block (street and buildings, `clockTick` in modes/sprawl.js); each half of the day is `DAY_STEPS` (10,800 steps, three minutes). `isNight(w)` is the odd halves. The clock is saved with the block.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Day
+  Day --> Night: 3 minutes, or "Wait for nightfall" at the safehouse
+  Night --> Day: 3 minutes, or "Sleep till morning"
+```
+
+| | Day | Night |
+|---|---|---|
+| Cops (heat timer) | normal | a third slower (`copT` skips every third step) |
+| Gang patrols | normal | 1.6× as often, one more ganger |
+| Caches | normal | creds ×1.25, one more piece of gear |
+| Clinic and talisman shop | open | shut (`shopShut`), "CLOSED TILL DAWN" |
+| Break-ins on bad buildings | heat + 1 (witnesses) | normal heat |
+| Look | warm wash | cold wash, lamplight around runners (`drawTimeOfDay`) |
+
+## The block remembers
+
+Worked out from `w.looted`, so nothing new needs saving:
+
+| What | Effect | Cap |
+|---|---|---|
+| `cleared(w)`: hideouts and clubs looted | shops ×0.9 each, door reads CLEARED | 3 (−30%) |
+| `robbed(w)`: bad homes and businesses looted | shops ×1.1 each, BOARDED UP with planks | 3 (+30%) |
+
+`blockMul(w)` feeds `buyMul()`. `w.prog[building id]` is the room you last entered (`enterRoom`); `enterBuilding` resumes there, so leaving halfway (or quitting) doesn't restock the rooms you already cleared.
+
+## Turrets and hacking in a fight
+
+`DEF.turret` is a `heavy` (never flinches, falls or gets grabbed) sentry that `turretTick` runs: it slides along the back wall toward its target's lane and fires a bullet down it. Black sites and precincts get one in their inner rooms 65% of the time.
+
+```mermaid
+flowchart LR
+  F[Drone or turret] --> O{"hackOpen: stunT > 0, under 40% HP, or shock-stunned"}
+  O -- no --> F
+  O -- yes, runner PUNCHes beside it --> R{"roll < hackChance(p)"}
+  R -- yes, drone --> D[Gone; an allied drone for 20 s]
+  R -- yes, turret --> T["team 0 for 1,200 steps (turretTick targets foes)"]
+  R -- no --> Z[Runner zapped; hackLock 90 steps]
+```
+
+`hackChance(p)` is 0.45 + 0.06 × Hacking (cyberdeck included), +0.15 for deckers, capped at 0.95. Couriers and bosses can't be hacked. The Decker archetype's Overload and the Decker tree's Short Circuit set `stunT` on machines, which opens the window.

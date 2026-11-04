@@ -495,6 +495,7 @@ function kill(t, dir, o) {
   const crumple = t.react === 'light' && !t.elem && t.z === 0;
   t.vz = crumple ? 1.4 : 3.2;
   t.vx = dir * (crumple ? 0.6 : 2.6);
+  if (t.d && t.d.turret) t.vx = t.vz = 0; // bolted down
   t.hp = 0;
   if (t.team === 0) {
     t.dead = true;

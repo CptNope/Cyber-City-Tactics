@@ -132,7 +132,11 @@ function hackWin() {
   G.hack = null;
   sfx.level();
   if (!isGood(b)) {
-    G.wd.heat = Math.min(5, G.wd.heat + Math.max(0, heatFor(b) - (anyHas('ghost') ? 1 : 0)));
+    // in daylight there are witnesses: one more star
+    G.wd.heat = Math.min(
+      5,
+      G.wd.heat + Math.max(0, heatFor(b) + (isNight(G.wd) ? 0 : 1) - (anyHas('ghost') ? 1 : 0))
+    );
     G.wd.heatT = 0;
     G.wd.rep = Math.max(-100, G.wd.rep - credLoss(b));
   }

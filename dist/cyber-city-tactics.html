@@ -1134,7 +1134,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+7a5de9e';
+const APP_VERSION = '2.0.0+66e08c5';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2090,7 +2090,8 @@ function updateTouchUI() {
   } else if (p.holding) {
     punch = 'THROW';
     kick = 'DROP';
-  } else if (p.club && p.z > 0) punch = 'THROW';
+  } else if (G.mode === 'play' && hackTarget(p)) punch = 'HACK';
+  else if (p.club && p.z > 0) punch = 'THROW';
   else if (
     G.mode === 'play' &&
     !p.club &&
@@ -2851,6 +2852,22 @@ const DEF = {
     fly: true,
     creds: [10, 18],
     karma: 12
+  },
+  // a sentry gun bolted to the wall of a black site or precinct: it never moves, never flinches, and shoots
+  // down its lane. Short it out (or wear it down) and a runner can hack it to fight for them.
+  turret: {
+    name: 'Sentry turret',
+    hp: 60,
+    spd: 0,
+    dmg: 8,
+    reach: 0,
+    cool: 95,
+    scale: 1,
+    turret: true,
+    heavy: true,
+    range: 220,
+    creds: [16, 26],
+    karma: 18
   },
   troll: {
     name: 'Gutter King',
@@ -4425,7 +4442,10 @@ const BEST = {
   cop: 'Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.',
   glitch: 'Corrupted code with a body. Kill one and it splits in two.',
   ice: 'ICE sentries teleport and fire laser spreads. Watch the windup.',
-  drone: 'Rigger drones keep their distance and shoot. Jump-kick them out of the air.',
+  drone:
+    'Rigger drones keep their distance and shoot. Jump-kick them out of the air. Short one out and PUNCH beside it to hack it.',
+  turret:
+    'Sentry turrets hold the back wall of black sites and precincts. Get out of their lane, or short one out and hack it.',
   blackice: 'Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents.',
   troll:
     "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves, and don't stand still in front of him: he grabs, and it takes a lot of mashing to get loose.",
@@ -6439,6 +6459,7 @@ function kill(t, dir, o) {
   const crumple = t.react === 'light' && !t.elem && t.z === 0;
   t.vz = crumple ? 1.4 : 3.2;
   t.vx = dir * (crumple ? 0.6 : 2.6);
+  if (t.d && t.d.turret) t.vx = t.vz = 0; // bolted down
   t.hp = 0;
   if (t.team === 0) {
     t.dead = true;
@@ -7164,6 +7185,7 @@ function doSpecial(p) {
           bul: true
         });
       e.cool = Math.max(e.cool || 0, 240);
+      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, 120); // shorted out: open to a hack
       if (!e.d.boss && !e.d.fly && !e.d.passive && e.state !== 'down') setS(e, 'hurt');
     }
   } else {
@@ -7238,6 +7260,60 @@ function doActive(p, k) {
     }
     if (!n) say(p, 'NOTHING TO SHORT OUT', '#a79dc2', 60, 40, true);
   }
+}
+/* ---------- hacking in a fight ---------- */
+// A drone or sentry turret that's shorted out (Short Circuit, the decker's Overload, a shock hit) or badly
+// damaged has a window open: PUNCH beside it to hack it. Drones turn into your own for 20 seconds; turrets
+// fight for you until their hijack runs out. Hacking (and a cyberdeck) raises the odds; a miss zaps you.
+const hackOpen = e =>
+  e.team === 1 &&
+  e.state !== 'dead' &&
+  !e.courier &&
+  !(e.d && e.d.boss) &&
+  (e.kind === 'drone' || (e.d && e.d.turret)) &&
+  G.t >= (e.hackLock || 0) &&
+  (e.stunT > 0 || e.hp < e.maxHp * 0.4 || (e.state === 'hurt' && e.elem === 'shock'));
+function hackTarget(p) {
+  if (G.mode !== 'play' || G.drive || G.flight || G.stealth) return null;
+  return G.ents.find(e => hackOpen(e) && Math.abs(e.x - p.x) < 36 && Math.abs(e.y - p.y) < 16) || null;
+}
+const hackChance = p => clamp(0.45 + (p.D.a.hak || 1) * 0.06 + (p.arch === 'decker' ? 0.15 : 0), 0.45, 0.95);
+function hackFoe(p, e) {
+  setS(p, 'cast');
+  p.t = 12;
+  sfx.zap();
+  G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#7dffb0', life: 14, max: 14, r: 0 });
+  if (G.training) G.tf.qhack = true;
+  if (Math.random() >= hackChance(p)) {
+    e.hackLock = G.t + 90;
+    e.stunT = 0;
+    hurt(p, 3, e.x >= p.x ? -1 : 1, { col: '#45d2ff', att: e });
+    say(p, 'HACK FAILED', '#ff3d8b', 40, 30, true);
+    return false;
+  }
+  bump('qhacks');
+  if (e.d.turret) {
+    e.team = 0;
+    e.owner = p;
+    e.hackedT = 1200;
+    e.stunT = 0;
+    e.cool = 20;
+    e.name = 'Hacked turret';
+  } else {
+    // a drone: it drops out of the fight and comes back on your side
+    const a = spawnSummon('drone', p, 1200, 0);
+    a.x = e.x;
+    a.y = e.y;
+    a.z = e.z;
+    a.name = 'Hacked drone';
+    e.gone = true;
+  }
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 46, s: 'HACKED', c: '#7dffb0', life: 60 });
+  tip(
+    'qhack',
+    'Hacked! Shorted-out or badly damaged drones and turrets can be turned. Your Hacking raises the odds.'
+  );
+  return true;
 }
 // drones, ICE, mechs, cops and corp guards: what the Decker tree's Short Circuit can short out
 const isTech = e =>
@@ -7645,6 +7721,11 @@ function upRunner(p) {
           (e.x - p.x) * p.face < 30
       );
       const downed = !G.den && !prop && haulTarget(p);
+      const hk = !G.den && hackTarget(p);
+      if (hk) {
+        hackFoe(p, hk); // a shorted-out drone or turret: turn it
+        return;
+      }
       if (prop && isClub(prop) && (!foeNear || !p.club)) {
         takeClub(p, prop); // a street weapon: grab it even mid-fight
         setS(p, 'lift');
@@ -8672,6 +8753,7 @@ function upEnemy(e) {
   }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.turret) return turretTick(e);
   if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
     // shadows cloak whenever they aren't attacking, and drop the cloak for a while when hit
@@ -9250,6 +9332,60 @@ function echoSpell(e) {
       r: 5
     });
 }
+/* ---------- sentry turrets ---------- */
+// A turret turns to the nearest target in reach (runners, or once hacked, foes), and fires down that lane.
+// A hacked one fights for the runners until its hijack runs out, then shuts down.
+function turretTick(e) {
+  if (e.state === 'dead') return;
+  if (e.team === 0) {
+    e.hackedT--;
+    if (e.hackedT <= 0) {
+      burst(e.x, e.y, 30, '#a79dc2', 12);
+      G.texts.push({ x: e.x, y: e.y, z: 50, s: 'HIJACK ENDED', c: '#a79dc2', life: 50, sm: true });
+      e.gone = true;
+      return;
+    }
+  }
+  if (e.stunT > 0) return; // shorted out (enemies.js upEnemy counts it down for foes)
+  const foes =
+    e.team === 0 ? G.ents.filter(x => x.team === 1 && x.state !== 'dead' && !(x.d && x.d.passive)) : alive();
+  let tgt = null,
+    bd = 1e9;
+  for (const x of foes) {
+    const dx = Math.abs(x.x - e.x);
+    if (dx > e.d.range) continue;
+    const dd = dx + Math.abs(x.y - e.y) * 3;
+    if (dd < bd) {
+      bd = dd;
+      tgt = x;
+    }
+  }
+  if (!tgt) return;
+  e.face = tgt.x >= e.x ? 1 : -1;
+  // it tracks along the back wall toward the target's lane, slowly
+  e.y = clamp(e.y + clamp(tgt.y - e.y, -0.4, 0.4), FY0 + 6, FY1);
+  if (e.cool > 0) {
+    e.cool--;
+    return;
+  }
+  if (Math.abs(tgt.y - e.y) > 10) return;
+  e.cool = e.d.cool * (e.coolMul || 1) * (e.team === 0 ? 0.7 : 1);
+  e.flash = 2;
+  G.projs.push({
+    k: 'bullet',
+    team: e.team,
+    src: e.team === 0 ? e.owner || null : null,
+    x: e.x + e.face * 14,
+    y: e.y,
+    z: 30,
+    gk: 'heavy',
+    vx: e.face * 6.4,
+    dmg: e.team === 0 ? Math.round(10 + (e.owner ? e.owner.D.gun * 0.6 : 0)) : e.dmg,
+    life: 70,
+    hit: []
+  });
+  sfx.zap();
+}
 function enrage(e) {
   e.enraged = true;
   e.spdMul = 1.3;
@@ -9607,6 +9743,7 @@ function update() {
   const slowSkip = G.slowFoes > 0 && G.t % 2 === 1;
   if (G.slowFoes > 0) G.slowFoes--;
   for (const e of G.ents) if (e.team === 1 && (!slowSkip || e.d.passive)) upEnemy(e);
+  for (const e of G.ents) if (e.team === 0 && e.d && e.d.turret) turretTick(e); // a hacked turret
   for (const z of G.zaps) {
     z.delay--;
     if (z.delay === 0) {
@@ -10366,10 +10503,51 @@ const roomsOf = b =>
             ? 3
             : 2
           : b.tier + 1;
+/* ---------- day and night ---------- */
+// Each block keeps its own clock, running while you're on it (street and buildings). Three minutes of day,
+// then three of night. Night: fewer cops, more and bigger gang patrols, richer caches, shops shut. Day: shops
+// open, and breaking into somewhere you shouldn't draws witnesses (one more heat star).
+const DAY_STEPS = 10800;
+const isNight = w => !!w && Math.floor((w.clock || 0) / DAY_STEPS) % 2 === 1;
+const nightOn = () => !!(G.world && G.wd && isNight(G.wd));
+const phaseLeft = w => DAY_STEPS - ((w.clock || 0) % DAY_STEPS);
+function clockTick(w) {
+  const was = isNight(w);
+  w.clock = (w.clock || 0) + 1;
+  if (isNight(w) === was) return;
+  const night = isNight(w);
+  (G.toasts = G.toasts || []).push({
+    s: night ? 'Nightfall' : 'Morning',
+    d: night
+      ? 'Gangs out, cops thin, caches richer. The clinic and talisman shops shut till dawn.'
+      : 'Shops open. Break into the wrong place now and there are witnesses.',
+    life: 260
+  });
+  if (!G.dun) saveWorld();
+}
+// the safehouse: sit tight until the other half of the day
+function waitPhase(w) {
+  w.clock = (Math.floor((w.clock || 0) / DAY_STEPS) + 1) * DAY_STEPS;
+  bump('waits');
+}
+const shopShut = b => (b.type === 'clinic' || b.type === 'talisman') && nightOn();
+
+/* ---------- consequences that stick ---------- */
+// The block remembers what you did to it. Every crew hideout or club you clear makes the block's shops 10%
+// cheaper (to 30%); every home or business you rob makes them 10% dearer (to 30%), and those stay boarded up.
+const cleared = w =>
+  w
+    ? w.street.buildings.filter(b => (b.type === 'hideout' || b.type === 'club') && w.looted.includes(b.id))
+        .length
+    : 0;
+const robbed = w =>
+  w ? w.street.buildings.filter(b => !isGood(b) && !isShop(b) && w.looted.includes(b.id)).length : 0;
+const blockMul = w => (w ? (1 - 0.1 * Math.min(3, cleared(w))) * (1 + 0.1 * Math.min(3, robbed(w))) : 1);
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) *
+  (G.world && G.wd ? blockMul(G.wd) : 1) *
   (anyHas('fence') ? 0.9 : 1) *
   (evOn('festival') ? 0.8 : 1) *
   haggleMul()[0];
@@ -10542,6 +10720,8 @@ function newWorld(level, fixedSeed) {
     fac: {},
     squadT: 2400,
     backT: 0,
+    clock: 0, // day and night (DAY_STEPS)
+    prog: {}, // how far into each building you got: building id → room
     street: genStreet(level, seed)
   };
 }
@@ -10612,7 +10792,9 @@ function saveWorld() {
             lastX: w.lastX,
             found: w.found,
             bountyDone: w.bountyDone,
-            courDone: w.courDone
+            courDone: w.courDone,
+            clock: w.clock,
+            prog: w.prog
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -10652,7 +10834,9 @@ function loadWorld(s) {
       heat: 0,
       rep: 0,
       looted: [],
-      fac: {}
+      fac: {},
+      clock: 0,
+      prog: {}
     },
     s.wd
   );
@@ -10660,6 +10844,8 @@ function loadWorld(s) {
   for (const k of ['looted', 'found']) if (!Array.isArray(G.wd[k])) G.wd[k] = [];
   for (const k of ['heat', 'rep']) if (!Number.isFinite(G.wd[k])) G.wd[k] = 0;
   if (!isObj(G.wd.fac)) G.wd.fac = {};
+  if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
+  if (!isObj(G.wd.prog)) G.wd.prog = {};
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();
@@ -10748,6 +10934,10 @@ function openDoor(b) {
     haggleReset();
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
+  } else if (shopShut(b)) {
+    const p = alive()[0];
+    if (p) say(p, 'CLOSED TILL DAWN', '#a79dc2', 60, 60, true);
+    return;
   } else if (b.type === 'clinic' || b.type === 'talisman') {
     haggleReset();
     G.shop = b;
@@ -10859,6 +11049,7 @@ function blockEventTick(w) {
 const copKind = (h, i) => (h >= 4 && i === 0 ? 'riot' : h >= 3 && i === 1 ? 'drone' : 'cop');
 function worldTick() {
   const w = G.wd;
+  clockTick(w);
   if (G.dun) {
     dunTick();
     return;
@@ -10920,7 +11111,7 @@ function worldTick() {
         if (p) say(p, w.heat ? 'HEAT DROPPING' : 'HEAT IS OFF', '#45d2ff', 80, 70);
       }
     } else w.heatT = 0;
-    if (!evOn('blackout')) w.copT--;
+    if (!evOn('blackout') && !(isNight(w) && G.t % 3 === 0)) w.copT--; // night: cops a third slower to come
     if (w.copT <= 0) {
       const n = 1 + Math.floor(w.heat / 2);
       for (let i = 0; i < n; i++) spawnEnemy(copKind(w.heat, i), i % 2 ? -1 : 1);
@@ -10933,12 +11124,13 @@ function worldTick() {
   }
   blockEventTick(w);
   factionTick(w);
-  w.patT--;
+  w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
     if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
-      for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0); i++) spawnEnemy(pick(k), i % 2 ? -1 : 1);
+      for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0) + (isNight(w) ? 1 : 0); i++)
+        spawnEnemy(pick(k), i % 2 ? -1 : 1);
       callBackup();
     }
   }
@@ -11223,7 +11415,20 @@ function enterBuilding(b) {
   G.wd.lastX = b.x;
   G.dun = { b, room: 0, rooms: roomsOf(b), fac: FAC[facOf(b)], rng: srng(b.seed) };
   newRunStats();
-  enterRoom(0);
+  // the building remembers how far you got: leave halfway and you come back to the room you left
+  G.wd.prog = G.wd.prog || {};
+  const back = clamp(G.wd.prog[b.id] || 0, 0, G.dun.rooms - 1);
+  enterRoom(back);
+  if (back > 0)
+    G.texts.push({
+      x: W / 2,
+      y: FY0 + 30,
+      z: 30,
+      s: 'BACK WHERE YOU LEFT OFF',
+      c: '#a79dc2',
+      life: 90,
+      sm: true
+    });
   setMode('play');
 }
 function enterRoom(i) {
@@ -11231,6 +11436,10 @@ function enterRoom(i) {
     b = D0.b;
   resetWorld();
   D0.room = i;
+  if (G.wd) {
+    G.wd.prog = G.wd.prog || {};
+    G.wd.prog[b.id] = i;
+  }
   const base = D0.fac.theme < 0 ? DEN : STAGES[D0.fac.theme];
   G.dunStage = Object.assign({}, base, { len: W, name: b.name });
   G.bg = genBg(G.dunStage, (b.seed + i * 31) % 100000);
@@ -11249,6 +11458,20 @@ function enterRoom(i) {
         ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
         : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
+  // black sites and precincts bolt sentry turrets to the back wall of their inner rooms
+  if ((b.type === 'blacksite' || b.type === 'precinct') && i >= 1 && !b.roost && r() < 0.65) {
+    const tu = spawnEnemy('turret', 1);
+    tu.x = W * (0.55 + r() * 0.3);
+    tu.y = FY0 + 8;
+    tu.face = -1;
+    tu.elite = null;
+    tu.club = null;
+    tip(
+      'turret',
+      'A sentry turret: stay out of its lane. Short it out, or wear it down, then PUNCH beside it to hack it.',
+      'A sentry turret: stay out of its lane. Short it out, or wear it down, then press J beside it to hack it.'
+    );
+  }
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
   // hostage rooms: free them by clearing the room without hurting them
@@ -11463,9 +11686,14 @@ function lootChest(t) {
   const b = G.dun.b,
     tier = b.tier,
     fam = b.type === 'home' && !b.dirty;
-  const c = Math.round(
-    ri(25, 50) * tier * (b.type === 'business' ? 2 : fam ? 0.6 : 1) * (1 + G.wd.level * 0.15)
-  );
+  const night = isNight(G.wd),
+    c = Math.round(
+      ri(25, 50) *
+        tier *
+        (b.type === 'business' ? 2 : fam ? 0.6 : 1) *
+        (1 + G.wd.level * 0.15) *
+        (night ? 1.25 : 1) // night caches are fuller
+    );
   drop('cred', t.x - 10, t.y + 10, { v: c });
   if (b.type === 'secret') {
     if (b.final && !LEG.legs.includes('lantern'))
@@ -11477,14 +11705,29 @@ function lootChest(t) {
     if (tier >= 3) legendDrop(t.x + 30, t.y + 16, evOn('lockdown') && b.type === 'blacksite' ? 0.18 : 0.08);
     shardDrop(t.x - 30, t.y + 12, 0.3);
   }
-  for (let k = 0; k < (fam ? 0 : tier); k++) {
+  for (let k = 0; k < (fam ? 0 : tier) + (night && !fam ? 1 : 0); k++) {
     const it = randItem(G.stage + G.ng, tier >= 2);
     if (it.rar < tier - 1) Object.assign(it, mkItem(it.slot, it.base, tier - 1, it.mod || tier >= 3));
     drop('gear', t.x - 24 + k * 16, t.y + 14 + (k % 2) * 6, { item: it });
   }
   if (Math.random() < 0.35 + tier * 0.1 + (anyHas('icecraft') ? 0.25 : 0)) drop('icebrk', t.x + 14, t.y + 8);
   if (fam || Math.random() < 0.4) drop('med', t.x + 20, t.y + 14);
-  if (!G.wd.looted.includes(b.id)) G.wd.looted.push(b.id);
+  if (!G.wd.looted.includes(b.id)) {
+    G.wd.looted.push(b.id);
+    // the block remembers: shops nearby cheaper for a cleared crew, dearer for a robbed home or business
+    const crew = b.type === 'hideout' || b.type === 'club',
+      hurtFolk = !isGood(b) && !isShop(b);
+    if (crew || hurtFolk)
+      G.texts.push({
+        x: t.x,
+        y: t.y,
+        z: 140,
+        s: crew ? 'THE BLOCK BREATHES EASIER · SHOPS CHEAPER' : 'WORD GETS AROUND · SHOPS DEARER',
+        c: crew ? '#7dffb0' : '#ff3d8b',
+        life: 110,
+        sm: true
+      });
+  }
   if (
     G.wd.street.buildings.filter(x => isGood(x) && x.type !== 'secret').every(x => G.wd.looted.includes(x.id))
   )
@@ -11690,7 +11933,11 @@ function hackWin() {
   G.hack = null;
   sfx.level();
   if (!isGood(b)) {
-    G.wd.heat = Math.min(5, G.wd.heat + Math.max(0, heatFor(b) - (anyHas('ghost') ? 1 : 0)));
+    // in daylight there are witnesses: one more star
+    G.wd.heat = Math.min(
+      5,
+      G.wd.heat + Math.max(0, heatFor(b) + (isNight(G.wd) ? 0 : 1) - (anyHas('ghost') ? 1 : 0))
+    );
     G.wd.heatT = 0;
     G.wd.rep = Math.max(-100, G.wd.rep - credLoss(b));
   }
@@ -16875,7 +17122,47 @@ function drawMist(e) {
   ctx.fillRect(sx - 3, sy - 34, 2, 1.5);
   ctx.fillRect(sx + 2, sy - 34, 2, 1.5);
 }
+// a sentry turret on its post: red eye for theirs, green once hacked; sparks while shorted out
+function drawTurret(e) {
+  const sx = e.x - G.camX,
+    sy = e.y,
+    ours = e.team === 0,
+    fl = e.flash > 0,
+    dead = e.state === 'dead';
+  if (dead && e.t > 30 && (G.t >> 2) % 2) return;
+  shadow(sx, sy, 12);
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.fillStyle = '#2a2e3a';
+  ctx.fillRect(-2, -26, 4, 26); // the post
+  ctx.fillStyle = '#3a3f4e';
+  ctx.fillRect(-7, -4, 14, 4); // the foot
+  ctx.scale(e.face || 1, 1);
+  ctx.fillStyle = fl ? '#fff' : dead ? '#1a1622' : '#4a5064';
+  ctx.fillRect(-9, -38, 18, 13); // the head
+  ctx.fillStyle = '#1a1622';
+  ctx.fillRect(8, -34, 10, 4); // the barrel
+  const eye = dead
+    ? '#3a3150'
+    : e.stunT > 0
+      ? (G.t >> 2) % 2
+        ? '#45d2ff'
+        : '#1a1622'
+      : ours
+        ? '#7dffb0'
+        : '#ff3d4a';
+  ctx.fillStyle = eye;
+  ctx.fillRect(2, -35, 4, 3);
+  if (!dead) glow(4, -33.5, 7, 4, eye, 0.5);
+  if (fl) {
+    ctx.fillStyle = '#ffe28a';
+    ctx.fillRect(18, -35, 4, 6); // muzzle flash
+  }
+  ctx.restore();
+  if (e.stunT > 0 && G.t % 6 === 0) burst(e.x, e.y, 32, '#45d2ff', 1);
+}
 function drawFig(e) {
+  if (e.d && e.d.turret) return drawTurret(e);
   if (e.mist > 0) return drawMist(e);
   if (e.d && e.d.passive) return drawPassive(e);
   if (e.d && e.d.ice) return drawIce(e);
@@ -20247,13 +20534,30 @@ function drawBuildings(base) {
     ctx.fillStyle = nc;
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
+    // the block remembers: a robbed home or business stays boarded up, a cleared crew's door says so
+    if (looted && !isGood(b) && !shop) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#ff3d8b';
+      ctx.fillText('BOARDED UP', dx, base - 30);
+      ctx.fillStyle = '#7a5a34';
+      for (const yy of [-24, -14]) ctx.fillRect(dx - 15, base + yy, 30, 3);
+    } else if (looted && (b.type === 'hideout' || b.type === 'club')) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#7dffb0';
+      ctx.fillText('CLEARED', dx, base - 30);
+    }
+    if (shopShut(b)) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#a79dc2';
+      ctx.fillText('CLOSED TILL DAWN', dx, base - 30);
+    }
     if (b.bounty && !w.bountyDone) {
       ctx.fillStyle = '#ffc63d';
       ctx.font = '600 13px Teko, Impact, sans-serif';
       ctx.fillText('☠ BOUNTY', dx, base - 68 + Math.sin(G.t * 0.1) * 1.5);
     }
-    if (b.type === 'clinic' || b.type === 'talisman') {
-      // a lit shop sign: a cross for the clinic, an eye for the talisman shop
+    if ((b.type === 'clinic' || b.type === 'talisman') && !shopShut(b)) {
+      // a lit shop sign: a cross for the clinic, an eye for the talisman shop (dark at night)
       ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
       glow(dx, base - 70, 16, 14, ctx.fillStyle, 0.45);
       if (b.type === 'clinic') {
@@ -20552,7 +20856,7 @@ function drawHudTop() {
     col2 = G.salarm ? '#ff3d4a' : '#7dffb0';
   } else if (G.world && G.wd) {
     const rp = Math.round(G.wd.rep);
-    line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp;
+    line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp + (G.dun ? '' : isNight(G.wd) ? ' · ☾ NIGHT' : ' · ☀ DAY');
     col2 = rp > 0 ? '#7dffb0' : rp < 0 ? '#ff3d8b' : '#a79dc2';
   } else if (C && !G.den) {
     const st = C.done
@@ -20596,7 +20900,31 @@ function drawHudTop() {
     if (s) txt(s, W / 2, H - 6, 12, line2 ? col2 : '#a79dc2', 'center');
   }
 }
+// day and night on the street: a cold wash at night with a pool of light around each runner, a warm one by day
+function drawTimeOfDay() {
+  if (!G.world || !G.wd || G.dun || evOn('blackout')) return;
+  const w = G.wd,
+    left = phaseLeft(w),
+    edge = Math.min(1, left / 600, (DAY_STEPS - left) / 600); // fade between the two over ten seconds
+  if (isNight(w)) {
+    ctx.fillStyle = `rgba(6,8,32,${0.32 * edge})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of alive()) {
+      const g = ctx.createRadialGradient(p.x - G.camX, p.y - 30, 4, p.x - G.camX, p.y - 30, 70);
+      g.addColorStop(0, `rgba(255,210,160,${0.08 * edge})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x - G.camX - 70, p.y - 100, 140, 140);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.fillStyle = `rgba(255,196,140,${0.07 * edge})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
 function drawDark() {
+  drawTimeOfDay();
   if (!evOn('blackout') || G.dun) return;
   ctx.fillStyle = 'rgba(2,2,8,.5)';
   ctx.fillRect(0, 0, W, H);
@@ -21648,6 +21976,11 @@ function safeHtml() {
   <div class="job"><div class="row" style="justify-content:space-between"><b>Heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)}</b><span class="st" style="color:${w.heat ? 'var(--neon)' : 'var(--ok)'}">${w.heat ? 'Wanted' : 'Clean'}</span></div>
     <span style="color:var(--muted);font-size:13px">Heat cools by a star for every 25 seconds with no cops around. Or pay someone to make the paperwork disappear.</span>
     <div class="row"><button class="btn sm${w.heat && PARTY.creds >= lc ? '' : ' ghost'}" data-a="laylow" ${w.heat && PARTY.creds >= lc ? '' : 'disabled'}>${w.heat ? 'Lay low · ¥' + lc : 'Nothing to clear'}</button></div></div>
+  <div class="job"><div class="row" style="justify-content:space-between"><b>${isNight(w) ? '☾ Night' : '☀ Day'}</b><span class="st" style="color:var(--muted)">${Math.ceil(phaseLeft(w) / 3600)} min till ${isNight(w) ? 'morning' : 'nightfall'}</span></div>
+    <span style="color:var(--muted);font-size:13px">${isNight(w) ? 'Gangs are out and the cops are thin; caches hold more. The back-alley clinic and the talisman shop are shut till dawn.' : 'Shops are open. Break into a home, a business or a precinct now and there are witnesses: one more heat star.'}</span>
+    <div class="row"><button class="btn sm ghost" data-a="waitphase">${isNight(w) ? 'Sleep till morning' : 'Wait for nightfall'}</button></div></div>
+  <div class="job"><div class="row" style="justify-content:space-between"><b>The block remembers</b><span class="st" style="color:${blockMul(w) < 1 ? 'var(--ok)' : blockMul(w) > 1 ? 'var(--neon)' : 'var(--muted)'}">Shop prices ${blockMul(w) === 1 ? 'normal' : (blockMul(w) < 1 ? '−' : '+') + Math.round(Math.abs(1 - blockMul(w)) * 100) + '%'}</span></div>
+    <span style="color:var(--muted);font-size:13px">${cleared(w)} crew hideout${cleared(w) === 1 ? '' : 's'} cleared (shops 10% cheaper each), ${robbed(w)} home${robbed(w) === 1 ? '' : 's'} or business${robbed(w) === 1 ? '' : 'es'} robbed (10% dearer each, and they stay boarded up). Leave a building halfway and you come back to the room you left.</span></div>
   <div class="job"><div class="row" style="justify-content:space-between"><b>Street cred ${rp > 0 ? '+' : ''}${rp}</b><span class="st" style="color:${rp >= 30 ? 'var(--ok)' : rp <= -30 ? 'var(--neon)' : 'var(--muted)'}">${rp >= 30 ? 'Respected' : rp <= -30 ? 'Feared' : 'Unknown'}</span></div>
     <span style="color:var(--muted);font-size:13px">At +30 the doc and Kit give you 15% off. At −30 Ratchet pays 60% instead of 40% for your loot, because nobody else will deal with you.</span></div>
   <div class="job"><div class="row" style="justify-content:space-between"><b>Move to a new block</b><span class="st" style="color:var(--gold)">${done}/${total} cleaned out</span></div>
@@ -22922,6 +23255,14 @@ ov.addEventListener('click', e => {
         PARTY.creds -= 40;
         PARTY.ice = (PARTY.ice || 0) + 1;
         sfx.buy();
+      }
+      rerender();
+      break;
+    case 'waitphase':
+      // sit tight in the safehouse until the other half of the day
+      if (G.world && G.wd) {
+        waitPhase(G.wd);
+        sfx.click();
       }
       rerender();
       break;

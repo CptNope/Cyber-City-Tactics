@@ -42,6 +42,7 @@ The guiding rules:
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
 - [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **The living Sprawl:** day and night, a block that remembers, sentry turrets, and hacking in a fight
 - [x] **Sets and actives:** maker set bonuses, a cyberdeck slot, and an active skill for every tree
 - [x] **River City street fights:** street weapons, wall bounces and juggles, mercy and runners, boss taunts, a fourteenth training drill, and two feats (Street Mercy, Off the Wall)
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
@@ -84,9 +85,9 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Hazard and vault rooms.**~~ Shipped: live wiring, unstable ceilings, and lock-4 vaults.
 - [x] ~~**Faction reputation.**~~ Shipped as street politics: four crews and Kagemori, rivalries, hit squads and backup.
 - [x] ~~**Bounties.**~~ Shipped: Juno posts a named target each block.
-- [ ] **Day and night (M).** At night there are fewer cops, more gangs and better loot. In the day, shops are open and break-ins are riskier.
+- [x] ~~**Day and night.**~~ Shipped: a three-minute day and night on every block. Night: fewer cops, bigger and more frequent gang patrols, richer caches, shops shut. Day: shops open, break-ins draw witnesses. Wait or sleep at the safehouse.
 - [x] ~~**A block map.**~~ Shipped: press M in the Sprawl.
-- [ ] **Persistent consequences (M).** Rob a family and their window stays boarded. Clear a hideout and the shops next to it lower their prices.
+- [x] ~~**Persistent consequences.**~~ Shipped: robbed homes and businesses stay boarded up and raise the block's prices; cleared crews lower them; buildings remember the room you left (which also closes the re-entry farming noted in the audit).
 
 ### Hacking
 - [ ] **More hacking minigames (M):**
@@ -95,7 +96,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
   - *Firewall:* dodge ICE in a tiny side-scroller
 
   The building type picks which one you get.
-- [ ] **Hack things in combat (M).** Turrets, cameras and drones can be hacked mid-fight with a short window to turn them on their owners.
+- [x] ~~**Hack things in combat.**~~ Shipped: shorted-out or badly damaged drones and the new sentry turrets can be hacked with PUNCH and turned on their owners.
 - [x] ~~**Cyberdecks.**~~ Shipped: a fourth slot with Street, Cobalt and Wraith decks and deck parts; Short Circuit scales with the deck.
 
 ### Campaign and story
