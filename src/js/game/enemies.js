@@ -60,10 +60,12 @@ function upEnemy(e) {
     if (e.t > 70) e.gone = true;
     return;
   }
+  if (e.inv > 0 && (e.state === 'down' || e.state === 'hurt')) e.inv--; // a release's grace runs out on the floor too
   if (e.state === 'down') {
     if (e.t > 58 && (e.z === 0 || (e.d.fly && e.t > 80))) {
       setS(e, 'idle');
       e.inv = 24;
+      e.hauled = false;
     }
     return;
   }

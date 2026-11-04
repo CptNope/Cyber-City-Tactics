@@ -30,7 +30,12 @@ const index = read('index.html');
 // ---- what the page loads ----
 const block = index.match(/<!-- BUILD:SCRIPTS -->([\s\S]*?)<!-- \/BUILD:SCRIPTS -->/);
 if (!block) throw new Error('index.html is missing the BUILD:SCRIPTS block');
-const scripts = [...block[1].matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
+const scripts = [...block[1].matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*><\/script>/g)].map(
+  m => m[1]
+);
+// every script tag in the block must be one we found, or the build would silently leave a file out
+if ((block[1].match(/<script\b/g) || []).length !== scripts.length)
+  throw new Error('BUILD:SCRIPTS has a script tag the build cannot read');
 const styles = [...index.matchAll(/<link rel="stylesheet" href="((?!https?:)[^"]+)">/g)].map(m => m[1]);
 const manifest = JSON.parse(read('manifest.webmanifest'));
 const icons = new Set(['icons/apple-touch-icon.png', 'icons/favicon-32.png']);
@@ -39,7 +44,7 @@ for (const s of manifest.shortcuts || []) for (const i of s.icons || []) icons.a
 // fonts the stylesheets use (url('../fonts/...')), resolved against each stylesheet
 const fonts = [];
 for (const s of styles)
-  for (const m of read(s).matchAll(/url\('(\.\.\/fonts\/[^']+)'\)/g))
+  for (const m of read(s).matchAll(/url\(\s*['"]?(\.\.\/fonts\/[^'")]+)['"]?\s*\)/g))
     fonts.push(join(dirname(s), m[1]).replace(/\\/g, '/'));
 for (const f of [...scripts, ...styles, ...icons, ...fonts])
   if (!existsSync(join(ROOT, f))) throw new Error('missing file: ' + f);

@@ -25,7 +25,28 @@ const STUN = { urls: ['stun:stun.cloudflare.com:3478'] };
 const TURN_TTL_S = 4 * 60 * 60;
 const ICE_PER_HOUR = 12; // a few games an hour from one address; each host and friend asks once per game
 const ROOMS_PER_HOUR = 20;
+const LOOKUPS_PER_HOUR = 120; // friends typing codes; generous, but stops anyone walking the code space
+const ANSWERS_PER_HOUR = 30;
+const ICE_PER_DAY = 5000; // every address together: a ceiling on relay passes, so a botnet can't run up the bill
+const KEY_TTL_MS = 4 * 60 * 60 * 1000; // the host's key outlives the invite, so a long game can still reopen
 const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+// one bucket per IPv4 address, or per IPv6 /64 (one home or phone usually owns a whole /64)
+export function ipBucket(ip) {
+  ip = String(ip || 'local');
+  if (!ip.includes(':')) return ip;
+  let parts = ip.split('::');
+  const head = parts[0] ? parts[0].split(':') : [],
+    tail = parts.length > 1 && parts[1] ? parts[1].split(':') : [];
+  const full =
+    parts.length > 1 ? head.concat(Array(Math.max(0, 8 - head.length - tail.length)).fill('0'), tail) : head;
+  return (
+    full
+      .slice(0, 4)
+      .map(x => (x || '0').toLowerCase().replace(/^0+(?=.)/, ''))
+      .join(':') + '::/64'
+  );
+}
 
 export function makeCode(rand = Math.random) {
   let s = '';
@@ -115,9 +136,10 @@ export default {
     const h = cors(origin);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });
     // per-address limits, so nobody can farm relay passes (Cloudflare bills relayed traffic) or spam rooms
-    const ip = req.headers.get('CF-Connecting-IP') || 'local';
+    const ip = ipBucket(req.headers.get('CF-Connecting-IP') || 'local');
     if (path === '/ice' && req.method === 'GET') {
       if (!(await allow(env, 'ice:' + ip, ICE_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
+      if (!(await allow(env, 'ice:all', ICE_PER_DAY, DAY))) return json({ error: 'busy, try later' }, 429, h);
       return json(await iceServers(env), 200, h);
     }
     if (path === '/rooms' && req.method === 'POST') {
@@ -154,9 +176,14 @@ export default {
           h
         );
       }
-      if (!m[2] && req.method === 'GET') return relay(await stub.fetch('https://room/offer'), h);
-      if (m[2] && req.method === 'GET') return relay(await stub.fetch('https://room/answer'), h);
-      if (m[2] && req.method === 'POST') {
+      if (!m[2] && req.method === 'GET') {
+        if (!(await allow(env, 'look:' + ip, LOOKUPS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
+        return relay(await stub.fetch('https://room/offer'), h);
+      }
+      if (m[2] === '/answer' && req.method === 'GET')
+        return relay(await stub.fetch('https://room/answer'), h);
+      if (m[2] === '/answer' && req.method === 'POST') {
+        if (!(await allow(env, 'ans:' + ip, ANSWERS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
         const b = await readBody(req);
         if (!b || !goodBlob(b.answer)) return json({ error: 'bad reply' }, 400, h);
         return relay(
@@ -173,11 +200,14 @@ export default {
 };
 const room = (env, code) => env.ROOMS.get(env.ROOMS.idFromName(code));
 // true while this key is under its hourly budget; without a LIMITS binding (old deploys) everything is allowed
-async function allow(env, key, max) {
+async function allow(env, key, max, win = HOUR) {
   if (!env.LIMITS) return true;
-  const r = await env.LIMITS.get(env.LIMITS.idFromName(key)).fetch('https://limit/hit?max=' + max, {
-    method: 'POST'
-  });
+  const r = await env.LIMITS.get(env.LIMITS.idFromName(key)).fetch(
+    'https://limit/hit?max=' + max + '&win=' + win,
+    {
+      method: 'POST'
+    }
+  );
   return r.status === 204;
 }
 async function relay(r, h) {
@@ -199,21 +229,25 @@ export class Room {
     const now = Date.now();
     const made = await st.get('made');
     const live = made && now - made < ROOM_TTL_MS;
-    if (url.pathname === '/create') {
-      if (live) return new Response(null, { status: 409 });
-      const { offer, key } = await req.json();
+    // the key is held for hours after the invite expires, so nobody else can grab a code mid-game
+    const keyUntil = (await st.get('keyUntil')) || 0,
+      held = keyUntil > now;
+    const open = async (offer, key) => {
       await st.deleteAll();
-      await st.put({ made: now, offer, key });
+      await st.put({ made: now, offer, key, keyUntil: now + KEY_TTL_MS });
       await st.setAlarm(now + ROOM_TTL_MS);
+    };
+    if (url.pathname === '/create') {
+      if (live || held) return new Response(null, { status: 409 });
+      const { offer, key } = await req.json();
+      await open(offer, key);
       return new Response(null, { status: 201 });
     }
     if (url.pathname === '/reopen') {
       const { offer, key } = await req.json();
-      // only the host who made the room (it holds the key); an expired, empty code can be taken back
-      if (live && (await st.get('key')) !== key) return json({ error: 'not your room' }, 403);
-      await st.deleteAll();
-      await st.put({ made: now, offer, key });
-      await st.setAlarm(now + ROOM_TTL_MS);
+      // only the host who made the room (it holds the key); a code whose key has lapsed can be taken back
+      if ((live || held) && (await st.get('key')) !== key) return json({ error: 'not your room' }, 403);
+      await open(offer, key);
       return new Response(null, { status: 204 });
     }
     if (!live) return json({ error: 'no such room' }, 404);
@@ -231,27 +265,35 @@ export class Room {
     return json({ error: 'not found' }, 404);
   }
   async alarm() {
-    await this.state.storage.deleteAll();
+    // the invite and reply go at once; the key stays until its own deadline
+    const st = this.state.storage,
+      until = (await st.get('keyUntil')) || 0;
+    if (until > Date.now()) {
+      await st.delete(['made', 'offer', 'answer']);
+      await st.setAlarm(until);
+    } else await st.deleteAll();
   }
 }
 
-// A sliding one-hour window of hits for one address and purpose
+// A sliding window (an hour unless told otherwise) of hits for one address and purpose
 export class Limiter {
   constructor(state) {
     this.state = state;
   }
   async fetch(req) {
-    const max = Number(new URL(req.url).searchParams.get('max')) || 10,
+    const q = new URL(req.url).searchParams,
+      max = Number(q.get('max')) || 10,
+      win = Math.min(DAY, Number(q.get('win')) || HOUR),
       now = Date.now(),
       st = this.state.storage;
-    const hits = ((await st.get('h')) || []).filter(t => now - t < HOUR);
+    const hits = ((await st.get('h')) || []).filter(t => now - t < win);
     if (hits.length >= max) {
       await st.put('h', hits);
       return new Response(null, { status: 429 });
     }
     hits.push(now);
     await st.put('h', hits);
-    await st.setAlarm(now + HOUR);
+    await st.setAlarm(now + win);
     return new Response(null, { status: 204 });
   }
   async alarm() {

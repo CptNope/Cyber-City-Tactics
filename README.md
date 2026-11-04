@@ -739,12 +739,12 @@ Everything is stored in the browser's `localStorage` on the device. Nothing is s
 | `cs_legend` | Your legend: feats, stats, legendaries found, bestiary and lore |
 | `cs_prefs` | Settings and which tips you've seen |
 
-Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned. A save that's damaged or from an unknown format is ignored rather than allowed to crash the game. Settings → *Save backup* exports and imports all of them as one file.
+Older saves are migrated when they load. For example, saves from before skill trees get the points for the levels they already earned. A save that's damaged or from an unknown format is ignored rather than allowed to crash the game, and missing pieces of an otherwise sound save are filled with defaults. If the browser can't write a save (storage full, or blocked in a private window) the game tells you instead of failing silently. Settings → *Save backup* exports and imports all of them as one file; a failed import leaves your current saves untouched. If the game itself keeps hitting an error, it shows a card offering a reload rather than freezing.
 
 ---
 
 ## Development
-The code is split into small files by system and documented in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the folder layout, the load order, how a frame works, where state lives, and recipes for adding enemies, gear, feats, skills, Sprawl events and archetypes.
+The code is split into small files by system and documented in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the folder layout, the load order, how a frame works, where state lives, and recipes for adding enemies, gear, feats, skills, Sprawl events and archetypes. The **[wiki](https://github.com/CptNope/Cyber-City-Tactics/wiki)** goes further, with Mermaid diagrams and data tables taken from the game's own code, the online protocol, and the robustness audit. Its pages live in [docs/wiki](docs/wiki) and are published to the Wiki tab when they change on `main`.
 
 You need Node 18 or newer. Nothing has to be installed to run, build or test the game; Playwright and Prettier are optional extras for the browser tests and formatting.
 

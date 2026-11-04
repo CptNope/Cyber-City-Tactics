@@ -17,6 +17,9 @@ function memStorage() {
       if (typeof k === 'object') for (const [a, b] of Object.entries(k)) m.set(a, b);
       else m.set(k, v);
     },
+    async delete(k) {
+      for (const x of [].concat(k)) m.delete(x);
+    },
     async deleteAll() {
       m.clear();
     },

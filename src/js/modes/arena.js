@@ -237,7 +237,6 @@ function startArena(coop, challenge) {
   G.coop = !!coop;
   G.challenge = challenge === 'day' ? thisDay() : challenge ? thisWeek() : null;
   if (G.challenge && G.challenge.daily) {
-    G.pendArch[0] = G.challenge.arch;
     const dd = store.load('cs_day') || {};
     const y = dayId(new Date(Date.now() - 864e5));
     if (dd.last !== G.challenge.day) {
@@ -262,7 +261,10 @@ function startArena(coop, challenge) {
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
   Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
+  // the daily challenge sets runner 1's archetype for this run only, leaving your own pick alone
+  PL.forEach((p, i) =>
+    applyArch(p, i === 0 && G.challenge && G.challenge.daily ? G.challenge.arch : G.pendArch[i])
+  );
   for (const p of PL) {
     p.lvl = 3;
     p.pts = 4;
@@ -453,5 +455,5 @@ function arenaOver() {
 function scoreTable(hl) {
   const list = store.load('cs_arena') || [];
   if (!list.length) return '<p>No runs yet. Your best scores show up here.</p>';
-  return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : DIFF[e.diff].name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
+  return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : (DIFF[e.diff] || DIFF[1]).name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
 }

@@ -23,7 +23,8 @@ const A = {
         this.mus.connect(this.lp).connect(this.ac.destination);
       } catch (e) {}
     }
-    if (this.ac && this.ac.state === 'suspended') this.ac.resume();
+    // iOS reports 'interrupted' after a call or a trip to the background: anything but running gets a resume
+    if (this.ac && this.ac.state !== 'running' && this.ac.state !== 'closed') this.ac.resume();
   },
   osc(dest, f, t, d, type, v, slide) {
     const a = this.ac;
@@ -139,3 +140,9 @@ const sfx = {
     setTimeout(() => A.tone(560, 0.05, 'triangle', 0.03), 50);
   }
 };
+
+// coming back to the tab: wake the audio up again (iOS leaves it interrupted)
+if (typeof document !== 'undefined' && document.addEventListener)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && A.ac) A.unlock();
+  });

@@ -339,6 +339,11 @@ ov.addEventListener('click', e => {
       startStage(G.stage);
       break;
     case 'notyet':
+      // back to the Den we came from, at the stage it was: the briefing had moved G.stage on to the next district
+      if (G.briefFromDen && Number.isInteger(G.preBriefStage)) {
+        G.stage = G.preBriefStage;
+        saveGame('den');
+      }
       G.mode = 'den';
       setMode('den');
       break;
@@ -392,8 +397,12 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'hackquit':
-      G.hack = null;
-      setMode('play');
+      // backing off a vault or a terminal counts as failing it: no free retries one miss before the lockout
+      if (G.hack && G.hack.vault) hackFail();
+      else {
+        G.hack = null;
+        setMode('play');
+      }
       break;
     case 'buyice':
       if (PARTY.creds >= 40) {
@@ -588,6 +597,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     case 'equip': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const i = findBag(arg);
       if (i < 0) break;
       const it = PARTY.bag[i];
@@ -601,6 +614,10 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'unequip': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const it = p.eq[arg];
       if (it && PARTY.bag.length < BAG_MAX) {
         PARTY.bag.push(it);
@@ -658,6 +675,10 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'drop': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const i = findBag(arg);
       if (i >= 0 && !PARTY.bag[i].lock) PARTY.bag.splice(i, 1);
       rerender();

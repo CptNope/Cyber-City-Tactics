@@ -188,6 +188,18 @@ function refresh(p) {
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
+// a save that couldn't be written (storage full or blocked) is said out loud, at most once a minute
+function saveWarn(ok) {
+  if (ok !== false || typeof G === 'undefined') return ok;
+  if (G.t - (G.saveWarnT === undefined ? -1e9 : G.saveWarnT) > 3600) {
+    G.saveWarnT = G.t;
+    G.tip = {
+      s: "Couldn't save: this browser's storage is full or blocked. Free some space or leave private browsing.",
+      life: 420
+    };
+  }
+  return ok;
+}
 function saveGame(phase) {
   const o = {
     v: 4, // 4: six districts (the Undercity Market is district 4)
@@ -209,26 +221,54 @@ function saveGame(phase) {
     bestCombo: G.bestCombo,
     sideJobs: G.sideJobs || {}
   };
-  store.set('cs_save3', JSON.parse(JSON.stringify(o)));
+  saveWarn(store.set('cs_save3', JSON.parse(JSON.stringify(o))));
 }
 // bring every item the party owns up to date (makers and parts arrived after some saves were made)
 function fixGear() {
   for (const it of (PARTY.bag || []).concat(PARTY.stash || [], G.stock || [])) fixItem(it);
   for (const p of PL) for (const k in p.eq) fixItem(p.eq[k]);
 }
+// rebuild a runner from a save: newRunner()'s defaults, then each saved field that has a usable type
+// (shared by the campaign and the Sprawl, so both clean up the same way)
+function restoreRunner(r, i) {
+  const p = newRunner(i);
+  for (const k of RUNNER_KEYS) {
+    const v = r[k];
+    if (v === undefined || v === null) continue;
+    if (isObj(p[k]) && !isObj(v)) continue; // an object field saved as something else: keep the default
+    if (Array.isArray(p[k]) && !Array.isArray(v)) continue;
+    if (typeof p[k] === 'number' && !Number.isFinite(v)) continue;
+    p[k] = v;
+  }
+  if (r.sk === undefined) {
+    p.sk = null;
+    p.spts = undefined;
+  }
+  for (const s of ['weapon', 'gun', 'armor']) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
+  p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, p.cy);
+  p.attr = Object.assign({ bod: 2, str: 2, agi: 2, mag: 2, hak: 1 }, p.attr);
+  if (!isObj(p.tech)) p.tech = {};
+  if (!Array.isArray(p.spells) || !p.spells.length) p.spells = ['fire'];
+  if (!ARCH[p.arch]) p.arch = 'runner';
+  applyCoat(p);
+  return p;
+}
+// the party's own fields, typed the same way
+function restoreParty(sp, extra) {
+  Object.assign(
+    PARTY,
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null },
+    extra || {},
+    isObj(sp) ? sp : {}
+  );
+  if (!Number.isFinite(PARTY.creds)) PARTY.creds = 0;
+  for (const k of ['bag', 'stash']) PARTY[k] = Array.isArray(PARTY[k]) ? PARTY[k].filter(isObj) : [];
+}
 function loadGame(s) {
   G.coop = !!s.coop;
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
-  PL = (s.runners || []).map((r, i) => {
-    const p = newRunner(i);
-    for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
-    if (r.sk === undefined) {
-      p.sk = null;
-      p.spts = undefined;
-    }
-    applyCoat(p);
-    if (!isObj(p.tech)) p.tech = {};
-    if (!ARCH[p.arch]) p.arch = 'runner';
+  restoreParty(s.party);
+  PL = (s.runners || []).filter(isObj).map((r, i) => {
+    const p = restoreRunner(r, i);
     p.lives = Math.max(1, p.lives);
     refresh(p);
     return p;
@@ -237,7 +277,7 @@ function loadGame(s) {
   G.coop = PL.length > 1;
   G.muts = s.muts || [];
   G.stage = s.stage || 0;
-  G.diff = s.diff === undefined ? 1 : s.diff;
+  G.diff = Number.isInteger(s.diff) && DIFF[s.diff] ? s.diff : 1;
   G.ng = s.ng || 0;
   G.stock = s.stock || [];
   G.debrief = s.debrief || null;

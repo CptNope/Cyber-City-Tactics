@@ -1134,7 +1134,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9da9524';
+const APP_VERSION = '2.0.0+1148781';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1335,10 +1335,15 @@ const store = {
       return null;
     }
   },
+  // true when it was written; false when storage is full or blocked (private mode, quota), so callers can say so
   set(k, v) {
     try {
       localStorage.setItem(k, JSON.stringify(v));
-    } catch (e) {}
+      return true;
+    } catch (e) {
+      store.failed = (store.failed || 0) + 1;
+      return false;
+    }
   },
   del(k) {
     try {
@@ -1352,22 +1357,32 @@ function esc(s) {
 // Saves can come from older versions or a hand-edited backup. Anything that doesn't have the expected shape
 // is ignored rather than allowed to crash a menu.
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// a runner entry has to be an object, and the parts the game reads as objects have to be objects if present
+const runnerOk = r =>
+  isObj(r) &&
+  ['attr', 'cy', 'eq', 'sk', 'tech'].every(k => r[k] === undefined || r[k] === null || isObj(r[k]));
+const diffOk = d => d === undefined || (Number.isInteger(d) && d >= 0 && d < 3);
 const SAVE_SHAPES = {
   cs_save3: s =>
     isObj(s) &&
     Array.isArray(s.runners) &&
     s.runners.length > 0 &&
+    s.runners.every(runnerOk) &&
     Number.isInteger(s.stage) &&
     s.stage >= 0 &&
-    s.stage < STAGES.length,
+    s.stage < STAGES.length &&
+    diffOk(s.diff),
   cs_world: s =>
     isObj(s) &&
     isObj(s.wd) &&
     Number.isInteger(s.wd.level) &&
     s.wd.level > 0 &&
     Array.isArray(s.runners) &&
-    s.runners.length > 0,
-  cs_arena: s => Array.isArray(s) && s.every(isObj),
+    s.runners.length > 0 &&
+    s.runners.every(runnerOk),
+  cs_arena: s =>
+    Array.isArray(s) &&
+    s.every(e => isObj(e) && Number.isFinite(e.score) && Number.isFinite(e.wave) && diffOk(e.diff)),
   cs_week: isObj,
   cs_day: isObj
 };
@@ -1507,7 +1522,8 @@ const A = {
         this.mus.connect(this.lp).connect(this.ac.destination);
       } catch (e) {}
     }
-    if (this.ac && this.ac.state === 'suspended') this.ac.resume();
+    // iOS reports 'interrupted' after a call or a trip to the background: anything but running gets a resume
+    if (this.ac && this.ac.state !== 'running' && this.ac.state !== 'closed') this.ac.resume();
   },
   osc(dest, f, t, d, type, v, slide) {
     const a = this.ac;
@@ -1623,6 +1639,12 @@ const sfx = {
     setTimeout(() => A.tone(560, 0.05, 'triangle', 0.03), 50);
   }
 };
+
+// coming back to the tab: wake the audio up again (iOS leaves it interrupted)
+if (typeof document !== 'undefined' && document.addEventListener)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && A.ac) A.unlock();
+  });
 
 /* ===== src/js/core/music.js ===== */
 /* Cyber City Tactics · src/js/core/music.js
@@ -3713,11 +3735,20 @@ function applyParts(it) {
     const lead = it.parts.find(q => q !== 'attr') || it.parts[0];
     it.name = M.name + ' ' + (lead ? PARTS[lead].n + ' ' : '') + b.name;
   }
-  it.price = Math.round(b.price * (1 + it.rar * 0.6) * (it.leg ? 2 : 1));
+  it.price = Math.round(it.leg ? b.price * 4 : b.price * (1 + it.rar * 0.6)); // named legendaries: one price, always
 }
 // older saves: items from before makers and parts get a maker (fixed by their id) and parts to match their tier
 function fixItem(it) {
-  if (!it || it.mfr || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  if (!it || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  if (it.mfr && MFR[it.mfr] && Array.isArray(it.parts)) {
+    // up to date, but drop any part this version doesn't know (a save from a newer or edited build)
+    if (it.parts.some(k => !PARTS[k])) {
+      it.parts = it.parts.filter(k => PARTS[k]);
+      applyParts(it);
+    }
+    return it;
+  }
+  if (!MFR[it.mfr]) delete it.mfr;
   const ks = makersFor(it.slot);
   let h = 0;
   for (const c of String(it.uid)) h = (h * 31 + c.charCodeAt(0)) | 0;
@@ -3725,7 +3756,9 @@ function fixItem(it) {
   const keepName = it.leg ? it.name : null,
     oldMod = it.mod;
   it.parts = [];
-  if (oldMod && !it.leg) {
+  // an old Street item with an affix keeps the affix as it was rather than gaining a tier for it
+  if (oldMod && !it.leg && !(it.rar > 0)) it.legMod = oldMod;
+  else if (oldMod && !it.leg) {
     const k =
       oldMod === 'keen'
         ? 'keen'
@@ -3744,7 +3777,7 @@ const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2);
 const REROLL = { parts: 3, creds: 40 };
 const upgradeCost = it => ({ parts: 4 * (it.rar + 1), creds: 80 * (it.rar + 1) });
 const canUpgrade = it => !!it && !it.leg && it.rar < 3; // Ratchet adds parts up to Black-market; Legendary only drops
-const canReroll = it => !!it && !it.leg;
+const canReroll = it => !!it && !it.leg && Array.isArray(it.parts) && it.parts.length > 0; // rerolling never adds a tier
 function renameItem(it) {
   fixItem(it);
   applyParts(it);
@@ -3753,7 +3786,7 @@ function renameItem(it) {
 function rerollItem(it) {
   if (!canReroll(it)) return false;
   fixItem(it);
-  const n = it.parts.length || 1;
+  const n = it.parts.length;
   it.parts = [];
   while (it.parts.length < n) addPart(it);
   applyParts(it);
@@ -4654,12 +4687,13 @@ for (const [k, def] of [
   ['kills', {}],
   ['stats', {}],
   ['lore', []],
-  ['legs', []]
+  ['legs', []],
+  ['runs', []]
 ])
   if (Array.isArray(def) ? !Array.isArray(LEG[k]) : !isObj(LEG[k])) LEG[k] = def;
 let legDirty = false;
 function saveLeg() {
-  store.set('cs_legend', LEG);
+  saveWarn(store.set('cs_legend', LEG));
   legDirty = false;
 }
 const legLP = () => Object.keys(LEG.feats).reduce((a, k) => a + (FEATBY[k] ? FEATBY[k].lp : 0), 0);
@@ -4723,7 +4757,6 @@ function mkLegend(id) {
   it.leg = id;
   applyParts(it); // a named legendary: two parts plus its unique effect, always the Legendary tier
   it.name = L.name;
-  it.price = Math.round(BASES[L.slot][L.base].price * 4);
   return it;
 }
 function legendDrop(x, y, chance) {
@@ -5212,6 +5245,18 @@ function refresh(p) {
   p.hp = Math.min(p.hp, p.maxHp);
   p.mp = Math.min(p.mp, p.maxMp);
 }
+// a save that couldn't be written (storage full or blocked) is said out loud, at most once a minute
+function saveWarn(ok) {
+  if (ok !== false || typeof G === 'undefined') return ok;
+  if (G.t - (G.saveWarnT === undefined ? -1e9 : G.saveWarnT) > 3600) {
+    G.saveWarnT = G.t;
+    G.tip = {
+      s: "Couldn't save: this browser's storage is full or blocked. Free some space or leave private browsing.",
+      life: 420
+    };
+  }
+  return ok;
+}
 function saveGame(phase) {
   const o = {
     v: 4, // 4: six districts (the Undercity Market is district 4)
@@ -5233,26 +5278,54 @@ function saveGame(phase) {
     bestCombo: G.bestCombo,
     sideJobs: G.sideJobs || {}
   };
-  store.set('cs_save3', JSON.parse(JSON.stringify(o)));
+  saveWarn(store.set('cs_save3', JSON.parse(JSON.stringify(o))));
 }
 // bring every item the party owns up to date (makers and parts arrived after some saves were made)
 function fixGear() {
   for (const it of (PARTY.bag || []).concat(PARTY.stash || [], G.stock || [])) fixItem(it);
   for (const p of PL) for (const k in p.eq) fixItem(p.eq[k]);
 }
+// rebuild a runner from a save: newRunner()'s defaults, then each saved field that has a usable type
+// (shared by the campaign and the Sprawl, so both clean up the same way)
+function restoreRunner(r, i) {
+  const p = newRunner(i);
+  for (const k of RUNNER_KEYS) {
+    const v = r[k];
+    if (v === undefined || v === null) continue;
+    if (isObj(p[k]) && !isObj(v)) continue; // an object field saved as something else: keep the default
+    if (Array.isArray(p[k]) && !Array.isArray(v)) continue;
+    if (typeof p[k] === 'number' && !Number.isFinite(v)) continue;
+    p[k] = v;
+  }
+  if (r.sk === undefined) {
+    p.sk = null;
+    p.spts = undefined;
+  }
+  for (const s of ['weapon', 'gun', 'armor']) if (p.eq[s] !== null && !isObj(p.eq[s])) p.eq[s] = null;
+  p.cy = Object.assign({ arm: 0, wired: 0, plate: 0 }, p.cy);
+  p.attr = Object.assign({ bod: 2, str: 2, agi: 2, mag: 2, hak: 1 }, p.attr);
+  if (!isObj(p.tech)) p.tech = {};
+  if (!Array.isArray(p.spells) || !p.spells.length) p.spells = ['fire'];
+  if (!ARCH[p.arch]) p.arch = 'runner';
+  applyCoat(p);
+  return p;
+}
+// the party's own fields, typed the same way
+function restoreParty(sp, extra) {
+  Object.assign(
+    PARTY,
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null },
+    extra || {},
+    isObj(sp) ? sp : {}
+  );
+  if (!Number.isFinite(PARTY.creds)) PARTY.creds = 0;
+  for (const k of ['bag', 'stash']) PARTY[k] = Array.isArray(PARTY[k]) ? PARTY[k].filter(isObj) : [];
+}
 function loadGame(s) {
   G.coop = !!s.coop;
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null }, s.party || {});
-  PL = (s.runners || []).map((r, i) => {
-    const p = newRunner(i);
-    for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
-    if (r.sk === undefined) {
-      p.sk = null;
-      p.spts = undefined;
-    }
-    applyCoat(p);
-    if (!isObj(p.tech)) p.tech = {};
-    if (!ARCH[p.arch]) p.arch = 'runner';
+  restoreParty(s.party);
+  PL = (s.runners || []).filter(isObj).map((r, i) => {
+    const p = restoreRunner(r, i);
     p.lives = Math.max(1, p.lives);
     refresh(p);
     return p;
@@ -5261,7 +5334,7 @@ function loadGame(s) {
   G.coop = PL.length > 1;
   G.muts = s.muts || [];
   G.stage = s.stage || 0;
-  G.diff = s.diff === undefined ? 1 : s.diff;
+  G.diff = Number.isInteger(s.diff) && DIFF[s.diff] ? s.diff : 1;
   G.ng = s.ng || 0;
   G.stock = s.stock || [];
   G.debrief = s.debrief || null;
@@ -5409,6 +5482,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
   G.drive = null;
   G.stealth = null;
@@ -5482,6 +5556,8 @@ function startStage(si) {
 }
 function briefing(si, fromDen) {
   G.arena = false;
+  G.training = false; // a run started straight after training is a real run (One Life, tips)
+  if (fromDen) G.preBriefStage = G.stage; // "Not yet" goes back to this Den
   const C = CONTRACTS[si];
   if (!PARTY.contract || PARTY.contract.idx !== si)
     PARTY.contract = {
@@ -5568,12 +5644,22 @@ function joinRunner2() {
 function dropRunner2() {
   if (!G.coop) return;
   const p = PL[1];
+  // let go of anything runner 2 had hold of, and of runner 2
+  if (p.heldBy) enemyRelease(p.heldBy);
+  if (p.grab) releaseGrab(p);
+  if (p.holding) dropProp(p);
   G.ents = G.ents.filter(e => e !== p);
-  if (p.holding) {
-    p.holding = null;
-  }
   PL = [PL[0]];
   G.coop = false;
+  // runner 1 already out of lives: there's nobody left, so the run ends as if they'd fallen
+  if (PL[0].out && G.mode !== 'title') {
+    if (G.arena) arenaOver();
+    else if (G.world) worldWipe();
+    else if (!G.training && !G.drive && !G.stealth && !G.flight) {
+      musicPlay(null);
+      setMode('over');
+    }
+  }
 }
 
 function spawnHostage(x, y) {
@@ -5972,6 +6058,7 @@ function hurt(t, dmg, dir, o) {
     if (mod === 'burn' && t.team === 1 && !(t.d && t.d.passive)) {
       t.burnT = 120;
       t.burnDmg = Math.max(2, Math.round(dmg * 0.12));
+      t.burnSrc = sp; // whoever lit them gets the kill
     }
     if (crit && o.bullet && !o.rico && has(sp, 'rico')) {
       const o2 = G.ents
@@ -6136,6 +6223,7 @@ function drop(k, x, y, extra) {
   );
 }
 function kill(t, dir, o) {
+  t.flip = false;
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -6233,7 +6321,7 @@ function kill(t, dir, o) {
     }
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
-  gainKarma(
+  (G.cjob ? jobKarma : gainKarma)(
     Math.round(
       d.karma *
         em *
@@ -6481,6 +6569,7 @@ function releaseGrab(p, quiet) {
   const e = p.grab;
   p.grab = null;
   p.knees = 0;
+  if (e) e.flip = false;
   if (e && e.state === 'grabbed') {
     setS(e, 'idle');
     e.inv = 20;
@@ -6507,6 +6596,7 @@ function haulTarget(p) {
     e =>
       e.team === 1 &&
       e.state === 'down' &&
+      !e.hauled && // once per knockdown: no endless haul, hook, haul loops
       e.z <= 1 &&
       e.hp > 0 &&
       !e.d.boss &&
@@ -6521,6 +6611,7 @@ function haulTarget(p) {
 function haulUp(p, e) {
   const I = INP[p.idx] || INP[0];
   setS(e, 'grabbed');
+  e.hauled = true;
   e.vx = e.vz = 0;
   e.inv = 0; // the moment of grace for getting up doesn't protect someone hauled up
   e.dazeUntil = 0;
@@ -6573,6 +6664,7 @@ function physics(e) {
       if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;
       e.vz = 0;
+      const landDir = Math.sign(e.vx) || 1;
       e.vx = 0;
       if (e.thrown) {
         const src = e.thrown;
@@ -6593,7 +6685,7 @@ function physics(e) {
           G.shake = 5;
           if (e.hp <= 0) {
             e.state = 'down';
-            kill(e, Math.sign(e.vx) || 1);
+            kill(e, landDir, { src: src.kind === 'player' ? src : null });
           }
         }
       }
@@ -6889,7 +6981,7 @@ function upRunner(p) {
     }
     if (p.state === 'shoot') {
       const g = p.eq.gun,
-        q = has(p, 'quick') ? 0.7 : 1,
+        q = (has(p, 'quick') ? 0.7 : 1) * (g ? g.speed || 1 : 1), // Quickdraw and Swift fire every round, sooner
         T = n => t === Math.round(n * q);
       if (g) {
         if (g.fire === 'burst') {
@@ -6946,6 +7038,7 @@ function upRunner(p) {
             e.state !== 'dead' &&
             !e.d.fly &&
             !e.d.boss &&
+            !e.d.heavy && // walkers never fall
             !e.d.passive &&
             e.state !== 'down' &&
             Math.abs(e.x - p.x - p.face * 30) < 50 &&
@@ -7242,6 +7335,7 @@ function grabJumpTick(p, I, D) {
   const e = p.grab,
     pile = p.state === 'pdrive';
   if (!e || e.state !== 'grabbed') {
+    if (e) e.flip = false;
     p.grab = null;
     if (p.z <= 0) setS(p, 'idle');
     return;
@@ -8064,10 +8158,12 @@ function upEnemy(e) {
     if (e.t > 70) e.gone = true;
     return;
   }
+  if (e.inv > 0 && (e.state === 'down' || e.state === 'hurt')) e.inv--; // a release's grace runs out on the floor too
   if (e.state === 'down') {
     if (e.t > 58 && (e.z === 0 || (e.d.fly && e.t > 80))) {
       setS(e, 'idle');
       e.inv = 24;
+      e.hauled = false;
     }
     return;
   }
@@ -9031,7 +9127,7 @@ function update() {
         e.hp -= e.burnDmg;
         e.flash = 4;
         G.texts.push({ x: e.x, y: e.y, z: e.z + 48, s: '' + e.burnDmg, c: '#ff6a3d', life: 24, sm: true });
-        if (e.hp <= 0) kill(e, 1, { src: active()[0] });
+        if (e.hp <= 0) kill(e, 1, { src: e.burnSrc && !e.burnSrc.out ? e.burnSrc : active()[0] });
       }
     }
   }
@@ -9954,34 +10050,36 @@ function startWorld(coop, ch) {
 function saveWorld() {
   if (!G.wd) return;
   const w = G.wd;
-  store.set(
-    'cs_world',
-    JSON.parse(
-      JSON.stringify({
-        v: 1,
-        coop: G.coop,
-        party: PARTY,
-        runners: PL.map(p => {
-          const r = {};
-          for (const k of RUNNER_KEYS) r[k] = p[k];
-          return r;
-        }),
-        wd: {
-          level: w.level,
-          seed: w.seed,
-          heat: w.heat,
-          rep: w.rep,
-          fac: w.fac,
-          looted: w.looted,
-          copKills: w.copKills,
-          lastX: w.lastX,
-          found: w.found,
-          bountyDone: w.bountyDone,
-          courDone: w.courDone
-        },
-        stock: G.stock,
-        bestCombo: G.bestCombo
-      })
+  saveWarn(
+    store.set(
+      'cs_world',
+      JSON.parse(
+        JSON.stringify({
+          v: 1,
+          coop: G.coop,
+          party: PARTY,
+          runners: PL.map(p => {
+            const r = {};
+            for (const k of RUNNER_KEYS) r[k] = p[k];
+            return r;
+          }),
+          wd: {
+            level: w.level,
+            seed: w.seed,
+            heat: w.heat,
+            rep: w.rep,
+            fac: w.fac,
+            looted: w.looted,
+            copKills: w.copKills,
+            lastX: w.lastX,
+            found: w.found,
+            bountyDone: w.bountyDone,
+            courDone: w.courDone
+          },
+          stock: G.stock,
+          bestCombo: G.bestCombo
+        })
+      )
     )
   );
 }
@@ -9991,20 +10089,9 @@ function loadWorld(s) {
   G.diff = 1;
   G.ng = 0;
   newRunStats();
-  Object.assign(
-    PARTY,
-    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, ice: 0 },
-    s.party || {}
-  );
-  PL = (s.runners || []).map((r, i) => {
-    const p = newRunner(i);
-    for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
-    if (r.sk === undefined) {
-      p.sk = null;
-      p.spts = undefined;
-    }
-    applyCoat(p);
-    if (!ARCH[p.arch]) p.arch = 'runner';
+  restoreParty(s.party, { ice: 0 });
+  PL = (s.runners || []).filter(isObj).map((r, i) => {
+    const p = restoreRunner(r, i);
     p.lives = 3;
     refresh(p);
     return p;
@@ -10023,10 +10110,18 @@ function loadWorld(s) {
       bountyDone: false,
       courT: 2000,
       courDone: false,
-      h5T: 0
+      h5T: 0,
+      heat: 0,
+      rep: 0,
+      looted: [],
+      fac: {}
     },
     s.wd
   );
+  // fields the street reads every frame must have the right type, whatever the save says
+  for (const k of ['looted', 'found']) if (!Array.isArray(G.wd[k])) G.wd[k] = [];
+  for (const k of ['heat', 'rep']) if (!Number.isFinite(G.wd[k])) G.wd[k] = 0;
+  if (!isObj(G.wd.fac)) G.wd.fac = {};
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();
@@ -11603,7 +11698,6 @@ function startArena(coop, challenge) {
   G.coop = !!coop;
   G.challenge = challenge === 'day' ? thisDay() : challenge ? thisWeek() : null;
   if (G.challenge && G.challenge.daily) {
-    G.pendArch[0] = G.challenge.arch;
     const dd = store.load('cs_day') || {};
     const y = dayId(new Date(Date.now() - 864e5));
     if (dd.last !== G.challenge.day) {
@@ -11628,7 +11722,10 @@ function startArena(coop, challenge) {
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
   Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
-  PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
+  // the daily challenge sets runner 1's archetype for this run only, leaving your own pick alone
+  PL.forEach((p, i) =>
+    applyArch(p, i === 0 && G.challenge && G.challenge.daily ? G.challenge.arch : G.pendArch[i])
+  );
   for (const p of PL) {
     p.lvl = 3;
     p.pts = 4;
@@ -11819,7 +11916,7 @@ function arenaOver() {
 function scoreTable(hl) {
   const list = store.load('cs_arena') || [];
   if (!list.length) return '<p>No runs yet. Your best scores show up here.</p>';
-  return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : DIFF[e.diff].name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
+  return `<div class="list">${list.map((e, i) => `<div class="item"${hl && e.id === hl ? ' style="border-color:var(--gold)"' : ''}><div><div class="nm">${i + 1}. ${e.score.toLocaleString()} <span style="color:var(--muted);font-weight:400">· wave ${e.wave}</span></div><div class="ds">${e.week ? `Weekly ${e.week} · ${MODS[e.mod] ? MODS[e.mod].name : ''}` : (DIFF[e.diff] || DIFF[1]).name}${e.coop ? ' · co-op' : ''} · level ${e.lvl} · best combo ${e.combo} · ${e.date}</div></div><div class="acts">${hl && e.id === hl ? '<span style="color:var(--gold);font-size:12px;letter-spacing:.1em">NEW</span>' : ''}</div></div>`).join('')}</div>`;
 }
 
 /* ===== src/js/modes/jobs.js ===== */
@@ -11903,6 +12000,8 @@ function jobCrew(coop) {
   G.rngW = G.rngP = null;
   if (G.cjob) {
     for (const p of PL) {
+      p.out = false; // whatever lives the district left them with, a job starts everyone fresh
+      p.lives = 3;
       refresh(p);
       p.hp = p.maxHp;
       p.mp = p.maxMp;
@@ -11910,6 +12009,7 @@ function jobCrew(coop) {
   } else {
     G.diff = G.pendDiff;
     G.ng = 0;
+    G.muts = []; // the campaign's mutators don't follow you onto the Jobs board
     G.coop = !!coop;
     newRunStats();
     PL = [newRunner(0)];
@@ -11992,6 +12092,11 @@ function sideJobHtml() {
   return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st">Optional</span></div>
     <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here, win or lose (quit midway and it's still on offer).</span>
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="cjob">Take the side job</button></div></div>`;
+}
+// during Juno's side job the campaign's gear is out of reach: it comes back with the campaign when the job ends
+function cjobLocked() {
+  sfx.click();
+  renderOv();
 }
 
 /* ===== src/js/modes/drive.js ===== */
@@ -13242,7 +13347,7 @@ function stealthInteract(p, S) {
   const T = S.term;
   if (!T.done && Math.abs(p.x - T.x) < 38 && p.z < 70) {
     S.tries++;
-    startHack({ tier: 3 }, T);
+    startHack({ tier: 3, name: 'Kagemori terminal', type: 'blacksite' }, T);
     return;
   }
   if (!S.data && Math.abs(p.x - S.exit) < 60) say(p, 'GET THE DATA FIRST', '#a79dc2', 60, 40, true);
@@ -14342,12 +14447,27 @@ function netPc(ice) {
   NET.pc = pc;
   return pc;
 }
+// ?lobby= may only point at our own lobby, a workers.dev deploy of it, or a local one: a shared link can't
+// quietly send room codes and invites somewhere else
+function netLobbyOk(q) {
+  try {
+    const u = new URL(q);
+    if (!/^https?:$/.test(u.protocol) || u.username || u.password) return false;
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) return true;
+    return (
+      u.protocol === 'https:' &&
+      (u.origin === NET_LOBBY || /^cct-lobby\.[a-z0-9-]+\.workers\.dev$/.test(u.hostname))
+    );
+  } catch (e) {
+    return false;
+  }
+}
 function lobbyUrl() {
   if (typeof location === 'undefined') return '';
   try {
     const q = new URLSearchParams(location.search).get('lobby');
     if (q === 'off') return '';
-    if (q && /^https?:\/\/[^\s]+$/.test(q)) return q.replace(/\/+$/, '');
+    if (q && netLobbyOk(q)) return q.replace(/\/+$/, '');
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
 }
@@ -14404,6 +14524,11 @@ function netPollAnswer() {
   }, 1500);
 }
 function netFail(e) {
+  // a host whose room is gone has nothing left to rejoin: drop the code and the runner kept for it
+  if (NET.role === 'host' && !NET.live) {
+    NET.room = '';
+    NET.away = null;
+  }
   NET.status = 'error';
   NET.err = (e && e.message) || String(e);
   if (G.mode === 'netlost') NET.lostMsg = NET.err; // a rejoin that didn't take: say why on the same card
@@ -14579,6 +14704,10 @@ function netClose() {
   NET.q = [];
   NET.cnt = {};
   NET.hmode = '';
+  NET.helloed = false;
+  NET.waitFull = false;
+  NET.fullNext = false;
+  NET.rInT = 0;
 }
 // leaving on purpose: say goodbye first so the other side shows a clean message
 function netLeave() {
@@ -14666,26 +14795,63 @@ function netRecv(data) {
     }
     return v;
   });
+  if (!m || typeof m !== 'object') return;
   NET.rxT = performance.now();
-  if (m.k === 'in' && NET.role === 'host') NET.rIn = m;
-  else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
-  else if (m.k === 'hello' && NET.role === 'host') netHostBegin(m);
+  if (m.k === 'in' && NET.role === 'host') {
+    if (netInOk(m)) {
+      NET.rIn = m;
+      NET.rInT = NET.rxT;
+    }
+  } else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
+  else if (m.k === 'hello' && NET.role === 'host' && !NET.helloed) {
+    NET.helloed = true; // once per connection: a second hello can't swap runners mid-run
+    netHostBegin(m);
+  } else if (m.k === 'full' && NET.role === 'host' && NET.live) netResync();
   else if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
   else if (m.k === 's' && NET.role === 'guest') {
     m.fix = fix;
+    // snapshots are deltas: dropping one would leave stale pieces, so a long backlog asks for a fresh picture
+    if (NET.waitFull && !m.f) return;
+    if (m.f) NET.waitFull = false;
     NET.q.push(m);
-    if (NET.q.length > 30) NET.q.splice(0, NET.q.length - 30);
+    if (NET.q.length > 30) {
+      NET.q = [];
+      NET.waitFull = true;
+      NET.fullAskT = 0;
+    }
   } else if (m.k === 'bye')
     netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.', false);
 }
 
 /* ---------- host ---------- */
+const netOwn = (o, k) => typeof k === 'string' && !!o && Object.prototype.hasOwnProperty.call(o, k);
+// the friend's buttons: 13 flags of 0 or 1 and a small object of press counters, nothing else
+function netInOk(m) {
+  if (typeof m.h !== 'string' || !/^[01]{13}$/.test(m.h)) return false;
+  const c = m.c;
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+  for (const k of Object.keys(c)) if (!NET_ACTS.includes(k) || !Number.isFinite(c[k])) return false;
+  return true;
+}
+// the friend fell behind: everything goes again in full on the next snapshot
+function netResync() {
+  const now = performance.now();
+  if (now - (NET.fullT || -1e9) < 1000) return;
+  NET.fullT = now;
+  NET.sent = new Map();
+  NET.gsent = {};
+  NET.gref = {};
+  NET.bgRef = null;
+  NET.fullNext = true;
+}
 function netHostBegin(m) {
-  if (ARCH[m.arch] && !archLocked(m.arch)) G.pendArch[1] = m.arch;
+  if (netOwn(ARCH, m.arch) && !archLocked(m.arch)) G.pendArch[1] = m.arch;
   G.pendCoat = (G.pendCoat || LEG.pendCoat || ['sig', 'sig']).slice();
   G.pendTrail = (G.pendTrail || LEG.pendTrail || ['none', 'none']).slice();
-  if (COATS[m.coat]) G.pendCoat[1] = m.coat;
-  if (TRAILS[m.trail]) G.pendTrail[1] = m.trail;
+  // the friend's own unlocks aren't ours to check, so only looks this save has opened
+  if (netOwn(COATS, m.coat) && (typeof coatOpen !== 'function' || coatOpen(m.coat))) G.pendCoat[1] = m.coat;
+  if (netOwn(TRAILS, m.trail) && (typeof trailOpen !== 'function' || trailOpen(m.trail)))
+    G.pendTrail[1] = m.trail;
   NET.live = true;
   NET.status = 'live';
   NET.sent = new Map();
@@ -14718,6 +14884,11 @@ function netHostInput() {
   const r = NET.rIn;
   if (!r) return;
   const s = INP[1];
+  // the friend reports at least every 10 frames; a quiet line lets go of the buttons instead of running on
+  if (performance.now() - (NET.rInT || 0) > 300) {
+    for (const a of NET_ACTS) s.held[a] = false;
+    return;
+  }
   for (let i = 0; i < NET_ACTS.length; i++) {
     const a = NET_ACTS[i];
     s.held[a] = r.h.charCodeAt(i) === 49;
@@ -14829,6 +15000,7 @@ function netSnapshot() {
   };
   let out =
     '{"k":"s",' +
+    (NET.fullNext ? '"f":1,' : '') +
     netJson(head).slice(1, -1) +
     ',"e":[' +
     parts.join(',') +
@@ -14856,10 +15028,13 @@ function netSnapshot() {
     const pa = netJson(PARTY);
     if (NET.gsent.$pa !== pa) out += ',"pa":' + (NET.gsent.$pa = pa);
   }
+  NET.fullNext = false;
   return out + '}';
 }
 function netHostTick() {
   if (!NET.live) return;
+  // the friend sends buttons several times a second; a quarter minute of silence is a dropped line
+  if (performance.now() - NET.rxT > 15000) return netLost('Lost touch with your partner.', true);
   // whatever the host starts, the friend is runner 2 in it (training stays a solo thing)
   if ((G.mode === 'play' || G.mode === 'den') && PL.length < 2 && !G.training) {
     joinRunner2();
@@ -14933,6 +15108,7 @@ function netApply(s) {
   for (const [nid, kv] of s.e) {
     const e = map.get(nid);
     for (const k in kv) {
+      if (NET_PROTO.has(k)) continue;
       const v = kv[k];
       if (v === '$U') delete e[k];
       else if (k === 'd') e.d = v === '$D' ? DEF[kv.kind || e.kind] : v;
@@ -14951,6 +15127,7 @@ function netApply(s) {
   const keep = new Set(s.o.concat(s.pl));
   for (const k of map.keys()) if (!keep.has(k)) map.delete(k);
   for (const k in s.g) {
+    if (NET_PROTO.has(k)) continue;
     const v = s.g[k];
     if (k === 'camX') {
       if (Math.abs(v - G.camX) > 80) G.camX = v;
@@ -14984,7 +15161,7 @@ function netApply(s) {
   if (Math.abs(s.t - G.t) > 6) G.t = s.t;
   if (s.pa) {
     for (const k of Object.keys(PARTY)) if (!(k in s.pa)) delete PARTY[k];
-    Object.assign(PARTY, s.pa);
+    for (const k of Object.keys(s.pa)) if (!NET_PROTO.has(k)) PARTY[k] = s.pa[k];
   }
   if (s.bg) G.bg = s.bg;
   if (typeof haggle !== 'undefined') haggle = s.hg || null;
@@ -15094,6 +15271,10 @@ function netGuestStep() {
     NET.lastIn = h + c;
     NET.inT = 0;
     netSend('{"k":"in","h":"' + h + '","c":' + c + '}');
+  }
+  if (NET.waitFull && performance.now() - (NET.fullAskT || 0) > 1000) {
+    NET.fullAskT = performance.now();
+    netSend({ k: 'full' });
   }
   if (performance.now() - NET.rxT > 15000) netLost('Lost touch with the host.', true);
 }
@@ -15272,8 +15453,33 @@ function netGuestSheet() {
   setMode('sheet');
   NET.sheetSig = netSheetSig();
 }
+// what a friend's click may name: plain ids only, and only ones the table it points into really holds
+const NET_PROTO = new Set(['__proto__', 'constructor', 'prototype']);
+function netActOk(a) {
+  const parts = a.split(':'),
+    name = parts[0],
+    arg = parts[1],
+    p = PL[1];
+  if (parts.length > 3 || parts.some(x => !/^[A-Za-z0-9_.-]{0,40}$/.test(x) || NET_PROTO.has(x)))
+    return false;
+  const tbl = {
+    skill: typeof SKILLS !== 'undefined' && SKILLS,
+    attr: p && p.attr,
+    unequip: p && p.eq,
+    reroll: p && p.eq,
+    upgrade: p && p.eq,
+    gmod: typeof GMODS !== 'undefined' && GMODS,
+    cyber: typeof CYBER !== 'undefined' && CYBER,
+    tech: typeof TECH !== 'undefined' && TECH,
+    hire: typeof ALLIES !== 'undefined' && ALLIES,
+    learn: typeof SPELLS !== 'undefined' && SPELLS
+  }[name];
+  if (tbl !== undefined && !netOwn(tbl, arg)) return false;
+  if (name === 'spell') return !!p && /^\d+$/.test(arg) && +arg < (p.spells || []).length;
+  return true;
+}
 function netRemoteAct(a, mode) {
-  if (typeof a !== 'string' || a.length > 80 || PL.length < 2) return;
+  if (typeof a !== 'string' || a.length > 80 || PL.length < 2 || !netActOk(a)) return;
   const name = a.split(':')[0];
   // a shop click only counts while the host is still at that same counter
   const ok = NET_REMOTE.has(name) || (NET_SHOP.has(name) && NET_SHARED.has(G.mode) && mode === G.mode);
@@ -21038,7 +21244,7 @@ function charHtml() {
   <div class="meter"><i style="width:${Math.round((p.karma / nx) * 100)}%"></i></div>
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
-  <h3>Equipped</h3><div class="list">${eq}</div>
+  ${G.cjob ? '<p style="color:var(--gold);font-size:13px">On Juno\'s side job: gear stays as it is until you\'re back in the Den.</p>' : ''}<h3>Equipped</h3><div class="list">${eq}</div>
   ${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
@@ -21081,10 +21287,10 @@ function renderOv() {
     const sv = store.load('cs_save3'),
       boot = G.booted ? '' : ' boot'; // the sign powers on once per session, never on later visits
     G.booted = true;
-    if (G.mode === 'title') G.pendDiff = sv && sv.diff !== undefined ? sv.diff : 1;
+    if (G.mode === 'title') G.pendDiff = sv && DIFF[sv.diff] ? sv.diff : 1;
     h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
     <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${DIFF[sv.diff === undefined ? 1 : sv.diff].name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {
     h = `<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained ? '' : '<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
@@ -21623,6 +21829,9 @@ function togglePause() {
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
 function newRun(coop) {
+  G.training = false;
+  // a runner kept for a dropped partner belongs to the old run
+  if (typeof NET !== 'undefined' && !NET.live) NET.away = null;
   G.choices = {};
   G.sideJobs = {};
   cjobClear();
@@ -21991,6 +22200,11 @@ ov.addEventListener('click', e => {
       startStage(G.stage);
       break;
     case 'notyet':
+      // back to the Den we came from, at the stage it was: the briefing had moved G.stage on to the next district
+      if (G.briefFromDen && Number.isInteger(G.preBriefStage)) {
+        G.stage = G.preBriefStage;
+        saveGame('den');
+      }
       G.mode = 'den';
       setMode('den');
       break;
@@ -22044,8 +22258,12 @@ ov.addEventListener('click', e => {
       keep = false;
       break;
     case 'hackquit':
-      G.hack = null;
-      setMode('play');
+      // backing off a vault or a terminal counts as failing it: no free retries one miss before the lockout
+      if (G.hack && G.hack.vault) hackFail();
+      else {
+        G.hack = null;
+        setMode('play');
+      }
       break;
     case 'buyice':
       if (PARTY.creds >= 40) {
@@ -22240,6 +22458,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     case 'equip': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const i = findBag(arg);
       if (i < 0) break;
       const it = PARTY.bag[i];
@@ -22253,6 +22475,10 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'unequip': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const it = p.eq[arg];
       if (it && PARTY.bag.length < BAG_MAX) {
         PARTY.bag.push(it);
@@ -22310,6 +22536,10 @@ ov.addEventListener('click', e => {
       break;
     }
     case 'drop': {
+      if (G.cjob) {
+        cjobLocked();
+        break;
+      }
       const i = findBag(arg);
       if (i >= 0 && !PARTY.bag[i].lock) PARTY.bag.splice(i, 1);
       rerender();
@@ -22632,7 +22862,8 @@ function pwaApplyUpdate() {
     if (G.world && G.wd) saveWorld();
   } catch (err) {}
   PWA.applying = true;
-  if (PWA.waiting) PWA.waiting.postMessage({ type: 'SKIP_WAITING' });
+  // a worker another tab already switched on won't fire controllerchange here: just reload into it
+  if (PWA.waiting && PWA.waiting.state === 'installed') PWA.waiting.postMessage({ type: 'SKIP_WAITING' });
   else location.reload();
 }
 // Show the update bar only between fights, never in the middle of one.
@@ -22722,13 +22953,20 @@ function pwaImportText(t) {
 function pwaImportApply() {
   const d = G.importData;
   if (!d) return;
+  // write the backup first and only then remove the saves it doesn't have, so a failure partway (storage full)
+  // never leaves the player with half their saves gone; only reload when it all went in
   try {
+    for (const k in d.data) localStorage.setItem(k, d.data[k]);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(SAVE_PREFIX)) localStorage.removeItem(k);
+      if (k && k.startsWith(SAVE_PREFIX) && !(k in d.data)) localStorage.removeItem(k);
     }
-    for (const k in d.data) localStorage.setItem(k, d.data[k]);
-  } catch (err) {}
+  } catch (err) {
+    G.importErr =
+      "Couldn't restore the backup: this browser's storage is full or blocked. Your saves were not changed.";
+    if (G.mode === 'settings') renderOv();
+    return;
+  }
   location.reload();
 }
 
@@ -22774,7 +23012,7 @@ const STEP = 1000 / 60,
 let last = performance.now(),
   acc = 0,
   tick = 0,
-  loopErr = false;
+  loopErr = 0;
 function stepOnce() {
   tick++;
   snapPrev();
@@ -22823,12 +23061,23 @@ function frame(now) {
     if (acc >= STEP) acc = acc % STEP; // drop the backlog instead of fast-forwarding
     lerpRender(acc / STEP);
     if (tick % 6 === 0) updateTouchUI();
+    loopErr = 0; // a clean frame
   } catch (err) {
-    if (!loopErr) {
-      loopErr = true;
-      console.error('Cyber City Tactics frame error', err);
-    }
+    // log the first error of a run of them; if every frame fails, stop piling up time and say so on screen
+    if (!loopErr) console.error('Cyber City Tactics frame error', err);
+    loopErr++;
+    acc = 0;
+    if (loopErr === 120) showFatal(err);
   }
+}
+// an error on every frame for two seconds: pause on a card that offers a reload instead of a frozen street
+function showFatal(err) {
+  try {
+    const ov = document.getElementById('ov');
+    if (!ov) return;
+    ov.hidden = false;
+    ov.innerHTML = `<div class="card"><p class="eyebrow">Something broke</p><h2>The game hit an error</h2><p>Your saves are safe. Reloading usually fixes it; if it keeps happening, please report it.</p><p style="color:var(--muted);font-size:12px">${esc(String((err && err.message) || err)).slice(0, 200)}</p><div class="row"><button class="btn" onclick="location.reload()">Reload</button></div></div>`;
+  } catch (e) {}
 }
 // Coming back to the tab: start timing fresh so there's no catch-up burst.
 document.addEventListener('visibilitychange', () => {

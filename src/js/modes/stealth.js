@@ -416,7 +416,7 @@ function stealthInteract(p, S) {
   const T = S.term;
   if (!T.done && Math.abs(p.x - T.x) < 38 && p.z < 70) {
     S.tries++;
-    startHack({ tier: 3 }, T);
+    startHack({ tier: 3, name: 'Kagemori terminal', type: 'blacksite' }, T);
     return;
   }
   if (!S.data && Math.abs(p.x - S.exit) < 60) say(p, 'GET THE DATA FIRST', '#a79dc2', 60, 40, true);

@@ -86,7 +86,7 @@ function update() {
         e.hp -= e.burnDmg;
         e.flash = 4;
         G.texts.push({ x: e.x, y: e.y, z: e.z + 48, s: '' + e.burnDmg, c: '#ff6a3d', life: 24, sm: true });
-        if (e.hp <= 0) kill(e, 1, { src: active()[0] });
+        if (e.hp <= 0) kill(e, 1, { src: e.burnSrc && !e.burnSrc.out ? e.burnSrc : active()[0] });
       }
     }
   }

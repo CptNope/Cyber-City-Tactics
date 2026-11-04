@@ -469,34 +469,36 @@ function startWorld(coop, ch) {
 function saveWorld() {
   if (!G.wd) return;
   const w = G.wd;
-  store.set(
-    'cs_world',
-    JSON.parse(
-      JSON.stringify({
-        v: 1,
-        coop: G.coop,
-        party: PARTY,
-        runners: PL.map(p => {
-          const r = {};
-          for (const k of RUNNER_KEYS) r[k] = p[k];
-          return r;
-        }),
-        wd: {
-          level: w.level,
-          seed: w.seed,
-          heat: w.heat,
-          rep: w.rep,
-          fac: w.fac,
-          looted: w.looted,
-          copKills: w.copKills,
-          lastX: w.lastX,
-          found: w.found,
-          bountyDone: w.bountyDone,
-          courDone: w.courDone
-        },
-        stock: G.stock,
-        bestCombo: G.bestCombo
-      })
+  saveWarn(
+    store.set(
+      'cs_world',
+      JSON.parse(
+        JSON.stringify({
+          v: 1,
+          coop: G.coop,
+          party: PARTY,
+          runners: PL.map(p => {
+            const r = {};
+            for (const k of RUNNER_KEYS) r[k] = p[k];
+            return r;
+          }),
+          wd: {
+            level: w.level,
+            seed: w.seed,
+            heat: w.heat,
+            rep: w.rep,
+            fac: w.fac,
+            looted: w.looted,
+            copKills: w.copKills,
+            lastX: w.lastX,
+            found: w.found,
+            bountyDone: w.bountyDone,
+            courDone: w.courDone
+          },
+          stock: G.stock,
+          bestCombo: G.bestCombo
+        })
+      )
     )
   );
 }
@@ -506,20 +508,9 @@ function loadWorld(s) {
   G.diff = 1;
   G.ng = 0;
   newRunStats();
-  Object.assign(
-    PARTY,
-    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, ice: 0 },
-    s.party || {}
-  );
-  PL = (s.runners || []).map((r, i) => {
-    const p = newRunner(i);
-    for (const k of RUNNER_KEYS) if (r[k] !== undefined) p[k] = r[k];
-    if (r.sk === undefined) {
-      p.sk = null;
-      p.spts = undefined;
-    }
-    applyCoat(p);
-    if (!ARCH[p.arch]) p.arch = 'runner';
+  restoreParty(s.party, { ice: 0 });
+  PL = (s.runners || []).filter(isObj).map((r, i) => {
+    const p = restoreRunner(r, i);
     p.lives = 3;
     refresh(p);
     return p;
@@ -538,10 +529,18 @@ function loadWorld(s) {
       bountyDone: false,
       courT: 2000,
       courDone: false,
-      h5T: 0
+      h5T: 0,
+      heat: 0,
+      rep: 0,
+      looted: [],
+      fac: {}
     },
     s.wd
   );
+  // fields the street reads every frame must have the right type, whatever the save says
+  for (const k of ['looted', 'found']) if (!Array.isArray(G.wd[k])) G.wd[k] = [];
+  for (const k of ['heat', 'rep']) if (!Number.isFinite(G.wd[k])) G.wd[k] = 0;
+  if (!isObj(G.wd.fac)) G.wd.fac = {};
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();

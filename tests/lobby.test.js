@@ -100,6 +100,19 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   const realNow = Date.now;
   Date.now = () => realNow() + 16 * 60 * 1000;
   ok((await call('GET', '/rooms/' + code)).status === 404, 'rooms expire after 15 minutes');
+  ok(
+    (await call('POST', '/rooms/' + code + '/reopen', { offer: OFFER2, key: 'y'.repeat(24) })).status === 403,
+    'an expired invite still keeps its code for the host: strangers cannot take it'
+  );
+  ok(
+    (await call('POST', '/rooms/' + code + '/reopen', { offer: OFFER2, key })).status === 204,
+    'the host reopens after the invite expired, mid-game'
+  );
+  Date.now = () => realNow() + 5 * 60 * 60 * 1000;
+  ok(
+    (await call('POST', '/rooms/' + code + '/reopen', { offer: OFFER2, key: 'y'.repeat(24) })).status === 204,
+    'hours later the key lapses and the code is free again'
+  );
   Date.now = realNow;
 
   // rate limits: relay passes and rooms per address per hour
@@ -126,6 +139,34 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   Date.now = () => realNow() + 61 * 60 * 1000;
   ok((await fromIp('203.0.113.7', '/ice')).status === 200, 'the window slides: an hour later it works again');
   Date.now = realNow;
+  // IPv6: one /64 is one bucket, so rotating the low bits does not dodge the limit
+  ok(
+    W.ipBucket('2001:db8:aa:1::5') === W.ipBucket('2001:0db8:00aa:0001:ffff:1:2:3') &&
+      W.ipBucket('2001:db8:aa:2::5') !== W.ipBucket('2001:db8:aa:1::5') &&
+      W.ipBucket('203.0.113.4') === '203.0.113.4',
+    'IPv6 addresses share a bucket per /64; IPv4 per address'
+  );
+  const v6 = [];
+  for (let i = 0; i < 13; i++)
+    v6.push((await fromIp('2001:db8:77:9::' + (i + 1).toString(16), '/ice')).status);
+  ok(v6.slice(0, 12).every(s => s === 200) && v6[12] === 429, 'relay passes per /64, not per IPv6 address');
+  // code lookups and replies are limited too, so nobody can walk the code space
+  const lk = [];
+  for (let i = 0; i < 121; i++) lk.push((await fromIp('198.51.100.3', '/rooms/ZZZZZ')).status);
+  ok(lk.slice(0, 120).every(s => s === 404) && lk[120] === 429, 'code lookups: 120 an hour per address');
+  const an = [];
+  for (let i = 0; i < 31; i++)
+    an.push((await fromIp('198.51.100.4', '/rooms/ZZZZZ/answer', 'POST', { answer: ANSWER })).status);
+  ok(an.slice(0, 30).every(s => s === 404) && an[30] === 429, 'replies: 30 an hour per address');
+  // one daily ceiling on relay passes for everyone together
+  const envCap = { ROOMS: memRooms(), LIMITS: memRooms(W.Limiter), ALLOWED_ORIGINS: ORIGIN };
+  const lim = envCap.LIMITS.get(envCap.LIMITS.idFromName('ice:all'));
+  for (let i = 0; i < 5000; i++)
+    await lim.fetch('https://limit/hit?max=5000&win=' + 86400000, { method: 'POST' });
+  ok(
+    (await call('GET', '/ice', undefined, ORIGIN, envCap)).status === 429,
+    'a daily cap on relay passes overall'
+  );
 
   // ICE: STUN only without secrets; TURN with them, minus port 53
   r = await call('GET', '/ice');

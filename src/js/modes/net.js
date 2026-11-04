@@ -204,12 +204,27 @@ function netPc(ice) {
   NET.pc = pc;
   return pc;
 }
+// ?lobby= may only point at our own lobby, a workers.dev deploy of it, or a local one: a shared link can't
+// quietly send room codes and invites somewhere else
+function netLobbyOk(q) {
+  try {
+    const u = new URL(q);
+    if (!/^https?:$/.test(u.protocol) || u.username || u.password) return false;
+    if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) return true;
+    return (
+      u.protocol === 'https:' &&
+      (u.origin === NET_LOBBY || /^cct-lobby\.[a-z0-9-]+\.workers\.dev$/.test(u.hostname))
+    );
+  } catch (e) {
+    return false;
+  }
+}
 function lobbyUrl() {
   if (typeof location === 'undefined') return '';
   try {
     const q = new URLSearchParams(location.search).get('lobby');
     if (q === 'off') return '';
-    if (q && /^https?:\/\/[^\s]+$/.test(q)) return q.replace(/\/+$/, '');
+    if (q && netLobbyOk(q)) return q.replace(/\/+$/, '');
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
 }
@@ -266,6 +281,11 @@ function netPollAnswer() {
   }, 1500);
 }
 function netFail(e) {
+  // a host whose room is gone has nothing left to rejoin: drop the code and the runner kept for it
+  if (NET.role === 'host' && !NET.live) {
+    NET.room = '';
+    NET.away = null;
+  }
   NET.status = 'error';
   NET.err = (e && e.message) || String(e);
   if (G.mode === 'netlost') NET.lostMsg = NET.err; // a rejoin that didn't take: say why on the same card
@@ -441,6 +461,10 @@ function netClose() {
   NET.q = [];
   NET.cnt = {};
   NET.hmode = '';
+  NET.helloed = false;
+  NET.waitFull = false;
+  NET.fullNext = false;
+  NET.rInT = 0;
 }
 // leaving on purpose: say goodbye first so the other side shows a clean message
 function netLeave() {
@@ -528,26 +552,63 @@ function netRecv(data) {
     }
     return v;
   });
+  if (!m || typeof m !== 'object') return;
   NET.rxT = performance.now();
-  if (m.k === 'in' && NET.role === 'host') NET.rIn = m;
-  else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
-  else if (m.k === 'hello' && NET.role === 'host') netHostBegin(m);
+  if (m.k === 'in' && NET.role === 'host') {
+    if (netInOk(m)) {
+      NET.rIn = m;
+      NET.rInT = NET.rxT;
+    }
+  } else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
+  else if (m.k === 'hello' && NET.role === 'host' && !NET.helloed) {
+    NET.helloed = true; // once per connection: a second hello can't swap runners mid-run
+    netHostBegin(m);
+  } else if (m.k === 'full' && NET.role === 'host' && NET.live) netResync();
   else if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
   else if (m.k === 's' && NET.role === 'guest') {
     m.fix = fix;
+    // snapshots are deltas: dropping one would leave stale pieces, so a long backlog asks for a fresh picture
+    if (NET.waitFull && !m.f) return;
+    if (m.f) NET.waitFull = false;
     NET.q.push(m);
-    if (NET.q.length > 30) NET.q.splice(0, NET.q.length - 30);
+    if (NET.q.length > 30) {
+      NET.q = [];
+      NET.waitFull = true;
+      NET.fullAskT = 0;
+    }
   } else if (m.k === 'bye')
     netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.', false);
 }
 
 /* ---------- host ---------- */
+const netOwn = (o, k) => typeof k === 'string' && !!o && Object.prototype.hasOwnProperty.call(o, k);
+// the friend's buttons: 13 flags of 0 or 1 and a small object of press counters, nothing else
+function netInOk(m) {
+  if (typeof m.h !== 'string' || !/^[01]{13}$/.test(m.h)) return false;
+  const c = m.c;
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+  for (const k of Object.keys(c)) if (!NET_ACTS.includes(k) || !Number.isFinite(c[k])) return false;
+  return true;
+}
+// the friend fell behind: everything goes again in full on the next snapshot
+function netResync() {
+  const now = performance.now();
+  if (now - (NET.fullT || -1e9) < 1000) return;
+  NET.fullT = now;
+  NET.sent = new Map();
+  NET.gsent = {};
+  NET.gref = {};
+  NET.bgRef = null;
+  NET.fullNext = true;
+}
 function netHostBegin(m) {
-  if (ARCH[m.arch] && !archLocked(m.arch)) G.pendArch[1] = m.arch;
+  if (netOwn(ARCH, m.arch) && !archLocked(m.arch)) G.pendArch[1] = m.arch;
   G.pendCoat = (G.pendCoat || LEG.pendCoat || ['sig', 'sig']).slice();
   G.pendTrail = (G.pendTrail || LEG.pendTrail || ['none', 'none']).slice();
-  if (COATS[m.coat]) G.pendCoat[1] = m.coat;
-  if (TRAILS[m.trail]) G.pendTrail[1] = m.trail;
+  // the friend's own unlocks aren't ours to check, so only looks this save has opened
+  if (netOwn(COATS, m.coat) && (typeof coatOpen !== 'function' || coatOpen(m.coat))) G.pendCoat[1] = m.coat;
+  if (netOwn(TRAILS, m.trail) && (typeof trailOpen !== 'function' || trailOpen(m.trail)))
+    G.pendTrail[1] = m.trail;
   NET.live = true;
   NET.status = 'live';
   NET.sent = new Map();
@@ -580,6 +641,11 @@ function netHostInput() {
   const r = NET.rIn;
   if (!r) return;
   const s = INP[1];
+  // the friend reports at least every 10 frames; a quiet line lets go of the buttons instead of running on
+  if (performance.now() - (NET.rInT || 0) > 300) {
+    for (const a of NET_ACTS) s.held[a] = false;
+    return;
+  }
   for (let i = 0; i < NET_ACTS.length; i++) {
     const a = NET_ACTS[i];
     s.held[a] = r.h.charCodeAt(i) === 49;
@@ -691,6 +757,7 @@ function netSnapshot() {
   };
   let out =
     '{"k":"s",' +
+    (NET.fullNext ? '"f":1,' : '') +
     netJson(head).slice(1, -1) +
     ',"e":[' +
     parts.join(',') +
@@ -718,10 +785,13 @@ function netSnapshot() {
     const pa = netJson(PARTY);
     if (NET.gsent.$pa !== pa) out += ',"pa":' + (NET.gsent.$pa = pa);
   }
+  NET.fullNext = false;
   return out + '}';
 }
 function netHostTick() {
   if (!NET.live) return;
+  // the friend sends buttons several times a second; a quarter minute of silence is a dropped line
+  if (performance.now() - NET.rxT > 15000) return netLost('Lost touch with your partner.', true);
   // whatever the host starts, the friend is runner 2 in it (training stays a solo thing)
   if ((G.mode === 'play' || G.mode === 'den') && PL.length < 2 && !G.training) {
     joinRunner2();
@@ -795,6 +865,7 @@ function netApply(s) {
   for (const [nid, kv] of s.e) {
     const e = map.get(nid);
     for (const k in kv) {
+      if (NET_PROTO.has(k)) continue;
       const v = kv[k];
       if (v === '$U') delete e[k];
       else if (k === 'd') e.d = v === '$D' ? DEF[kv.kind || e.kind] : v;
@@ -813,6 +884,7 @@ function netApply(s) {
   const keep = new Set(s.o.concat(s.pl));
   for (const k of map.keys()) if (!keep.has(k)) map.delete(k);
   for (const k in s.g) {
+    if (NET_PROTO.has(k)) continue;
     const v = s.g[k];
     if (k === 'camX') {
       if (Math.abs(v - G.camX) > 80) G.camX = v;
@@ -846,7 +918,7 @@ function netApply(s) {
   if (Math.abs(s.t - G.t) > 6) G.t = s.t;
   if (s.pa) {
     for (const k of Object.keys(PARTY)) if (!(k in s.pa)) delete PARTY[k];
-    Object.assign(PARTY, s.pa);
+    for (const k of Object.keys(s.pa)) if (!NET_PROTO.has(k)) PARTY[k] = s.pa[k];
   }
   if (s.bg) G.bg = s.bg;
   if (typeof haggle !== 'undefined') haggle = s.hg || null;
@@ -956,6 +1028,10 @@ function netGuestStep() {
     NET.lastIn = h + c;
     NET.inT = 0;
     netSend('{"k":"in","h":"' + h + '","c":' + c + '}');
+  }
+  if (NET.waitFull && performance.now() - (NET.fullAskT || 0) > 1000) {
+    NET.fullAskT = performance.now();
+    netSend({ k: 'full' });
   }
   if (performance.now() - NET.rxT > 15000) netLost('Lost touch with the host.', true);
 }
@@ -1134,8 +1210,33 @@ function netGuestSheet() {
   setMode('sheet');
   NET.sheetSig = netSheetSig();
 }
+// what a friend's click may name: plain ids only, and only ones the table it points into really holds
+const NET_PROTO = new Set(['__proto__', 'constructor', 'prototype']);
+function netActOk(a) {
+  const parts = a.split(':'),
+    name = parts[0],
+    arg = parts[1],
+    p = PL[1];
+  if (parts.length > 3 || parts.some(x => !/^[A-Za-z0-9_.-]{0,40}$/.test(x) || NET_PROTO.has(x)))
+    return false;
+  const tbl = {
+    skill: typeof SKILLS !== 'undefined' && SKILLS,
+    attr: p && p.attr,
+    unequip: p && p.eq,
+    reroll: p && p.eq,
+    upgrade: p && p.eq,
+    gmod: typeof GMODS !== 'undefined' && GMODS,
+    cyber: typeof CYBER !== 'undefined' && CYBER,
+    tech: typeof TECH !== 'undefined' && TECH,
+    hire: typeof ALLIES !== 'undefined' && ALLIES,
+    learn: typeof SPELLS !== 'undefined' && SPELLS
+  }[name];
+  if (tbl !== undefined && !netOwn(tbl, arg)) return false;
+  if (name === 'spell') return !!p && /^\d+$/.test(arg) && +arg < (p.spells || []).length;
+  return true;
+}
 function netRemoteAct(a, mode) {
-  if (typeof a !== 'string' || a.length > 80 || PL.length < 2) return;
+  if (typeof a !== 'string' || a.length > 80 || PL.length < 2 || !netActOk(a)) return;
   const name = a.split(':')[0];
   // a shop click only counts while the host is still at that same counter
   const ok = NET_REMOTE.has(name) || (NET_SHOP.has(name) && NET_SHARED.has(G.mode) && mode === G.mode);
