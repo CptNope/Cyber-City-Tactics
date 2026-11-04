@@ -190,7 +190,7 @@ function update() {
       const hb = hitbox(t);
       if (pr.z < hb[0] || pr.z > hb[1]) continue;
       if (pr.k === 'wave') {
-        if (t.team !== 0) continue;
+        if (pr.team === 1 ? t.team !== 0 : t.team !== 1) continue; // a mech's hits runners; a Ground Slam's, foes
       }
       if (pr.k === 'bullet' && t.d && t.d.noBullet) {
         if (!pr.warned) {
@@ -207,7 +207,14 @@ function update() {
         hurt(t, pr.dmg, Math.sign(pr.vx), { kd: true, big: true, src: pr.src, ax: pr.x - pr.vx * 10 });
         shatter(pr);
       } else if (pr.k === 'wave') {
-        hurt(t, pr.dmg, Math.sign(pr.vx), { kd: true, big: true, col: '#ff6a3d', ax: pr.x - pr.vx * 10 });
+        hurt(t, pr.dmg, Math.sign(pr.vx), {
+          kd: true,
+          big: true,
+          col: '#ff6a3d',
+          ax: pr.x - pr.vx * 10,
+          src: pr.src || undefined
+        });
+        (pr.hit = pr.hit || []).push(t);
         continue;
       } else
         hurt(t, pr.dmg, Math.sign(pr.vx), {

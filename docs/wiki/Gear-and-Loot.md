@@ -1,6 +1,6 @@
 # Gear and loot
 
-Gear works like Borderlands. A runner has three slots: melee weapon, gun and armor. Every piece has a **base** (what it is), a **maker** (its speciality) and **0–4 parts**. The number of parts is the rarity, and the rarity is the colour.
+Gear works like Borderlands. A runner has four slots (`SLOTS`): melee weapon, gun, armor and cyberdeck. Every piece has a **base** (what it is), a **maker** (its speciality) and **0–4 parts**. The number of parts is the rarity, and the rarity is the colour.
 
 ```mermaid
 flowchart LR
@@ -29,10 +29,10 @@ Each tier also adds a point to the maker's attribute. Named legendaries (unlocke
 
 | Key | Maker | Colour | Speciality | Attribute | Makes | Favoured parts |
 |---|---|---|---|---|---|---|
-| `kagemori` | Kagemori | #ff3d4a | Precision: crits | agi | weapon, gun, armor | keen, sight, swift, attr, plated |
+| `kagemori` | Kagemori | #ff3d4a | Precision: crits | agi | weapon, gun, armor, deck | keen, sight, swift, attr, plated |
 | `rustline` | Rustline Forge | #ff8a3d | Raw damage and knockback | str | weapon, gun, armor | heavy, brutal, burn, attr, plated, spiked |
-| `voltaic` | Voltaic | #45d2ff | Shock and fire; its melee weapons always daze | hak | weapon, gun | shock, burn, swift, concuss, drum |
-| `hexwright` | Hexwright | #b98cff | Magic: mana, spell power, leeching | mag | weapon, gun, armor | attr, leech, warded, keen, padded |
+| `voltaic` | Voltaic | #45d2ff | Shock and fire; its melee weapons always daze | hak | weapon, gun, deck | shock, burn, swift, concuss, drum |
+| `hexwright` | Hexwright | #b98cff | Magic: mana, spell power, leeching | mag | weapon, gun, armor, deck | attr, leech, warded, keen, padded |
 | `ironside` | Ironside Arms | #c9d1e0 | Speed: faster swings and fire, bigger mags | bod | weapon, gun, armor | swift, drum, heavy, padded, plated |
 
 ## Parts
@@ -46,7 +46,9 @@ Each tier also adds a point to the maker's attribute. Named legendaries (unlocke
 | `swift` | Swift | weapon, gun, armor | attacks recover 20% faster |
 | `concuss` | Concussive | weapon | one hit dazes a foe (ready to grab) |
 | `drum` | Drum-fed | gun | ammo pickups give 50% more rounds |
-| `attr` | Augmented | weapon, gun, armor | +2 more to the maker’s attribute |
+| `attr` | Augmented | weapon, gun, armor, deck | +2 more to the maker’s attribute (a deck: Hacking) |
+| `buffer` | Buffered | deck | one extra miss allowed on hacks |
+| `overclock` | Overclocked | deck | the hacking cursor runs 15% slower |
 | `shock` | Shock | weapon, gun | 25% chance to stun, delaying the target's next attack |
 | `burn` | Incendiary | weapon, gun | Sets targets on fire for extra damage over 2 seconds |
 | `leech` | Leeching | weapon, gun | Heals you for 15% of the damage you deal |
@@ -104,6 +106,47 @@ The affix parts carry these effects (older saves can still have them as a plain 
 | `cloak` | Thermoptic cloak | 5 | ¥260 | +2 agi, +1 hak |
 | `vest` | Riot vest | 9 | ¥200 |  |
 | `exo` | Exo-frame | 13 | ¥340 | +2 str, -1 agi |
+
+### Cyberdecks
+
+A deck's points all go to Hacking (`it.hack`, mirrored into `it.bonus.hak`). `startHack()` takes the best `miss` and the lowest `slow` among the runners' decks. Kagemori, Voltaic and Hexwright make them.
+
+| Deck | Hacking | Extra misses | Cursor speed | Price |
+|---|---|---|---|---|
+| Street deck | +1 | 0 | ×1 | ¥80 |
+| Cobalt deck | +2 | 1 | ×1 | ¥180 |
+| Wraith deck | +3 | 0 | ×0.8 | ¥320 |
+
+| Deck part | Effect |
+|---|---|
+| Augmented | +2 more Hacking |
+| Buffered | one extra miss allowed on hacks |
+| Overclocked | the hacking cursor runs 15% slower |
+
+No affix fits a deck, so a deck asked for "with an affix" (the black market, vault rewards) rolls ordinary parts instead.
+
+## Maker sets
+
+`SETS` in data/gear.js; `setN(p, maker)` counts a runner's equipped pieces from one maker, and `setOn(p, maker, n)` tests a threshold.
+
+```mermaid
+flowchart LR
+  EQ[weapon · gun · armor · deck] --> N{"setN(p, maker)"}
+  N -- 2 --> T2["2-piece bonus (refresh)"]
+  N -- 3+ --> T3["3-piece bonus (combat, hacking, spells)"]
+  T2 --> D[p.D: crit, melee, speed, max mana]
+  T3 --> C[hurt, strike, spellCost, startHack, heavy charge]
+```
+
+| Set | 2 pieces | Where | 3 pieces | Where |
+|---|---|---|---|---|
+| Kagemori Precision | +6% crit | `refresh` | crits ×1.25; parry window +3 steps | `hurt` |
+| Rustline Bruiser | +10% melee | `refresh` | heavy blows charge ×1.5 faster | `upRunner` |
+| Voltaic Live Wire | melee hits arc to the nearest foe within 64 px for 30% | `voltArc` | the arc dazes; hacking windows ×1.15 | `voltArc`, `startHack` |
+| Hexwright Coven | max mana ×1.15 | `refresh` | spells cost ×0.8 | `spellCost` |
+| Ironside Bulwark | move speed ×1.06 | `refresh` | damage taken ×0.85 | `hurt` |
+
+Voltaic makes no armor, so its three are weapon, gun and deck.
 
 ## Legendaries
 

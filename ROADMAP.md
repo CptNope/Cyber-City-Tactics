@@ -42,6 +42,7 @@ The guiding rules:
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
 - [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **Sets and actives:** maker set bonuses, a cyberdeck slot, and an active skill for every tree
 - [x] **River City street fights:** street weapons, wall bounces and juggles, mercy and runners, boss taunts, a fourteenth training drill, and two feats (Street Mercy, Off the Wall)
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
@@ -67,15 +68,11 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Gun mods.**~~ Shipped: extended mag, laser sight, suppressor and underbarrel launcher at Ratchet's bench.
 - [x] ~~**Item comparison.**~~ Shipped as a floating card over gear on the floor.
 - [x] ~~**Salvage and crafting.**~~ Shipped: scrap gear for parts, reroll affixes and upgrade rarity at Ratchet's.
-- [ ] **Sets (L).** Two- and three-piece bonuses for matching gear, such as Kagemori Security: armored riot vest + smartgun + shock baton.
+- [x] ~~**Sets.**~~ Shipped as maker sets: two and three pieces from one maker (weapon, gun, armor, cyberdeck) add a bonus.
 
 ### Skills and progression
 - [x] ~~**Skill respec.**~~ Shipped as Doc's neural reset.
-- [ ] **Active skills (M).** One per tree, mapped to the special button as an alternative to the archetype special:
-  - Brawler: *Ground Slam*
-  - Gunslinger: *Fan the Hammer*
-  - Mage: *Summon Spirit*
-  - Decker: *Overload*, which stuns every drone and cop on screen
+- [x] ~~**Active skills.**~~ Shipped: Ground Slam, Fan the Hammer, Summon Spirit and Short Circuit (the roadmap's Overload, renamed since it's the Decker archetype's special), unlocked by three points in a tree and picked for the ★ button on the Skills tab.
 - [ ] **A fifth tree: Shaman (M).** Spirit allies, totems and curses, for players who want magic without blasting.
 - [ ] **Archetype mastery (M).** Each archetype gets a small set of extra tiers past level 15 that change how its special works.
 - [ ] **Show skill effects in the HUD (S).** For example, a small Archon counter showing how many casts until the free one.
@@ -99,7 +96,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 
   The building type picks which one you get.
 - [ ] **Hack things in combat (M).** Turrets, cameras and drones can be hacked mid-fight with a short window to turn them on their owners.
-- [ ] **Cyberdecks (S).** A fourth gear slot for deckers: hacking bonus, icebreaker capacity, and an overload spell-like ability.
+- [x] ~~**Cyberdecks.**~~ Shipped: a fourth slot with Street, Cobalt and Wraith decks and deck parts; Short Circuit scales with the deck.
 
 ### Campaign and story
 - [x] ~~**The Undercity Market.**~~ Shipped as district 4 (between the Tunnels and the Arcology, where the story goes): a lantern-strung ghoul bazaar with its own music, thralls that heal off every hit, a Hollow Saint rematch, Juno's Night market contract, and Mother Vesper, who mist-steps behind you mid-swing and calls her thralls when angry. Beating her unlocks Vesper's Fang. Saves from before it are moved to the same place in the new order.
@@ -153,7 +150,7 @@ Picked from what the graphics pass turned up:
 - [x] ~~**New-item markers and sorting.**~~ Shipped: a NEW tag on gear until you close the character sheet, and a Best / Value / Newest toggle on every bag list.
 - [x] ~~**Rotating black market.**~~ Shipped: Sable sets up her cart between buildings on about two in five Sprawl blocks (fixed by the block's seed, marked on the minimap) with one Black-market item. Her offer follows you; every block you walk past it, the price drops 15%, down to half. She only deals at cred +15 or with the Fence skill.
 - [x] ~~**Haggling.**~~ Shipped as a gamble at every counter, once per visit: odds from the party's best Hacking (30–85%). Win and prices are 15% better both ways for the visit; lose and they're 10% worse. Ratchet's shelf now also honours cred, Fence Contacts and haggling.
-- [ ] **Item sets (L)** stay planned under Gear and loot.
+- [x] ~~**Item sets**~~ shipped as maker sets under Gear and loot.
 
 ### Reach and onboarding
 - [x] ~~**First-run tutorial.**~~ Shipped on top of Juno's existing training: the first time anyone starts a run, Juno offers the drills (now thirteen, with parry, jump-slam and break-free drills), and when they finish, one button starts the run that was waiting. Shown once; skipping is one click.

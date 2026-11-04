@@ -5,21 +5,25 @@
 /* ----- hacking ----- */
 function startHack(b, vault) {
   const hak = Math.max(...active().map(p => p.D.a.hak || 1)),
-    tier = vault ? 4 : b.tier;
+    tier = vault ? 4 : b.tier,
+    decks = active()
+      .map(p => p.eq && p.eq.deck)
+      .filter(Boolean);
   G.hack = {
     b,
     vault: vault || null,
     tier,
     pos: 0,
     dir: 1,
-    speed: 0.42 + 0.2 * tier,
+    speed: (0.42 + 0.2 * tier) * Math.min(1, ...decks.map(d => d.slow || 1)), // a deck can slow the cursor
     need: tier + 1,
     hits: 0,
     miss: 0,
-    maxMiss: 2 + (anyHas('spare') ? 1 : 0),
+    maxMiss: 2 + (anyHas('spare') ? 1 : 0) + Math.max(0, ...decks.map(d => d.miss || 0)),
     w:
       clamp(0.1 + hak * 0.03 - tier * 0.02, 0.06, 0.32) *
       (anyHas('probe') ? 1.25 : 1) *
+      (active().some(p => setOn(p, 'voltaic', 3)) ? 1.15 : 1) *
       (evOn('blackout') ? 1.3 : 1),
     zone: 0.5,
     flash: 0,

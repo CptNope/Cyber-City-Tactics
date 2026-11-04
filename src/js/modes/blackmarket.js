@@ -34,7 +34,7 @@ function nearTrader(p) {
 function bmOffer() {
   const w = G.wd;
   if (!w.bm) {
-    const slot = pick(['weapon', 'gun', 'armor']),
+    const slot = pick(SLOTS),
       bases = Object.keys(BASES[slot]),
       base = bases[clamp(Math.floor(w.level / 2) + 2, 1, bases.length - 1)],
       it = mkItem(slot, base, 3, true);
