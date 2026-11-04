@@ -28,6 +28,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `graphics.test.js` | headless | 38 | Drawing rules that are easy to break and hard to spot. |
 | `legend.test.js` | headless | 41 | Feats, legendaries, the Codex, lore, Decker unlock, bounties, hidden doors, couriers, daily challenge. |
 | `lobby.test.js` | headless | 39 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
+| `livingsprawl.test.js` | headless | 27 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
 | `market.test.js` | headless | 15 | District 4, the Undercity Market. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |

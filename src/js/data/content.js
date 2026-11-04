@@ -446,6 +446,22 @@ const DEF = {
     creds: [10, 18],
     karma: 12
   },
+  // a sentry gun bolted to the wall of a black site or precinct: it never moves, never flinches, and shoots
+  // down its lane. Short it out (or wear it down) and a runner can hack it to fight for them.
+  turret: {
+    name: 'Sentry turret',
+    hp: 60,
+    spd: 0,
+    dmg: 8,
+    reach: 0,
+    cool: 95,
+    scale: 1,
+    turret: true,
+    heavy: true,
+    range: 220,
+    creds: [16, 26],
+    karma: 18
+  },
   troll: {
     name: 'Gutter King',
     hp: 220,

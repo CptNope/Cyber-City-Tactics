@@ -121,13 +121,30 @@ function drawBuildings(base) {
     ctx.fillStyle = nc;
     ctx.textAlign = 'center';
     ctx.fillText(b.name, dx, base - 47);
+    // the block remembers: a robbed home or business stays boarded up, a cleared crew's door says so
+    if (looted && !isGood(b) && !shop) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#ff3d8b';
+      ctx.fillText('BOARDED UP', dx, base - 30);
+      ctx.fillStyle = '#7a5a34';
+      for (const yy of [-24, -14]) ctx.fillRect(dx - 15, base + yy, 30, 3);
+    } else if (looted && (b.type === 'hideout' || b.type === 'club')) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#7dffb0';
+      ctx.fillText('CLEARED', dx, base - 30);
+    }
+    if (shopShut(b)) {
+      ctx.font = '600 9px Teko, Impact, sans-serif';
+      ctx.fillStyle = '#a79dc2';
+      ctx.fillText('CLOSED TILL DAWN', dx, base - 30);
+    }
     if (b.bounty && !w.bountyDone) {
       ctx.fillStyle = '#ffc63d';
       ctx.font = '600 13px Teko, Impact, sans-serif';
       ctx.fillText('☠ BOUNTY', dx, base - 68 + Math.sin(G.t * 0.1) * 1.5);
     }
-    if (b.type === 'clinic' || b.type === 'talisman') {
-      // a lit shop sign: a cross for the clinic, an eye for the talisman shop
+    if ((b.type === 'clinic' || b.type === 'talisman') && !shopShut(b)) {
+      // a lit shop sign: a cross for the clinic, an eye for the talisman shop (dark at night)
       ctx.fillStyle = b.type === 'clinic' ? '#7dffb0' : '#b98cff';
       glow(dx, base - 70, 16, 14, ctx.fillStyle, 0.45);
       if (b.type === 'clinic') {

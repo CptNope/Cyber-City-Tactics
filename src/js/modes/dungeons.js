@@ -7,7 +7,20 @@ function enterBuilding(b) {
   G.wd.lastX = b.x;
   G.dun = { b, room: 0, rooms: roomsOf(b), fac: FAC[facOf(b)], rng: srng(b.seed) };
   newRunStats();
-  enterRoom(0);
+  // the building remembers how far you got: leave halfway and you come back to the room you left
+  G.wd.prog = G.wd.prog || {};
+  const back = clamp(G.wd.prog[b.id] || 0, 0, G.dun.rooms - 1);
+  enterRoom(back);
+  if (back > 0)
+    G.texts.push({
+      x: W / 2,
+      y: FY0 + 30,
+      z: 30,
+      s: 'BACK WHERE YOU LEFT OFF',
+      c: '#a79dc2',
+      life: 90,
+      sm: true
+    });
   setMode('play');
 }
 function enterRoom(i) {
@@ -15,6 +28,10 @@ function enterRoom(i) {
     b = D0.b;
   resetWorld();
   D0.room = i;
+  if (G.wd) {
+    G.wd.prog = G.wd.prog || {};
+    G.wd.prog[b.id] = i;
+  }
   const base = D0.fac.theme < 0 ? DEN : STAGES[D0.fac.theme];
   G.dunStage = Object.assign({}, base, { len: W, name: b.name });
   G.bg = genBg(G.dunStage, (b.seed + i * 31) % 100000);
@@ -33,6 +50,20 @@ function enterRoom(i) {
         ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
         : 0;
   for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
+  // black sites and precincts bolt sentry turrets to the back wall of their inner rooms
+  if ((b.type === 'blacksite' || b.type === 'precinct') && i >= 1 && !b.roost && r() < 0.65) {
+    const tu = spawnEnemy('turret', 1);
+    tu.x = W * (0.55 + r() * 0.3);
+    tu.y = FY0 + 8;
+    tu.face = -1;
+    tu.elite = null;
+    tu.club = null;
+    tip(
+      'turret',
+      'A sentry turret: stay out of its lane. Short it out, or wear it down, then PUNCH beside it to hack it.',
+      'A sentry turret: stay out of its lane. Short it out, or wear it down, then press J beside it to hack it.'
+    );
+  }
   if (!isGood(b) && G.wd.heat >= 2 && i >= 1)
     for (let k = 0; k < 1 + Math.floor(G.wd.heat / 4); k++) spawnEnemy(copKind(G.wd.heat, k), k % 2 ? -1 : 1);
   // hostage rooms: free them by clearing the room without hurting them
@@ -247,9 +278,14 @@ function lootChest(t) {
   const b = G.dun.b,
     tier = b.tier,
     fam = b.type === 'home' && !b.dirty;
-  const c = Math.round(
-    ri(25, 50) * tier * (b.type === 'business' ? 2 : fam ? 0.6 : 1) * (1 + G.wd.level * 0.15)
-  );
+  const night = isNight(G.wd),
+    c = Math.round(
+      ri(25, 50) *
+        tier *
+        (b.type === 'business' ? 2 : fam ? 0.6 : 1) *
+        (1 + G.wd.level * 0.15) *
+        (night ? 1.25 : 1) // night caches are fuller
+    );
   drop('cred', t.x - 10, t.y + 10, { v: c });
   if (b.type === 'secret') {
     if (b.final && !LEG.legs.includes('lantern'))
@@ -261,14 +297,29 @@ function lootChest(t) {
     if (tier >= 3) legendDrop(t.x + 30, t.y + 16, evOn('lockdown') && b.type === 'blacksite' ? 0.18 : 0.08);
     shardDrop(t.x - 30, t.y + 12, 0.3);
   }
-  for (let k = 0; k < (fam ? 0 : tier); k++) {
+  for (let k = 0; k < (fam ? 0 : tier) + (night && !fam ? 1 : 0); k++) {
     const it = randItem(G.stage + G.ng, tier >= 2);
     if (it.rar < tier - 1) Object.assign(it, mkItem(it.slot, it.base, tier - 1, it.mod || tier >= 3));
     drop('gear', t.x - 24 + k * 16, t.y + 14 + (k % 2) * 6, { item: it });
   }
   if (Math.random() < 0.35 + tier * 0.1 + (anyHas('icecraft') ? 0.25 : 0)) drop('icebrk', t.x + 14, t.y + 8);
   if (fam || Math.random() < 0.4) drop('med', t.x + 20, t.y + 14);
-  if (!G.wd.looted.includes(b.id)) G.wd.looted.push(b.id);
+  if (!G.wd.looted.includes(b.id)) {
+    G.wd.looted.push(b.id);
+    // the block remembers: shops nearby cheaper for a cleared crew, dearer for a robbed home or business
+    const crew = b.type === 'hideout' || b.type === 'club',
+      hurtFolk = !isGood(b) && !isShop(b);
+    if (crew || hurtFolk)
+      G.texts.push({
+        x: t.x,
+        y: t.y,
+        z: 140,
+        s: crew ? 'THE BLOCK BREATHES EASIER · SHOPS CHEAPER' : 'WORD GETS AROUND · SHOPS DEARER',
+        c: crew ? '#7dffb0' : '#ff3d8b',
+        life: 110,
+        sm: true
+      });
+  }
   if (
     G.wd.street.buildings.filter(x => isGood(x) && x.type !== 'secret').every(x => G.wd.looted.includes(x.id))
   )

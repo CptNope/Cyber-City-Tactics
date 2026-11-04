@@ -167,6 +167,7 @@ ok(
     G.mode === 'bcard',
   'family home card'
 );
+G.wd.clock = __api.DAY_STEPS; // at night: no witnesses, so the break-in adds only its own heat (day adds a star)
 click('hack');
 let n = 0;
 while (G.mode === 'hack' && n++ < 10) {
@@ -255,7 +256,13 @@ ok(PARTY.ice === i0 + 1, 'bought icebreaker');
 // cred discount
 G.wd.rep = 40;
 click('safetab:doc');
-ok(/¥26/.test(document.getElementById('ov').innerHTML), 'respected cred gives medkit discount');
+// (prices also carry the block's memory: the family home robbed above makes shops 10% dearer)
+ok(
+  new RegExp('¥' + Math.round(30 * 0.85 * __api.blockMul(G.wd)) + '\\b').test(
+    document.getElementById('ov').innerHTML
+  ),
+  'respected cred gives medkit discount'
+);
 G.wd.rep = 0;
 // wipe
 click('leave');

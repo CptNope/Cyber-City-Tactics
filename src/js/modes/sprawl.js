@@ -247,10 +247,51 @@ const roomsOf = b =>
             ? 3
             : 2
           : b.tier + 1;
+/* ---------- day and night ---------- */
+// Each block keeps its own clock, running while you're on it (street and buildings). Three minutes of day,
+// then three of night. Night: fewer cops, more and bigger gang patrols, richer caches, shops shut. Day: shops
+// open, and breaking into somewhere you shouldn't draws witnesses (one more heat star).
+const DAY_STEPS = 10800;
+const isNight = w => !!w && Math.floor((w.clock || 0) / DAY_STEPS) % 2 === 1;
+const nightOn = () => !!(G.world && G.wd && isNight(G.wd));
+const phaseLeft = w => DAY_STEPS - ((w.clock || 0) % DAY_STEPS);
+function clockTick(w) {
+  const was = isNight(w);
+  w.clock = (w.clock || 0) + 1;
+  if (isNight(w) === was) return;
+  const night = isNight(w);
+  (G.toasts = G.toasts || []).push({
+    s: night ? 'Nightfall' : 'Morning',
+    d: night
+      ? 'Gangs out, cops thin, caches richer. The clinic and talisman shops shut till dawn.'
+      : 'Shops open. Break into the wrong place now and there are witnesses.',
+    life: 260
+  });
+  if (!G.dun) saveWorld();
+}
+// the safehouse: sit tight until the other half of the day
+function waitPhase(w) {
+  w.clock = (Math.floor((w.clock || 0) / DAY_STEPS) + 1) * DAY_STEPS;
+  bump('waits');
+}
+const shopShut = b => (b.type === 'clinic' || b.type === 'talisman') && nightOn();
+
+/* ---------- consequences that stick ---------- */
+// The block remembers what you did to it. Every crew hideout or club you clear makes the block's shops 10%
+// cheaper (to 30%); every home or business you rob makes them 10% dearer (to 30%), and those stay boarded up.
+const cleared = w =>
+  w
+    ? w.street.buildings.filter(b => (b.type === 'hideout' || b.type === 'club') && w.looted.includes(b.id))
+        .length
+    : 0;
+const robbed = w =>
+  w ? w.street.buildings.filter(b => !isGood(b) && !isShop(b) && w.looted.includes(b.id)).length : 0;
+const blockMul = w => (w ? (1 - 0.1 * Math.min(3, cleared(w))) * (1 + 0.1 * Math.min(3, robbed(w))) : 1);
 const heatFor = b => (b.type === 'business' ? b.tier + 1 : b.type === 'precinct' ? 4 : 2);
 const credLoss = b => (b.type === 'business' ? 5 * b.tier : b.type === 'precinct' ? 20 : 12);
 const buyMul = () =>
   (G.world && G.wd && G.wd.rep >= 30 ? 0.85 : 1) *
+  (G.world && G.wd ? blockMul(G.wd) : 1) *
   (anyHas('fence') ? 0.9 : 1) *
   (evOn('festival') ? 0.8 : 1) *
   haggleMul()[0];
@@ -423,6 +464,8 @@ function newWorld(level, fixedSeed) {
     fac: {},
     squadT: 2400,
     backT: 0,
+    clock: 0, // day and night (DAY_STEPS)
+    prog: {}, // how far into each building you got: building id → room
     street: genStreet(level, seed)
   };
 }
@@ -493,7 +536,9 @@ function saveWorld() {
             lastX: w.lastX,
             found: w.found,
             bountyDone: w.bountyDone,
-            courDone: w.courDone
+            courDone: w.courDone,
+            clock: w.clock,
+            prog: w.prog
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -533,7 +578,9 @@ function loadWorld(s) {
       heat: 0,
       rep: 0,
       looted: [],
-      fac: {}
+      fac: {},
+      clock: 0,
+      prog: {}
     },
     s.wd
   );
@@ -541,6 +588,8 @@ function loadWorld(s) {
   for (const k of ['looted', 'found']) if (!Array.isArray(G.wd[k])) G.wd[k] = [];
   for (const k of ['heat', 'rep']) if (!Number.isFinite(G.wd[k])) G.wd[k] = 0;
   if (!isObj(G.wd.fac)) G.wd.fac = {};
+  if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
+  if (!isObj(G.wd.prog)) G.wd.prog = {};
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();
@@ -629,6 +678,10 @@ function openDoor(b) {
     haggleReset();
     G.safeTab = G.safeTab || 'doc';
     setMode('safe');
+  } else if (shopShut(b)) {
+    const p = alive()[0];
+    if (p) say(p, 'CLOSED TILL DAWN', '#a79dc2', 60, 60, true);
+    return;
   } else if (b.type === 'clinic' || b.type === 'talisman') {
     haggleReset();
     G.shop = b;
@@ -740,6 +793,7 @@ function blockEventTick(w) {
 const copKind = (h, i) => (h >= 4 && i === 0 ? 'riot' : h >= 3 && i === 1 ? 'drone' : 'cop');
 function worldTick() {
   const w = G.wd;
+  clockTick(w);
   if (G.dun) {
     dunTick();
     return;
@@ -801,7 +855,7 @@ function worldTick() {
         if (p) say(p, w.heat ? 'HEAT DROPPING' : 'HEAT IS OFF', '#45d2ff', 80, 70);
       }
     } else w.heatT = 0;
-    if (!evOn('blackout')) w.copT--;
+    if (!evOn('blackout') && !(isNight(w) && G.t % 3 === 0)) w.copT--; // night: cops a third slower to come
     if (w.copT <= 0) {
       const n = 1 + Math.floor(w.heat / 2);
       for (let i = 0; i < n; i++) spawnEnemy(copKind(w.heat, i), i % 2 ? -1 : 1);
@@ -814,12 +868,13 @@ function worldTick() {
   }
   blockEventTick(w);
   factionTick(w);
-  w.patT--;
+  w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
     if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
-      for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0); i++) spawnEnemy(pick(k), i % 2 ? -1 : 1);
+      for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0) + (isNight(w) ? 1 : 0); i++)
+        spawnEnemy(pick(k), i % 2 ? -1 : 1);
       callBackup();
     }
   }

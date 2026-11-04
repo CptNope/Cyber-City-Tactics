@@ -412,6 +412,14 @@ ov.addEventListener('click', e => {
       }
       rerender();
       break;
+    case 'waitphase':
+      // sit tight in the safehouse until the other half of the day
+      if (G.world && G.wd) {
+        waitPhase(G.wd);
+        sfx.click();
+      }
+      rerender();
+      break;
     case 'laylow': {
       const lc = 60 * G.wd.heat * G.wd.level;
       if (G.wd.heat && PARTY.creds >= lc) {

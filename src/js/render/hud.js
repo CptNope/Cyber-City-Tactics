@@ -231,7 +231,7 @@ function drawHudTop() {
     col2 = G.salarm ? '#ff3d4a' : '#7dffb0';
   } else if (G.world && G.wd) {
     const rp = Math.round(G.wd.rep);
-    line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp;
+    line2 = 'CRED ' + (rp > 0 ? '+' : '') + rp + (G.dun ? '' : isNight(G.wd) ? ' · ☾ NIGHT' : ' · ☀ DAY');
     col2 = rp > 0 ? '#7dffb0' : rp < 0 ? '#ff3d8b' : '#a79dc2';
   } else if (C && !G.den) {
     const st = C.done
@@ -275,7 +275,31 @@ function drawHudTop() {
     if (s) txt(s, W / 2, H - 6, 12, line2 ? col2 : '#a79dc2', 'center');
   }
 }
+// day and night on the street: a cold wash at night with a pool of light around each runner, a warm one by day
+function drawTimeOfDay() {
+  if (!G.world || !G.wd || G.dun || evOn('blackout')) return;
+  const w = G.wd,
+    left = phaseLeft(w),
+    edge = Math.min(1, left / 600, (DAY_STEPS - left) / 600); // fade between the two over ten seconds
+  if (isNight(w)) {
+    ctx.fillStyle = `rgba(6,8,32,${0.32 * edge})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const p of alive()) {
+      const g = ctx.createRadialGradient(p.x - G.camX, p.y - 30, 4, p.x - G.camX, p.y - 30, 70);
+      g.addColorStop(0, `rgba(255,210,160,${0.08 * edge})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(p.x - G.camX - 70, p.y - 100, 140, 140);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  } else {
+    ctx.fillStyle = `rgba(255,196,140,${0.07 * edge})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
 function drawDark() {
+  drawTimeOfDay();
   if (!evOn('blackout') || G.dun) return;
   ctx.fillStyle = 'rgba(2,2,8,.5)';
   ctx.fillRect(0, 0, W, H);

@@ -124,7 +124,10 @@ const BEST = {
   cop: 'Lone Star patrol, contracted to Kagemori. Every one you drop raises the heat.',
   glitch: 'Corrupted code with a body. Kill one and it splits in two.',
   ice: 'ICE sentries teleport and fire laser spreads. Watch the windup.',
-  drone: 'Rigger drones keep their distance and shoot. Jump-kick them out of the air.',
+  drone:
+    'Rigger drones keep their distance and shoot. Jump-kick them out of the air. Short one out and PUNCH beside it to hack it.',
+  turret:
+    'Sentry turrets hold the back wall of black sites and precincts. Get out of their lane, or short one out and hack it.',
   blackice: 'Black ICE fires lane-wide beams. Change lanes or roll, then hit the core while it vents.',
   troll:
     "The Gutter King. Huge hits and ground slams once he's angry. Jump the shockwaves, and don't stand still in front of him: he grabs, and it takes a lot of mashing to get loose.",
