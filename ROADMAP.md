@@ -93,10 +93,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Persistent consequences.**~~ Shipped: robbed homes and businesses stay boarded up and raise the block's prices; cleared crews lower them; buildings remember the room you left (which also closes the re-entry farming noted in the audit).
 
 ### Hacking
-- [ ] **More hacking minigames (M):**
-  - *Trace:* route a signal through a small grid
-  - *Sequence:* repeat a pattern
-  - *Firewall:* dodge ICE in a tiny side-scroller
+- [x] ~~**More hacking minigames.**~~ Shipped: gang hideouts have a *Sequence* keypad (repeat a pattern), precincts a *Trace* (walk a signal through a small grid before the trace), black sites a *Firewall* (dodge ICE in three lanes); everything else keeps the timing lock. Icebreakers, Port Scanner, Spare Cycles and decks work in all of them, and Settings can put the classic lock back on every door.
 
   The building type picks which one you get.
 - [x] ~~**Hack things in combat.**~~ Shipped: shorted-out or badly damaged drones and the new sentry turrets can be hacked with PUNCH and turned on their owners.

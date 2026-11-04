@@ -159,6 +159,11 @@ addEventListener('keydown', e => {
     if (!e.repeat) hackPress();
     return;
   }
+  if (G.mode === 'hack' && ['up', 'down', 'left', 'right'].includes(KA[c] || KB[c])) {
+    e.preventDefault(); // the newer locks steer with the directions
+    if (!e.repeat) hackDir(KA[c] || KB[c]);
+    return;
+  }
   if (c === 'Escape' || c === 'KeyP') {
     e.preventDefault();
     if (!e.repeat) {
@@ -678,6 +683,7 @@ function pollPads() {
       return;
     }
     if (G.mode === 'hack') {
+      for (const d of ['up', 'down', 'left', 'right']) if (pressed(d)) hackDir(d);
       if (pressed('punch') || pressed('jump')) hackPress();
       else if (pressed('spell')) useIce();
       else if (pressed('kick')) padBack();

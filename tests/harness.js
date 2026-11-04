@@ -137,6 +137,8 @@ vm.runInThisContext('global.__G = G; global.__PL = () => PL; global.__PARTY = PA
 vm.runInThisContext('prefs.seen = prefs.seen || {}; prefs.seen.trainoffer = true;');
 // story scenes freeze the street until a button: suites turn them off (story.test turns them back on)
 vm.runInThisContext('prefs.story = false;');
+// and every lock the classic timing one, which suites crack by setting the cursor (hackgames.test turns the rest on)
+vm.runInThisContext("prefs.hackKind = 'classic';");
 global.__api = new Proxy({}, { get: (_, name) => vm.runInThisContext(String(name)) });
 
 global.click = a => ovClick({ target: { closest: () => ({ dataset: { a }, disabled: false }) } });

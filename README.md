@@ -186,7 +186,7 @@ A rigger's job: each runner flies a small drone through a corp floor seen in cro
 | Do this | Keyboard (Runner 1) | What it does |
 |---|---|---|
 | Fly / climb | **A D** / **W S** | Along the floor, and up and down between the floor and the ceiling |
-| Hack | **J** at the terminal | The usual lock-cracking minigame; win it to pull the files |
+| Hack | **J** at the terminal | The timing lock-cracking minigame; win it to pull the files |
 | Shock dart | **K** | Drops anyone you hit **from behind**; from the front it just gives you away |
 | Cloak | **O** or Left Shift | A couple of seconds unseen, from the battery under the drone |
 | Repair | **H** | 30 HP from the shared medkits |
@@ -633,11 +633,19 @@ Companions carry between districts and get patched up in the Den, but if one fal
 | Business | Bad: −cred, +heat | Security and a head of security; more creds |
 | Family home | Bad: −cred, +heat | Nobody to fight, and almost nothing worth taking |
 
-**Hacking.** To get in, you play a timing minigame: press **Space/J** (or tap **HACK**) while the cursor is inside the green window.
-- Higher tiers need more clean hits, and the cursor speeds up after each one.
-- The Hacking attribute and Port Scanner widen the window.
-- Icebreakers crack a node instantly.
-- Run out of misses and the door locks for 12 s. On a bad building, that also trips the alarm.
+**Hacking.** To get in, you crack the lock. What kind of lock depends on the building:
+
+| Building | Lock | How it works |
+|---|---|---|
+| Homes, businesses, clubs, vaults | **Timing** | Press **Space/J** (or tap **HACK**) while the cursor is inside the green window. Higher tiers need more clean hits, and the cursor speeds up after each one |
+| Gang hideout | **Sequence** | Watch the keypad light up a pattern (3 + tier pads), then repeat it with the arrows or D-pad. A wrong pad costs a miss and replays the pattern |
+| Lone Star precinct | **Trace** | Walk your signal across a 7×4 network to the exit node before the trace finds you. Running into ICE costs a miss |
+| Black site | **Firewall** | Three lanes, ICE scrolling in from the right: switch lanes with up and down and last 5 + 2×tier seconds |
+
+- The Hacking attribute and Port Scanner widen the timing window and give the other locks more time; Spare Cycles and the Cobalt deck allow an extra miss in any of them.
+- An icebreaker cracks a timing node, enters the next pad of a sequence, buys a trace 5 s and melts the ICE beside you, or clears the firewall's ICE.
+- Run out of misses (or time) and the door locks for 12 s. On a bad building, that also trips the alarm.
+- Settings → **Hacking minigames: Classic only** puts the timing lock on every door.
 
 **Dungeons.** A building has one to four single-screen rooms that match the place: graffiti and orange light in hideouts, server racks in black sites, shelves in shops. Clear a room and the exit on the right turns green. The last room has the lieutenant or boss and the **loot cache**. Its tier sets the item count, rarity and affix chance, and it can also drop icebreakers and medkits. If cops are hunting you, they can follow you inside.
 

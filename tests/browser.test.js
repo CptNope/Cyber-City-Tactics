@@ -280,6 +280,7 @@ const { pathToFileURL } = require('url');
       await press('B');
       await page.evaluate(() => {
         startWorld(false);
+        prefs.hackKind = 'classic'; // this check is about the timing lock
         const b = G.wd.street.buildings.find(x => x.type !== 'safe' && x.type !== 'secret');
         startHack(b);
         G.hack.pos = G.hack.zone;
@@ -294,6 +295,27 @@ const { pathToFileURL } = require('url');
         await press('B');
         ok((await mode()) === 'play', 'B backs off the lock');
       }
+      // the newer locks steer with the D-pad
+      await page.evaluate(() => {
+        prefs.hackKind = 'varied';
+        G.hack = null;
+        setMode('play');
+        startHack({ type: 'precinct', tier: 2, name: 'Test precinct', x: 300, id: 77 });
+      });
+      ok(
+        (await page.evaluate(() => G.hack && G.hack.kind)) === 'trace',
+        'a precinct has a network trace lock'
+      );
+      await press('Right');
+      await press('Down');
+      ok(
+        await page.evaluate(() => !G.hack || G.hack.cx > 0 || G.hack.cy !== G.hack.sy || G.hack.miss > 0),
+        'the D-pad steers the trace'
+      );
+      await page.evaluate(() => {
+        G.hack = null;
+        setMode('play');
+      });
       await page.evaluate(() => {
         window.__pads = [];
         dispatchEvent(new Event('gamepaddisconnected'));
