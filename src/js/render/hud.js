@@ -223,7 +223,8 @@ function drawHudTop() {
         ? G.dun.b.name.toUpperCase() + ' · ' + (G.dun.room + 1) + '/' + G.dun.rooms
         : 'BLOCK ' +
           G.wd.level +
-          (G.wd.street.event ? ' · ' + EVENTS[G.wd.street.event].name.toUpperCase() : '')
+          (G.wd.street.event ? ' · ' + EVENTS[G.wd.street.event].name.toUpperCase() : '') +
+          (G.wd.turf && !G.wd.street.event ? ' · ' + FACTIONS[G.wd.turf].name.toUpperCase() + ' TURF' : '')
       : G.arena
         ? 'WAVE ' + G.awave
         : G.training

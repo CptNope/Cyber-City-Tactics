@@ -131,9 +131,18 @@ function drawBuildings(base) {
       ctx.fillStyle = '#7a5a34';
       for (const yy of [-24, -14]) ctx.fillRect(dx - 15, base + yy, 30, 3);
     } else if (looted && (b.type === 'hideout' || b.type === 'club')) {
+      // a cleared crew door says so; on a block a friendly crew holds, it carries their name in their colour
+      const T = G.wd && G.wd.turf && FACTIONS[G.wd.turf];
       ctx.font = '600 9px Teko, Impact, sans-serif';
-      ctx.fillStyle = goodCol();
-      ctx.fillText('CLEARED', dx, base - 61);
+      ctx.fillStyle = T ? T.col : goodCol();
+      ctx.fillText(T ? T.name.toUpperCase() + ' TURF' : 'CLEARED', dx, base - 61);
+      if (T) {
+        ctx.fillStyle = T.col;
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(dx - 12, base - 40, 24, 2);
+        ctx.fillRect(dx - 8, base - 36, 16, 2);
+        ctx.globalAlpha = 1;
+      }
     }
     if (shopShut(b)) {
       ctx.font = '600 9px Teko, Impact, sans-serif';

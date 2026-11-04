@@ -10,6 +10,9 @@
  * (no ammo used; hold left to fire behind), and solo an autogun on the roof does the shooting. Kagemori
  * pursuit cars ram from behind all the way, and the Interceptor still waits at the end.
  *
+ * The delivery run (Fragile Cargo) carries cryo-cases on the bikes: the cargo has its own bar, every crash and
+ * hit costs some of it, the pay is the share that arrives, and lose it all and the job is over.
+ *
  * Everything on the road is an ordinary entity in G.ents (riders carry a `bk` bike, vehicles a `veh` kind), so
  * couch co-op and online co-op work exactly as they do on foot: the friend's runner is just another rider.
  * update() hands the whole step to driveUpdate() while G.drive is set.
@@ -42,6 +45,21 @@ const DRIVE_JOBS = {
     fail: 'BOXED IN',
     failTxt: 'The crews boxed you in before you cleared the market. Juno only pays for the takedowns.'
   },
+  delivery: {
+    name: 'Fragile Cargo',
+    sub: "Cryo-cases for Doc's clinic through the Neon Market. Speed pays; every bump costs",
+    stage: 1,
+    len: 10500,
+    time: 105 * 60,
+    bikers: 1.1,
+    traffic: 1.3,
+    cargo: true,
+    pay: 420,
+    karma: 170,
+    fail: 'TOO LATE',
+    failTxt: 'The cryo-cases thawed before they got to Doc. Juno only pays for the takedowns.',
+    lostTxt: 'The cryo-cases didn’t make it. Doc pays nothing for broken glass; Juno covers the takedowns.'
+  },
   chase: {
     name: 'Kagemori Pursuit',
     sub: "Pixel's stolen Kagemori car, out of the Arcology garage with the corp's pursuit cars on the bumper",
@@ -60,6 +78,8 @@ const DRIVE_JOBS = {
   }
 };
 const CAR = { autoT: 38, autoDmg: 12, slack: 26 };
+// the delivery run: what each mishap costs the cargo (out of 100)
+const CARGO = { crash: 12, wreck: 25, hit: 0.6, mint: 90 };
 const carOf = () => (G.drive && driveJob().car ? PL[0] : null); // the driver
 const isPass = p => !!(p && p.bk && p.bk.pass);
 const DRIVE = {
@@ -111,7 +131,8 @@ function startDrive(id, coop) {
     spawnX: 520,
     carX: 380,
     oilX: 1500,
-    pcarX: 900
+    pcarX: 900,
+    cargo: J.cargo ? 100 : null
   };
   G.ddist = 0;
   G.dtime = 0;
@@ -514,6 +535,7 @@ function driveCrash(p, frames, dmg) {
   if (isPass(p)) return carOf() && driveCrash(carOf(), frames, dmg);
   const b = p.bk;
   if (!b || b.crash > 0 || p.inv > 0) return;
+  cargoHit(p, p.hp - dmg <= 0 ? CARGO.wreck : CARGO.crash);
   p.hp -= dmg;
   p.flash = 8;
   G.drive.crashes++;
@@ -536,6 +558,7 @@ function driveCrash(p, frames, dmg) {
 function driveHurt(p, dmg) {
   if (isPass(p)) return carOf() && driveHurt(carOf(), dmg); // anything that hits the window hits the car
   if (!p.bk || p.bk.crash > 0 || p.inv > 0) return;
+  cargoHit(p, dmg * CARGO.hit);
   p.hp -= dmg;
   p.flash = 8;
   sfx.hurt();
@@ -782,6 +805,27 @@ function driveSpawns(D, J) {
     musicPlay('boss');
   }
 }
+/* ---------- the delivery run ---------- */
+function cargoHit(p, n) {
+  const D = G.drive;
+  if (!D || D.cargo == null || D.done || !(n > 0)) return;
+  const was = D.cargo;
+  D.cargo = Math.max(0, Math.round((D.cargo - n) * 10) / 10);
+  if (Math.floor(was / 10) !== Math.floor(D.cargo / 10))
+    G.texts.push({
+      x: p.x,
+      y: p.y,
+      z: p.z + 60,
+      s: 'CARGO ' + Math.ceil(D.cargo) + '%',
+      c: '#45d2ff',
+      life: 40,
+      sm: true
+    });
+  if (D.cargo <= 0) {
+    D.cargoLost = true;
+    driveEnd(false);
+  }
+}
 /* ---------- the car chase ---------- */
 // the passenger rides at the window: no steering, a gun that doesn't use ammo, spells as usual
 function carPassenger(p, I) {
@@ -825,7 +869,7 @@ function driveEnd(win) {
     x: G.camX + W / 2,
     y: 150,
     z: 0,
-    s: win ? 'DELIVERED' : driveJob().fail || 'TOO LATE',
+    s: win ? 'DELIVERED' : D.cargoLost ? 'CARGO LOST' : driveJob().fail || 'TOO LATE',
     c: win ? '#ffc63d' : '#ff3d4a',
     life: 110,
     big: true
@@ -836,8 +880,14 @@ function driveFinish() {
   const D = G.drive,
     J = driveJob(),
     left = Math.max(0, Math.round((J.time - G.dtime) / 60));
-  const pay = D.win ? J.pay + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 : D.takedowns * 5,
+  // the delivery run pays for the share of the cargo that arrives, and a bonus if it's nearly all there
+  const share = D.cargo == null ? 1 : D.cargo / 100,
+    mint = D.cargo != null && D.cargo >= CARGO.mint;
+  const pay = D.win
+      ? Math.round(J.pay * share) + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 + (mint ? 120 : 0)
+      : D.takedowns * 5,
     karma = D.win ? J.karma + D.takedowns * 4 + (D.bossDown ? 60 : 0) : 0;
+  if (mint && D.win) feat('mint');
   PARTY.creds += pay;
   if (karma) jobKarma(karma);
   const rec = store.load('cs_drive') || {},
@@ -861,6 +911,9 @@ function driveFinish() {
     takedowns: D.takedowns,
     crashes: D.crashes,
     boss: D.bossDown,
+    cargo: D.cargo,
+    lost: !!D.cargoLost,
+    mint: mint && D.win,
     pay,
     karma,
     best,
@@ -923,11 +976,12 @@ function jobsHtml() {
 function driveOverHtml() {
   const r = G.dresult || {},
     J = driveJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
-    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc(J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : r.lost ? 'Cargo lost' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
+    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc((r.lost && J.lostTxt) || J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Takedowns</div></div><div class="acts">${r.takedowns || 0}</div></div>
       <div class="item"><div><div class="nm">Crashes</div></div><div class="acts">${r.crashes || 0}</div></div>
+      ${r.cargo != null ? `<div class="item"><div><div class="nm">Cargo</div></div><div class="acts">${Math.ceil(r.cargo)}% arrived${r.mint ? ' (+¥120, mint)' : ''}</div></div>` : ''}
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? (r.win ? 'Wrecked (+¥150)' : 'Wrecked') : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>

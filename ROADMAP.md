@@ -196,11 +196,11 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 ### Jobs, round two
 - [x] ~~**Doors the hack can open.**~~ Shipped: security doors with keypads (a keypad sequence) that open a shortcut past the vent but let the guards see through, and a wall safe (a network trace) with creds and gear.
 - [x] ~~**Car chase.**~~ Shipped as Kagemori Pursuit: one open-top car, runner 1 driving and slamming riders, runner 2 shooting from the back seat (a roof gun solo), and pursuit cars ramming from behind.
-- [ ] **Delivery run (S).** A driving variant where the cargo has its own health bar: speed pays, but every crash and every hit costs the client's goods.
+- [x] ~~**Delivery run.**~~ Shipped as Fragile Cargo: a cargo bar, crashes, wrecks and hits that cost it, pay by the share that arrives, and a mint bonus.
 - [ ] **Heist planning (L).** A multi-stage job on a Kagemori tower: pick an entry (drone stealth through the vents, a flight drop on the roof, or a loud front door brawl), and each choice changes the next stage's guards, alarm level and loot. The job modes that exist become the stages.
 
 ### The Sprawl
-- [ ] **Crew turf (M).** Clearing a gang's hideouts on a block flips that block's turf to a friendly crew: their colours on the walls, their patrols instead of hostile ones, and a tithe paid into your stash each block. Lose standing and they take it back.
+- [x] ~~**Crew turf.**~~ Shipped: clear a block's crews with one warm to you and they take it: their name on the doors, their patrols instead of hostile ones, and a tithe from every block you hold each time you move on, until your standing slips below +10.
 - [ ] **Graffiti tags (S).** Promoted from the parking lot: leave your runner's tag on a cleared hideout. Tags persist with the block's memory, raise street cred over time, and rival crews paint over them (a fight if you catch them at it).
 - [ ] **Weather that matters (S).** Rain makes the street slick (longer slides, wall bounces carry further) and shorts out drones; fog shortens enemy sight lines for stealthier break-ins; acid rain already hurts, so let cheap armor corrode.
 - [ ] **Living market (S).** Prices drift block to block by supply: a gang war makes guns cost more and armor less, a lockdown doubles medkit prices. Sable's black-market cart reacts the same way.
@@ -208,7 +208,7 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 ### Combat and enemies
 - [ ] **Status effects on enemies too (S).** Moved here from above: some enemies use shock and fire rounds against you, with counters from armor affixes.
 - [x] ~~**Enemy squads with roles.**~~ Shipped as Kagemori fireteams: a spotter who marks you (+25% damage taken), a riot trooper covering the gunner, and a medic who gets one teammate after another back up, once each, unless you hit them first. In the Arcology and black sites.
-- [ ] **Environmental finishers (S).** Throw a dazed foe into a live wire, a fire barrel or a car's path for a finisher that drops their loot early. Builds on props, hazards and wall bounces.
+- [x] ~~**Environmental finishers.**~~ Shipped: burning barrels, drums on the floor and live wired floors finish a thrown foe on the spot and drop their creds early. A car's path is still to come (no traffic outside the driving jobs yet).
 - [ ] **A rival runner (M).** A named runner who appears in three districts and two Sprawl blocks, levelling with you, using your own archetype's moves against you, and remembering how you beat them last time (they learn to parry your favourite combo).
 
 ### Progression

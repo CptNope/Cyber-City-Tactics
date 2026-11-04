@@ -311,6 +311,7 @@ function lootChest(t) {
   if (fam || Math.random() < 0.4) drop('med', t.x + 20, t.y + 14);
   if (!G.wd.looted.includes(b.id)) {
     G.wd.looted.push(b.id);
+    turfCheck();
     // the block remembers: shops nearby cheaper for a cleared crew, dearer for a robbed home or business
     const crew = b.type === 'hideout' || b.type === 'club',
       hurtFolk = !isGood(b) && !isShop(b);

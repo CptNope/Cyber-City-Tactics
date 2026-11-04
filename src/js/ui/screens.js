@@ -302,6 +302,7 @@ function safeHtml() {
     <span style="color:var(--muted);font-size:13px">${cleared(w)} crew hideout${cleared(w) === 1 ? '' : 's'} cleared (shops 10% cheaper each), ${robbed(w)} home${robbed(w) === 1 ? '' : 's'} or business${robbed(w) === 1 ? '' : 'es'} robbed (10% dearer each, and they stay boarded up). Leave a building halfway and you come back to the room you left.</span></div>
   <div class="job"><div class="row" style="justify-content:space-between"><b>Street cred ${rp > 0 ? '+' : ''}${rp}</b><span class="st" style="color:${rp >= 30 ? 'var(--ok)' : rp <= -30 ? 'var(--neon)' : 'var(--muted)'}">${rp >= 30 ? 'Respected' : rp <= -30 ? 'Feared' : 'Unknown'}</span></div>
     <span style="color:var(--muted);font-size:13px">At +30 the doc and Kit give you 15% off. At −30 Ratchet pays 60% instead of 40% for your loot, because nobody else will deal with you.</span></div>
+  ${turfHtml()}
   <div class="job"><div class="row" style="justify-content:space-between"><b>Move to a new block</b><span class="st" style="color:var(--gold)">${done}/${total} cleaned out</span></div>
     <span style="color:var(--muted);font-size:13px">A fresh street with tougher locks, meaner guards and better loot. Heat stays behind; cred comes with you.</span>
     <div class="row"><button class="btn sm" data-a="newblock">Go to block ${w.level + 1}</button></div></div>

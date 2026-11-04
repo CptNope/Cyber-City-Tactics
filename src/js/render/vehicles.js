@@ -304,6 +304,21 @@ function drawDriveHud() {
       ctx.fillRect(bx + bw + 3 + j * 3, by - 1 + i * 3, 3, 3);
     }
   const left = (J.time - (G.dtime || 0)) / 60;
+  // the delivery run's cargo, under the progress line
+  const cg = G.drive && G.drive.cargo;
+  if (cg != null) {
+    // the middle of the box only, clear of the runners' panels on either side
+    const cx0 = bx + bw * 0.25,
+      cw = bw * 0.5,
+      lw = 52;
+    ctx.fillStyle = 'rgba(11,8,18,.75)';
+    ctx.fillRect(cx0 - 6, by + 22, cw + 12, 14);
+    ctx.fillStyle = '#2a2436';
+    ctx.fillRect(cx0 + lw, by + 27, cw - lw, 4);
+    ctx.fillStyle = cg > 50 ? '#45d2ff' : cg > 25 ? '#ffc63d' : '#ff3d4a';
+    ctx.fillRect(cx0 + lw, by + 27, ((cw - lw) * cg) / 100, 4);
+    txt('CARGO ' + Math.ceil(cg) + '%', cx0, by + 32, 9, '#9fe9ff', 'left');
+  }
   txt(
     fmtTime(Math.max(0, J.time - (G.dtime || 0))),
     W / 2,

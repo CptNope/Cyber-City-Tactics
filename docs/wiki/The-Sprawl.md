@@ -76,6 +76,20 @@ Worked out from `w.looted`, so nothing new needs saving:
 
 `blockMul(w)` feeds `buyMul()`. `w.prog[building id]` is the room you last entered (`enterRoom`); `enterBuilding` resumes there, so leaving halfway (or quitting) doesn't restock the rooms you already cleared.
 
+## Crew turf
+
+modes/turf.js. `turfCheck()` runs after each cache is looted: once every hideout and club on the block (`crewBuildings()`) is looted, the crew with the best standing takes the block if it's at least `TURF_MIN` (+10). The block's holder is `G.wd.turf` (saved with the block); `PARTY.turfs` lists `{ lv, crew }` for up to six blocks (saved with the party, and empty in every fresh party).
+
+```mermaid
+flowchart LR
+  L["last crew building looted"] --> C{"best crew ≥ +10?"}
+  C -- no --> N[nobody steps in]
+  C -- yes --> T["G.wd.turf = crew; PARTY.turfs += block"]
+  T --> P["turfTick(): their patrols, no hostile gang patrols"]
+  T --> NB["new block: turfTithe() pays 60 + 30 × level per block"]
+  S{"standing < +10"} --> X["turfLose(): turf and tithe gone"]
+```
+
 ## Safehouse upgrades
 
 `SAFE_UPS` in modes/safehouse.js, bought on the safehouse's Upgrades tab (`G.safeTab = 'home'`) with `buyUp()`, and kept in `PARTY.safe`, which goes into the Sprawl save with the party. `hasUp(k)` is only ever true in the Sprawl. A fresh party (campaign, Arena, jobs, training, a new Sprawl) starts with `crew: {}` and `safe: {}`, so nothing carries over from another mode.
