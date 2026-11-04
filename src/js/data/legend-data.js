@@ -307,7 +307,7 @@ const FEATS = [
   { id: 'legall', name: 'Collector', desc: 'Find every legendary.', lp: 40, stat: 'legs', n: 8, hidden: 1 },
   { id: 'best', name: 'Field Guide', desc: 'Take down every kind of enemy.', lp: 25, stat: 'species', n: 16 },
   { id: 'cap', name: 'Master of One', desc: 'Learn a capstone skill.', lp: 10 },
-  { id: 'jack', name: 'Jack of All Trades', desc: 'Have at least one skill in all four trees.', lp: 10 },
+  { id: 'jack', name: 'Jack of All Trades', desc: 'Have at least one skill in all five trees.', lp: 10 },
   {
     id: 'lore10',
     name: 'Storyteller',

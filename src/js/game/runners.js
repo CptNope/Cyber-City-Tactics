@@ -175,7 +175,7 @@ function doSpecial(p) {
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
-// the four trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
+// the five trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
 function doActive(p, k) {
   bump('actives');
   if (k === 'brawler') {
@@ -222,6 +222,11 @@ function doActive(p, k) {
     p.t = 10;
     spawnSummon('ember', p, 900, 1);
     sfx.spell();
+  } else if (k === 'shaman') {
+    // Totem: a spirit totem that heals runners and curses foes around it
+    setS(p, 'cast');
+    p.t = 10;
+    plantTotem(p, true);
   } else if (k === 'decker') {
     // Short Circuit: everything electronic on screen shorts out
     sfx.zap();
@@ -311,6 +316,7 @@ function useItem(p) {
     sfx.heal();
     burst(p.x, p.y, 30, '#7dffb0', 12);
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
+    if (has(p, 'ward') && !G.den) plantTotem(p, false); // the Shaman tree's Ward Totem
   } else {
     sfx.click();
     say(p, PARTY.med ? 'HP FULL' : 'NO MEDKITS', '#a79dc2', 60, 40, true);
@@ -329,7 +335,8 @@ function upRunner(p) {
   if (p.flash > 0) p.flash--;
   const wasAir = p.z > 0;
   physics(p);
-  if (p.mp < p.maxMp && G.t % D.regen === 0) p.mp++;
+  const rg = has(p, 'swalk') && spiritNear(p) ? Math.max(1, Math.round(D.regen / 1.5)) : D.regen; // Spirit Walk
+  if (p.mp < p.maxMp && G.t % rg === 0) p.mp++;
   if (p.state === 'dead') {
     if (p.t > 100) respawn(p);
     return;

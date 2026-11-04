@@ -45,7 +45,7 @@ Karma comes from takedowns, contracts, bosses and jobs, scaled by difficulty, mu
 
 ## Skill trees
 
-Four trees with rows of skills and a capstone. Each archetype starts with its own skill.
+Five trees with rows of skills and a capstone. Each archetype starts with its own skill.
 
 | Tree | Row | Skill | Effect |
 |---|---|---|---|
@@ -73,6 +73,14 @@ Four trees with rows of skills and a capstone. Each archetype starts with its ow
 | mage | 2 | Overcharge | Fireball blasts are 60% wider. |
 | mage | 2 | Siphon | Every kill restores 4 mana. |
 | mage | 3 | Archon | Every fourth spell is free and hits twice as hard. |
+| shaman | 0 | Spirit Kin | Companions and summons (yours and the party’s) deal 25% more damage and take 20% less. |
+| shaman | 1 | Hex | Your melee hits curse a foe for 4 seconds. Cursed foes take 15% more damage from everyone. |
+| shaman | 1 | Ward Totem | Using a medkit also plants a small totem that heals anyone beside it for 8 seconds. |
+| shaman | 2 | Wild Call | Your kills have a 15% chance to call a fire spirit to your side for 10 seconds. |
+| shaman | 2 | Withering | Your curses also make foes deal 25% less damage while they last. |
+| shaman | 3 | Spirit Walk | While a companion or summon fights beside you, take 20% less damage and regain mana 50% faster. |
+
+Shaman mechanics: a curse is `e.curseT` (and `e.curseW` for Withering), applied in `hurt()`; totems live in `G.totems` (`plantTotem`, `totemTick` in game/combat.js) and pulse once a second; `kinMul()` in game/allies.js scales companion hits.
 
 ## Active skills
 
@@ -83,6 +91,7 @@ Three points in a tree (`ACTIVE_NEED`) unlock its active skill (`ACTIVES` in sys
 | Brawler | Ground Slam | hop, `kd` everyone within 44 px, and a `wave` projectile each way for 14 + 1.2 × melee |
 | Gunslinger | Fan the Hammer | six bullets across the lanes at gun damage, no ammo spent |
 | Mage | Summon Spirit | `spawnSummon('ember', p, 900)`: a fire spirit for 15 s |
+| Shaman | Totem | `plantTotem(p, true)`: 12 s; each second heals runners within 60 px for 4% max HP and curses foes within 70 px |
 | Decker | Short Circuit | every `isTech` foe on screen gets `stunT = 180` (frozen) and a zap of 12 + 5 × Hacking (which includes the deck) |
 
 ## Cyberware

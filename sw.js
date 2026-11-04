@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '2ceef0f0a590';
+const VERSION = '2356af5a12a9';
 const PRECACHE = [
   './',
   'index.html',

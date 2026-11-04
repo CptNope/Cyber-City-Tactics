@@ -205,6 +205,11 @@ function hurt(t, dmg, dir, o) {
     crit = true;
   }
   if (t.team === 0 && t.kind === 'player' && setOn(t, 'ironside', 3)) dmg *= 0.85; // the Ironside set
+  // the Shaman tree: curses, kin and the spirit walk
+  if (t.team === 1 && t.curseT > G.t) dmg *= 1.15;
+  if (t.team === 0 && o.att && o.att.curseT > G.t && o.att.curseW) dmg *= 0.75;
+  if (t.kind === 'ally' && anyHas('kin')) dmg *= 0.8;
+  if (t.kind === 'player' && has(t, 'swalk') && spiritNear(t)) dmg *= 0.8;
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -370,6 +375,13 @@ function hurt(t, dmg, dir, o) {
     taunt(t, 1);
   }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
+  // Hex: a runner's melee hit curses the foe
+  if (o.melee && o.src && o.src.kind === 'player' && t.team === 1 && has(o.src, 'hex') && t.hp > 0) {
+    if (!(t.curseT > G.t))
+      G.texts.push({ x: t.x, y: t.y, z: t.z + 58, s: 'HEXED', c: '#7dffb0', life: 30, sm: true });
+    t.curseT = G.t + 240;
+    t.curseW = has(o.src, 'wither');
+  }
   // the Voltaic set: a melee hit arcs to the nearest other foe
   if (o.melee && !o.arc && o.src && o.src.kind === 'player' && t.team === 1 && setOn(o.src, 'voltaic', 2))
     voltArc(t, dmg, o.src);
@@ -476,6 +488,19 @@ function drop(k, x, y, extra) {
 function kill(t, dir, o) {
   t.flip = false;
   if (t.club) dropClub(t);
+  // Wild Call: a Shaman's kill can call a fire spirit (one at a time)
+  const wk = o && o.src && o.src.kind === 'player' ? o.src : null;
+  if (
+    wk &&
+    t.team === 1 &&
+    has(wk, 'wild') &&
+    Math.random() < 0.15 &&
+    !G.ents.some(e => e.wild && e.state !== 'dead')
+  ) {
+    const s = spawnSummon('ember', wk, 600, 1);
+    s.wild = true;
+    say(wk, 'WILD CALL', '#7dffb0', 50, 40, true);
+  }
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -700,6 +725,37 @@ function voltArc(from, dmg, src) {
     ax: from.x
   });
   if (setOn(src, 'voltaic', 3) && best.state !== 'dead' && grabbable(best)) best.dazeUntil = G.t + 60;
+}
+// a companion or summon still fighting near a runner (Spirit Walk)
+const spiritNear = p =>
+  G.ents.some(e => e.kind === 'ally' && e.state !== 'dead' && Math.abs(e.x - p.x) < 160);
+/* ---------- totems (Shaman: Ward Totem and the Totem active skill) ---------- */
+function plantTotem(p, big) {
+  G.totems = G.totems || [];
+  G.totems.push({ x: p.x + p.face * 14, y: p.y, life: big ? 720 : 480, big: !!big, src: p, t: 0 });
+  sfx.spell();
+  burst(p.x + p.face * 14, p.y, 10, '#7dffb0', 12);
+}
+function totemTick() {
+  if (!G.totems || !G.totems.length) return;
+  for (const T of G.totems) {
+    T.t++;
+    T.life--;
+    if (T.t % 60 !== 0) continue;
+    for (const q of alive())
+      if (Math.abs(q.x - T.x) < 60 && Math.abs(q.y - T.y) < 24 && q.hp < q.maxHp) {
+        const n = Math.max(1, Math.round(q.maxHp * (T.big ? 0.04 : 0.03)));
+        q.hp = Math.min(q.maxHp, q.hp + n);
+        G.texts.push({ x: q.x, y: q.y, z: 60, s: '+' + n, c: '#7dffb0', life: 24, sm: true });
+      }
+    if (T.big)
+      for (const e of G.ents)
+        if (e.team === 1 && e.state !== 'dead' && Math.abs(e.x - T.x) < 70 && Math.abs(e.y - T.y) < 26) {
+          e.curseT = G.t + 120;
+          e.curseW = !!(T.src && has(T.src, 'wither'));
+        }
+  }
+  G.totems = G.totems.filter(T => T.life > 0);
 }
 const canJuggle = (t, src) =>
   t.state === 'down' &&

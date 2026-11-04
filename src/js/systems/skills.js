@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/systems/skills.js
- * The four skill trees (Brawler, Gunslinger, Mage, Decker), unlock rules and helpers like has(p, id).
+ * The five skill trees (Brawler, Gunslinger, Mage, Decker, Shaman), unlock rules and helpers like has(p, id).
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ---------- skill trees ---------- */
@@ -7,7 +7,12 @@ const TREES = {
   brawler: { name: 'Brawler', col: '#ff3d8b', blurb: 'Fists, blades and bad decisions.' },
   gunner: { name: 'Gunslinger', col: '#ffc63d', blurb: 'More lead, better aim.' },
   mage: { name: 'Mage', col: '#b98cff', blurb: 'Mana, fire and lightning.' },
-  decker: { name: 'Decker', col: '#45d2ff', blurb: 'Locks, ICE, cops and cash.' }
+  decker: { name: 'Decker', col: '#45d2ff', blurb: 'Locks, ICE, cops and cash.' },
+  shaman: {
+    name: 'Shaman',
+    col: '#7dffb0',
+    blurb: 'Spirits, totems and curses: magic without the fireworks.'
+  }
 };
 const SKILLS = {
   iron: { t: 'brawler', row: 0, name: 'Iron Fists', desc: '+20% melee damage.' },
@@ -93,6 +98,42 @@ const SKILLS = {
     row: 3,
     name: 'Ghost Protocol',
     desc: 'Failed hacks never trip alarms, and break-ins add one less heat star.'
+  },
+  kin: {
+    t: 'shaman',
+    row: 0,
+    name: 'Spirit Kin',
+    desc: 'Companions and summons (yours and the party’s) deal 25% more damage and take 20% less.'
+  },
+  hex: {
+    t: 'shaman',
+    row: 1,
+    name: 'Hex',
+    desc: 'Your melee hits curse a foe for 4 seconds. Cursed foes take 15% more damage from everyone.'
+  },
+  ward: {
+    t: 'shaman',
+    row: 1,
+    name: 'Ward Totem',
+    desc: 'Using a medkit also plants a small totem that heals anyone beside it for 8 seconds.'
+  },
+  wild: {
+    t: 'shaman',
+    row: 2,
+    name: 'Wild Call',
+    desc: 'Your kills have a 15% chance to call a fire spirit to your side for 10 seconds.'
+  },
+  wither: {
+    t: 'shaman',
+    row: 2,
+    name: 'Withering',
+    desc: 'Your curses also make foes deal 25% less damage while they last.'
+  },
+  swalk: {
+    t: 'shaman',
+    row: 3,
+    name: 'Spirit Walk',
+    desc: 'While a companion or summon fights beside you, take 20% less damage and regain mana 50% faster.'
   }
 };
 // Active skills: three points in a tree unlock its active skill, which can take the ★ special's place
@@ -108,6 +149,10 @@ const ACTIVES = {
     desc: 'Six rounds fanned out in front, fast, without using ammo. Each hits like your gun.'
   },
   mage: { name: 'Summon Spirit', desc: 'A fire spirit fights at your side for 15 seconds.' },
+  shaman: {
+    name: 'Totem',
+    desc: 'Plant a spirit totem for 12 seconds: every second it heals runners beside it and curses foes near it.'
+  },
   decker: {
     name: 'Short Circuit',
     desc: 'Every drone, ICE, mech, cop and guard on screen shorts out: stunned for 3 seconds and shocked. A better cyberdeck hits harder.'

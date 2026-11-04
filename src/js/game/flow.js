@@ -26,6 +26,7 @@ function placeRunners(x0) {
 }
 function resetWorld() {
   G.cut = null; // a story scene never outlives the street it was on
+  G.totems = []; // and nor does a totem
   for (const p of PL) p.club = null; // a street weapon stays on the street it was found on
   LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;

@@ -23,6 +23,7 @@ function update() {
     if (!p.out) upRunner(p);
   }
   reviveTick();
+  totemTick();
   for (const e of G.ents) if (e.kind === 'ally') upAlly(e);
   if (G.mode !== 'play' && G.mode !== 'den') return;
   // melee slots per target
