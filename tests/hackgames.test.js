@@ -102,17 +102,18 @@ while (q.length) {
 }
 ok(key(h.ex, h.ey) in prev, 'there is always a way through');
 const route = [];
-for (let c = [h.ex, h.ey]; prev[key(...c)]; ) {
-  const p = prev[key(...c)];
+let cur = [h.ex, h.ey];
+while (prev[key(cur[0], cur[1])]) {
+  const p = prev[key(cur[0], cur[1])];
   route.unshift(p[2]);
-  c = [p[0], p[1]];
+  cur = [p[0], p[1]];
 }
 // bump into ICE once, if there is ICE next to the start
 const iceNext = [
   ['right', 1, 0],
   ['down', 0, 1],
   ['up', 0, -1]
-].find(([, dx, dy]) => h.walls.includes(key(dx, h.sy + dy)));
+].find(n => h.walls.includes(key(n[1], h.sy + n[2])));
 if (iceNext) {
   A.hackDir(iceNext[0]);
   ok(h.miss === 1 && h.cx === 0, 'running into ICE costs a miss and you stay put');
