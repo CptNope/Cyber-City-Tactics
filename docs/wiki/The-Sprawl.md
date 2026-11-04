@@ -76,6 +76,10 @@ Worked out from `w.looted`, so nothing new needs saving:
 
 `blockMul(w)` feeds `buyMul()`. `w.prog[building id]` is the room you last entered (`enterRoom`); `enterBuilding` resumes there, so leaving halfway (or quitting) doesn't restock the rooms you already cleared.
 
+## Graffiti tags
+
+modes/tags.js. `canTag(b)` is true for a looted hideout or club without your tag; the building card's *Spray your tag* calls `sprayTag()` (+3 cred, `G.wd.tags`, saved with the block). `tagTick()` (from `worldTick()`) gives a point of cred per tag every 1,800 steps, and every 2,400 to 3,600 steps sends a painter: a ganger with `painter` and `wasPainter` set to the building's id. `painterTick()` walks them to the wall and counts down 600 steps; a hit clears `painter` (they fight instead), and `kill()` calls `painterDown()`, which pays 2 cred if the tag is still up.
+
 ## Crew turf
 
 modes/turf.js. `turfCheck()` runs after each cache is looted: once every hideout and club on the block (`crewBuildings()`) is looted, the crew with the best standing takes the block if it's at least `TURF_MIN` (+10). The block's holder is `G.wd.turf` (saved with the block); `PARTY.turfs` lists `{ lv, crew }` for up to six blocks (saved with the party, and empty in every fresh party).

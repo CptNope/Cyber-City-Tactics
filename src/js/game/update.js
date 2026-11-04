@@ -366,6 +366,7 @@ function waves() {
       G.camX = at;
       G.lock = at;
       G.waveLive = true;
+      rivalWave(G.wave);
       teamSpawnList(choiceSpawn(G.stage, w)).forEach(([k0, unit], i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;

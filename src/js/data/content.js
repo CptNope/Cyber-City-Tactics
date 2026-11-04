@@ -199,6 +199,29 @@ const DEF = {
       boot: '#0d1119'
     }
   },
+  // Vane, the rival runner (game/rival.js): fights in your archetype's style and remembers how you won
+  rival: {
+    name: 'Vane',
+    hp: 120,
+    spd: 1.05,
+    dmg: 11,
+    reach: 24,
+    cool: 70,
+    scale: 1,
+    rival: true,
+    creds: [30, 50],
+    karma: 90,
+    style: 'runner',
+    pal: {
+      skin: '#e8c4a8',
+      coat: '#2a2440',
+      coat2: '#1f1a33',
+      pants: '#16131f',
+      hair: '#dcd6ff',
+      acc: '#b98cff',
+      boot: '#0e0c14'
+    }
+  },
   // Kagemori fireteams: a spotter, a shield, a gunner and a medic who fight as a unit (game/enemies.js)
   spotter: {
     name: 'Kagemori spotter',

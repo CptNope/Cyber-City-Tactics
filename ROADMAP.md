@@ -201,15 +201,15 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 
 ### The Sprawl
 - [x] ~~**Crew turf.**~~ Shipped: clear a block's crews with one warm to you and they take it: their name on the doors, their patrols instead of hostile ones, and a tithe from every block you hold each time you move on, until your standing slips below +10.
-- [ ] **Graffiti tags (S).** Promoted from the parking lot: leave your runner's tag on a cleared hideout. Tags persist with the block's memory, raise street cred over time, and rival crews paint over them (a fight if you catch them at it).
-- [ ] **Weather that matters (S).** Rain makes the street slick (longer slides, wall bounces carry further) and shorts out drones; fog shortens enemy sight lines for stealthier break-ins; acid rain already hurts, so let cheap armor corrode.
+- [x] ~~**Graffiti tags.**~~ Shipped: spray your tag on a cleared crew building for street cred over time; the old owners send painters to cover it, and stopping one keeps the tag.
+- [x] ~~**Weather that matters.**~~ Shipped: slick wet streets (knocks carry 30% further) and drones shorting out in the rain, gunmen closing in through the fog and quieter Sprawl break-ins in it, and acid rain corroding Street-grade armor.
 - [ ] **Living market (S).** Prices drift block to block by supply: a gang war makes guns cost more and armor less, a lockdown doubles medkit prices. Sable's black-market cart reacts the same way.
 
 ### Combat and enemies
 - [ ] **Status effects on enemies too (S).** Moved here from above: some enemies use shock and fire rounds against you, with counters from armor affixes.
 - [x] ~~**Enemy squads with roles.**~~ Shipped as Kagemori fireteams: a spotter who marks you (+25% damage taken), a riot trooper covering the gunner, and a medic who gets one teammate after another back up, once each, unless you hit them first. In the Arcology and black sites.
 - [x] ~~**Environmental finishers.**~~ Shipped: burning barrels, drums on the floor and live wired floors finish a thrown foe on the spot and drop their creds early. A car's path is still to come (no traffic outside the driving jobs yet).
-- [ ] **A rival runner (M).** A named runner who appears in three districts and two Sprawl blocks, levelling with you, using your own archetype's moves against you, and remembering how you beat them last time (they learn to parry your favourite combo).
+- [x] ~~**A rival runner.**~~ Shipped as Vane: three districts and two Sprawl blocks, your archetype's style, a quarter tougher every meeting, and ready for whatever did the most damage last time (remembered in your legend).
 
 ### Progression
 - [ ] **More legendaries (S each).** Moved here from above: one per new boss and per new hidden feat, so there's always a ??? left in the Codex.

@@ -544,7 +544,8 @@ function saveWorld() {
             clock: w.clock,
             prog: w.prog,
             medUsed: !!w.medUsed,
-            turf: w.turf || null
+            turf: w.turf || null,
+            tags: tagsOf(w)
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -597,6 +598,7 @@ function loadWorld(s) {
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
   if (!CREWS.includes(G.wd.turf)) G.wd.turf = null;
+  G.wd.tags = tagsOf(G.wd).filter(Number.isInteger);
   if (!Array.isArray(PARTY.turfs)) PARTY.turfs = [];
   for (const k of Object.keys(G.wd.prog))
     if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
@@ -643,6 +645,7 @@ function enterStreet(x) {
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   G.camX = clamp(x - W / 2, 0, Math.max(0, st.len - W));
   makeRain(true);
+  wxTip();
   musicPlay('den');
   G.fade = 0.8;
   w.lastX = x;
@@ -753,6 +756,7 @@ function callBackup() {
 }
 // Acid rain, corp parade and manhunt run here each tick, out on the street only
 function blockEventTick(w) {
+  if (evOn('acidrain')) wxCorrode();
   if (evOn('acidrain') && G.t % 120 === 0)
     for (const e of G.ents) {
       if (e.state === 'dead' || e.out || (e.d && (e.d.passive || e.d.spirit || e.d.fly))) continue;
@@ -880,6 +884,8 @@ function worldTick() {
   blockEventTick(w);
   factionTick(w);
   turfTick(w);
+  tagTick(w);
+  rivalStreet(w);
   w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));

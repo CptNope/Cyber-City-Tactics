@@ -103,6 +103,7 @@ function upEnemy(e) {
   }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.fly && isTech(e) && wxWet()) wxShort(e); // rain gets into the works
   if (d.turret) return turretTick(e);
   if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
@@ -117,6 +118,8 @@ function upEnemy(e) {
   e.tgt = pickTarget(e);
   const p = e.tgt;
   if (e.unit && p && unitTick(e, d, p)) return;
+  if (e.painter && painterTick(e)) return; // on their way to paint over a tag
+  if (d.rival && p && rivalTick(e, p)) return;
   if (d.fly && e.state !== 'vent') {
     e.hover += 0.08;
     const zt = (d.spirit ? 18 : d.ice ? 20 : 24) + Math.sin(e.hover) * 3;
@@ -421,7 +424,7 @@ function upEnemy(e) {
       setS(e, 'windup');
       return;
     }
-    if (ady < 7 && adx < 230 && adx > 50 && e.cool <= 0) {
+    if (ady < 7 && adx < 230 * wxSight() && adx > 50 && e.cool <= 0) {
       setS(e, 'aim');
       return;
     }
@@ -518,7 +521,7 @@ function unitTick(e, d, p) {
     if (!marked(p) && Math.abs(p.x - e.x) < 260 && !(e.markCD > G.t)) {
       p.markT = G.t + MARK_T;
       p.markBy = e;
-      e.markCD = G.t + 180;
+      e.markCD = G.t + 360; // and a breather between marks
       say(p, 'MARKED', '#ff6a3d', 70, 40, true);
       sfx.click();
     }

@@ -219,3 +219,7 @@ Only a runner's hit can make a foe quit, and the blow that would finish one can 
 ## Environmental finishers
 
 game/finishers.js. While a thrown foe is in the air, `upEnemy()` calls `envTick()`, which checks three things: a burning barrel within 14 px when the foe is in the back lane (`barrelAt()`, from `fixtureAt()`, the same function the renderer draws the street's barrels and lamps from), a drum in `G.props` (it's removed and `shatter()`ed with the thrower as its source), and the live lane of a `shock` hazard while it's live. `envFinish()` drops creds (20 + 12 × depth) and a 25% shot at gear, then takes the foe's remaining health, or a quarter of a boss's. Each one bumps `envkills`, toward the *Use the Scenery* feat.
+
+## Weather
+
+game/weather.js. `wxNow()` is the weather where the fight is (`weatherOf(curS())`; always clear on jobs, in training and the Den, and indoors). `wxWet()` (rain or storm) multiplies ground knockback in `hurt()` by 1.3 and runs `wxShort()` on flying machines, a 25% chance every 600 steps of a 90-step `stunT`. `wxSight()` (0.65 in fog) shortens the range at which ranged foes start to aim, and `hackWin()` takes a heat star off a Sprawl break-in in fog. In acid rain, `wxCorrode()` (from `blockEventTick()`) takes a point off each runner's Street-grade armor every 1,800 steps, down to 1. `wxTip()` explains each the first time.

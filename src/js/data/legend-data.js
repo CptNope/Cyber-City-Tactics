@@ -111,6 +111,8 @@ const BEST = {
   orc: 'Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around.',
   sec: 'Kagemori security on a corp salary. They shoot first and file reports later.',
   riot: 'Shields stop punches from the front. Kick them, throw something, or get behind. In a fireteam, they stand in front of the gunner.',
+  rival:
+    'Vane: a runner for hire on the other side of every job. Fights in your own style, and remembers how you beat them: whatever you leaned on last time, Vane is ready for. Mix it up.',
   spotter:
     'Fireteam eyes. A red laser means you are marked: everything hits you a quarter harder until the spotter goes down. Take them out first.',
   medic:
@@ -230,6 +232,15 @@ const FEATS = [
   { id: 'el25', name: 'Elite Hunter', desc: 'Take down 25 elites.', lp: 15, stat: 'elites', n: 25 },
   { id: 'mercy', name: 'Street Mercy', desc: 'Spare 10 foes who begged.', lp: 10, stat: 'spared', n: 10 },
   { id: 'walls', name: 'Off the Wall', desc: 'Bounce 25 foes off a wall.', lp: 10, stat: 'walls', n: 25 },
+  { id: 'rival', name: 'Know Your Enemy', desc: 'Beat Vane, your rival, three times.', lp: 20 },
+  {
+    id: 'tagger',
+    name: 'Writer',
+    desc: 'Spray your tag on 5 cleared crew buildings.',
+    lp: 10,
+    stat: 'tags',
+    n: 5
+  },
   { id: 'turf', name: 'Landlord', desc: 'Hold three Sprawl blocks for friendly crews at once.', lp: 15 },
   {
     id: 'mint',

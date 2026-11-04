@@ -622,12 +622,13 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
-- **Kagemori fireteams** fight as a unit of four, at the Arcology's door and in half the inner rooms of black sites. The **spotter** puts a red laser on the nearest runner: while it's on you, everything hits you 25% harder, until the spotter goes down. The **riot trooper** plants itself between you and the **gunner**, shield first. The **medic** hangs back, then walks to anyone on the team who drops and gets them back up at half health after a second and a half; hit the medic while they work and they start over. A foe gets one second chance, and pays out only the first time. Take the spotter first, then the medic.
+- **Kagemori fireteams** fight as a unit of four, at the Arcology's door and in half the inner rooms of black sites. The **spotter** puts a red laser on the nearest runner: while it's on you, everything hits you 25% harder, until you land a hit on the spotter (or drop them). The **riot trooper** plants itself between you and the **gunner**, shield first. The **medic** hangs back, then walks to anyone on the team who drops and gets them back up at half health after a second and a half; hit the medic while they work and they start over. A foe gets one second chance, and pays out only the first time. Take the spotter first, then the medic.
 - **Hellhounds** hunt in packs from the Undercity Tunnels on. Each hound still standing makes the rest 12% faster, so thin the pack early.
 - **Mech walkers** patrol the Arcology and tough black sites. The front plates cut damage by 60%, and they never flinch, fall or get grabbed. They take about a second to turn around, though, and the glowing vent on the back takes 50% extra. Up close they stomp out shockwaves; at range they fire three-round bursts.
 - **Feral spirits** drift through the Undercity and hidden shrines. They copy the last spell any runner cast: fireballs and bolts come back at you, an echoed heal patches up nearby enemies, and an echoed barrier shields the spirit. Bullets pass through them.
 - **Kagemori shadows** guard the Arcology. They're nearly invisible until they strike, with a fast, hard hit, and sometimes a kick flurry (a ring and "!!" warn you). Land any hit and the cloak drops for a few seconds.
 - **Grabbers and throwers:** gangers, orc bruisers and the Gutter King grab runners (mash any button to break free); gangers and orcs pick up props and throw them.
+- **Vane, your rival.** A runner on the other side of every job, who turns up with the wave before the boss in the Neon Market, the Undercity Market and the Arcology (once a run each), and on Sprawl blocks 2 and 4. Vane fights in your own archetype's style (a dash strike, or a three-round burst for gun archetypes, every ten seconds), levels with you, and gets a quarter tougher every meeting. Vane also remembers: whatever did the most damage last time (fists and feet, guns, spells or throws) is what Vane is ready for next time, turning nearly a third of those hits away outright (PARRIED, DODGED, WARDED, SLIPPED) and taking less from the rest. Mix it up. The memory is part of your legend, so it carries from run to run. Beat Vane three times for *Know Your Enemy*.
 - **Elites:** each has a colored aura and a name tag, and drops better gear.
   - Armored: halves bullet damage
   - Berserk: faster and hits harder
@@ -680,6 +681,13 @@ Companions carry between districts and get patched up in the Den, but if one fal
 **The block remembers.** Every crew hideout or club you clear makes the block's shops 10% cheaper, up to 30%, and its door says CLEARED. Every home or business you rob makes them 10% dearer, up to 30%, and it stays boarded up. Buildings remember how far you got, too: leave one halfway (or quit and come back later) and you're back in the room you left, not at the front door with its rooms to loot again. The safehouse shows where you stand.
 
 **Turrets, and hacking in a fight.** Black sites and precincts bolt sentry turrets to the back wall of their inner rooms. A turret never moves, flinches or falls; it tracks along the wall and fires down its lane, so get out of it. A drone or turret that's shorted out (the Decker's Overload, the Decker tree's Short Circuit, a shock hit) or badly damaged can be hacked: **PUNCH beside it** (the button reads HACK). A hacked drone joins you for 20 seconds; a hacked turret fights for you until its hijack runs out. The odds rise with Hacking (and your cyberdeck), and deckers are better at it; a miss zaps you and shuts the window for a moment. Couriers can't be hacked: shoot them down.
+
+**Graffiti tags.** Open the door of a crew building you've cleaned out and **spray your tag** on it. Each tag on a block earns a point of street cred every half minute you're on the street (and 3 at once). The crew that lost the building wants its wall back: now and then one of theirs comes to paint over a tag (ten seconds at the wall). Hit the painter and they drop the paint and fight; drop them and the tag stays, with 2 cred more. Leave them to it and the tag is gone. Five tags earns *Writer*.
+
+**Weather that matters.** The weather changes how a street plays, in the districts and the Sprawl alike (indoors it stays outside):
+- **Rain and storms:** the street is slick, so every knock carries 30% further; and drones and ICE short out now and then, dropping out of the fight for a second and a half.
+- **Fog:** gunmen have to get a third closer before they open up; and in the Sprawl, a break-in in the fog draws one less heat star.
+- **Acid rain** (a Sprawl block event): Street-grade armor corrodes a point every half minute (never below 1); anything better holds up.
 
 **Safehouse upgrades.** The safehouse's **Upgrades** tab sells four, each bought once and kept with your Sprawl save:
 
@@ -748,7 +756,7 @@ Slaying Ssareth earns *Who Lights the Way*, the Wyrmslayer coat and the Wyrmhear
 ## Your legend: feats, legendaries and the Codex
 Your legend is saved separately from any one run. It carries across the campaign, the Sprawl, the Arena, solo and co-op, and survives New Game+ and starting over. Open it from **Codex** on the title screen.
 
-**Feats.** 81 goals across every mode, for example:
+**Feats.** 83 goals across every mode, for example:
 - *Chain Reaction:* a 25-hit combo
 - *Bounty Hunter:* collect one of Juno's bounties
 - *Zero-Day:* crack a tier-3 lock without a miss

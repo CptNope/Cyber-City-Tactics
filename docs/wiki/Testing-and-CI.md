@@ -36,11 +36,14 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `gauntlet.test.js` | headless | 38 | The Gauntlet: seeds and plans, the pick screen, one life, perks between districts, depth scaling, falling and winning, never saving, today's run, shared links. |
 | `crew.test.js` | headless | 30 | Crew contracts: hiring at Kit's, each special, the cooldown, downed and revived, paydays and loyalty, the loyal specials, saving. |
 | `safehouse.test.js` | headless | 19 | Safehouse upgrades: buying, the bolt-hole's price and heat, the scanner, the armory on a new block, the med bay once a block, saving, and fresh parties starting clean. |
-| `fireteam.test.js` | headless | 15 | Kagemori fireteams: the unit, the spotter's mark and its damage, the shield covering the gunner, the medic's revive, one payout only, a medic hit mid-revive, no medic left. |
+| `fireteam.test.js` | headless | 16 | Kagemori fireteams: the unit, the spotter's mark and its damage, the shield covering the gunner, the medic's revive, one payout only, a medic hit mid-revive, no medic left. |
 | `chase.test.js` | headless | 14 | The car chase: the roof gun, the car slam, the wider car in traffic, pursuit cars, the passenger's free window shots, hits passed to the car, the finish. |
 | `finishers.test.js` | headless | 14 | Environmental finishers: the street's barrels, into the fire, a drum and its blast, a boss taking a quarter, the live floor. |
 | `delivery.test.js` | headless | 13 | The delivery run: what crashes, wrecks and hits cost, pay by the share that arrives, the mint bonus, cargo lost, too late. |
 | `turf.test.js` | headless | 17 | Crew turf: nobody warm, a warm crew taking the block, friendly patrols, the tithe, Landlord, standing slipping, saving. |
+| `weather.test.js` | headless | 14 | Weather: which is where, slick wet streets, drones shorting out, gunmen in fog, the Den dry, fog break-ins, acid-rain corrosion. |
+| `tags.test.js` | headless | 15 | Graffiti tags: spraying, cred over time, painters covering a tag, stopping one, saving. |
+| `rival.test.js` | headless | 22 | Vane: where Vane turns up, the count of what hits, the memory and resistance, getting tougher, both specials, the Sprawl, the legend. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

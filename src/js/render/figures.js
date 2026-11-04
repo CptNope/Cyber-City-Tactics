@@ -1215,7 +1215,7 @@ function drawFig(e) {
     ctx.moveTo(sh[0] + 3, sh[1]);
     ctx.lineTo(hip[0] + 2, hip[1] + 2);
     ctx.stroke();
-    if (e.eq.armor && e.eq.armor.arm >= 6) {
+    if (e.eq && e.eq.armor && e.eq.armor.arm >= 6) {
       ctx.fillStyle = 'rgba(255,255,255,.15)';
       ctx.fillRect(sh[0] - 5, sh[1] + 2, 10, 8);
     }

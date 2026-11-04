@@ -102,6 +102,7 @@ function drawBuildings(base) {
       ctx.fillRect(dx - 12, base - 40, 24, 40);
       ctx.globalAlpha = 1;
     }
+    drawTag(b, dx, base);
     if (looted) {
       ctx.strokeStyle = '#7a5a34';
       ctx.lineWidth = 3;
