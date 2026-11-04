@@ -113,14 +113,16 @@ function drawBuildings(base) {
       ctx.stroke();
     }
     ctx.font = '600 11px Teko, Impact, sans-serif';
-    const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
-    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    // colour-blind safe signs add a mark as well as changing colour, so it never rests on colour alone
+    const label = prefs.cb && !looted && !shop ? (good ? '✓ ' : '✕ ') + b.name : b.name;
+    const tw = Math.min(b.w - 6, ctx.measureText(label).width + 10);
+    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? goodCol() : badCol();
     if (!looted && !lowFx()) glow(dx, base - 50, tw * 0.75, 14, nc, 0.22);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
     ctx.fillStyle = nc;
     ctx.textAlign = 'center';
-    ctx.fillText(b.name, dx, base - 47);
+    ctx.fillText(label, dx, base - 47);
     // the block remembers: a robbed home or business stays boarded up, a cleared crew's door says so
     if (looted && !isGood(b) && !shop) {
       ctx.font = '600 9px Teko, Impact, sans-serif';
@@ -194,8 +196,8 @@ function drawMinimap() {
           : w.looted.includes(b.id)
             ? '#4a4060'
             : isGood(b)
-              ? '#7dffb0'
-              : '#ff3d8b';
+              ? goodCol()
+              : badCol();
     ctx.fillRect(mx - 1.5, y - 2, 3, 4);
   }
   for (const e of G.ents)

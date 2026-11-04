@@ -545,7 +545,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 
 ## Combat
 - **Strikes:** punch combos end in an uppercut. You also have kicks and flying kicks. With Doc's chrome, the third quick punch or kick turns into a flurry (Mach fists, Dragon feet), and Turbo calves add a double-tap sprint with a shoulder charge and a slide.
-- **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown.
+- **Heavy blows:** hold punch to charge, then release for a guard-breaking knockdown (or double-tap punch to charge without holding, with Settings → Heavy blow: Double-tap).
 - **Parry:** dodge in the last moment before a melee hit lands (within about 0.13 s of it) and you take nothing. The attacker staggers, and your next hit within 1.5 seconds is a guaranteed crit. Bosses don't stagger, but their next attack is delayed. Bullets and spells can't be parried, only dodged.
 - **Dodge roll:** has invincibility frames.
 - **Grabs (Double Dragon style):** walk into a foe while it's flinching from a hit to grab it. Two hits in a row daze it (stars circle its head) for about a second, so you have time to walk in. However strong you get, there are always ways in: a foe under about 30% health reels (stars again) and can be grabbed; **punch beside a knocked-down foe to haul it up into a grab**, River City style; and Voltaic or Concussive weapons daze in one hit. A grab lasts under two seconds (three with Grip actuators). While you hold it:
@@ -564,6 +564,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.
 - **Hit-stop, screen shake and slow-mo on big hits.** You can turn shake and vibration off in Settings.
+- **Story scenes.** As each district opens, Juno comes over the comms; when a boss arrives, its name card plays and then the two of you trade a line. The street holds still under letterbox bars, the camera leans toward whoever is talking, and their line appears in a speech bubble. PUNCH, KICK or JUMP moves on; DODGE skips the scene. Each plays once per run, only in the campaign, and Settings → Story scenes turns them off.
+- **Music with two moods.** District songs play a calm loop between waves (bass, a softer arpeggio and hats) and the full track while foes are up, switching on a bar line.
 
 ## Enemies and bosses
 - **Rank and file:** gangers, orcs, corp security, riot troopers (shields block punches; kick them), drones, street shamans, ghouls (they lunge), fire spirits (bullets pass through), Glitches (split when they die), ICE sentries (teleport and fire laser spreads), and cops in the Sprawl.
@@ -724,6 +726,8 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 | Hack (in the minigame) | Space or J | , | A or X (Y uses an icebreaker, B backs off) |
 | Menus | Mouse, touch or Tab | | D-pad/stick, A select, B back, LB/RB tabs |
 
+These are the defaults. Settings → *Keyboard keys* changes any of them, for either runner.
+
 **Grabs.** Walk into a foe that's flinching from a hit; two hits in a row daze it (stars) so you have longer. While holding it:
 
 | Do this | And you |
@@ -744,7 +748,13 @@ Some feats are hidden and show as **???** until you earn them. Counting feats sh
 - **Upright:** the view grows taller, the HUD moves into the sky at the top, and the controls sit under the screen.
 - The stick appears wherever your thumb lands on the left side.
 - The big buttons change their label to say what they'll do: LIFT, THROW, TALK, ENTER, and while you grab someone PUNCH, KNEE, THROW (while you push a direction), LEAP and SWING. GUN shows ammo, SPELL shows mana cost, and both dim when you can't use them. CHAR shows how many points you have to spend.
-- **Settings:** control size (S/M/L), left-handed layout, graphics quality, screen shake, vibration, tips, sound, music and full screen.
+- **Settings:** control size (S/M/L), left-handed layout, graphics quality, screen shake, vibration, tips, story scenes, sound, music and full screen.
+- **Accessibility (Settings):**
+  - **Motion:** follow the system's reduced-motion setting, or force Reduced or Full. Reduced drops the screen push, slides and menu animations.
+  - **High contrast:** brighter text and borders in menus, and heavier outlines on every word in play.
+  - **Colour-blind safe:** blue and orange instead of green and pink for fair game and off-limits (with ✓ and ✕ on the signs too, so it never rests on colour alone), and a white rather than green Leeching affix.
+  - **Heavy blow: Hold or Double-tap.** With Double-tap, two quick punches start the charge without holding the button, and the next punch swings.
+  - **Keyboard keys:** change any key for either runner. Click a key, press the new one (Escape cancels). Esc and P (pause), C (sheet) and M (map) stay put, and a key you reuse leaves its old job.
 - **Fills any screen:** the game covers the whole screen on every device, inside the notch-safe area. Wider screens (phones held sideways, ultrawide monitors) see more of the street. Taller screens get a sky band on top for the HUD, and on touch screens a strip of pavement under the controls, so your thumbs never cover the fight. Only screens wider than 3.7:1 show bars.
 - **Runs the same everywhere:** the game logic steps at a fixed 60 per second on any screen, from a 30 Hz phone to a 240 Hz monitor, and motion is interpolated so high-refresh screens stay smooth. On a slow device, *Graphics: Auto* switches to a lighter mode (sharper pixels off, fewer particles) after a few seconds. You can force *High* or *Low* in Settings.
 - First-time tips explain each mechanic when you first meet it, worded for touch or keyboard.

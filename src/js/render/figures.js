@@ -1590,7 +1590,7 @@ function drawWeapon(w, fh, swing, t, st, fl) {
   const look = w.look || 'pipe',
     ang = swing ? -0.15 : -1.1,
     M = MFR[w.mfr],
-    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? AFX_COL[w.mod] : null;
+    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? afxCol(w.mod) : null;
   ctx.save();
   ctx.translate(fh[0], fh[1]);
   if (look === 'knucks') {

@@ -135,6 +135,8 @@ const AFFIX = {
   padded: { n: 'Padded', slots: ['armor'], desc: '+25 max HP' }
 };
 const AFX_COL = { shock: '#45d2ff', burn: '#ff6a3d', leech: '#7dffb0' };
+// colour-blind safe: leech turns white so it never hangs on green against burn's orange
+const afxCol = k => (typeof prefs !== 'undefined' && prefs.cb && k === 'leech' ? '#efe9ff' : AFX_COL[k]);
 /* Gear works like Borderlands: every piece comes from a manufacturer with its own speciality, and rolls 0–4
  * parts. The number of parts is its rarity, and its colour: white Street (none), green Tuned (one), blue
  * Prototype (two), purple Black-market (three), orange Legendary (four, or a named legendary from a feat).

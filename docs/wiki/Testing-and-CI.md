@@ -43,6 +43,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `sprawl-coop.test.js` | headless | 5 | Two runners clear a Sprawl building together (bot; can occasionally lose a fight). |
 | `sprawl.test.js` | headless | 28 | The Sprawl. |
 | `stealth.test.js` | headless | 46 | Drone stealth jobs (modes/stealth.js). |
+| `story.test.js` | headless | 34 | Story scenes (open, boss, skip, once per run), music moods, motion, contrast and colour-blind settings, key remapping and the double-tap heavy blow. |
 | `streetfights.test.js` | headless | 28 | Street weapons, foes who carry and fetch them, wall bounces and juggles, mercy, runners and boss taunts. |
 | `streetfoes.test.js` | headless | 17 | Foes who fight like the runners. |
 | `timing.test.js` | headless | 27 | The frame loop. |

@@ -113,13 +113,32 @@ const prefs = Object.assign(
     lefty: false,
     gfx: 'auto',
     fps: false,
-    rotDismissed: false
+    rotDismissed: false,
+    motion: 'auto', // 'auto' follows the system, 'reduced' or 'full' override it
+    contrast: false, // high contrast: brighter text and outlines
+    cb: false, // colour-blind safe: blue and orange for good and bad instead of green and pink
+    heavyTap: false, // heavy blow by double-tapping punch instead of holding it
+    story: true, // short scenes as districts open and bosses arrive
+    keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
 );
+// good and bad, in the palette Settings asks for (colour-blind safe: blue and orange)
+const goodCol = () => (prefs.cb ? '#45d2ff' : '#7dffb0');
+const badCol = () => (prefs.cb ? '#ffa630' : '#ff3d8b');
 function applyPrefs() {
+  RM =
+    prefs.motion === 'reduced'
+      ? true
+      : prefs.motion === 'full'
+        ? false
+        : typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof applyKeys === 'function') applyKeys();
   const c = document.body.classList;
   if (!c.toggle) return;
+  c.toggle('rm', !!RM);
+  c.toggle('hc', !!prefs.contrast);
+  c.toggle('cb', !!prefs.cb);
   c.toggle('size-s', prefs.size === 's');
   c.toggle('size-l', prefs.size === 'l');
   c.toggle('lefty', !!prefs.lefty);

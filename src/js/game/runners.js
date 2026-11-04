@@ -369,7 +369,18 @@ function upRunner(p) {
   }
   // hold PUNCH to charge a heavy blow; release to swing
   const canCharge = !G.den && !p.holding && p.state !== 'grab' && p.z === 0;
-  if (I.held.punch && canCharge) {
+  // Settings → Heavy blow: Double-tap. Two quick punches start the charge without holding; the next punch swings
+  if (prefs.heavyTap) {
+    if (I.pressed.punch && p.tapCharge) {
+      p.tapCharge = false;
+      I.pressed.punch = false; // this press is the release, not another jab
+    } else if (I.pressed.punch && canCharge) {
+      if (G.t - (p.lastTapP === undefined ? -99 : p.lastTapP) < 16) p.tapCharge = true;
+      p.lastTapP = G.t;
+    }
+    if (!canCharge) p.tapCharge = false;
+  } else p.tapCharge = false;
+  if ((prefs.heavyTap ? p.tapCharge : I.held.punch) && canCharge) {
     const c0 = p.chargeT || 0;
     p.chargeT = c0 + (setOn(p, 'rustline', 3) ? 1.5 : 1); // the Rustline set charges faster
     if (c0 < 32 && p.chargeT >= 32) {

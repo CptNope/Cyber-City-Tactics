@@ -135,6 +135,8 @@ for (const f of scripts) vm.runInThisContext(fs.readFileSync(path.join(ROOT, f),
 vm.runInThisContext('global.__G = G; global.__PL = () => PL; global.__PARTY = PARTY;');
 // suites click straight into runs: treat the one-time "train first?" offer as already seen (shop.test checks it)
 vm.runInThisContext('prefs.seen = prefs.seen || {}; prefs.seen.trainoffer = true;');
+// story scenes freeze the street until a button: suites turn them off (story.test turns them back on)
+vm.runInThisContext('prefs.story = false;');
 global.__api = new Proxy({}, { get: (_, name) => vm.runInThisContext(String(name)) });
 
 global.click = a => ovClick({ target: { closest: () => ({ dataset: { a }, disabled: false }) } });

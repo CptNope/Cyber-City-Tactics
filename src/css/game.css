@@ -1069,3 +1069,47 @@ body.pad-nav #ov :focus {
   vertical-align: 2px;
   letter-spacing: 0.04em;
 }
+
+/* ---------- accessibility (Settings) ---------- */
+body.rm *,
+body.rm *::before,
+body.rm *::after {
+  animation: none !important;
+  transition: none !important;
+}
+body.hc {
+  --muted: #d9d2f2;
+  --line: #7a6e98;
+  --panel: #0d0a14;
+  --panel2: #15101f;
+}
+body.hc .btn.ghost,
+body.hc .seg button,
+body.hc .tab {
+  border-color: #d9d2f2;
+}
+body.hc .ds,
+body.hc .sk-d {
+  color: #e6e0fa;
+}
+body.cb {
+  --ok: #45d2ff;
+  --neon: #ffa630;
+}
+.keymap {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.keymap kbd {
+  font: 600 12px var(--font-body);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--panel2);
+}
+.keymap .waiting {
+  color: var(--gold);
+}

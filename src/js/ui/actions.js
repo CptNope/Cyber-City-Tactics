@@ -224,6 +224,22 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     }
+    case 'keys':
+      G.showKeys = !G.showKeys;
+      G.rebind = null;
+      renderOv();
+      break;
+    case 'rebind':
+      G.rebind = { who: +arg ? 1 : 0, a: parts[2] };
+      renderOv();
+      break;
+    case 'keysreset':
+      prefs.keys = {};
+      G.rebind = null;
+      savePrefs();
+      applyKeys();
+      renderOv();
+      break;
     case 'tipsreset':
       prefs.seen = {};
       prefs.rotDismissed = false;

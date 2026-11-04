@@ -48,6 +48,7 @@ mindmap
 | [[Online Co-op]] | The lobby, WebRTC, snapshots and the message protocol |
 | [[Saves and Data]] | Every storage key, save shapes and migrations |
 | [[Balancing]] | The formulas: enemy scaling, armor, crits, rarity |
+| [[Presentation and Accessibility]] | Story scenes, music moods, and the accessibility settings |
 | [[Testing and CI]] | Every test file, the bots, CI and deploys |
 | [[Robustness Audit]] | The November 2026 audit: findings and fixes |
 | [[Contributing]] | Recipes for adding foes, gear, moves, drills and modes |

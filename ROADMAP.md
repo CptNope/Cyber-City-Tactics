@@ -42,6 +42,7 @@ The guiding rules:
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
 - [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **Story and presentation:** in-engine scenes, two-mood district music, and accessibility settings
 - [x] **The living Sprawl:** day and night, a block that remembers, sentry turrets, and hacking in a fight
 - [x] **Sets and actives:** maker set bonuses, a cyberdeck slot, and an active skill for every tree
 - [x] **River City street fights:** street weapons, wall bounces and juggles, mercy and runners, boss taunts, a fourteenth training drill, and two feats (Street Mercy, Off the Wall)
@@ -102,7 +103,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 ### Campaign and story
 - [x] ~~**The Undercity Market.**~~ Shipped as district 4 (between the Tunnels and the Arcology, where the story goes): a lantern-strung ghoul bazaar with its own music, thralls that heal off every hit, a Hollow Saint rematch, Juno's Night market contract, and Mother Vesper, who mist-steps behind you mid-swing and calls her thralls when angry. Beating her unlocks Vesper's Fang. Saves from before it are moved to the same place in the new order.
 - [x] ~~**Choices that matter.**~~ Shipped: after the Market, sell Vesper's books through Juno (¥250, but an extra Kagemori guard in every Arcology wave) or leak them to Pixel's feeds (nothing, but one guard fewer). After the Arcology, wipe Voss's backup core (no Voss.exe in the host, more ICE) or keep it as a key (Black ICE starts a quarter weaker, Voss.exe waits). Saved with the run.
-- [ ] **Cutscenes in the engine (M).** Short scripted moments using the existing figures, with speech bubbles and camera pans.
+- [x] ~~**Cutscenes in the engine.**~~ Shipped: Juno on comms as each district opens and a line with each boss after its name card, with letterbox bars, a camera lean toward the speaker and speech bubbles; skippable, once per run, and optional in Settings.
 - [x] ~~**Endings.**~~ Shipped: four epilogues from Juno, one for each pair of choices.
 
 ### Combat and enemies
@@ -133,8 +134,8 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 
 ### Presentation
 - [x] ~~**Animated title and menus.**~~ Shipped: the title powers on like a neon tube and skills pop when bought. Menus stay instant, as the brand book asks.
-- [ ] **Per-district music variations (M).** A calmer loop between waves and an intense one during them.
-- [ ] **Accessibility (M).** A high-contrast mode, a colorblind-safe palette for door signs and affixes, remappable keys, a hold-to-toggle option for the heavy blow, and reduced-motion support everywhere.
+- [x] ~~**Per-district music variations.**~~ Shipped: each district song has a calm loop between waves and the full track during fights, switching on a bar line.
+- [x] ~~**Accessibility.**~~ Shipped: a Motion setting (system, reduced, full), high contrast, a colour-blind safe palette for signs, the map and affixes, remappable keys for both runners, and a double-tap heavy blow.
 - [ ] **Localization scaffolding (M).** Move all text into one table so the game can be translated.
 
 ### Feel and presentation, round two

@@ -20,7 +20,7 @@ src/
     version.js           generated: APP_VERSION
     core/                platform layer: canvas, utils and storage, audio, music, input
     data/                tables only: enemies, districts, gear, contracts, lore, feats
-    systems/             cross-mode systems: legend (feats, legendaries, Codex) and skill trees
+    systems/             cross-mode systems: legend (feats, legendaries, Codex), story scenes, skill trees, haggling
     game/                the simulation: state, flow between places, combat, runners, enemies, allies, update
     modes/               mode-specific rules: Sprawl, black market, choices, dungeons, hacking, training, Arena (and
                          challenges), jobs (shared banking and side jobs, driving, drone stealth, flight), online co-op
@@ -44,7 +44,7 @@ The `BUILD:SCRIPTS` block in `index.html` is the one place the order is defined;
 
 1. `version.js`, then **core/** (canvas → utils → audio → music → input)
 2. **data/** (content → gear → world → legend-data)
-3. **systems/** (legend → skills → haggle)
+3. **systems/** (legend → story → skills → haggle)
 4. **game/** (state → flow → combat → props → runners → allies → enemies → update)
 5. **modes/** (sprawl → blackmarket → choices → dungeons → hacking → training → arena → jobs → drive → stealth → flight → net)
 6. **render/** (figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud)
