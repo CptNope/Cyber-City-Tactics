@@ -73,7 +73,7 @@ const TESTS = [
   { file: 'streetfights', minPass: 33 },
   { file: 'sets', minPass: 29 },
   { file: 'livingsprawl', minPass: 32 },
-  { file: 'story', minPass: 37 },
+  { file: 'story', minPass: 42 },
   { file: 'lobby', minPass: 39 },
   { file: 'drive', minPass: 36 },
   { file: 'sidejob', minPass: 18 },

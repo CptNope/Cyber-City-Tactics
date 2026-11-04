@@ -203,8 +203,12 @@ function drawCut() {
   ctx.textAlign = 'left';
   lines.forEach((l, i) => ctx.fillText(l, x + 10, y + 17 + i * 14));
   ctx.globalAlpha = 1;
-  const hint = isTouch()
-    ? 'PUNCH: next · DODGE: skip'
-    : (keysOf(0, 'punch')[0] || 'J') + ': next · ' + (keysOf(0, 'dodge')[0] || 'O') + ': skip';
-  txt(hint, W - 10, H - 9, 11, '#a79dc2', 'right');
+  // the hint speaks the device's language; on touch it sits up top, clear of the buttons
+  const hint = PAD.active
+    ? 'X: next · LB: skip'
+    : isTouch()
+      ? 'Tap to continue · DODGE: skip'
+      : (keysOf(0, 'punch')[0] || 'J') + ': next · ' + (keysOf(0, 'dodge')[0] || 'O') + ': skip';
+  if (isTouch() && !PAD.active) txt(hint, W / 2, bh - 9, 11, '#a79dc2', 'center');
+  else txt(hint, W - 10, H - 9, 11, '#a79dc2', 'right');
 }
