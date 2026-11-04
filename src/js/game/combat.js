@@ -271,6 +271,7 @@ function hurt(t, dmg, dir, o) {
     if (mod === 'burn' && t.team === 1 && !(t.d && t.d.passive)) {
       t.burnT = 120;
       t.burnDmg = Math.max(2, Math.round(dmg * 0.12));
+      t.burnSrc = sp; // whoever lit them gets the kill
     }
     if (crit && o.bullet && !o.rico && has(sp, 'rico')) {
       const o2 = G.ents
@@ -435,6 +436,7 @@ function drop(k, x, y, extra) {
   );
 }
 function kill(t, dir, o) {
+  t.flip = false;
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -532,7 +534,7 @@ function kill(t, dir, o) {
     }
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
-  gainKarma(
+  (G.cjob ? jobKarma : gainKarma)(
     Math.round(
       d.karma *
         em *

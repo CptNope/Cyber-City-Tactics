@@ -79,6 +79,8 @@ function jobCrew(coop) {
   G.rngW = G.rngP = null;
   if (G.cjob) {
     for (const p of PL) {
+      p.out = false; // whatever lives the district left them with, a job starts everyone fresh
+      p.lives = 3;
       refresh(p);
       p.hp = p.maxHp;
       p.mp = p.maxMp;
@@ -86,6 +88,7 @@ function jobCrew(coop) {
   } else {
     G.diff = G.pendDiff;
     G.ng = 0;
+    G.muts = []; // the campaign's mutators don't follow you onto the Jobs board
     G.coop = !!coop;
     newRunStats();
     PL = [newRunner(0)];
@@ -168,4 +171,9 @@ function sideJobHtml() {
   return `<div class="job"><div class="row" style="justify-content:space-between"><b>Side job · ${esc(J.name)}</b><span class="st">Optional</span></div>
     <span style="color:var(--muted);font-size:13px">${what}: ${esc(J.sub)}. Pays ¥${J.pay}+ into the party bag, karma for everyone. One shot, then back here, win or lose (quit midway and it's still on offer).</span>
     <div class="row" style="margin-top:6px"><button class="btn sm" data-a="cjob">Take the side job</button></div></div>`;
+}
+// during Juno's side job the campaign's gear is out of reach: it comes back with the campaign when the job ends
+function cjobLocked() {
+  sfx.click();
+  renderOv();
 }

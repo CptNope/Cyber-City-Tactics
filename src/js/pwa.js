@@ -133,7 +133,8 @@ function pwaApplyUpdate() {
     if (G.world && G.wd) saveWorld();
   } catch (err) {}
   PWA.applying = true;
-  if (PWA.waiting) PWA.waiting.postMessage({ type: 'SKIP_WAITING' });
+  // a worker another tab already switched on won't fire controllerchange here: just reload into it
+  if (PWA.waiting && PWA.waiting.state === 'installed') PWA.waiting.postMessage({ type: 'SKIP_WAITING' });
   else location.reload();
 }
 // Show the update bar only between fights, never in the middle of one.
@@ -223,13 +224,20 @@ function pwaImportText(t) {
 function pwaImportApply() {
   const d = G.importData;
   if (!d) return;
+  // write the backup first and only then remove the saves it doesn't have, so a failure partway (storage full)
+  // never leaves the player with half their saves gone; only reload when it all went in
   try {
+    for (const k in d.data) localStorage.setItem(k, d.data[k]);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(SAVE_PREFIX)) localStorage.removeItem(k);
+      if (k && k.startsWith(SAVE_PREFIX) && !(k in d.data)) localStorage.removeItem(k);
     }
-    for (const k in d.data) localStorage.setItem(k, d.data[k]);
-  } catch (err) {}
+  } catch (err) {
+    G.importErr =
+      "Couldn't restore the backup: this browser's storage is full or blocked. Your saves were not changed.";
+    if (G.mode === 'settings') renderOv();
+    return;
+  }
   location.reload();
 }
 

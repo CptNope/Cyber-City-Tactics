@@ -61,6 +61,7 @@ function releaseGrab(p, quiet) {
   const e = p.grab;
   p.grab = null;
   p.knees = 0;
+  if (e) e.flip = false;
   if (e && e.state === 'grabbed') {
     setS(e, 'idle');
     e.inv = 20;
@@ -87,6 +88,7 @@ function haulTarget(p) {
     e =>
       e.team === 1 &&
       e.state === 'down' &&
+      !e.hauled && // once per knockdown: no endless haul, hook, haul loops
       e.z <= 1 &&
       e.hp > 0 &&
       !e.d.boss &&
@@ -101,6 +103,7 @@ function haulTarget(p) {
 function haulUp(p, e) {
   const I = INP[p.idx] || INP[0];
   setS(e, 'grabbed');
+  e.hauled = true;
   e.vx = e.vz = 0;
   e.inv = 0; // the moment of grace for getting up doesn't protect someone hauled up
   e.dazeUntil = 0;

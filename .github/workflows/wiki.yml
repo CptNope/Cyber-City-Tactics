@@ -1,0 +1,44 @@
+name: Wiki
+
+# The wiki's pages live in docs/wiki so they're reviewed in pull requests like the code. Whenever they change
+# on main, this copies them to the repository's Wiki tab. The wiki needs one page made by hand first
+# (Wiki tab → Create the first page → Save); after that this workflow keeps it in step.
+on:
+  push:
+    branches: [main]
+    paths: ['docs/wiki/**', '.github/workflows/wiki.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Copy docs/wiki to the Wiki tab
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki || {
+            echo "::error::The wiki isn't set up yet. Open the Wiki tab, create the first page, then re-run this workflow."
+            exit 1
+          }
+          rsync -a --delete --exclude .git docs/wiki/ wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+          else
+            git commit -m "Sync wiki from ${GITHUB_SHA::7}"
+            git push
+          fi

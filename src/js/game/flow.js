@@ -25,6 +25,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
   G.drive = null;
   G.stealth = null;
@@ -98,6 +99,8 @@ function startStage(si) {
 }
 function briefing(si, fromDen) {
   G.arena = false;
+  G.training = false; // a run started straight after training is a real run (One Life, tips)
+  if (fromDen) G.preBriefStage = G.stage; // "Not yet" goes back to this Den
   const C = CONTRACTS[si];
   if (!PARTY.contract || PARTY.contract.idx !== si)
     PARTY.contract = {
@@ -184,12 +187,22 @@ function joinRunner2() {
 function dropRunner2() {
   if (!G.coop) return;
   const p = PL[1];
+  // let go of anything runner 2 had hold of, and of runner 2
+  if (p.heldBy) enemyRelease(p.heldBy);
+  if (p.grab) releaseGrab(p);
+  if (p.holding) dropProp(p);
   G.ents = G.ents.filter(e => e !== p);
-  if (p.holding) {
-    p.holding = null;
-  }
   PL = [PL[0]];
   G.coop = false;
+  // runner 1 already out of lives: there's nobody left, so the run ends as if they'd fallen
+  if (PL[0].out && G.mode !== 'title') {
+    if (G.arena) arenaOver();
+    else if (G.world) worldWipe();
+    else if (!G.training && !G.drive && !G.stealth && !G.flight) {
+      musicPlay(null);
+      setMode('over');
+    }
+  }
 }
 
 function spawnHostage(x, y) {

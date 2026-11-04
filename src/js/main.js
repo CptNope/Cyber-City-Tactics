@@ -17,7 +17,7 @@ const STEP = 1000 / 60,
 let last = performance.now(),
   acc = 0,
   tick = 0,
-  loopErr = false;
+  loopErr = 0;
 function stepOnce() {
   tick++;
   snapPrev();
@@ -66,12 +66,23 @@ function frame(now) {
     if (acc >= STEP) acc = acc % STEP; // drop the backlog instead of fast-forwarding
     lerpRender(acc / STEP);
     if (tick % 6 === 0) updateTouchUI();
+    loopErr = 0; // a clean frame
   } catch (err) {
-    if (!loopErr) {
-      loopErr = true;
-      console.error('Cyber City Tactics frame error', err);
-    }
+    // log the first error of a run of them; if every frame fails, stop piling up time and say so on screen
+    if (!loopErr) console.error('Cyber City Tactics frame error', err);
+    loopErr++;
+    acc = 0;
+    if (loopErr === 120) showFatal(err);
   }
+}
+// an error on every frame for two seconds: pause on a card that offers a reload instead of a frozen street
+function showFatal(err) {
+  try {
+    const ov = document.getElementById('ov');
+    if (!ov) return;
+    ov.hidden = false;
+    ov.innerHTML = `<div class="card"><p class="eyebrow">Something broke</p><h2>The game hit an error</h2><p>Your saves are safe. Reloading usually fixes it; if it keeps happening, please report it.</p><p style="color:var(--muted);font-size:12px">${esc(String((err && err.message) || err)).slice(0, 200)}</p><div class="row"><button class="btn" onclick="location.reload()">Reload</button></div></div>`;
+  } catch (e) {}
 }
 // Coming back to the tab: start timing fresh so there's no catch-up burst.
 document.addEventListener('visibilitychange', () => {

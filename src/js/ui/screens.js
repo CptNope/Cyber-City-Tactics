@@ -492,7 +492,7 @@ function charHtml() {
   <div class="meter"><i style="width:${Math.round((p.karma / nx) * 100)}%"></i></div>
   <div class="attrs">${attrs}</div>
   <div class="derived"><span>HP <b>${Math.ceil(p.hp)}/${p.maxHp}</b></span><span>Mana <b>${p.mp}/${p.maxMp}</b></span><span>Armor <b>${D.armor}</b></span><span>Melee <b>+${Math.round(D.melee)}</b></span><span>Gun <b>${D.gun}</b></span><span>Crit <b>${Math.round(D.crit * 100)}%</b></span><span>Spell power <b>${D.spell}</b></span><span>Best combo <b>${G.bestCombo}</b></span></div>
-  <h3>Equipped</h3><div class="list">${eq}</div>
+  ${G.cjob ? '<p style="color:var(--gold);font-size:13px">On Juno\'s side job: gear stays as it is until you\'re back in the Den.</p>' : ''}<h3>Equipped</h3><div class="list">${eq}</div>
   ${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>

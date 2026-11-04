@@ -31,13 +31,13 @@ The Workers Free plan covers the lobby: a game uses a few dozen requests to conn
 | `GET /ice` | `200 {iceServers, relay}` |
 | `GET /health` | `200 {ok}` |
 
-Rooms are wiped 15 minutes after they're made.
+Invites are wiped 15 minutes after they're made. The host's room key is kept for four hours, so nobody else can take the code mid-game and the host can still reopen it for a friend who drops after the invite has expired.
 
 ## Security
 
 - **No secrets in the repo.** The TURN key's ID and API token live only in the Worker's encrypted secrets. `.gitignore` blocks `.dev.vars`, `.env` files and `.wrangler/`, and GitHub secret scanning with push protection is on for this repo.
 - **The browser never sees the TURN API token.** Players get short-lived relay usernames and passwords (four hours), which only work on Cloudflare's TURN servers and can't create more.
-- **Limits per address:** 12 relay passes and 20 rooms an hour, enforced by the `Limiter` Durable Object. Requests from other websites' pages are refused (`ALLOWED_ORIGINS`). That check only stops browsers; the per-address limits are what stop scripts.
+- **Limits per address:** 12 relay passes, 20 rooms, 120 code lookups and 30 replies an hour, enforced by the `Limiter` Durable Object. IPv6 addresses are counted per /64, since one home or phone usually owns a whole /64. On top of that, all addresses together get at most 5,000 relay passes a day, so a botnet can't run up the TURN bill. Requests from other websites' pages are refused (`ALLOWED_ORIGINS`). That check only stops browsers; the per-address limits are what stop scripts.
 - **Rooms hold nothing private:** just the two WebRTC connection descriptions, wiped after 15 minutes.
 
 ## Local testing

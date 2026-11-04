@@ -14,12 +14,13 @@ for (const [k, def] of [
   ['kills', {}],
   ['stats', {}],
   ['lore', []],
-  ['legs', []]
+  ['legs', []],
+  ['runs', []]
 ])
   if (Array.isArray(def) ? !Array.isArray(LEG[k]) : !isObj(LEG[k])) LEG[k] = def;
 let legDirty = false;
 function saveLeg() {
-  store.set('cs_legend', LEG);
+  saveWarn(store.set('cs_legend', LEG));
   legDirty = false;
 }
 const legLP = () => Object.keys(LEG.feats).reduce((a, k) => a + (FEATBY[k] ? FEATBY[k].lp : 0), 0);
@@ -83,7 +84,6 @@ function mkLegend(id) {
   it.leg = id;
   applyParts(it); // a named legendary: two parts plus its unique effect, always the Legendary tier
   it.name = L.name;
-  it.price = Math.round(BASES[L.slot][L.base].price * 4);
   return it;
 }
 function legendDrop(x, y, chance) {

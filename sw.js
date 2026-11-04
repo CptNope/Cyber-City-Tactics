@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '9da95240900a';
+const VERSION = '11487815cd68';
 const PRECACHE = [
   './',
   'index.html',
@@ -82,7 +82,7 @@ const PRECACHE = [
 /* /BUILD:MANIFEST */
 
 const SHELL = 'cct-shell-' + VERSION;
-const RUNTIME = 'cct-runtime'; // fonts and anything else fetched later
+const RUNTIME = 'cct-runtime-' + VERSION; // fonts and anything else fetched later; per version, so nothing goes stale
 const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com$/;
 
 self.addEventListener('install', event => {
@@ -104,7 +104,11 @@ self.addEventListener('activate', event => {
     (async () => {
       const keys = await caches.keys();
       await Promise.all(
-        keys.filter(k => k.startsWith('cct-shell-') && k !== SHELL).map(k => caches.delete(k))
+        keys
+          .filter(
+            k => (k.startsWith('cct-shell-') && k !== SHELL) || (k.startsWith('cct-runtime') && k !== RUNTIME)
+          )
+          .map(k => caches.delete(k))
       );
       // Caches from the old single-file version of the game.
       await Promise.all(keys.filter(k => /^cs-v\d+$/.test(k)).map(k => caches.delete(k)));

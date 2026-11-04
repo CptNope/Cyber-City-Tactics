@@ -13,6 +13,7 @@ function physics(e) {
       if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;
       e.vz = 0;
+      const landDir = Math.sign(e.vx) || 1;
       e.vx = 0;
       if (e.thrown) {
         const src = e.thrown;
@@ -33,7 +34,7 @@ function physics(e) {
           G.shake = 5;
           if (e.hp <= 0) {
             e.state = 'down';
-            kill(e, Math.sign(e.vx) || 1);
+            kill(e, landDir, { src: src.kind === 'player' ? src : null });
           }
         }
       }
@@ -329,7 +330,7 @@ function upRunner(p) {
     }
     if (p.state === 'shoot') {
       const g = p.eq.gun,
-        q = has(p, 'quick') ? 0.7 : 1,
+        q = (has(p, 'quick') ? 0.7 : 1) * (g ? g.speed || 1 : 1), // Quickdraw and Swift fire every round, sooner
         T = n => t === Math.round(n * q);
       if (g) {
         if (g.fire === 'burst') {
@@ -386,6 +387,7 @@ function upRunner(p) {
             e.state !== 'dead' &&
             !e.d.fly &&
             !e.d.boss &&
+            !e.d.heavy && // walkers never fall
             !e.d.passive &&
             e.state !== 'down' &&
             Math.abs(e.x - p.x - p.face * 30) < 50 &&
@@ -682,6 +684,7 @@ function grabJumpTick(p, I, D) {
   const e = p.grab,
     pile = p.state === 'pdrive';
   if (!e || e.state !== 'grabbed') {
+    if (e) e.flip = false;
     p.grab = null;
     if (p.z <= 0) setS(p, 'idle');
     return;

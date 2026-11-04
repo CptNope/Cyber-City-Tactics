@@ -459,11 +459,20 @@ function applyParts(it) {
     const lead = it.parts.find(q => q !== 'attr') || it.parts[0];
     it.name = M.name + ' ' + (lead ? PARTS[lead].n + ' ' : '') + b.name;
   }
-  it.price = Math.round(b.price * (1 + it.rar * 0.6) * (it.leg ? 2 : 1));
+  it.price = Math.round(it.leg ? b.price * 4 : b.price * (1 + it.rar * 0.6)); // named legendaries: one price, always
 }
 // older saves: items from before makers and parts get a maker (fixed by their id) and parts to match their tier
 function fixItem(it) {
-  if (!it || it.mfr || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  if (!it || !BASES[it.slot] || !BASES[it.slot][it.base]) return it;
+  if (it.mfr && MFR[it.mfr] && Array.isArray(it.parts)) {
+    // up to date, but drop any part this version doesn't know (a save from a newer or edited build)
+    if (it.parts.some(k => !PARTS[k])) {
+      it.parts = it.parts.filter(k => PARTS[k]);
+      applyParts(it);
+    }
+    return it;
+  }
+  if (!MFR[it.mfr]) delete it.mfr;
   const ks = makersFor(it.slot);
   let h = 0;
   for (const c of String(it.uid)) h = (h * 31 + c.charCodeAt(0)) | 0;
@@ -471,7 +480,9 @@ function fixItem(it) {
   const keepName = it.leg ? it.name : null,
     oldMod = it.mod;
   it.parts = [];
-  if (oldMod && !it.leg) {
+  // an old Street item with an affix keeps the affix as it was rather than gaining a tier for it
+  if (oldMod && !it.leg && !(it.rar > 0)) it.legMod = oldMod;
+  else if (oldMod && !it.leg) {
     const k =
       oldMod === 'keen'
         ? 'keen'
@@ -490,7 +501,7 @@ const salvageParts = it => (it.leg ? 0 : 1 + it.rar * 2);
 const REROLL = { parts: 3, creds: 40 };
 const upgradeCost = it => ({ parts: 4 * (it.rar + 1), creds: 80 * (it.rar + 1) });
 const canUpgrade = it => !!it && !it.leg && it.rar < 3; // Ratchet adds parts up to Black-market; Legendary only drops
-const canReroll = it => !!it && !it.leg;
+const canReroll = it => !!it && !it.leg && Array.isArray(it.parts) && it.parts.length > 0; // rerolling never adds a tier
 function renameItem(it) {
   fixItem(it);
   applyParts(it);
@@ -499,7 +510,7 @@ function renameItem(it) {
 function rerollItem(it) {
   if (!canReroll(it)) return false;
   fixItem(it);
-  const n = it.parts.length || 1;
+  const n = it.parts.length;
   it.parts = [];
   while (it.parts.length < n) addPart(it);
   applyParts(it);

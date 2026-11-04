@@ -40,10 +40,15 @@ const store = {
       return null;
     }
   },
+  // true when it was written; false when storage is full or blocked (private mode, quota), so callers can say so
   set(k, v) {
     try {
       localStorage.setItem(k, JSON.stringify(v));
-    } catch (e) {}
+      return true;
+    } catch (e) {
+      store.failed = (store.failed || 0) + 1;
+      return false;
+    }
   },
   del(k) {
     try {
@@ -57,22 +62,32 @@ function esc(s) {
 // Saves can come from older versions or a hand-edited backup. Anything that doesn't have the expected shape
 // is ignored rather than allowed to crash a menu.
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// a runner entry has to be an object, and the parts the game reads as objects have to be objects if present
+const runnerOk = r =>
+  isObj(r) &&
+  ['attr', 'cy', 'eq', 'sk', 'tech'].every(k => r[k] === undefined || r[k] === null || isObj(r[k]));
+const diffOk = d => d === undefined || (Number.isInteger(d) && d >= 0 && d < 3);
 const SAVE_SHAPES = {
   cs_save3: s =>
     isObj(s) &&
     Array.isArray(s.runners) &&
     s.runners.length > 0 &&
+    s.runners.every(runnerOk) &&
     Number.isInteger(s.stage) &&
     s.stage >= 0 &&
-    s.stage < STAGES.length,
+    s.stage < STAGES.length &&
+    diffOk(s.diff),
   cs_world: s =>
     isObj(s) &&
     isObj(s.wd) &&
     Number.isInteger(s.wd.level) &&
     s.wd.level > 0 &&
     Array.isArray(s.runners) &&
-    s.runners.length > 0,
-  cs_arena: s => Array.isArray(s) && s.every(isObj),
+    s.runners.length > 0 &&
+    s.runners.every(runnerOk),
+  cs_arena: s =>
+    Array.isArray(s) &&
+    s.every(e => isObj(e) && Number.isFinite(e.score) && Number.isFinite(e.wave) && diffOk(e.diff)),
   cs_week: isObj,
   cs_day: isObj
 };
