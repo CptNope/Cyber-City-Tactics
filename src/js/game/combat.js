@@ -357,6 +357,14 @@ function hurt(t, dmg, dir, o) {
   if (t.team === 0 && t.grab) releaseGrab(t);
   // River City endings: a beaten regular may beg for mercy or run for it, once
   if (t.hp > 0 && mercyRoll(t, o)) return true;
+  // most regulars go down in one hit from above the begging line, so the blow that would have finished them
+  // can be the moment they give up instead, on 1 HP (not a massive overkill: that one just lands)
+  if (t.hp <= 0 && dmg < t.maxHp * 0.6 && !t.mercy && MERCY[t.kind]) {
+    const left = t.hp;
+    t.hp = 1;
+    if (mercyRoll(t, o)) return true;
+    t.hp = left;
+  }
   if (t.d && t.d.boss && !t.taunted2 && t.hp > 0 && t.hp < t.maxHp * 0.25) {
     t.taunted2 = true;
     taunt(t, 1);
