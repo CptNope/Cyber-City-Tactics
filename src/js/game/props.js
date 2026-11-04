@@ -31,8 +31,79 @@ function throwProp(p) {
   });
   sfx.whiff();
 }
+/* ---------- street weapons: pipes, chains and bats ---------- */
+const isClub = o => !!o && CLUBS[o.kind] !== undefined;
+// a street weapon lying on the ground, ready to be picked up
+function clubProp(kind, x, y, uses) {
+  return { kind, x, y: clamp(y, FY0 + 8, FY1), z: 0, uses: uses === undefined ? CLUBS[kind].uses : uses };
+}
+// pick one up: anything already in hand goes down where it was
+function takeClub(e, pr) {
+  if (e.club) dropClub(e);
+  G.props.splice(G.props.indexOf(pr), 1);
+  e.club = { kind: pr.kind, uses: pr.uses > 0 ? pr.uses : CLUBS[pr.kind].uses };
+  sfx.grab();
+  if (e.team === 0) {
+    say(e, CLUBS[pr.kind].name.toUpperCase(), '#ffc63d', 40, 30, true);
+    if (G.training) G.tf.club = true;
+    tip(
+      'club',
+      'Street weapon! Every PUNCH swings it until it breaks. PUNCH in the air throws it. Get knocked down and you drop it.',
+      'Street weapon! Every punch (J) swings it until it breaks. Punch in the air throws it. Get knocked down and you drop it.'
+    );
+  }
+}
+function dropClub(e) {
+  const c = e.club;
+  if (!c) return;
+  e.club = null;
+  if (c.uses > 0) G.props.push(clubProp(c.kind, e.x + (e.face || 1) * 10, e.y + 4, c.uses));
+}
+// a swing that landed wears the weapon down; at zero it breaks in your hand
+function clubWear(e) {
+  const c = e.club;
+  if (!c) return;
+  if (e.team === 0 && G.training) G.tf.swing = true;
+  c.uses--;
+  if (c.uses <= 0) {
+    e.club = null;
+    burst(e.x + (e.face || 1) * 14, e.y, 30, '#8a8f9c', 8);
+    sfx.clank();
+    if (e.team === 0) say(e, 'IT BROKE', '#a79dc2', 40, 30, true);
+  }
+}
+function throwClub(e) {
+  const c = e.club;
+  if (!c) return;
+  e.club = null;
+  const C = CLUBS[c.kind],
+    m = e.team === 0 ? e.D.melee : e.dmg;
+  G.projs.push({
+    k: 'prop',
+    kind: c.kind,
+    uses: c.uses,
+    team: e.team,
+    src: e.team === 0 ? e : null,
+    x: e.x + e.face * 10,
+    y: e.y,
+    z: e.z + 34,
+    vx: e.face * (e.team === 0 ? 6.4 : 4.8),
+    vz: 0.6,
+    dmg: Math.round(e.team === 0 ? 10 + C.dmg * 1.4 + m * 0.8 : m * C.edmg * 1.4),
+    life: 120
+  });
+  sfx.whiff();
+  if (e.team === 0) say(e, 'CATCH!', '#ffc63d', 30, 30, true);
+}
 function shatter(pr) {
   if (G.training) G.tf.prop = true;
+  // a thrown street weapon clatters to the ground, one use worse for wear
+  if (isClub(pr)) {
+    sfx.clank();
+    burst(pr.x, pr.y, pr.z, '#8a8f9c', 6);
+    if (pr.uses > 1) G.props.push(clubProp(pr.kind, pr.x - Math.sign(pr.vx || 1) * 8, pr.y, pr.uses - 1));
+    return;
+  }
   const col = { can: '#8a93a6', crate: '#a07a4a', drum: '#ff4a4a' }[pr.kind];
   burst(pr.x, pr.y, pr.z, col, 12);
   if (pr.src || pr.kind !== 'drum') shardDrop(pr.x, pr.y + 6, pr.kind === 'crate' ? 0.12 : 0.05);

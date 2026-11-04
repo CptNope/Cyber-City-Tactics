@@ -1,5 +1,5 @@
 /* Cyber City Tactics · src/js/modes/training.js
- * Juno's thirteen training drills, and the one-time offer to take them before a first run.
+ * Juno's fourteen training drills, and the one-time offer to take them before a first run.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ---------- training ---------- */
@@ -171,6 +171,17 @@ const TRAIN = [
       p.sp = 100;
     },
     done: () => G.tf.special
+  },
+  {
+    t: 'Street weapons: tap PICK UP by the pipe, then SWING it at the ganger. Knock foes into the wall to bounce them back for a juggle.',
+    k: 'Street weapons: press J by the pipe to pick it up, then J to swing it at the ganger. Knock foes into the wall to bounce them back for a juggle.',
+    setup(p) {
+      clearFoes();
+      p.club = null;
+      G.props = [clubProp('pipe', p.x + 22, p.y)];
+      trainee('ganger', p.x + 80, p.y, { hp: 999 });
+    },
+    done: () => G.tf.swing
   }
 ];
 function startTraining() {

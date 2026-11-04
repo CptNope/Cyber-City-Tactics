@@ -1134,7 +1134,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+1148781';
+const APP_VERSION = '2.0.0+ba1a164';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2090,7 +2090,15 @@ function updateTouchUI() {
   } else if (p.holding) {
     punch = 'THROW';
     kick = 'DROP';
-  } else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
+  } else if (p.club && p.z > 0) punch = 'THROW';
+  else if (
+    G.mode === 'play' &&
+    !p.club &&
+    G.props.some(o => isClub(o) && Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9)
+  )
+    punch = 'PICK UP';
+  else if (p.club) punch = 'SWING';
+  else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
     punch = 'LIFT';
   if (G.stealth && p.drone) {
     // a drone's buttons: hack, dart, cloak
@@ -3274,6 +3282,42 @@ const DEN = {
   signs: []
 };
 
+/* ---------- River City street fights ---------- */
+// Street weapons lie around (and some gangers carry one). Pick one up with PUNCH and every punch swings it
+// until it breaks; PUNCH in the air throws it. Knocked down, you drop it, and so do foes.
+//   dmg: added to a swing; reach: added to punch reach; uses: swings that land before it breaks
+//   kd: the combo finisher with it knocks down; edmg: a foe's damage multiplier with it
+const CLUBS = {
+  pipe: { name: 'Lead pipe', dmg: 7, reach: 6, uses: 8, kb: 6, edmg: 1.3, look: 'pipe' },
+  chain: { name: 'Bike chain', dmg: 5, reach: 16, uses: 10, kb: 4, edmg: 1.2, look: 'chain' },
+  bat: { name: 'Spiked bat', dmg: 10, reach: 9, uses: 5, kb: 8, edmg: 1.45, kd: true, look: 'bat' }
+};
+const CLUB_KINDS = Object.keys(CLUBS);
+// foes who pick street weapons up, and the chance they walk in already carrying one
+const CLUB_FOES = { ganger: 0.25, biker: 0.3, orc: 0.15 };
+// River City endings: on their last legs some foes beg (spare them and they pay you off) and some run
+//   beg: the chance a beaten foe drops to its knees instead of fighting on; run: the chance it flees
+const MERCY = {
+  ganger: { beg: 0.35, lines: ['OK OK! I GIVE!', "DON'T HURT ME!", 'TAKE IT, TAKE IT!'] },
+  biker: { run: 0.35, lines: ["I'M OUTTA HERE!", 'NOT WORTH IT!'] },
+  orc: { beg: 0.2, lines: ['ENOUGH! ENOUGH!', 'YOU WIN, CHOOMBA!'] },
+  sec: { run: 0.3, lines: ['NOT FOR THIS PAY!', 'CALLING IT IN!'] },
+  cop: { beg: 0.25, lines: ['I GOT KIDS, MAN!', 'OFF THE RECORD! OFF THE RECORD!'] },
+  thrall: { run: 0.2, lines: ['THE MASTER WILL HEAR OF THIS!'] }
+};
+// bosses talk between phases: when they enrage, and when they go down to their last quarter
+const TAUNTS = {
+  interceptor: ['You ride like a corpo.', 'End of the line, runner.'],
+  troll: ['The Gutter is MINE!', 'I eat runners for breakfast.'],
+  blade: ['You bleed slow. I can fix that.', 'Kagemori sends regards.'],
+  saint: ['The Hollow hungers.', 'Kneel, and be forgiven.'],
+  avatar: ['Ssareth wakes.', 'Your chrome is a cage.'],
+  dragon: ['Little sparks.', 'I was old when your city was swamp.'],
+  vesper: ['Such warm blood.', 'Stay. Forever.'],
+  archmage: ['Your magic is a child’s.', 'The Arcology answers to me.'],
+  blackice: ['INTRUDER. PURGE.', 'TRACE COMPLETE.']
+};
+
 /* ===== src/js/data/gear.js ===== */
 /* Cyber City Tactics · src/js/data/gear.js
  * Attributes, weapon/gun/armor bases, rarities, affixes, spells, archetypes, and the item factory (mkItem,
@@ -4421,6 +4465,8 @@ const FEATS = [
     n: 1000
   },
   { id: 'el25', name: 'Elite Hunter', desc: 'Take down 25 elites.', lp: 15, stat: 'elites', n: 25 },
+  { id: 'mercy', name: 'Street Mercy', desc: 'Spare 10 foes who begged.', lp: 10, stat: 'spared', n: 10 },
+  { id: 'walls', name: 'Off the Wall', desc: 'Bounce 25 foes off a wall.', lp: 10, stat: 'walls', n: 25 },
   { id: 'c25', name: 'Chain Reaction', desc: 'Land a 25-hit combo.', lp: 10, stat: 'combo', n: 25 },
   {
     id: 'c60',
@@ -5534,6 +5580,17 @@ function startStage(si) {
   placeRunners(40);
   for (const p of PL) if (!p.out) G.ents.push(p);
   G.props = S.props.map(([kind, x, y]) => ({ kind, x, y, z: 0 }));
+  // street weapons lying about: a couple per district, spread along the street
+  for (let i = 0; i < 2; i++) {
+    const ck = pick(CLUB_KINDS);
+    G.props.push(
+      clubProp(
+        ck,
+        140 + Math.floor(Math.random() * Math.max(200, (S.len || 1200) - 300)),
+        rand(FY0 + 14, FY1 - 6)
+      )
+    );
+  }
   for (const [k, x, y] of S.passives || []) spawnPassive(k, x, y);
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   makeRain(S.rain || S.weather === 'sleet');
@@ -5771,6 +5828,12 @@ function spawnEnemy(kind, side) {
     if (k === 'warded' || k === 'vampiric') e.hp = Math.round(e.hp * 1.25);
   }
   e.maxHp = e.hp;
+  // some street foes walk in carrying a pipe, a chain or a bat
+  const cc = CLUB_FOES[kind];
+  if (cc && G.mode === 'play' && !G.training && !G.drive && !G.flight && Math.random() < cc) {
+    const ck = pick(CLUB_KINDS);
+    e.club = { kind: ck, uses: CLUBS[ck].uses };
+  }
   G.ents.push(e);
   if (G.mode === 'play') {
     if (kind === 'riot')
@@ -5846,7 +5909,24 @@ function hurt(t, dmg, dir, o) {
     }
     return false;
   }
-  if (t.state === 'down' && !o.air) return false;
+  // a foe bounced off the wall is fair game in the air: a juggle (three at most)
+  const juggle = canJuggle(t, o.src || o.att);
+  if (t.state === 'down' && !o.air && !juggle) return false;
+  if (juggle) {
+    o.kd = true;
+    t.juggles = (t.juggles || 0) + 1;
+    if (t.juggles >= 2)
+      G.texts.push({
+        x: t.x,
+        y: t.y,
+        z: t.z + 50,
+        s: 'JUGGLE ×' + t.juggles,
+        c: '#45d2ff',
+        life: 30,
+        sm: true
+      });
+    if (G.training) G.tf.juggle = true;
+  }
   // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
   if (
     t.team === 0 &&
@@ -5974,6 +6054,7 @@ function hurt(t, dmg, dir, o) {
     crit = true;
   }
   dmg = Math.max(1, Math.round(dmg));
+  if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
   t.hp -= dmg;
   t.flash = 8;
@@ -6122,6 +6203,12 @@ function hurt(t, dmg, dir, o) {
   if (t.d && t.d.boss && !t.enraged && t.hp > 0 && t.hp < t.maxHp * 0.5) enrage(t);
   if (t.holding) dropProp(t);
   if (t.team === 0 && t.grab) releaseGrab(t);
+  // River City endings: a beaten regular may beg for mercy or run for it, once
+  if (t.hp > 0 && mercyRoll(t, o)) return true;
+  if (t.d && t.d.boss && !t.taunted2 && t.hp > 0 && t.hp < t.maxHp * 0.25) {
+    t.taunted2 = true;
+    taunt(t, 1);
+  }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
   if (t.hp <= 0) {
     kill(t, dir, o);
@@ -6154,6 +6241,7 @@ function hurt(t, dmg, dir, o) {
   }
   if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
+    if (t.club) dropClub(t); // knocked flat: the street weapon goes flying
     if (t.team === 1 && o.src && o.src.team === 0 && grabbable(Object.assign({}, t, { state: 'idle' })))
       tip(
         'haul',
@@ -6224,6 +6312,7 @@ function drop(k, x, y, extra) {
 }
 function kill(t, dir, o) {
   t.flip = false;
+  if (t.club) dropClub(t);
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -6426,6 +6515,73 @@ function parry(p, e) {
   bump('parries');
   tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
 }
+const canJuggle = (t, src) =>
+  t.state === 'down' &&
+  t.team === 1 &&
+  !!t.bounced &&
+  t.z > 4 &&
+  (t.juggles || 0) < 3 &&
+  !!src &&
+  src.team === 0;
+// River City endings. Some beaten regulars drop to their knees: leave them be for a few seconds and they pay
+// you off and leave (karma for mercy); hit them and they go down for good. Others just run for it.
+function mercyRoll(t, o) {
+  const M = t.team === 1 && MERCY[t.kind];
+  if (!M || t.mercy || t.hp >= t.maxHp * 0.18 || t.d.boss || t.elite || t.squad || t.hunter || t.courier)
+    return false;
+  if (G.training || G.mode !== 'play' || modOn('pacifist') || t.state === 'grabbed' || t.holdP) return false;
+  t.mercy = 'rolled';
+  const r = Math.random();
+  const say1 = () =>
+    G.texts.push({ x: t.x, y: t.y, z: t.z + 62, s: pick(M.lines), c: '#ffc63d', life: 80, sm: true });
+  if (M.beg && r < M.beg) {
+    t.mercy = 'beg';
+    if (t.club) dropClub(t);
+    setS(t, 'beg');
+    say1();
+    tip(
+      'beg',
+      'A beaten foe is begging. Leave them for a moment and they pay you off and leave, for some karma. Or finish them for the usual drop.',
+      'A beaten foe is begging. Leave them for a moment and they pay you off and leave, for some karma. Or finish them for the usual drop.'
+    );
+    return true;
+  }
+  if (M.run && r < M.run) {
+    t.mercy = 'run';
+    setS(t, 'flee');
+    say1();
+    return true;
+  }
+  return false;
+}
+// spared: a payoff in creds, karma for the mercy, and they're gone
+function spare(t) {
+  const d = t.d;
+  t.mercy = 'spared';
+  const v = Math.round(ri(d.creds[0], d.creds[1]) * 1.5 * (1 + G.ng * 0.25));
+  drop('cred', t.x, t.y + 6, { v });
+  (G.cjob ? jobKarma : gainKarma)(
+    Math.round(d.karma * 0.6 * DIFF[G.diff].karma * (1 + G.stage * 0.3 + G.ng * 0.3))
+  );
+  G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: 'SPARED · ¥' + v, c: '#7dffb0', life: 60, sm: true });
+  bump('spared');
+  if (G.run) G.run.spared = (G.run.spared || 0) + 1;
+  if (G.world && G.wd && (t.kind === 'cop' || t.kind === 'sec')) G.wd.rep = Math.min(100, G.wd.rep + 1);
+  setS(t, 'flee');
+}
+// a boss's line between phases (0: enraged, 1: on its last quarter)
+function taunt(e, phase) {
+  const L = TAUNTS[e.kind];
+  if (!L) return;
+  G.texts.push({
+    x: e.x,
+    y: e.y,
+    z: e.z + 96 * ((e.d && e.d.scale) || 1),
+    s: '“' + L[phase % L.length] + '”',
+    c: '#efe9ff',
+    life: 110
+  });
+}
 function strike(att, reach, dmg, o) {
   let hit = false;
   o = Object.assign({}, o || {});
@@ -6438,7 +6594,7 @@ function strike(att, reach, dmg, o) {
   o.att = att;
   for (const t of G.ents) {
     if (t.team === att.team || t.state === 'dead' || t.out) continue;
-    if (t.state === 'down' && !o.air) continue;
+    if (t.state === 'down' && !o.air && !canJuggle(t, att)) continue;
     const sc = (t.d && t.d.scale) || 1;
     const dx = (t.x - att.x) * att.face;
     if (dx < -6 || dx > reach + 6 * sc) continue;
@@ -6539,8 +6695,79 @@ function throwProp(p) {
   });
   sfx.whiff();
 }
+/* ---------- street weapons: pipes, chains and bats ---------- */
+const isClub = o => !!o && CLUBS[o.kind] !== undefined;
+// a street weapon lying on the ground, ready to be picked up
+function clubProp(kind, x, y, uses) {
+  return { kind, x, y: clamp(y, FY0 + 8, FY1), z: 0, uses: uses === undefined ? CLUBS[kind].uses : uses };
+}
+// pick one up: anything already in hand goes down where it was
+function takeClub(e, pr) {
+  if (e.club) dropClub(e);
+  G.props.splice(G.props.indexOf(pr), 1);
+  e.club = { kind: pr.kind, uses: pr.uses > 0 ? pr.uses : CLUBS[pr.kind].uses };
+  sfx.grab();
+  if (e.team === 0) {
+    say(e, CLUBS[pr.kind].name.toUpperCase(), '#ffc63d', 40, 30, true);
+    if (G.training) G.tf.club = true;
+    tip(
+      'club',
+      'Street weapon! Every PUNCH swings it until it breaks. PUNCH in the air throws it. Get knocked down and you drop it.',
+      'Street weapon! Every punch (J) swings it until it breaks. Punch in the air throws it. Get knocked down and you drop it.'
+    );
+  }
+}
+function dropClub(e) {
+  const c = e.club;
+  if (!c) return;
+  e.club = null;
+  if (c.uses > 0) G.props.push(clubProp(c.kind, e.x + (e.face || 1) * 10, e.y + 4, c.uses));
+}
+// a swing that landed wears the weapon down; at zero it breaks in your hand
+function clubWear(e) {
+  const c = e.club;
+  if (!c) return;
+  if (e.team === 0 && G.training) G.tf.swing = true;
+  c.uses--;
+  if (c.uses <= 0) {
+    e.club = null;
+    burst(e.x + (e.face || 1) * 14, e.y, 30, '#8a8f9c', 8);
+    sfx.clank();
+    if (e.team === 0) say(e, 'IT BROKE', '#a79dc2', 40, 30, true);
+  }
+}
+function throwClub(e) {
+  const c = e.club;
+  if (!c) return;
+  e.club = null;
+  const C = CLUBS[c.kind],
+    m = e.team === 0 ? e.D.melee : e.dmg;
+  G.projs.push({
+    k: 'prop',
+    kind: c.kind,
+    uses: c.uses,
+    team: e.team,
+    src: e.team === 0 ? e : null,
+    x: e.x + e.face * 10,
+    y: e.y,
+    z: e.z + 34,
+    vx: e.face * (e.team === 0 ? 6.4 : 4.8),
+    vz: 0.6,
+    dmg: Math.round(e.team === 0 ? 10 + C.dmg * 1.4 + m * 0.8 : m * C.edmg * 1.4),
+    life: 120
+  });
+  sfx.whiff();
+  if (e.team === 0) say(e, 'CATCH!', '#ffc63d', 30, 30, true);
+}
 function shatter(pr) {
   if (G.training) G.tf.prop = true;
+  // a thrown street weapon clatters to the ground, one use worse for wear
+  if (isClub(pr)) {
+    sfx.clank();
+    burst(pr.x, pr.y, pr.z, '#8a8f9c', 6);
+    if (pr.uses > 1) G.props.push(clubProp(pr.kind, pr.x - Math.sign(pr.vx || 1) * 8, pr.y, pr.uses - 1));
+    return;
+  }
   const col = { can: '#8a93a6', crate: '#a07a4a', drum: '#ff4a4a' }[pr.kind];
   burst(pr.x, pr.y, pr.z, col, 12);
   if (pr.src || pr.kind !== 'drum') shardDrop(pr.x, pr.y + 6, pr.kind === 'crate' ? 0.12 : 0.05);
@@ -6660,12 +6887,14 @@ function physics(e) {
     e.vz -= 0.28;
     e.z += e.vz;
     e.x += e.vx;
+    wallBounce(e);
     if (e.z <= 0) {
       if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;
       e.vz = 0;
       const landDir = Math.sign(e.vx) || 1;
       e.vx = 0;
+      if (e.bounced && e.team === 1) e.bounced = false; // landed: the juggle window closes
       if (e.thrown) {
         const src = e.thrown;
         e.thrown = null;
@@ -6691,6 +6920,33 @@ function physics(e) {
       }
     }
   }
+}
+// River City wall bounce: a foe knocked flying into the edge of the screen comes back off it, still in the air,
+// and can be juggled (see canJuggle) until it lands
+function wallBounce(e) {
+  if (e.team !== 1 || e.state !== 'down' || e.bounced || e.z < 6 || Math.abs(e.vx) < 1.5 || !e.d || e.d.boss)
+    return;
+  if (G.mode !== 'play' || G.den || G.drive || G.flight || G.stealth) return;
+  // the walls: the screen's edges while a fight holds the camera, else the street's own ends
+  const S = curS(),
+    held = G.lock != null || G.arena || G.dun || G.training,
+    open = G.world && !G.dun,
+    lo = open ? 10 : G.camX + 10,
+    hi = held ? G.camX + W - 10 : (S && S.len ? S.len : G.camX + W) - 10;
+  if (e.x > lo && e.x < hi) return;
+  e.x = clamp(e.x, lo, hi);
+  e.vx = -e.vx * 0.75;
+  e.vz = Math.max(e.vz, 3);
+  e.bounced = true;
+  const dmg = Math.round(3 + e.maxHp * 0.05);
+  e.hp -= dmg;
+  G.shake = Math.max(G.shake, 5);
+  burst(e.x, e.y, e.z + 20, '#a79dc2', 10);
+  sfx.heavy();
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 50, s: 'WALL! ' + dmg, c: '#ffc63d', life: 34, sm: true });
+  bump('walls');
+  if (G.training) G.tf.wall = true;
+  if (e.hp <= 0) kill(e, Math.sign(e.vx) || 1, {});
 }
 function spGain(p, n) {
   if (!p || p.team !== 0 || G.den) return;
@@ -6967,12 +7223,22 @@ function upRunner(p) {
     const t = p.t,
       m = D.melee,
       R = D.reach;
+    const C = p.club && CLUBS[p.club.kind];
     if (p.state === 'punch' && t === 4 && !G.den) {
-      if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
+      if (C) {
+        if (strike(p, 22 + R + C.reach, 4 + m * 0.65 + C.dmg, { kb: C.kb, club: true })) clubWear(p);
+        else sfx.whiff();
+      } else if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
     if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
     if (p.state === 'upper' && t === 6 && !G.den) {
-      if (!strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker }))
+      if (C) {
+        if (strike(p, 24 + R + C.reach, 8 + m * 0.9 + C.dmg * 1.3, { kd: true, kb: C.kb + 2, club: true }))
+          clubWear(p);
+        else sfx.whiff();
+      } else if (
+        !strike(p, 24 + R, 8 + m * 0.9, { kd: true, kb: 6, breaker: has(p, 'breaker') || D.breaker })
+      )
         sfx.whiff();
     }
     if (p.state === 'kick' && t === 7 && !G.den) {
@@ -7179,6 +7445,12 @@ function upRunner(p) {
           (e.x - p.x) * p.face < 30
       );
       const downed = !G.den && !prop && haulTarget(p);
+      if (prop && isClub(prop) && (!foeNear || !p.club)) {
+        takeClub(p, prop); // a street weapon: grab it even mid-fight
+        setS(p, 'lift');
+        p.t = 8; // a quick scoop, not a two-handed lift
+        return;
+      }
       if (downed) {
         haulUp(p, downed);
         return;
@@ -7187,7 +7459,7 @@ function upRunner(p) {
         p.didHit = false;
         setS(p, 'dashp');
         sfx.heavy();
-      } else if (prop && !foeNear) {
+      } else if (prop && !foeNear && !isClub(prop)) {
         G.props.splice(G.props.indexOf(prop), 1);
         p.holding = prop;
         setS(p, 'lift');
@@ -7198,7 +7470,7 @@ function upRunner(p) {
         p.lastPunch = G.t;
         if (p.combo >= 3) {
           p.combo = 0;
-          if (hasTech(p, 'mach') && !G.den) startFlurry(p, 'mach');
+          if (hasTech(p, 'mach') && !G.den && !p.club) startFlurry(p, 'mach');
           else setS(p, 'upper');
         } else setS(p, 'punch');
       }
@@ -7257,6 +7529,8 @@ function upRunner(p) {
         p.walk += spd / 1.75;
       } else if (p.state !== 'idle') setS(p, 'idle');
     }
+  } else if (p.state === 'jump' && I.pressed.punch && p.club && !G.den) {
+    throwClub(p); // a street weapon thrown from the air
   } else if (p.state === 'jump' && (I.pressed.punch || I.pressed.kick)) {
     p.state = 'jkick';
     p.didHit = 0;
@@ -7463,7 +7737,8 @@ function busyFor(p, busy) {
   let n = busy[s];
   if ((s === 'punch' || s === 'upper') && hasTech(p, 'servo')) n *= 0.66;
   if (s === 'kick' && hasTech(p, 'piston')) n *= 0.66;
-  if ((s === 'punch' || s === 'upper') && w && w.speed) n *= w.speed; // a Swift weapon
+  if ((s === 'punch' || s === 'upper') && w && w.speed && !p.club) n *= w.speed; // a Swift weapon
+  if ((s === 'punch' || s === 'upper') && p.club) n *= 1.15; // a street weapon swings a little slower
   if (s === 'shoot' && g && g.speed) n *= g.speed; // a Swift gun
   return Math.round(n);
 }
@@ -8164,6 +8439,8 @@ function upEnemy(e) {
       setS(e, 'idle');
       e.inv = 24;
       e.hauled = false;
+      e.bounced = false;
+      e.juggles = 0;
     }
     return;
   }
@@ -8172,6 +8449,21 @@ function upEnemy(e) {
     return;
   }
   if (e.inv > 0) e.inv--;
+  if (e.state === 'beg') {
+    // on their knees: leave them be and they pay you off
+    if (e.t >= 150) spare(e);
+    return;
+  }
+  if (e.state === 'flee') {
+    // running for it: away from the nearest runner, off the edge of the screen and gone
+    const p = pickTarget(e),
+      away = p ? (e.x >= p.x ? 1 : -1) : e.face || 1;
+    e.face = away;
+    e.x += away * e.d.spd * 1.5;
+    e.walk += 1;
+    if (e.x < G.camX - 40 || e.x > G.camX + W + 40 || e.t > 400) e.gone = true;
+    return;
+  }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
   if (d.dragon) return dragonTick(e, cd);
@@ -8192,8 +8484,14 @@ function upEnemy(e) {
     e.z += (zt - e.z) * 0.15;
   }
   if (e.state === 'windup') {
-    if (e.t === 16 && !strike(e, d.reach, e.dmg, { kd: d.boss, kb: d.boss ? 8 : 4, big: d.boss }))
-      A.noise(0.04, 0.04, 3000);
+    const C = e.club && CLUBS[e.club.kind];
+    if (e.t === 16) {
+      const hit = C
+        ? strike(e, d.reach + C.reach, Math.round(e.dmg * C.edmg), { kd: !!C.kd, kb: C.kb })
+        : strike(e, d.reach, e.dmg, { kd: d.boss, kb: d.boss ? 8 : 4, big: d.boss });
+      if (hit && C) clubWear(e);
+      else if (!hit) A.noise(0.04, 0.04, 3000);
+    }
     if (e.t >= 28) {
       setS(e, 'idle');
       e.cool = cd * rand(0.7, 1.3);
@@ -8754,6 +9052,7 @@ function enrage(e) {
   e.cool = 40;
   setS(e, 'idle');
   G.texts.push({ x: e.x, y: e.y, z: e.z + 80, s: 'ENRAGED', c: '#ff4a4a', life: 70, big: true });
+  taunt(e, 0);
   G.flash = 0.35;
   G.shake = 10;
   sfx.boom();
@@ -8838,9 +9137,35 @@ function streetChoose(e, d, p, adx, ady) {
     }
     return false;
   }
+  // a street weapon lying nearby: gangers go and get it
+  if (CLUB_FOES[e.kind] !== undefined && !e.club && adx > 30) {
+    const cl = G.props.find(o => isClub(o) && Math.abs(o.x - e.x) < 80 && Math.abs(o.y - e.y) < 30);
+    if (cl) {
+      const px = cl.x - e.x,
+        py = cl.y - e.y;
+      if (Math.abs(px) < 12 && Math.abs(py) < 8) {
+        takeClub(e, cl);
+        setS(e, 'lift');
+        return true;
+      }
+      const s = d.spd * e.spdMul;
+      e.x += clamp(px, -s, s);
+      e.y = clamp(e.y + clamp(py, -s * 0.7, s * 0.7), FY0 + 6, FY1);
+      e.face = px >= 0 ? 1 : -1;
+      if (e.state !== 'walk') setS(e, 'walk');
+      e.walk += 1;
+      return true;
+    }
+  }
+  // a street weapon in hand and the runner out of reach in the same lane: throw it
+  if (e.club && ady < 10 && adx > 50 && adx < 200 && Math.random() < 0.012) {
+    throwClub(e);
+    e.cool = d.cool;
+    return true;
+  }
   // a runner out of reach and something to throw close by: go and get it
   if (d.thrower && adx > 60) {
-    const pr = G.props.find(o => Math.abs(o.x - e.x) < 90 && Math.abs(o.y - e.y) < 30);
+    const pr = G.props.find(o => !isClub(o) && Math.abs(o.x - e.x) < 90 && Math.abs(o.y - e.y) < 30);
     if (pr) {
       const px = pr.x - e.x,
         py = pr.y - e.y;
@@ -11181,7 +11506,7 @@ function hackFail() {
 
 /* ===== src/js/modes/training.js ===== */
 /* Cyber City Tactics · src/js/modes/training.js
- * Juno's thirteen training drills, and the one-time offer to take them before a first run.
+ * Juno's fourteen training drills, and the one-time offer to take them before a first run.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ---------- training ---------- */
 const trainee = (k, x, y, o) => {
@@ -11352,6 +11677,17 @@ const TRAIN = [
       p.sp = 100;
     },
     done: () => G.tf.special
+  },
+  {
+    t: 'Street weapons: tap PICK UP by the pipe, then SWING it at the ganger. Knock foes into the wall to bounce them back for a juggle.',
+    k: 'Street weapons: press J by the pipe to pick it up, then J to swing it at the ganger. Knock foes into the wall to bounce them back for a juggle.',
+    setup(p) {
+      clearFoes();
+      p.club = null;
+      G.props = [clubProp('pipe', p.x + 22, p.y)];
+      trainee('ganger', p.x + 80, p.y, { hp: 999 });
+    },
+    done: () => G.tf.swing
   }
 ];
 function startTraining() {
@@ -11792,6 +12128,15 @@ function nextArenaWave() {
       z: 0
     });
   }
+  // one street weapon on the floor most waves
+  if (!G.props.some(isClub) && wr() < 0.7)
+    G.props.push(
+      clubProp(
+        CLUB_KINDS[Math.floor(wr() * CLUB_KINDS.length)],
+        90 + Math.floor(wr() * 300),
+        FY0 + 20 + Math.floor(wr() * (FY1 - FY0 - 30))
+      )
+    );
   const boss = w % 5 === 0;
   let list = [];
   if (boss) {
@@ -16088,6 +16433,12 @@ function drawSpirit(e) {
   ctx.globalAlpha = 1;
 }
 function drawProp(kind, sx, sy) {
+  if (CLUBS[kind]) {
+    // a street weapon lying in the gutter, catching a glint now and then
+    drawWeapon({ look: CLUBS[kind].look }, [sx - 8, sy - 3], true, 0, 'idle', false);
+    if ((G.t + sx) % 90 < 6) glow(sx, sy - 3, 8, 4, '#ffe28a', 0.4);
+    return;
+  }
   if (kind === 'can') {
     ctx.fillStyle = '#5d6680';
     ctx.fillRect(sx - 6, sy - 14, 12, 14);
@@ -16590,6 +16941,25 @@ function drawFig(e) {
       bf = [-5, 0];
     }
   }
+  if (st === 'beg') {
+    // on their knees, hands up, shaking
+    const q = (G.t >> 2) % 2 ? 0.6 : -0.6;
+    hip = [0, -11];
+    sh = [1 + q, -26];
+    ff = [7, 0];
+    bf = [-7, 0];
+    fh = [11, -36 + q];
+    bh = [7, -34 - q];
+    lean = 2;
+  }
+  if (st === 'flee') {
+    // running for it, arms pumping, leaning into the sprint
+    ff = [ws * 10, -Math.max(0, wc) * 4];
+    bf = [-ws * 10, -Math.max(0, -wc) * 4];
+    fh = [-ws * 8 + 4, -30];
+    bh = [ws * 8 - 2, -30];
+    lean = 7;
+  }
   // on a bike (driving missions): seated, knees up, feet on the pegs, hands on the bars; strikes swing out
   // to the side where riders alongside are
   if (st === 'ride' || st === 'rpunch' || st === 'rkick' || st === 'rshoot') {
@@ -17070,7 +17440,16 @@ function drawFig(e) {
     ctx.fillStyle = 'rgba(255,255,255,.4)';
     ctx.fillRect(fh[0] + 2, sh[1], 1, 26);
   }
-  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
+  if (e.club && CLUBS[e.club.kind] && !gun && !e.holding && st !== 'cast' && st !== 'roll' && st !== 'beg')
+    drawWeapon(
+      { look: CLUBS[e.club.kind].look },
+      fh,
+      swing || st === 'punch' || st === 'upper' || (st === 'windup' && t >= 12),
+      t,
+      st,
+      fl
+    );
+  else if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
     drawWeapon(e.eq.weapon, fh, swing, t, st, fl);
   if (gun) drawGun(isP ? e.eq.gun : null, fh, st, t, fl, st === 'aim' && t >= 20 && t < 25);
   if (style === 'blade') {
@@ -17179,6 +17558,34 @@ function drawWeapon(w, fh, swing, t, st, fl) {
     ctx.fillStyle = '#5a5e6a';
     ctx.fillRect(10, -1.6, 2.2, 3.2); // the elbow joint
     if (fx) glow(11, 0, 5, 3, fx, 0.5);
+  } else if (look === 'bat') {
+    // a street bat, nails through the end
+    ctx.fillStyle = fl ? '#fff' : '#8a5a3a';
+    fillPoly([3, -1.1, 14, -2.4, 14, 2.4, 3, 1.1], fl ? '#fff' : '#8a5a3a');
+    ctx.fillStyle = '#5a3a24';
+    ctx.fillRect(3, -1.1, 1.5, 2.2);
+    ctx.strokeStyle = '#c9d2e0';
+    ctx.lineWidth = 0.7;
+    for (const x of [10, 12.5]) {
+      ctx.beginPath();
+      ctx.moveTo(x, -2.3);
+      ctx.lineTo(x + 0.6, -4);
+      ctx.moveTo(x, 2.3);
+      ctx.lineTo(x + 0.6, 4);
+      ctx.stroke();
+    }
+  } else if (look === 'chain') {
+    // a bike chain: links that sag at rest and snap straight in a swing
+    const sag = swing ? 0.2 : 2.2;
+    ctx.strokeStyle = fl ? '#fff' : '#b8c0cc';
+    ctx.lineWidth = 1.3;
+    for (let i = 0; i < 6; i++) {
+      const x = 3 + i * 2.6,
+        y = Math.sin((i / 5) * Math.PI) * sag + (swing ? 0 : i * 0.5);
+      ctx.beginPath();
+      ctx.ellipse(x, y, 1.4, 0.9, 0, 0, 7);
+      ctx.stroke();
+    }
   } else if (look === 'baton') {
     ctx.fillStyle = '#2a2e3a';
     ctx.fillRect(3, -1.2, 4, 2.4);
@@ -20768,6 +21175,9 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>Flying kick</b><span>Jump, then punch or kick</span>
 <b>Parry</b><span>Dodge right as a hit lands: they stagger and your next hit crits</span>
 <b>Throwables</b><span>Punch beside a can, crate or drum to lift it, punch to throw, kick to drop</span>
+<b>Street weapons</b><span>Punch beside a lead pipe, bike chain or spiked bat to pick it up. Every punch swings it (more damage and reach) until it breaks; punch in the air throws it. Get knocked down and you drop it. Gangers, bikers and orcs grab them too</span>
+<b>Wall bounce</b><span>Knock a foe into the edge of the screen while a fight holds it: they bounce back off it, still in the air, and you can juggle them up to three times before they land</span>
+<b>Mercy</b><span>Some beaten foes beg on their knees: leave them a moment and they pay you off and leave, for karma. Hit them and it's over. Others just run</span>
 <b>Shields</b><span>Kicks and heavy blows break riot shields</span>
 <b>Chrome</b><span>Doc in the Den installs techniques (faster punches and kicks, longer grabs, harder throws, higher jumps) and moves:</span>
 <b>· Mach fists</b><span>The third quick punch becomes a flurry; keep mashing punch</span>
@@ -20775,7 +21185,7 @@ const movesHtml = `<h3>Moves</h3><div class="keys">
 <b>· Grand slam</b><span>Dodge while holding a grabbed foe to swing them through the crowd</span>
 <b>· Heel spikes</b><span>Kick beside a foe on the ground to stomp</span>
 <b>· Turbo calves</b><span>Double-tap a direction to sprint; punch to charge, kick to slide</span></div>
-<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10.</p>`;
+<p style="font-size:12.5px">Bosses, mechs and anything flying can't be grabbed. Foes fight dirty too: gangers, orcs and the Gutter King grab you (mash any button to break free, and they reel, dazed), Razor Mei and Kagemori shadows wind up flurries (a ring and !! warn you; roll or parry), and gangers and orcs throw cans, crates and drums. Mash faster against bigger foes: gangers take 4 presses, orcs 6, bosses 10. Bosses talk when they enrage and again on their last legs.</p>`;
 // the sheet's one-line summary of everything Doc has put in a runner
 function chromeLine(p) {
   const cy = Object.keys(CYBER)
@@ -21311,7 +21721,7 @@ function renderOv() {
   }
   if (m === 'trainpick') {
     h = `<div class="card"><p class="eyebrow">Training · Juno's back alley</p><h2>Learn the moves</h2>
-    <p>Thirteen short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, parries, grabs and throws, a jump slam, breaking free of a grab, throwing a drum, heavy blows, guns and spells, and your special. You can't lose. Skip it from the pause menu any time.</p>
+    <p>Fourteen short drills with harmless sparring partners: moving, combos, guard breaks, air attacks, dodging, parries, grabs and throws, a jump slam, breaking free of a grab, throwing a drum, heavy blows, guns and spells, your special, and street weapons. You can't lose. Skip it from the pause menu any time.</p>
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="train">Start training</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
@@ -21329,7 +21739,7 @@ function renderOv() {
   if (m === 'trainoffer') {
     // shown once, the first time someone starts a run without having trained
     h = `<div class="card"><p class="eyebrow">First time on the street?</p><h2>Two minutes with Juno first?</h2>
-    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Thirteen quick drills: punches, kicks, dodges, parries, grabs, throws, breaking free, guns, spells and your special. Then the job's yours.</p>
+    <p class="say"><b>Juno · fixer</b>I don't send runners out who can't throw a punch. Fourteen quick drills: punches, kicks, dodges, parries, grabs, throws, breaking free, guns, spells, your special and street weapons. Then the job's yours.</p>
     <div class="row"><button class="btn" data-a="trainfirst">Train first</button><button class="btn ghost" data-a="trainskip">Skip, start the run</button></div>
     <p style="color:var(--muted);font-size:13px">Training is always on the title screen if you want it later.</p></div>`;
   }

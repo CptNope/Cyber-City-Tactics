@@ -42,6 +42,7 @@ The guiding rules:
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
 - [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **River City street fights:** street weapons, wall bounces and juggles, mercy and runners, boss taunts, a fourteenth training drill, and two feats (Street Mercy, Off the Wall)
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 
 ---
@@ -118,9 +119,9 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Foes that keep up.**~~ Shipped: enemies scale with the party's level as well as the district (about 9% health and 8% damage a level), so late districts stay a fight and there's time to daze and grab.
 - [x] ~~**Makers, parts and five rarities.**~~ Shipped: Borderlands-style gear. Five manufacturers with specialities (Kagemori precision, Rustline Forge damage, Voltaic elements and dazes, Hexwright magic, Ironside Arms speed), 0–4 parts per item, and the part count as the rarity, from white Street to orange Legendary. Weapons and guns drawn with their own shapes, maker colours and shots.
 - [x] ~~**Grapples at any power level.**~~ Shipped: haul a downed foe up into a grab, foes under 30% health reel and can be grabbed, and Voltaic and Concussive weapons daze in one hit.
-- [ ] **Street weapons (M).** River City Ransom's pickups: pipes, chains and bats that foes drop, to swing for a few hits or throw; foes pick them up too.
-- [ ] **Taunts and begging (S).** Bosses taunt between phases and beaten regulars beg or run, River City style, with a karma choice to let them go.
-- [ ] **Juggles and wall bounces (M).** Enemies knocked into the street's back wall bounce back for follow-ups.
+- [x] ~~**Street weapons.**~~ Shipped: lead pipes, bike chains and spiked bats to pick up, swing until they break and throw from the air; foes carry them, pick them up and throw them too.
+- [x] ~~**Taunts and begging.**~~ Shipped: bosses talk when they enrage and on their last quarter; beaten gangers, orcs and cops may beg (spare them for a payoff and karma), and bikers, security and thralls may run.
+- [x] ~~**Juggles and wall bounces.**~~ Shipped: foes knocked into the screen edge while a fight holds the camera bounce back and can be juggled up to three times.
 - [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 
 ### Co-op and online

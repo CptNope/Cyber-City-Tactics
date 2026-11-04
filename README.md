@@ -91,7 +91,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 ---
 
 ## Quick start
-1. Open the game and pick **Training** if you're new. It's thirteen short drills you can't fail.
+1. Open the game and pick **Training** if you're new. It's fourteen short drills you can't fail.
 2. Pick a mode:
    - **Start a run** for the story campaign.
    - **The Sprawl** for the open world.
@@ -227,7 +227,7 @@ Solo, the door gun fires on its own, slower. Corp drones weave and shoot, gunshi
 **Banking the take.** Jobs are standalone runs, so when one ends its results card offers to bank the creds and any gear you picked up to a save: the Sprawl's safehouse stash, or Ratchet's locker in your campaign's Den. Online, the host banks for the team.
 
 ### Training
-Thirteen drills in Juno's back alley with harmless sparring partners:
+Fourteen drills in Juno's back alley with harmless sparring partners:
 1. Moving
 2. Combos
 3. Guard breaks
@@ -241,6 +241,7 @@ Thirteen drills in Juno's back alley with harmless sparring partners:
 11. Heavy blows
 12. Guns and spells
 13. Your special
+14. Street weapons: pick up a pipe and swing it
 
 The first time anyone starts a run, Juno offers the drills; finish them and one button starts the run that was waiting. Jobs teach their own controls with a tip the first time you play each one.
 
@@ -528,6 +529,9 @@ Companions carry between districts and get patched up in the Den, but if one fal
   Bosses, mechs and anything flying can't be grabbed. Every move is listed under **Moves** in the help screen, and Training has drills for grabs, throws, the jump slam and breaking free.
 - **Foes fight dirty too.** Gangers, orc bruisers and the Gutter King reach out (a "!" warns you) and grab a runner: mash any button (or change direction) to break free, and they reel, dazed, ready to be grabbed back. Gangers take 4 presses, orcs 6, bosses 10; a meter over your head fills as you mash. Don't, and you're kneed, then thrown after a couple of seconds. A foe's flurry never knocks you down until its last hit. In co-op, hitting the one holding your partner makes them let go. Razor Mei winds up a punch flurry and Kagemori shadows a kick flurry (a ring and "!!" warn you; roll through it or parry). Gangers and orcs go for nearby cans, crates and drums and throw them, and a drum they throw burns runners.
 - **Throwables:** trash cans, crates and explosive drums.
+- **Street weapons (River City style):** lead pipes, bike chains and spiked bats lie about in every district and most Arena waves, and some gangers, bikers and orcs walk in carrying one. Punch beside one to pick it up; every punch then swings it, with extra damage and reach (the chain reaches furthest, the bat hits hardest and its finisher knocks down), until it breaks after a few hits that land. Punch in the air to throw it; it clatters to the ground for someone to pick up again. Get knocked down and you drop it, and so do foes. Gangers walk over to grab one off the street and throw it at you from range.
+- **Wall bounces and juggles:** while a fight holds the camera (or in the Arena and buildings), a foe knocked flying into the screen's edge bounces back off it, still in the air, with a little extra damage. Hit them before they land to juggle them, up to three times.
+- **Mercy:** on their last legs some regulars give up. Gangers, orcs and cops may drop to their knees and beg: leave them alone for a couple of seconds and they pay you off (more creds than a kill drops) and leave, for some karma. Hit them and they go down for good, with the usual drop. Bikers, corp security and thralls may just run for it instead. Bosses, elites, hit squads and bounty hunters never quit, but bosses do talk when they enrage and again on their last quarter.
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.
 - **Hit-stop, screen shake and slow-mo on big hits.** You can turn shake and vibration off in Settings.

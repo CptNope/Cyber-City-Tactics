@@ -66,6 +66,8 @@ function upEnemy(e) {
       setS(e, 'idle');
       e.inv = 24;
       e.hauled = false;
+      e.bounced = false;
+      e.juggles = 0;
     }
     return;
   }
@@ -74,6 +76,21 @@ function upEnemy(e) {
     return;
   }
   if (e.inv > 0) e.inv--;
+  if (e.state === 'beg') {
+    // on their knees: leave them be and they pay you off
+    if (e.t >= 150) spare(e);
+    return;
+  }
+  if (e.state === 'flee') {
+    // running for it: away from the nearest runner, off the edge of the screen and gone
+    const p = pickTarget(e),
+      away = p ? (e.x >= p.x ? 1 : -1) : e.face || 1;
+    e.face = away;
+    e.x += away * e.d.spd * 1.5;
+    e.walk += 1;
+    if (e.x < G.camX - 40 || e.x > G.camX + W + 40 || e.t > 400) e.gone = true;
+    return;
+  }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
   if (d.dragon) return dragonTick(e, cd);
@@ -94,8 +111,14 @@ function upEnemy(e) {
     e.z += (zt - e.z) * 0.15;
   }
   if (e.state === 'windup') {
-    if (e.t === 16 && !strike(e, d.reach, e.dmg, { kd: d.boss, kb: d.boss ? 8 : 4, big: d.boss }))
-      A.noise(0.04, 0.04, 3000);
+    const C = e.club && CLUBS[e.club.kind];
+    if (e.t === 16) {
+      const hit = C
+        ? strike(e, d.reach + C.reach, Math.round(e.dmg * C.edmg), { kd: !!C.kd, kb: C.kb })
+        : strike(e, d.reach, e.dmg, { kd: d.boss, kb: d.boss ? 8 : 4, big: d.boss });
+      if (hit && C) clubWear(e);
+      else if (!hit) A.noise(0.04, 0.04, 3000);
+    }
     if (e.t >= 28) {
       setS(e, 'idle');
       e.cool = cd * rand(0.7, 1.3);
@@ -656,6 +679,7 @@ function enrage(e) {
   e.cool = 40;
   setS(e, 'idle');
   G.texts.push({ x: e.x, y: e.y, z: e.z + 80, s: 'ENRAGED', c: '#ff4a4a', life: 70, big: true });
+  taunt(e, 0);
   G.flash = 0.35;
   G.shake = 10;
   sfx.boom();
@@ -740,9 +764,35 @@ function streetChoose(e, d, p, adx, ady) {
     }
     return false;
   }
+  // a street weapon lying nearby: gangers go and get it
+  if (CLUB_FOES[e.kind] !== undefined && !e.club && adx > 30) {
+    const cl = G.props.find(o => isClub(o) && Math.abs(o.x - e.x) < 80 && Math.abs(o.y - e.y) < 30);
+    if (cl) {
+      const px = cl.x - e.x,
+        py = cl.y - e.y;
+      if (Math.abs(px) < 12 && Math.abs(py) < 8) {
+        takeClub(e, cl);
+        setS(e, 'lift');
+        return true;
+      }
+      const s = d.spd * e.spdMul;
+      e.x += clamp(px, -s, s);
+      e.y = clamp(e.y + clamp(py, -s * 0.7, s * 0.7), FY0 + 6, FY1);
+      e.face = px >= 0 ? 1 : -1;
+      if (e.state !== 'walk') setS(e, 'walk');
+      e.walk += 1;
+      return true;
+    }
+  }
+  // a street weapon in hand and the runner out of reach in the same lane: throw it
+  if (e.club && ady < 10 && adx > 50 && adx < 200 && Math.random() < 0.012) {
+    throwClub(e);
+    e.cool = d.cool;
+    return true;
+  }
   // a runner out of reach and something to throw close by: go and get it
   if (d.thrower && adx > 60) {
-    const pr = G.props.find(o => Math.abs(o.x - e.x) < 90 && Math.abs(o.y - e.y) < 30);
+    const pr = G.props.find(o => !isClub(o) && Math.abs(o.x - e.x) < 90 && Math.abs(o.y - e.y) < 30);
     if (pr) {
       const px = pr.x - e.x,
         py = pr.y - e.y;

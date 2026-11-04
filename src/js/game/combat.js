@@ -59,7 +59,24 @@ function hurt(t, dmg, dir, o) {
     }
     return false;
   }
-  if (t.state === 'down' && !o.air) return false;
+  // a foe bounced off the wall is fair game in the air: a juggle (three at most)
+  const juggle = canJuggle(t, o.src || o.att);
+  if (t.state === 'down' && !o.air && !juggle) return false;
+  if (juggle) {
+    o.kd = true;
+    t.juggles = (t.juggles || 0) + 1;
+    if (t.juggles >= 2)
+      G.texts.push({
+        x: t.x,
+        y: t.y,
+        z: t.z + 50,
+        s: 'JUGGLE ×' + t.juggles,
+        c: '#45d2ff',
+        life: 30,
+        sm: true
+      });
+    if (G.training) G.tf.juggle = true;
+  }
   // Parry: dodge in the last moment before a melee hit lands and the attacker is thrown off balance
   if (
     t.team === 0 &&
@@ -187,6 +204,7 @@ function hurt(t, dmg, dir, o) {
     crit = true;
   }
   dmg = Math.max(1, Math.round(dmg));
+  if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
   t.hp -= dmg;
   t.flash = 8;
@@ -335,6 +353,12 @@ function hurt(t, dmg, dir, o) {
   if (t.d && t.d.boss && !t.enraged && t.hp > 0 && t.hp < t.maxHp * 0.5) enrage(t);
   if (t.holding) dropProp(t);
   if (t.team === 0 && t.grab) releaseGrab(t);
+  // River City endings: a beaten regular may beg for mercy or run for it, once
+  if (t.hp > 0 && mercyRoll(t, o)) return true;
+  if (t.d && t.d.boss && !t.taunted2 && t.hp > 0 && t.hp < t.maxHp * 0.25) {
+    t.taunted2 = true;
+    taunt(t, 1);
+  }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
   if (t.hp <= 0) {
     kill(t, dir, o);
@@ -367,6 +391,7 @@ function hurt(t, dmg, dir, o) {
   }
   if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
+    if (t.club) dropClub(t); // knocked flat: the street weapon goes flying
     if (t.team === 1 && o.src && o.src.team === 0 && grabbable(Object.assign({}, t, { state: 'idle' })))
       tip(
         'haul',
@@ -437,6 +462,7 @@ function drop(k, x, y, extra) {
 }
 function kill(t, dir, o) {
   t.flip = false;
+  if (t.club) dropClub(t);
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -639,6 +665,73 @@ function parry(p, e) {
   bump('parries');
   tip('parry', 'Parried! Your next hit in the next second and a half is a guaranteed crit.');
 }
+const canJuggle = (t, src) =>
+  t.state === 'down' &&
+  t.team === 1 &&
+  !!t.bounced &&
+  t.z > 4 &&
+  (t.juggles || 0) < 3 &&
+  !!src &&
+  src.team === 0;
+// River City endings. Some beaten regulars drop to their knees: leave them be for a few seconds and they pay
+// you off and leave (karma for mercy); hit them and they go down for good. Others just run for it.
+function mercyRoll(t, o) {
+  const M = t.team === 1 && MERCY[t.kind];
+  if (!M || t.mercy || t.hp >= t.maxHp * 0.18 || t.d.boss || t.elite || t.squad || t.hunter || t.courier)
+    return false;
+  if (G.training || G.mode !== 'play' || modOn('pacifist') || t.state === 'grabbed' || t.holdP) return false;
+  t.mercy = 'rolled';
+  const r = Math.random();
+  const say1 = () =>
+    G.texts.push({ x: t.x, y: t.y, z: t.z + 62, s: pick(M.lines), c: '#ffc63d', life: 80, sm: true });
+  if (M.beg && r < M.beg) {
+    t.mercy = 'beg';
+    if (t.club) dropClub(t);
+    setS(t, 'beg');
+    say1();
+    tip(
+      'beg',
+      'A beaten foe is begging. Leave them for a moment and they pay you off and leave, for some karma. Or finish them for the usual drop.',
+      'A beaten foe is begging. Leave them for a moment and they pay you off and leave, for some karma. Or finish them for the usual drop.'
+    );
+    return true;
+  }
+  if (M.run && r < M.run) {
+    t.mercy = 'run';
+    setS(t, 'flee');
+    say1();
+    return true;
+  }
+  return false;
+}
+// spared: a payoff in creds, karma for the mercy, and they're gone
+function spare(t) {
+  const d = t.d;
+  t.mercy = 'spared';
+  const v = Math.round(ri(d.creds[0], d.creds[1]) * 1.5 * (1 + G.ng * 0.25));
+  drop('cred', t.x, t.y + 6, { v });
+  (G.cjob ? jobKarma : gainKarma)(
+    Math.round(d.karma * 0.6 * DIFF[G.diff].karma * (1 + G.stage * 0.3 + G.ng * 0.3))
+  );
+  G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: 'SPARED · ¥' + v, c: '#7dffb0', life: 60, sm: true });
+  bump('spared');
+  if (G.run) G.run.spared = (G.run.spared || 0) + 1;
+  if (G.world && G.wd && (t.kind === 'cop' || t.kind === 'sec')) G.wd.rep = Math.min(100, G.wd.rep + 1);
+  setS(t, 'flee');
+}
+// a boss's line between phases (0: enraged, 1: on its last quarter)
+function taunt(e, phase) {
+  const L = TAUNTS[e.kind];
+  if (!L) return;
+  G.texts.push({
+    x: e.x,
+    y: e.y,
+    z: e.z + 96 * ((e.d && e.d.scale) || 1),
+    s: '“' + L[phase % L.length] + '”',
+    c: '#efe9ff',
+    life: 110
+  });
+}
 function strike(att, reach, dmg, o) {
   let hit = false;
   o = Object.assign({}, o || {});
@@ -651,7 +744,7 @@ function strike(att, reach, dmg, o) {
   o.att = att;
   for (const t of G.ents) {
     if (t.team === att.team || t.state === 'dead' || t.out) continue;
-    if (t.state === 'down' && !o.air) continue;
+    if (t.state === 'down' && !o.air && !canJuggle(t, att)) continue;
     const sc = (t.d && t.d.scale) || 1;
     const dx = (t.x - att.x) * att.face;
     if (dx < -6 || dx > reach + 6 * sc) continue;

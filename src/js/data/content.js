@@ -875,3 +875,39 @@ const DEN = {
   rain: true,
   signs: []
 };
+
+/* ---------- River City street fights ---------- */
+// Street weapons lie around (and some gangers carry one). Pick one up with PUNCH and every punch swings it
+// until it breaks; PUNCH in the air throws it. Knocked down, you drop it, and so do foes.
+//   dmg: added to a swing; reach: added to punch reach; uses: swings that land before it breaks
+//   kd: the combo finisher with it knocks down; edmg: a foe's damage multiplier with it
+const CLUBS = {
+  pipe: { name: 'Lead pipe', dmg: 7, reach: 6, uses: 8, kb: 6, edmg: 1.3, look: 'pipe' },
+  chain: { name: 'Bike chain', dmg: 5, reach: 16, uses: 10, kb: 4, edmg: 1.2, look: 'chain' },
+  bat: { name: 'Spiked bat', dmg: 10, reach: 9, uses: 5, kb: 8, edmg: 1.45, kd: true, look: 'bat' }
+};
+const CLUB_KINDS = Object.keys(CLUBS);
+// foes who pick street weapons up, and the chance they walk in already carrying one
+const CLUB_FOES = { ganger: 0.25, biker: 0.3, orc: 0.15 };
+// River City endings: on their last legs some foes beg (spare them and they pay you off) and some run
+//   beg: the chance a beaten foe drops to its knees instead of fighting on; run: the chance it flees
+const MERCY = {
+  ganger: { beg: 0.35, lines: ['OK OK! I GIVE!', "DON'T HURT ME!", 'TAKE IT, TAKE IT!'] },
+  biker: { run: 0.35, lines: ["I'M OUTTA HERE!", 'NOT WORTH IT!'] },
+  orc: { beg: 0.2, lines: ['ENOUGH! ENOUGH!', 'YOU WIN, CHOOMBA!'] },
+  sec: { run: 0.3, lines: ['NOT FOR THIS PAY!', 'CALLING IT IN!'] },
+  cop: { beg: 0.25, lines: ['I GOT KIDS, MAN!', 'OFF THE RECORD! OFF THE RECORD!'] },
+  thrall: { run: 0.2, lines: ['THE MASTER WILL HEAR OF THIS!'] }
+};
+// bosses talk between phases: when they enrage, and when they go down to their last quarter
+const TAUNTS = {
+  interceptor: ['You ride like a corpo.', 'End of the line, runner.'],
+  troll: ['The Gutter is MINE!', 'I eat runners for breakfast.'],
+  blade: ['You bleed slow. I can fix that.', 'Kagemori sends regards.'],
+  saint: ['The Hollow hungers.', 'Kneel, and be forgiven.'],
+  avatar: ['Ssareth wakes.', 'Your chrome is a cage.'],
+  dragon: ['Little sparks.', 'I was old when your city was swamp.'],
+  vesper: ['Such warm blood.', 'Stay. Forever.'],
+  archmage: ['Your magic is a child’s.', 'The Arcology answers to me.'],
+  blackice: ['INTRUDER. PURGE.', 'TRACE COMPLETE.']
+};

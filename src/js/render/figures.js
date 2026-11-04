@@ -455,6 +455,12 @@ function drawSpirit(e) {
   ctx.globalAlpha = 1;
 }
 function drawProp(kind, sx, sy) {
+  if (CLUBS[kind]) {
+    // a street weapon lying in the gutter, catching a glint now and then
+    drawWeapon({ look: CLUBS[kind].look }, [sx - 8, sy - 3], true, 0, 'idle', false);
+    if ((G.t + sx) % 90 < 6) glow(sx, sy - 3, 8, 4, '#ffe28a', 0.4);
+    return;
+  }
   if (kind === 'can') {
     ctx.fillStyle = '#5d6680';
     ctx.fillRect(sx - 6, sy - 14, 12, 14);
@@ -957,6 +963,25 @@ function drawFig(e) {
       bf = [-5, 0];
     }
   }
+  if (st === 'beg') {
+    // on their knees, hands up, shaking
+    const q = (G.t >> 2) % 2 ? 0.6 : -0.6;
+    hip = [0, -11];
+    sh = [1 + q, -26];
+    ff = [7, 0];
+    bf = [-7, 0];
+    fh = [11, -36 + q];
+    bh = [7, -34 - q];
+    lean = 2;
+  }
+  if (st === 'flee') {
+    // running for it, arms pumping, leaning into the sprint
+    ff = [ws * 10, -Math.max(0, wc) * 4];
+    bf = [-ws * 10, -Math.max(0, -wc) * 4];
+    fh = [-ws * 8 + 4, -30];
+    bh = [ws * 8 - 2, -30];
+    lean = 7;
+  }
   // on a bike (driving missions): seated, knees up, feet on the pegs, hands on the bars; strikes swing out
   // to the side where riders alongside are
   if (st === 'ride' || st === 'rpunch' || st === 'rkick' || st === 'rshoot') {
@@ -1437,7 +1462,16 @@ function drawFig(e) {
     ctx.fillStyle = 'rgba(255,255,255,.4)';
     ctx.fillRect(fh[0] + 2, sh[1], 1, 26);
   }
-  if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
+  if (e.club && CLUBS[e.club.kind] && !gun && !e.holding && st !== 'cast' && st !== 'roll' && st !== 'beg')
+    drawWeapon(
+      { look: CLUBS[e.club.kind].look },
+      fh,
+      swing || st === 'punch' || st === 'upper' || (st === 'windup' && t >= 12),
+      t,
+      st,
+      fl
+    );
+  else if (isP && e.eq.weapon && !gun && !e.holding && st !== 'cast' && st !== 'grab' && st !== 'roll')
     drawWeapon(e.eq.weapon, fh, swing, t, st, fl);
   if (gun) drawGun(isP ? e.eq.gun : null, fh, st, t, fl, st === 'aim' && t >= 20 && t < 25);
   if (style === 'blade') {
@@ -1546,6 +1580,34 @@ function drawWeapon(w, fh, swing, t, st, fl) {
     ctx.fillStyle = '#5a5e6a';
     ctx.fillRect(10, -1.6, 2.2, 3.2); // the elbow joint
     if (fx) glow(11, 0, 5, 3, fx, 0.5);
+  } else if (look === 'bat') {
+    // a street bat, nails through the end
+    ctx.fillStyle = fl ? '#fff' : '#8a5a3a';
+    fillPoly([3, -1.1, 14, -2.4, 14, 2.4, 3, 1.1], fl ? '#fff' : '#8a5a3a');
+    ctx.fillStyle = '#5a3a24';
+    ctx.fillRect(3, -1.1, 1.5, 2.2);
+    ctx.strokeStyle = '#c9d2e0';
+    ctx.lineWidth = 0.7;
+    for (const x of [10, 12.5]) {
+      ctx.beginPath();
+      ctx.moveTo(x, -2.3);
+      ctx.lineTo(x + 0.6, -4);
+      ctx.moveTo(x, 2.3);
+      ctx.lineTo(x + 0.6, 4);
+      ctx.stroke();
+    }
+  } else if (look === 'chain') {
+    // a bike chain: links that sag at rest and snap straight in a swing
+    const sag = swing ? 0.2 : 2.2;
+    ctx.strokeStyle = fl ? '#fff' : '#b8c0cc';
+    ctx.lineWidth = 1.3;
+    for (let i = 0; i < 6; i++) {
+      const x = 3 + i * 2.6,
+        y = Math.sin((i / 5) * Math.PI) * sag + (swing ? 0 : i * 0.5);
+      ctx.beginPath();
+      ctx.ellipse(x, y, 1.4, 0.9, 0, 0, 7);
+      ctx.stroke();
+    }
   } else if (look === 'baton') {
     ctx.fillStyle = '#2a2e3a';
     ctx.fillRect(3, -1.2, 4, 2.4);

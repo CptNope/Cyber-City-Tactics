@@ -41,9 +41,10 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `sprawl-coop.test.js` | headless | 5 | Two runners clear a Sprawl building together (bot; can occasionally lose a fight). |
 | `sprawl.test.js` | headless | 28 | The Sprawl. |
 | `stealth.test.js` | headless | 46 | Drone stealth jobs (modes/stealth.js). |
+| `streetfights.test.js` | headless | 28 | Street weapons, foes who carry and fetch them, wall bounces and juggles, mercy, runners and boss taunts. |
 | `streetfoes.test.js` | headless | 17 | Foes who fight like the runners. |
 | `timing.test.js` | headless | 27 | The frame loop. |
-| `training.test.js` | headless |  | Bot completes all thirteen training drills; boss rematches spawn. |
+| `training.test.js` | headless |  | Bot completes all fourteen training drills; boss rematches spawn. |
 | `weekly.test.js` | headless |  | Weekly challenge seeding, modifiers and the share line. |
 
 ## CI and deploys

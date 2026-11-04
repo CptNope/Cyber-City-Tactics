@@ -77,6 +77,17 @@ function startStage(si) {
   placeRunners(40);
   for (const p of PL) if (!p.out) G.ents.push(p);
   G.props = S.props.map(([kind, x, y]) => ({ kind, x, y, z: 0 }));
+  // street weapons lying about: a couple per district, spread along the street
+  for (let i = 0; i < 2; i++) {
+    const ck = pick(CLUB_KINDS);
+    G.props.push(
+      clubProp(
+        ck,
+        140 + Math.floor(Math.random() * Math.max(200, (S.len || 1200) - 300)),
+        rand(FY0 + 14, FY1 - 6)
+      )
+    );
+  }
   for (const [k, x, y] of S.passives || []) spawnPassive(k, x, y);
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   makeRain(S.rain || S.weather === 'sleet');
@@ -314,6 +325,12 @@ function spawnEnemy(kind, side) {
     if (k === 'warded' || k === 'vampiric') e.hp = Math.round(e.hp * 1.25);
   }
   e.maxHp = e.hp;
+  // some street foes walk in carrying a pipe, a chain or a bat
+  const cc = CLUB_FOES[kind];
+  if (cc && G.mode === 'play' && !G.training && !G.drive && !G.flight && Math.random() < cc) {
+    const ck = pick(CLUB_KINDS);
+    e.club = { kind: ck, uses: CLUBS[ck].uses };
+  }
   G.ents.push(e);
   if (G.mode === 'play') {
     if (kind === 'riot')

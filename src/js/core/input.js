@@ -290,7 +290,15 @@ function updateTouchUI() {
   } else if (p.holding) {
     punch = 'THROW';
     kick = 'DROP';
-  } else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
+  } else if (p.club && p.z > 0) punch = 'THROW';
+  else if (
+    G.mode === 'play' &&
+    !p.club &&
+    G.props.some(o => isClub(o) && Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9)
+  )
+    punch = 'PICK UP';
+  else if (p.club) punch = 'SWING';
+  else if (G.mode === 'play' && G.props.some(o => Math.abs(o.x - p.x) < 16 && Math.abs(o.y - p.y) < 9))
     punch = 'LIFT';
   if (G.stealth && p.drone) {
     // a drone's buttons: hack, dart, cloak

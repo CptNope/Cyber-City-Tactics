@@ -31,7 +31,7 @@ stateDiagram-v2
   results --> jobs: again, bank, or the board
   title --> trainpick: Training
   trainpick --> training
-  training --> trained: thirteen drills done
+  training --> trained: fourteen drills done
   trained --> title
 ```
 
@@ -42,7 +42,7 @@ stateDiagram-v2
 | The Sprawl street | `G.world` | `enterStreet()` | `worldTick()` | a door, or a wipe |
 | Sprawl building | `G.world` and `G.dun` | `openDoor()` → `enterBuilding()` | `dunTick()`, room by room (`enterRoom()`) | `exitBuilding()`, or a wipe (`worldWipe()`) |
 | Arena | `G.arena` | `startArena()` | `arenaTick()` | `arenaOver()` |
-| Training | `G.training` | `startTraining()` | `trainTick()` | thirteen drills, or skip |
+| Training | `G.training` | `startTraining()` | `trainTick()` | fourteen drills, or skip |
 | Driving job | `G.drive` | `startDrive()` | `driveUpdate()` | `driveFinish()` → `driveover` |
 | Drone job | `G.stealth` | `startStealth()` | `stealthUpdate()` | `stealthFinish()` → `stealthover` |
 | Flight job | `G.flight` | `startFlight()` | `flightUpdate()`, then `roofTick()` on a roof | `flightFinish()` → `flightover` |
