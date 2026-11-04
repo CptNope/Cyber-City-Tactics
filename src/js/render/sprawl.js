@@ -126,14 +126,14 @@ function drawBuildings(base) {
     // the block remembers: a robbed home or business stays boarded up, a cleared crew's door says so
     if (looted && !isGood(b) && !shop) {
       ctx.font = '600 9px Teko, Impact, sans-serif';
-      ctx.fillStyle = '#ff3d8b';
-      ctx.fillText('BOARDED UP', dx, base - 30);
+      ctx.fillStyle = badCol();
+      ctx.fillText('BOARDED UP', dx, base - 61); // above the name sign, clear of the door
       ctx.fillStyle = '#7a5a34';
       for (const yy of [-24, -14]) ctx.fillRect(dx - 15, base + yy, 30, 3);
     } else if (looted && (b.type === 'hideout' || b.type === 'club')) {
       ctx.font = '600 9px Teko, Impact, sans-serif';
-      ctx.fillStyle = '#7dffb0';
-      ctx.fillText('CLEARED', dx, base - 30);
+      ctx.fillStyle = goodCol();
+      ctx.fillText('CLEARED', dx, base - 61);
     }
     if (shopShut(b)) {
       ctx.font = '600 9px Teko, Impact, sans-serif';

@@ -4,42 +4,63 @@ Everything a runner does is a **state** on the runner (`p.state`, with `p.t` cou
 
 ## A runner's states
 
+One diagram per family of moves, so each stays readable. Every busy state returns to `idle` when it ends.
+
+### Strikes and movement
+
 ```mermaid
 stateDiagram-v2
+  direction LR
   [*] --> idle
   idle --> walk: a direction
   walk --> idle
-  idle --> punch: PUNCH
-  punch --> punch: again within the combo window
+  idle --> punch: PUNCH (swings a street weapon if held)
   punch --> upper: third quick punch
-  punch --> mach: third quick punch (Mach fists)
+  punch --> mach: third quick punch, Mach fists
   idle --> kick: KICK
-  kick --> dragon: third quick kick (Dragon feet)
-  idle --> heavy: hold PUNCH, release
+  kick --> dragon: third quick kick, Dragon feet
+  idle --> heavy: hold PUNCH and release (or double-tap)
   idle --> jump: JUMP
   jump --> jkick: PUNCH or KICK in the air
-  idle --> roll: DODGE (a parry if a hit lands early in it)
-  idle --> shoot: GUN
-  idle --> cast: SPELL
-  idle --> lift: PUNCH beside a prop
-  lift --> throw: PUNCH again
-  walk --> grab: walk into a dazed or reeling foe
-  idle --> grab: PUNCH beside a downed foe (haul up)
-  walk --> dashp: sprint + PUNCH (Turbo calves)
+  jump --> idle: PUNCH in the air with a street weapon throws it
+  walk --> dashp: sprint + PUNCH, Turbo calves
   walk --> slide: sprint + KICK
-  idle --> stomp: KICK beside a downed foe (Heel spikes)
-  grab --> idle: hook / knee lift / timeout
+  idle --> roll: DODGE (a parry if a hit lands early)
+  idle --> shoot: GUN
+  idle --> cast: SPELL, or ★ for Summon Spirit
+```
+
+### Grabs, props and hacks
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  idle --> grab: walk into a dazed or reeling foe
+  idle --> grab: PUNCH beside a downed foe (haul up, once per knockdown)
+  idle --> lift: PUNCH beside a can, crate or drum
+  lift --> throw: PUNCH again
+  idle --> stomp: KICK beside a downed foe, Heel spikes
+  idle --> cast: PUNCH beside a shorted-out drone or turret (hack)
   grab --> throw: direction + PUNCH or KICK
   grab --> jthrow: JUMP
   grab --> pdrive: JUMP (samurai, adept or the rig)
-  grab --> gslam: DODGE (Grand slam)
-  jthrow --> idle: thrown in the air, or body slam on landing
-  pdrive --> idle: thrown in the air, or pile driver on landing
+  grab --> gslam: DODGE, Grand slam
+  grab --> idle: hook, knee lift or timeout
+  jthrow --> idle: thrown from the top, or body slam on landing
+  pdrive --> idle: thrown from the top, or pile driver on landing
+```
+
+### Getting hit
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  idle --> hurt: hit
+  hurt --> idle
+  hurt --> down: knockdown, or a third hit in a row (drops a street weapon)
   idle --> held: a foe grabs you
   held --> idle: mash to break free
   held --> down: kneed, then thrown
-  idle --> hurt: hit
-  hurt --> down: knockdown (or third hit in a row)
   down --> idle: get up (twice as fast with Recoil dampers)
   hurt --> dead: no HP left
   dead --> idle: respawn while lives remain
