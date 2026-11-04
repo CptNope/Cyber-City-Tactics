@@ -54,6 +54,74 @@ const KB = {
   Numpad7: 'swap',
   Numpad0: 'item'
 };
+/* ---------- remapping (Settings → Keyboard keys) ---------- */
+// prefs.keys holds the changes: { '0': { punch: 'KeyN' }, '1': {...} }. A remapped action takes only the new
+// key; the key leaves anything else it did, for either runner. Menus, pause, the sheet and the map keep theirs.
+const KA_DEF = Object.assign({}, KA),
+  KB_DEF = Object.assign({}, KB);
+const KEY_RESERVED = new Set(['Escape', 'KeyP', 'KeyC', 'Tab', 'KeyM', 'Enter']);
+const KEY_ACTS = [
+  'left',
+  'right',
+  'up',
+  'down',
+  'punch',
+  'kick',
+  'jump',
+  'gun',
+  'spell',
+  'dodge',
+  'swap',
+  'item',
+  'special'
+];
+function applyKeys() {
+  for (const [map, def] of [
+    [KA, KA_DEF],
+    [KB, KB_DEF]
+  ]) {
+    for (const k of Object.keys(map)) delete map[k];
+    Object.assign(map, def);
+  }
+  const K = (typeof prefs !== 'undefined' && prefs.keys) || {};
+  [KA, KB].forEach((map, who) => {
+    const ov = K[who] || {};
+    for (const a of Object.keys(ov)) {
+      const code = ov[a];
+      if (!KEY_ACTS.includes(a) || typeof code !== 'string' || KEY_RESERVED.has(code)) continue;
+      for (const k of Object.keys(map)) if (map[k] === a) delete map[k];
+      delete KA[code];
+      delete KB[code];
+      map[code] = a;
+    }
+  });
+}
+function setKey(who, a, code) {
+  if (!KEY_ACTS.includes(a) || KEY_RESERVED.has(code)) return false;
+  prefs.keys = prefs.keys || {};
+  // the key leaves whatever it was doing for anyone else
+  for (const w of ['0', '1']) {
+    const o = prefs.keys[w] || {};
+    for (const k of Object.keys(o)) if (o[k] === code) delete o[k];
+  }
+  prefs.keys[who] = Object.assign(prefs.keys[who] || {}, { [a]: code });
+  savePrefs();
+  applyKeys();
+  return true;
+}
+// what a key code looks like on a keycap
+const keyName = c =>
+  c
+    .replace(/^Key/, '')
+    .replace(/^Digit/, '')
+    .replace(/^Arrow/, '')
+    .replace(/^Numpad/, 'Num ')
+    .replace(/(Left|Right)$/, ' $1')
+    .replace('Space', 'Space') || c;
+const keysOf = (who, a) =>
+  Object.keys(who ? KB : KA)
+    .filter(k => (who ? KB : KA)[k] === a)
+    .map(keyName);
 const ACTIVE = () => G.mode === 'play' || G.mode === 'den';
 function kp(i, a, down) {
   const s = INP[i];
@@ -70,6 +138,14 @@ function globalAct(a, who) {
 }
 addEventListener('keydown', e => {
   const c = e.code;
+  // waiting for a key to remap: the next press is the answer (Escape cancels)
+  if (G.rebind) {
+    e.preventDefault();
+    if (c !== 'Escape' && !setKey(String(G.rebind.who), G.rebind.a, c)) return;
+    G.rebind = null;
+    renderOv();
+    return;
+  }
   // typing in a text box (the challenge seed) never moves, pauses or punches
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
     if (c === 'Enter') {
@@ -78,7 +154,7 @@ addEventListener('keydown', e => {
     }
     return;
   }
-  if (G.mode === 'hack' && (c === 'KeyJ' || c === 'Space' || c === 'Comma' || c === 'KeyE')) {
+  if (G.mode === 'hack' && ['punch', 'jump'].includes(KA[c] || KB[c])) {
     e.preventDefault();
     if (!e.repeat) hackPress();
     return;

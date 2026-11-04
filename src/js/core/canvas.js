@@ -14,7 +14,8 @@ const W0 = 480,
 const cvs = document.getElementById('game'),
   ctx = cvs.getContext('2d');
 const ov = document.getElementById('ov');
-const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// reduced motion: the system setting, unless Settings → Motion overrides it (applyPrefs keeps it current)
+let RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = () => !!(document.body.classList.contains && document.body.classList.contains('touch'));
 /* ---------- interpolation and adaptive quality ---------- */
 // Remember where everything was before each logic step...

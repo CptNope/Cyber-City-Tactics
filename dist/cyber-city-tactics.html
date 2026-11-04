@@ -1105,6 +1105,50 @@ body.pad-nav #ov :focus {
   vertical-align: 2px;
   letter-spacing: 0.04em;
 }
+
+/* ---------- accessibility (Settings) ---------- */
+body.rm *,
+body.rm *::before,
+body.rm *::after {
+  animation: none !important;
+  transition: none !important;
+}
+body.hc {
+  --muted: #d9d2f2;
+  --line: #7a6e98;
+  --panel: #0d0a14;
+  --panel2: #15101f;
+}
+body.hc .btn.ghost,
+body.hc .seg button,
+body.hc .tab {
+  border-color: #d9d2f2;
+}
+body.hc .ds,
+body.hc .sk-d {
+  color: #e6e0fa;
+}
+body.cb {
+  --ok: #45d2ff;
+  --neon: #ffa630;
+}
+.keymap {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.keymap kbd {
+  font: 600 12px var(--font-body);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--panel2);
+}
+.keymap .waiting {
+  color: var(--gold);
+}
 </style>
 </head>
 <body>
@@ -1134,7 +1178,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+66e08c5';
+const APP_VERSION = '2.0.0+c5c5bb4';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1152,7 +1196,8 @@ const W0 = 480,
 const cvs = document.getElementById('game'),
   ctx = cvs.getContext('2d');
 const ov = document.getElementById('ov');
-const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// reduced motion: the system setting, unless Settings → Motion overrides it (applyPrefs keeps it current)
+let RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isTouch = () => !!(document.body.classList.contains && document.body.classList.contains('touch'));
 /* ---------- interpolation and adaptive quality ---------- */
 // Remember where everything was before each logic step...
@@ -1408,13 +1453,32 @@ const prefs = Object.assign(
     lefty: false,
     gfx: 'auto',
     fps: false,
-    rotDismissed: false
+    rotDismissed: false,
+    motion: 'auto', // 'auto' follows the system, 'reduced' or 'full' override it
+    contrast: false, // high contrast: brighter text and outlines
+    cb: false, // colour-blind safe: blue and orange for good and bad instead of green and pink
+    heavyTap: false, // heavy blow by double-tapping punch instead of holding it
+    story: true, // short scenes as districts open and bosses arrive
+    keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
 );
+// good and bad, in the palette Settings asks for (colour-blind safe: blue and orange)
+const goodCol = () => (prefs.cb ? '#45d2ff' : '#7dffb0');
+const badCol = () => (prefs.cb ? '#ffa630' : '#ff3d8b');
 function applyPrefs() {
+  RM =
+    prefs.motion === 'reduced'
+      ? true
+      : prefs.motion === 'full'
+        ? false
+        : typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (typeof applyKeys === 'function') applyKeys();
   const c = document.body.classList;
   if (!c.toggle) return;
+  c.toggle('rm', !!RM);
+  c.toggle('hc', !!prefs.contrast);
+  c.toggle('cb', !!prefs.cb);
   c.toggle('size-s', prefs.size === 's');
   c.toggle('size-l', prefs.size === 'l');
   c.toggle('lefty', !!prefs.lefty);
@@ -1755,7 +1819,15 @@ const SONGS = {
     hat: 'h.hhh.hhh.hhh.hh'
   }
 };
-const M = { cur: null, step: 0, next: 0 };
+const M = { cur: null, step: 0, next: 0, calm: false };
+// District and Arena songs have two moods: the full track while foes are up, and a calm loop between waves
+// (bass, a softer arpeggio and hats only). The mood only changes on a bar line, so it never cuts mid-phrase.
+function musicCalmNow() {
+  if (typeof G === 'undefined' || !/^d\d$/.test(M.cur || '')) return false;
+  if (G.cut) return true; // a cutscene plays under the calm loop
+  if (G.mode !== 'play') return false;
+  return !G.ents.some(e => e.team === 1 && e.state !== 'dead' && !(e.d && e.d.passive));
+}
 function midi(n) {
   return 440 * Math.pow(2, (n - 69) / 12);
 }
@@ -1772,7 +1844,9 @@ function musicTick() {
   const spb = 60 / S.bpm / 4;
   if (M.next < a.currentTime - 0.2) M.next = a.currentTime + 0.05;
   while (M.next < a.currentTime + 0.15) {
-    const st = M.step % 16,
+    const st = M.step % 16;
+    if (st === 0) M.calm = musicCalmNow();
+    const calm = M.calm,
       bar = Math.floor(M.step / 16) % S.prog.length,
       t = M.next,
       root = S.root + S.prog[bar],
@@ -1781,12 +1855,13 @@ function musicTick() {
     if (b && b !== '.')
       A.osc(out, midi(root - 12 + ({ r: 0, f: 7, o: 12 }[b] || 0)), t, spb * 1.7, 'triangle', 0.11);
     const ar = S.arp[st];
-    if (ar && ar !== '.') A.osc(out, midi(root + 12 + MINOR[+ar]), t, spb * 0.8, 'square', 0.022);
+    if (ar && ar !== '.')
+      A.osc(out, midi(root + 12 + MINOR[+ar]), t, spb * 0.8, 'square', calm ? 0.014 : 0.022);
     const L = S.lead[M.step % S.lead.length];
-    if (L && L !== '.') A.osc(out, midi(root + 24 + MINOR[+L]), t, spb * 2.2, 'square', 0.03);
-    if (S.kick[st] === 'x') A.osc(out, 140, t, 0.14, 'sine', 0.35, -100);
-    if (S.snare[st] === 's') A.nz(out, t, 0.12, 0.12, 1800);
-    if (S.hat[st] === 'h') A.nz(out, t, 0.03, 0.04, 7000, true);
+    if (!calm && L && L !== '.') A.osc(out, midi(root + 24 + MINOR[+L]), t, spb * 2.2, 'square', 0.03);
+    if (!calm && S.kick[st] === 'x') A.osc(out, 140, t, 0.14, 'sine', 0.35, -100);
+    if (!calm && S.snare[st] === 's') A.nz(out, t, 0.12, 0.12, 1800);
+    if (S.hat[st] === 'h' && (!calm || st % 4 === 2)) A.nz(out, t, 0.03, 0.04, 7000, true);
     M.next += spb;
     M.step++;
   }
@@ -1854,6 +1929,74 @@ const KB = {
   Numpad7: 'swap',
   Numpad0: 'item'
 };
+/* ---------- remapping (Settings → Keyboard keys) ---------- */
+// prefs.keys holds the changes: { '0': { punch: 'KeyN' }, '1': {...} }. A remapped action takes only the new
+// key; the key leaves anything else it did, for either runner. Menus, pause, the sheet and the map keep theirs.
+const KA_DEF = Object.assign({}, KA),
+  KB_DEF = Object.assign({}, KB);
+const KEY_RESERVED = new Set(['Escape', 'KeyP', 'KeyC', 'Tab', 'KeyM', 'Enter']);
+const KEY_ACTS = [
+  'left',
+  'right',
+  'up',
+  'down',
+  'punch',
+  'kick',
+  'jump',
+  'gun',
+  'spell',
+  'dodge',
+  'swap',
+  'item',
+  'special'
+];
+function applyKeys() {
+  for (const [map, def] of [
+    [KA, KA_DEF],
+    [KB, KB_DEF]
+  ]) {
+    for (const k of Object.keys(map)) delete map[k];
+    Object.assign(map, def);
+  }
+  const K = (typeof prefs !== 'undefined' && prefs.keys) || {};
+  [KA, KB].forEach((map, who) => {
+    const ov = K[who] || {};
+    for (const a of Object.keys(ov)) {
+      const code = ov[a];
+      if (!KEY_ACTS.includes(a) || typeof code !== 'string' || KEY_RESERVED.has(code)) continue;
+      for (const k of Object.keys(map)) if (map[k] === a) delete map[k];
+      delete KA[code];
+      delete KB[code];
+      map[code] = a;
+    }
+  });
+}
+function setKey(who, a, code) {
+  if (!KEY_ACTS.includes(a) || KEY_RESERVED.has(code)) return false;
+  prefs.keys = prefs.keys || {};
+  // the key leaves whatever it was doing for anyone else
+  for (const w of ['0', '1']) {
+    const o = prefs.keys[w] || {};
+    for (const k of Object.keys(o)) if (o[k] === code) delete o[k];
+  }
+  prefs.keys[who] = Object.assign(prefs.keys[who] || {}, { [a]: code });
+  savePrefs();
+  applyKeys();
+  return true;
+}
+// what a key code looks like on a keycap
+const keyName = c =>
+  c
+    .replace(/^Key/, '')
+    .replace(/^Digit/, '')
+    .replace(/^Arrow/, '')
+    .replace(/^Numpad/, 'Num ')
+    .replace(/(Left|Right)$/, ' $1')
+    .replace('Space', 'Space') || c;
+const keysOf = (who, a) =>
+  Object.keys(who ? KB : KA)
+    .filter(k => (who ? KB : KA)[k] === a)
+    .map(keyName);
 const ACTIVE = () => G.mode === 'play' || G.mode === 'den';
 function kp(i, a, down) {
   const s = INP[i];
@@ -1870,6 +2013,14 @@ function globalAct(a, who) {
 }
 addEventListener('keydown', e => {
   const c = e.code;
+  // waiting for a key to remap: the next press is the answer (Escape cancels)
+  if (G.rebind) {
+    e.preventDefault();
+    if (c !== 'Escape' && !setKey(String(G.rebind.who), G.rebind.a, c)) return;
+    G.rebind = null;
+    renderOv();
+    return;
+  }
   // typing in a text box (the challenge seed) never moves, pauses or punches
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
     if (c === 'Enter') {
@@ -1878,7 +2029,7 @@ addEventListener('keydown', e => {
     }
     return;
   }
-  if (G.mode === 'hack' && (c === 'KeyJ' || c === 'Space' || c === 'Comma' || c === 'KeyE')) {
+  if (G.mode === 'hack' && ['punch', 'jump'].includes(KA[c] || KB[c])) {
     e.preventDefault();
     if (!e.repeat) hackPress();
     return;
@@ -3472,6 +3623,8 @@ const AFFIX = {
   padded: { n: 'Padded', slots: ['armor'], desc: '+25 max HP' }
 };
 const AFX_COL = { shock: '#45d2ff', burn: '#ff6a3d', leech: '#7dffb0' };
+// colour-blind safe: leech turns white so it never hangs on green against burn's orange
+const afxCol = k => (typeof prefs !== 'undefined' && prefs.cb && k === 'leech' ? '#efe9ff' : AFX_COL[k]);
 /* Gear works like Borderlands: every piece comes from a manufacturer with its own speciality, and rolls 0–4
  * parts. The number of parts is its rarity, and its colour: white Street (none), green Tuned (one), blue
  * Prototype (two), purple Black-market (three), orange Legendary (four, or a named legendary from a feat).
@@ -4992,6 +5145,217 @@ function onKill(t, ks) {
   if (t.courier) featCourier(t);
 }
 
+/* ===== src/js/systems/story.js ===== */
+/* Cyber City Tactics · src/js/systems/story.js
+ * Short scenes in the engine: Juno on comms as each district opens, and a word with each boss as it arrives.
+ * The street freezes, letterbox bars come in, the camera leans a touch toward whoever is talking and their
+ * line appears in a speech bubble over them. PUNCH, KICK or JUMP moves on; DODGE skips the scene; Settings →
+ * Story scenes turns them off. Each plays once per run, and only in the campaign.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+// who: 'comms' (Juno, over the radio), 'p' (runner 1), 'boss' (the boss on screen)
+const CUTS = {
+  open: [
+    [
+      ['comms', "The Barrens. The Gutter King's crews run everything under the dead monorail."],
+      ['p', "Then I'll run through them."]
+    ],
+    [
+      ['comms', 'Neon Market. Razor Mei is guarding a Kagemori clinic three levels down.'],
+      ['p', 'Three levels. Three floors of trouble.']
+    ],
+    [
+      ['comms', 'The old transit lines. Whatever ate the last crew is still down there.'],
+      ['p', 'Lights on. Eyes open.']
+    ],
+    [
+      ['comms', 'Mother Vesper keeps the books down here. Every debt, every body.'],
+      ['p', 'Time somebody audited her.']
+    ],
+    [
+      ['comms', "Top floor of the Arcology. The Director's expecting you."],
+      ['p', 'Good. I hate surprises.']
+    ],
+    [
+      ['comms', "You're jacked in. Voss is in the host somewhere, wearing it like a coat."],
+      ['p', "Then let's tear it off her."]
+    ]
+  ],
+  boss: {
+    troll: [
+      ['boss', "You're in my Barrens, little runner."],
+      ['p', 'Not for long. Neither are you.']
+    ],
+    blade: [
+      ['boss', 'Kagemori paid for my steel. You get it for free.'],
+      ['p', "I'll pass on the discount."]
+    ],
+    saint: [
+      ['boss', 'Kneel. The Hollow is hungry, and it is kind.'],
+      ['p', "I've seen kind. That isn't it."]
+    ],
+    vesper: [
+      ['boss', 'Everyone owes Mother Vesper something, dear.'],
+      ['p', 'Put it on my tab.']
+    ],
+    archmage: [
+      ['boss', 'The Arcology, the cops, the sky. All mine.'],
+      ['p', "Let's start with the floor."]
+    ],
+    blackice: [
+      ['boss', 'INTRUDER DETECTED. PURGE PROTOCOL ENGAGED.'],
+      ['p', 'Purge this.']
+    ]
+  }
+};
+const CUT_MIN = 24, // steps before a press can move a line on (so a held punch doesn't skip it)
+  CUT_MAX = 240; // and a line moves on by itself after four seconds
+// scenes only where the story is: the campaign proper, once per run
+const cutOK = () =>
+  prefs.story !== false &&
+  G.mode === 'play' &&
+  !G.arena &&
+  !G.world &&
+  !G.training &&
+  !G.den &&
+  !G.cjob &&
+  !G.drive &&
+  !G.stealth &&
+  !G.flight &&
+  !(typeof netGuest === 'function' && netGuest());
+function cutStart(key, lines) {
+  if (!cutOK() || !lines || !lines.length) return false;
+  G.run = G.run || {};
+  G.run.cuts = G.run.cuts || {};
+  if (G.run.cuts[key]) return false;
+  G.run.cuts[key] = 1;
+  G.cut = { key, lines: lines.map(([who, s]) => ({ who, s })), i: 0, t: 0, wait: 0 };
+  return true;
+}
+const cutOpen = si => cutStart('open' + si, CUTS.open[si]);
+function cutBoss(e) {
+  if (!e || e.rematch) return false; // a rematch is its own entrance
+  if (!cutStart('boss:' + e.kind, CUTS.boss[e.kind])) return false;
+  G.cut.wait = INTRO_LEN; // the name card plays first, then they talk
+  return true;
+}
+// one frozen step of a scene: only the clock and the scene move
+function cutTick() {
+  const c = G.cut;
+  if (!c) return;
+  const any = k => INP.some(s => s.pressed[k]);
+  if (c.wait > 0) {
+    c.wait--; // the boss's name card, with the street already holding still
+    if (any('dodge')) G.cut = null;
+    return;
+  }
+  c.t++;
+  if (any('dodge')) {
+    G.cut = null; // skip the whole scene
+    return;
+  }
+  if ((c.t >= CUT_MIN && (any('punch') || any('kick') || any('jump'))) || c.t >= CUT_MAX) {
+    c.i++;
+    c.t = 0;
+    sfx.click();
+    if (c.i >= c.lines.length) G.cut = null;
+  }
+}
+// who is talking right now (null for comms)
+function cutSpeaker() {
+  const c = G.cut,
+    L = c && c.lines[c.i];
+  if (!L) return null;
+  if (L.who === 'p') return PL[0] || null;
+  if (L.who === 'boss')
+    return G.ents.find(e => e.team === 1 && e.d && e.d.boss && e.state !== 'dead') || null;
+  return null;
+}
+// a gentle lean toward the speaker, inside render()'s world transform (none under reduced motion)
+function cutPush() {
+  const e = G.cut && !(G.cut.wait > 0) && cutSpeaker();
+  if (!e || RM) return;
+  const k = Math.min(1, G.cut.t / 12),
+    sx = e.x - G.camX,
+    sy = e.y - e.z - 30,
+    z = 1 + 0.05 * k;
+  ctx.translate(sx, sy);
+  ctx.scale(z, z);
+  ctx.translate(-sx, -sy);
+}
+// letterbox bars, the speech bubble (or the comms box) and the hint, in HUD space
+function drawCut() {
+  const c = G.cut;
+  if (!c) return;
+  const L = c.lines[c.i];
+  if (!L) return;
+  const bh = 26;
+  if (c.wait > 0) {
+    // bars only while the name card plays
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, bh);
+    ctx.fillRect(0, H - bh, W, bh);
+    return;
+  }
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, bh);
+  ctx.fillRect(0, H - bh, W, bh);
+  const a = RM ? 1 : Math.min(1, c.t / 8);
+  ctx.globalAlpha = a;
+  ctx.font = '12px "Chakra Petch", sans-serif';
+  const lines = wrapTip(L.s, 210),
+    w = Math.min(230, Math.max(...lines.map(l => ctx.measureText(l).width)) + 20),
+    h = lines.length * 14 + 12;
+  const e = cutSpeaker();
+  let x, y;
+  if (e) {
+    x = clamp(e.x - G.camX - w / 2, 6, W - w - 6);
+    y = clamp(e.y - e.z - 92 * ((e.d && e.d.scale) || 1) - h, bh + 6, H - bh - h - 10);
+  } else {
+    // comms: a radio box along the bottom, clear of the HUD
+    x = (W - w) / 2;
+    y = H - bh - h - 12;
+  }
+  const boss = L.who === 'boss',
+    comms = L.who === 'comms',
+    edge = comms ? '#45d2ff' : boss ? '#ff3d4a' : '#ffc63d';
+  ctx.fillStyle = 'rgba(11,8,18,.94)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = prefs.contrast ? 2 : 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  if (e) {
+    // the bubble's tail, pointing at the speaker
+    const tx = clamp(e.x - G.camX, x + 10, x + w - 10);
+    ctx.fillStyle = 'rgba(11,8,18,.94)';
+    ctx.beginPath();
+    ctx.moveTo(tx - 5, y + h - 1);
+    ctx.lineTo(tx, y + h + 7);
+    ctx.lineTo(tx + 5, y + h - 1);
+    ctx.fill();
+    ctx.strokeStyle = edge;
+    ctx.beginPath();
+    ctx.moveTo(tx - 5, y + h);
+    ctx.lineTo(tx, y + h + 7);
+    ctx.lineTo(tx + 5, y + h);
+    ctx.stroke();
+  }
+  const name = comms
+    ? 'JUNO · COMMS'
+    : boss
+      ? (e && (e.name || e.d.name)) || ''
+      : (PL[0] && PL[0].name) || '';
+  txt(String(name).toUpperCase(), x + 8, y - 3, 12, edge, 'left');
+  ctx.font = '12px "Chakra Petch", sans-serif';
+  ctx.fillStyle = '#efe9ff';
+  ctx.textAlign = 'left';
+  lines.forEach((l, i) => ctx.fillText(l, x + 10, y + 17 + i * 14));
+  ctx.globalAlpha = 1;
+  const hint = isTouch()
+    ? 'PUNCH: next · DODGE: skip'
+    : (keysOf(0, 'punch')[0] || 'J') + ': next · ' + (keysOf(0, 'dodge')[0] || 'O') + ': skip';
+  txt(hint, W - 10, H - 9, 11, '#a79dc2', 'right');
+}
+
 /* ===== src/js/systems/skills.js ===== */
 /* Cyber City Tactics · src/js/systems/skills.js
  * The four skill trees (Brawler, Gunslinger, Mage, Decker), unlock rules and helpers like has(p, id).
@@ -5642,6 +6006,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  G.cut = null; // a story scene never outlives the street it was on
   LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
   G.drive = null;
@@ -5711,6 +6076,7 @@ function startStage(si) {
   saveGame('play');
   musicPlay('d' + si);
   setMode('play');
+  cutOpen(si);
   if (si === 1)
     tip(
       'charge',
@@ -7389,7 +7755,18 @@ function upRunner(p) {
   }
   // hold PUNCH to charge a heavy blow; release to swing
   const canCharge = !G.den && !p.holding && p.state !== 'grab' && p.z === 0;
-  if (I.held.punch && canCharge) {
+  // Settings → Heavy blow: Double-tap. Two quick punches start the charge without holding; the next punch swings
+  if (prefs.heavyTap) {
+    if (I.pressed.punch && p.tapCharge) {
+      p.tapCharge = false;
+      I.pressed.punch = false; // this press is the release, not another jab
+    } else if (I.pressed.punch && canCharge) {
+      if (G.t - (p.lastTapP === undefined ? -99 : p.lastTapP) < 16) p.tapCharge = true;
+      p.lastTapP = G.t;
+    }
+    if (!canCharge) p.tapCharge = false;
+  } else p.tapCharge = false;
+  if ((prefs.heavyTap ? p.tapCharge : I.held.punch) && canCharge) {
     const c0 = p.chargeT || 0;
     p.chargeT = c0 + (setOn(p, 'rustline', 3) ? 1.5 : 1); // the Rustline set charges faster
     if (c0 < 32 && p.chargeT >= 32) {
@@ -9720,6 +10097,8 @@ function update() {
   if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.05);
   G.comboT++;
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
+  if (G.cut && (G.drive || G.stealth || G.flight || G.arena || G.world)) G.cut = null; // scenes are for the campaign
+  if (G.cut) return cutTick(); // a story scene: the street holds still (systems/story.js)
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
   if (G.flight && !G.flight.roof) return flightUpdate(); // and flight jobs (modes/flight.js), until they land on a roof
@@ -10087,6 +10466,7 @@ function waves() {
       if (w.boss) {
         G.banner = -120;
         musicPlay('boss');
+        cutBoss(G.ents.find(e => e.team === 1 && e.d && e.d.boss && e.state !== 'dead'));
         if (PARTY.contract && PARTY.contract.key === 'ghost' && !PARTY.contract.failed) contractTick('ghost');
       }
     }
@@ -18033,7 +18413,7 @@ function drawWeapon(w, fh, swing, t, st, fl) {
   const look = w.look || 'pipe',
     ang = swing ? -0.15 : -1.1,
     M = MFR[w.mfr],
-    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? AFX_COL[w.mod] : null;
+    fx = w.mod && AFX_COL[w.mod] && (G.t >> 3) % 3 === 0 ? afxCol(w.mod) : null;
   ctx.save();
   ctx.translate(fh[0], fh[1]);
   if (look === 'knucks') {
@@ -20526,14 +20906,16 @@ function drawBuildings(base) {
       ctx.stroke();
     }
     ctx.font = '600 11px Teko, Impact, sans-serif';
-    const tw = Math.min(b.w - 6, ctx.measureText(b.name).width + 10);
-    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? '#7dffb0' : '#ff3d8b';
+    // colour-blind safe signs add a mark as well as changing colour, so it never rests on colour alone
+    const label = prefs.cb && !looted && !shop ? (good ? '✓ ' : '✕ ') + b.name : b.name;
+    const tw = Math.min(b.w - 6, ctx.measureText(label).width + 10);
+    const nc = looted ? '#6b6280' : shop && b.type !== 'safe' ? '#ffc63d' : good ? goodCol() : badCol();
     if (!looted && !lowFx()) glow(dx, base - 50, tw * 0.75, 14, nc, 0.22);
     ctx.fillStyle = '#0b0812';
     ctx.fillRect(dx - tw / 2, base - 57, tw, 13);
     ctx.fillStyle = nc;
     ctx.textAlign = 'center';
-    ctx.fillText(b.name, dx, base - 47);
+    ctx.fillText(label, dx, base - 47);
     // the block remembers: a robbed home or business stays boarded up, a cleared crew's door says so
     if (looted && !isGood(b) && !shop) {
       ctx.font = '600 9px Teko, Impact, sans-serif';
@@ -20607,8 +20989,8 @@ function drawMinimap() {
           : w.looted.includes(b.id)
             ? '#4a4060'
             : isGood(b)
-              ? '#7dffb0'
-              : '#ff3d8b';
+              ? goodCol()
+              : badCol();
     ctx.fillRect(mx - 1.5, y - 2, 3, 4);
   }
   for (const e of G.ents)
@@ -20649,8 +21031,8 @@ function txt(s, x, y, size, col, align, stroke) {
   ctx.font = `600 ${size}px Teko, Impact, sans-serif`;
   ctx.textAlign = align || 'left';
   ctx.textBaseline = 'alphabetic';
-  if (stroke !== false) {
-    ctx.lineWidth = 3;
+  if (stroke !== false || prefs.contrast) {
+    ctx.lineWidth = prefs.contrast ? 4.5 : 3; // high contrast: a heavier outline on every word
     ctx.strokeStyle = '#0b0812';
     ctx.strokeText(s, x, y);
   }
@@ -21292,6 +21674,7 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   introPush();
+  cutPush();
   if (G.stealth) {
     drawFacility();
     drawStealthCones();
@@ -21406,6 +21789,7 @@ function render() {
     ctx.translate(0, BAND);
     drawDark();
     drawHud();
+    drawCut();
     drawToasts();
     ctx.restore();
     drawHudTop();
@@ -22031,6 +22415,31 @@ function settingsHtml() {
   )}${G.perfTxt ? `<pre class="share" id="shareTxt" style="white-space:pre-wrap;font-size:12px">${esc(G.perfTxt)}</pre>` : ''}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
+  ${row('Story scenes', 'A word from Juno as each district opens, and from each boss as it arrives', onoff('story'))}
+  <h3>Accessibility</h3>
+  ${row(
+    'Motion',
+    RM ? 'Reduced: no screen push, slides or flashing menus' : 'Full motion',
+    seg('motion', [
+      ['auto', 'System'],
+      ['reduced', 'Reduced'],
+      ['full', 'Full']
+    ])
+  )}
+  ${row('High contrast', 'Brighter text and borders in menus, heavier outlines on every word in play', onoff('contrast'))}
+  ${row('Colour-blind safe', 'Blue and orange for fair game and off-limits (with ✓ and ✕ on signs) instead of green and pink', onoff('cb'))}
+  ${row(
+    'Heavy blow',
+    prefs.heavyTap
+      ? 'Double-tap punch to start charging; punch again to swing'
+      : 'Hold punch to charge, let go to swing',
+    seg('heavyTap', [
+      [false, 'Hold'],
+      [true, 'Double-tap']
+    ])
+  )}
+  ${row('Keyboard keys', 'Change any key for either runner', `<button class="btn sm ghost" data-a="keys" aria-expanded="${!!G.showKeys}">${G.showKeys ? 'Hide' : 'Change keys'}</button>`)}
+  ${G.showKeys ? keymapHtml() : ''}
   ${row(
     'Touch controls size',
     '',
@@ -22052,6 +22461,37 @@ function settingsHtml() {
   ${row('Controller', PAD.active ? `${esc(padName(PAD.name))}. In menus: D-pad or stick to move, A to select, B to go back, LB and RB for tabs.` : 'Plug in or pair any standard controller. It works in every menu and in play; a second one adds Runner 2.', `<span class="ds">${PAD.active ? '✓ Connected' : 'None yet'}</span>`)}
   ${pwaSettingsRows(row)}
   </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
+}
+// the remapping table: every action, both runners, the keys it has now
+function keymapHtml() {
+  const N = {
+    left: 'Left',
+    right: 'Right',
+    up: 'Up',
+    down: 'Down',
+    punch: 'Punch',
+    kick: 'Kick',
+    jump: 'Jump',
+    gun: 'Gun',
+    spell: 'Spell',
+    dodge: 'Dodge',
+    swap: 'Swap spell',
+    item: 'Medkit',
+    special: 'Special ★'
+  };
+  const cell = (who, a) => {
+    const w = G.rebind && G.rebind.who === who && G.rebind.a === a;
+    return `<button class="btn sm ghost${w ? ' waiting' : ''}" data-a="rebind:${who}:${a}" aria-label="Change ${N[a]} for Runner ${who + 1}">${
+      w
+        ? 'Press a key…'
+        : keysOf(who, a)
+            .map(k => `<kbd>${esc(k)}</kbd>`)
+            .join(' ') || '<kbd>none</kbd>'
+    }</button>`;
+  };
+  return `<div class="keymap"><b>Action</b><b>Runner 1</b><b>Runner 2</b>${KEY_ACTS.map(a => `<span>${N[a]}</span>${cell(0, a)}${cell(1, a)}`).join('')}</div>
+  <p style="font-size:12.5px;color:var(--muted)">Click a key, then press the new one (Escape cancels). Esc and P pause, C opens the sheet and M the block map; those stay put. A key you reuse leaves whatever it did before.</p>
+  <div class="row"><button class="btn sm ghost" data-a="keysreset">Reset all keys</button></div>`;
 }
 const AN = { bod: 'BOD', str: 'STR', agi: 'AGI', mag: 'MAG', hak: 'HAK' };
 const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor', deck: 'Cyberdeck' };
@@ -22091,7 +22531,7 @@ function itemLine1(it) {
     (innate ? ' · ' + innate : '') +
     (parts ? ` · <span style="color:${RCOL[it.rar]}">${parts}</span>` : '') +
     (oldMod
-      ? ` · <span style="color:${AFX_COL[oldMod] || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
+      ? ` · <span style="color:${afxCol(oldMod) || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
       : '')
   );
 }
@@ -23070,6 +23510,22 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     }
+    case 'keys':
+      G.showKeys = !G.showKeys;
+      G.rebind = null;
+      renderOv();
+      break;
+    case 'rebind':
+      G.rebind = { who: +arg ? 1 : 0, a: parts[2] };
+      renderOv();
+      break;
+    case 'keysreset':
+      prefs.keys = {};
+      G.rebind = null;
+      savePrefs();
+      applyKeys();
+      renderOv();
+      break;
     case 'tipsreset':
       prefs.seen = {};
       prefs.rotDismissed = false;

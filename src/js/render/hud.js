@@ -24,8 +24,8 @@ function txt(s, x, y, size, col, align, stroke) {
   ctx.font = `600 ${size}px Teko, Impact, sans-serif`;
   ctx.textAlign = align || 'left';
   ctx.textBaseline = 'alphabetic';
-  if (stroke !== false) {
-    ctx.lineWidth = 3;
+  if (stroke !== false || prefs.contrast) {
+    ctx.lineWidth = prefs.contrast ? 4.5 : 3; // high contrast: a heavier outline on every word
     ctx.strokeStyle = '#0b0812';
     ctx.strokeText(s, x, y);
   }
@@ -667,6 +667,7 @@ function render() {
   ctx.save();
   ctx.translate(shx, shy + BAND);
   introPush();
+  cutPush();
   if (G.stealth) {
     drawFacility();
     drawStealthCones();
@@ -781,6 +782,7 @@ function render() {
     ctx.translate(0, BAND);
     drawDark();
     drawHud();
+    drawCut();
     drawToasts();
     ctx.restore();
     drawHudTop();

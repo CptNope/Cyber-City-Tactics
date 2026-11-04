@@ -231,6 +231,24 @@ const { pathToFileURL } = require('url');
       if ((await mode()) === 'brief') await press('A');
       await page.waitForTimeout(1600);
       ok((await mode()) === 'play', 'A starts the district');
+      ok(await page.evaluate(() => !!G.cut), 'Juno opens the district with a short scene');
+      for (let i = 0; i < 8 && (await page.evaluate(() => !!G.cut)); i++) {
+        await page.waitForTimeout(500);
+        await press('A');
+      }
+      ok(!(await page.evaluate(() => !!G.cut)), 'and the controller moves it on');
+      ok(
+        await page.evaluate(() => {
+          Object.assign(prefs, { motion: 'reduced', contrast: true, cb: true });
+          applyPrefs();
+          const c = document.body.classList,
+            on = c.contains('rm') && c.contains('hc') && c.contains('cb') && RM;
+          Object.assign(prefs, { motion: 'auto', contrast: false, cb: false });
+          applyPrefs();
+          return on && !c.contains('hc') && !c.contains('cb');
+        }),
+        'accessibility settings switch the page’s motion, contrast and colour classes'
+      );
       const x0 = await page.evaluate(() => PL[0].x);
       await page.evaluate(() => (window.__pad.axes[0] = 1));
       await page.waitForTimeout(500);

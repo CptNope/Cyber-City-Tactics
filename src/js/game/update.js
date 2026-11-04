@@ -12,6 +12,8 @@ function update() {
   if (G.flash > 0) G.flash = Math.max(0, G.flash - 0.05);
   G.comboT++;
   if (G.comboT > (G.dun && G.dun.b.type === 'club' ? 220 : 110)) G.combo = 0;
+  if (G.cut && (G.drive || G.stealth || G.flight || G.arena || G.world)) G.cut = null; // scenes are for the campaign
+  if (G.cut) return cutTick(); // a story scene: the street holds still (systems/story.js)
   if (G.drive) return driveUpdate(); // driving missions run their own step (modes/drive.js)
   if (G.stealth) return stealthUpdate(); // and so do drone stealth jobs (modes/stealth.js)
   if (G.flight && !G.flight.roof) return flightUpdate(); // and flight jobs (modes/flight.js), until they land on a roof
@@ -379,6 +381,7 @@ function waves() {
       if (w.boss) {
         G.banner = -120;
         musicPlay('boss');
+        cutBoss(G.ents.find(e => e.team === 1 && e.d && e.d.boss && e.state !== 'dead'));
         if (PARTY.contract && PARTY.contract.key === 'ghost' && !PARTY.contract.failed) contractTick('ghost');
       }
     }

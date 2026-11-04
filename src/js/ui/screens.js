@@ -325,6 +325,31 @@ function settingsHtml() {
   )}${G.perfTxt ? `<pre class="share" id="shareTxt" style="white-space:pre-wrap;font-size:12px">${esc(G.perfTxt)}</pre>` : ''}
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
+  ${row('Story scenes', 'A word from Juno as each district opens, and from each boss as it arrives', onoff('story'))}
+  <h3>Accessibility</h3>
+  ${row(
+    'Motion',
+    RM ? 'Reduced: no screen push, slides or flashing menus' : 'Full motion',
+    seg('motion', [
+      ['auto', 'System'],
+      ['reduced', 'Reduced'],
+      ['full', 'Full']
+    ])
+  )}
+  ${row('High contrast', 'Brighter text and borders in menus, heavier outlines on every word in play', onoff('contrast'))}
+  ${row('Colour-blind safe', 'Blue and orange for fair game and off-limits (with ✓ and ✕ on signs) instead of green and pink', onoff('cb'))}
+  ${row(
+    'Heavy blow',
+    prefs.heavyTap
+      ? 'Double-tap punch to start charging; punch again to swing'
+      : 'Hold punch to charge, let go to swing',
+    seg('heavyTap', [
+      [false, 'Hold'],
+      [true, 'Double-tap']
+    ])
+  )}
+  ${row('Keyboard keys', 'Change any key for either runner', `<button class="btn sm ghost" data-a="keys" aria-expanded="${!!G.showKeys}">${G.showKeys ? 'Hide' : 'Change keys'}</button>`)}
+  ${G.showKeys ? keymapHtml() : ''}
   ${row(
     'Touch controls size',
     '',
@@ -346,6 +371,37 @@ function settingsHtml() {
   ${row('Controller', PAD.active ? `${esc(padName(PAD.name))}. In menus: D-pad or stick to move, A to select, B to go back, LB and RB for tabs.` : 'Plug in or pair any standard controller. It works in every menu and in play; a second one adds Runner 2.', `<span class="ds">${PAD.active ? '✓ Connected' : 'None yet'}</span>`)}
   ${pwaSettingsRows(row)}
   </div><div class="row"><button class="btn" data-a="setdone">Done</button><button class="btn ghost" data-a="tipsreset">Show tips again</button></div></div>`;
+}
+// the remapping table: every action, both runners, the keys it has now
+function keymapHtml() {
+  const N = {
+    left: 'Left',
+    right: 'Right',
+    up: 'Up',
+    down: 'Down',
+    punch: 'Punch',
+    kick: 'Kick',
+    jump: 'Jump',
+    gun: 'Gun',
+    spell: 'Spell',
+    dodge: 'Dodge',
+    swap: 'Swap spell',
+    item: 'Medkit',
+    special: 'Special ★'
+  };
+  const cell = (who, a) => {
+    const w = G.rebind && G.rebind.who === who && G.rebind.a === a;
+    return `<button class="btn sm ghost${w ? ' waiting' : ''}" data-a="rebind:${who}:${a}" aria-label="Change ${N[a]} for Runner ${who + 1}">${
+      w
+        ? 'Press a key…'
+        : keysOf(who, a)
+            .map(k => `<kbd>${esc(k)}</kbd>`)
+            .join(' ') || '<kbd>none</kbd>'
+    }</button>`;
+  };
+  return `<div class="keymap"><b>Action</b><b>Runner 1</b><b>Runner 2</b>${KEY_ACTS.map(a => `<span>${N[a]}</span>${cell(0, a)}${cell(1, a)}`).join('')}</div>
+  <p style="font-size:12.5px;color:var(--muted)">Click a key, then press the new one (Escape cancels). Esc and P pause, C opens the sheet and M the block map; those stay put. A key you reuse leaves whatever it did before.</p>
+  <div class="row"><button class="btn sm ghost" data-a="keysreset">Reset all keys</button></div>`;
 }
 const AN = { bod: 'BOD', str: 'STR', agi: 'AGI', mag: 'MAG', hak: 'HAK' };
 const SLOTN = { weapon: 'Melee weapon', gun: 'Gun', armor: 'Armor', deck: 'Cyberdeck' };
@@ -385,7 +441,7 @@ function itemLine1(it) {
     (innate ? ' · ' + innate : '') +
     (parts ? ` · <span style="color:${RCOL[it.rar]}">${parts}</span>` : '') +
     (oldMod
-      ? ` · <span style="color:${AFX_COL[oldMod] || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
+      ? ` · <span style="color:${afxCol(oldMod) || 'var(--gold)'}">${AFFIX[oldMod].n}: ${AFFIX[oldMod].desc}</span>`
       : '')
   );
 }

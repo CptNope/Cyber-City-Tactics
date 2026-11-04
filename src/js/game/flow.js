@@ -25,6 +25,7 @@ function placeRunners(x0) {
   });
 }
 function resetWorld() {
+  G.cut = null; // a story scene never outlives the street it was on
   LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
   G.drive = null;
@@ -94,6 +95,7 @@ function startStage(si) {
   saveGame('play');
   musicPlay('d' + si);
   setMode('play');
+  cutOpen(si);
   if (si === 1)
     tip(
       'charge',

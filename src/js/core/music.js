@@ -107,7 +107,15 @@ const SONGS = {
     hat: 'h.hhh.hhh.hhh.hh'
   }
 };
-const M = { cur: null, step: 0, next: 0 };
+const M = { cur: null, step: 0, next: 0, calm: false };
+// District and Arena songs have two moods: the full track while foes are up, and a calm loop between waves
+// (bass, a softer arpeggio and hats only). The mood only changes on a bar line, so it never cuts mid-phrase.
+function musicCalmNow() {
+  if (typeof G === 'undefined' || !/^d\d$/.test(M.cur || '')) return false;
+  if (G.cut) return true; // a cutscene plays under the calm loop
+  if (G.mode !== 'play') return false;
+  return !G.ents.some(e => e.team === 1 && e.state !== 'dead' && !(e.d && e.d.passive));
+}
 function midi(n) {
   return 440 * Math.pow(2, (n - 69) / 12);
 }
@@ -124,7 +132,9 @@ function musicTick() {
   const spb = 60 / S.bpm / 4;
   if (M.next < a.currentTime - 0.2) M.next = a.currentTime + 0.05;
   while (M.next < a.currentTime + 0.15) {
-    const st = M.step % 16,
+    const st = M.step % 16;
+    if (st === 0) M.calm = musicCalmNow();
+    const calm = M.calm,
       bar = Math.floor(M.step / 16) % S.prog.length,
       t = M.next,
       root = S.root + S.prog[bar],
@@ -133,12 +143,13 @@ function musicTick() {
     if (b && b !== '.')
       A.osc(out, midi(root - 12 + ({ r: 0, f: 7, o: 12 }[b] || 0)), t, spb * 1.7, 'triangle', 0.11);
     const ar = S.arp[st];
-    if (ar && ar !== '.') A.osc(out, midi(root + 12 + MINOR[+ar]), t, spb * 0.8, 'square', 0.022);
+    if (ar && ar !== '.')
+      A.osc(out, midi(root + 12 + MINOR[+ar]), t, spb * 0.8, 'square', calm ? 0.014 : 0.022);
     const L = S.lead[M.step % S.lead.length];
-    if (L && L !== '.') A.osc(out, midi(root + 24 + MINOR[+L]), t, spb * 2.2, 'square', 0.03);
-    if (S.kick[st] === 'x') A.osc(out, 140, t, 0.14, 'sine', 0.35, -100);
-    if (S.snare[st] === 's') A.nz(out, t, 0.12, 0.12, 1800);
-    if (S.hat[st] === 'h') A.nz(out, t, 0.03, 0.04, 7000, true);
+    if (!calm && L && L !== '.') A.osc(out, midi(root + 24 + MINOR[+L]), t, spb * 2.2, 'square', 0.03);
+    if (!calm && S.kick[st] === 'x') A.osc(out, 140, t, 0.14, 'sine', 0.35, -100);
+    if (!calm && S.snare[st] === 's') A.nz(out, t, 0.12, 0.12, 1800);
+    if (S.hat[st] === 'h' && (!calm || st % 4 === 2)) A.nz(out, t, 0.03, 0.04, 7000, true);
     M.next += spb;
     M.step++;
   }

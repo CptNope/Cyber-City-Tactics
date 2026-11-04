@@ -9,7 +9,7 @@ Plain JavaScript drawing on a `<canvas>`, with HTML menus over it. There's no fr
 | `index.html` | The page, the `BUILD:SCRIPTS` list (the one place the load order is defined), meta and link-preview tags |
 | `src/js/core/` | Platform: canvas and frame loop, utils and storage (`store`, `prefs`), audio, music, input (keyboard, pads, touch) |
 | `src/js/data/` | Tables only: enemies and districts (`DEF`, `STAGES`), gear (`BASES`, `MFR`, `PARTS`, `RAR`), world (`CYBER`, `TECH`, `CONTRACTS`, `NPCS`, `DIFF`), legend data |
-| `src/js/systems/` | Cross-mode systems: legend (feats, legendaries, Codex), skill trees, haggling |
+| `src/js/systems/` | Cross-mode systems: legend (feats, legendaries, Codex), story scenes, skill trees, haggling |
 | `src/js/game/` | The simulation: state, flow between places, combat, props and grabs, runners, allies, enemies, the update step |
 | `src/js/modes/` | Mode rules: Sprawl, black market, choices, dungeons, hacking, training, Arena, jobs (driving, drone, flight), online co-op |
 | `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()` |
@@ -27,7 +27,7 @@ Plain JavaScript drawing on a `<canvas>`, with HTML menus over it. There's no fr
 flowchart LR
   V[version.js] --> CORE["core/<br/>canvas → utils → audio → music → input"]
   CORE --> DATA["data/<br/>content → gear → world → legend-data"]
-  DATA --> SYS["systems/<br/>legend → skills → haggle"]
+  DATA --> SYS["systems/<br/>legend → story → skills → haggle"]
   SYS --> GAME["game/<br/>state → flow → combat → props → runners → allies → enemies → update"]
   GAME --> MODES["modes/<br/>sprawl → blackmarket → choices → dungeons → hacking → training → arena → jobs → drive → stealth → flight → net"]
   MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud"]
