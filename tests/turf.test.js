@@ -8,9 +8,23 @@ const G = __G,
 const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
 A.prefs.tips = false;
 G.pendArch = ['samurai', 'runner'];
-A.startWorld(false);
-step(5);
 const w = () => G.wd;
+// some blocks have no crew buildings at all: start on (and move on to) ones that do
+const crewWorld = () => {
+  for (let i = 0; i < 40; i++) {
+    A.startWorld(false);
+    step(2);
+    if (A.crewBuildings(w()).length >= 2) return;
+  }
+};
+const nextCrewBlock = () => {
+  for (let i = 0; i < 40; i++) {
+    G.mode = 'safe';
+    click('newblock');
+    if (A.crewBuildings(w()).length) return;
+  }
+};
+crewWorld();
 const clearCrews = () => {
   for (const b of A.crewBuildings(w())) if (!w().looted.includes(b.id)) w().looted.push(b.id);
 };
@@ -32,8 +46,7 @@ ok(
 );
 ok(A.turfs()[0].lv === w().level, 'and it’s on your books');
 // not until every crew building is clear
-A.startWorld(false);
-step(5);
+crewWorld();
 w().fac = { fang: 25 };
 const first = A.crewBuildings(w())[0];
 w().looted.push(first.id);
@@ -68,20 +81,21 @@ G.safeTab = 'lay';
 A.setMode('safe');
 ok(/Turf/.test(els.ov._h) && /Neon Fangs/.test(els.ov._h), 'the safehouse lists your turf');
 const lv = w().level;
+G.mode = 'safe';
 click('newblock');
 ok(
   PARTY.creds === A.tithe(lv) && G.titheLast === A.tithe(lv),
   `moving on, the block pays a tithe (¥${A.tithe(lv)})`
 );
 ok(!w().turf, 'the new block is nobody’s yet');
+if (!A.crewBuildings(w()).length) nextCrewBlock();
 
 /* ---------- three blocks: Landlord ---------- */
 for (let i = 0; i < 2; i++) {
   w().fac = Object.assign({}, w().fac, { fang: 25 });
   clearCrews();
   A.turfCheck();
-  G.mode = 'safe';
-  click('newblock');
+  nextCrewBlock();
 }
 ok(A.turfs().length === 3 && A.LEG.feats.turf, 'hold three: Landlord');
 const sum = A.turfs().reduce((t, x) => t + A.tithe(x.lv), 0);

@@ -77,12 +77,18 @@ A.enterDen();
 ok(A.wxNow() === 'clear', 'the Den is dry');
 
 /* ---------- the Sprawl: fog, and acid rain ---------- */
-A.startWorld(false);
-step(3);
+// a block with a home or business that isn't fair game (most have one)
+const badB = () =>
+  G.wd.street.buildings.find(x => (x.type === 'home' || x.type === 'business') && !A.isGood(x));
+for (let i = 0; i < 40; i++) {
+  A.startWorld(false);
+  step(3);
+  if (badB()) break;
+}
 const S = A.curS();
 S.weather = 'fog';
 ok(A.wxNow() === 'fog', 'a foggy Sprawl block');
-const b = G.wd.street.buildings.find(x => (x.type === 'home' || x.type === 'business') && !A.isGood(x));
+const b = badB();
 const heatAfter = weather => {
   S.weather = weather;
   G.wd.heat = 0;

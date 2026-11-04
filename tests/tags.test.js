@@ -7,9 +7,13 @@ const G = __G,
 const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
 A.prefs.tips = false;
 G.pendArch = ['samurai', 'runner'];
-A.startWorld(false);
-step(5);
 const w = () => G.wd;
+// some blocks have no crew buildings: start on one that does
+for (let i = 0; i < 40; i++) {
+  A.startWorld(false);
+  step(5);
+  if (A.crewBuildings(w()).length) break;
+}
 const b = A.crewBuildings(w())[0];
 ok(b, 'a crew building to work with');
 ok(!A.canTag(b), 'no tag on a building you haven’t cleaned out');
