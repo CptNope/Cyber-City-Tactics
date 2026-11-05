@@ -1,0 +1,16 @@
+# Dependabot opens a pull request when a dev tool, the lobby or a pinned GitHub Action has an update, so security
+# fixes don't wait on anyone remembering to check. CI runs on each one before it can be merged.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

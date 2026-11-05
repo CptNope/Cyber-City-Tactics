@@ -81,7 +81,9 @@ function showFatal(err) {
     const ov = document.getElementById('ov');
     if (!ov) return;
     ov.hidden = false;
-    ov.innerHTML = `<div class="card"><p class="eyebrow">Something broke</p><h2>The game hit an error</h2><p>Your saves are safe. Reloading usually fixes it; if it keeps happening, please report it.</p><p style="color:var(--muted);font-size:12px">${esc(String((err && err.message) || err)).slice(0, 200)}</p><div class="row"><button class="btn" onclick="location.reload()">Reload</button></div></div>`;
+    ov.innerHTML = `<div class="card"><p class="eyebrow">Something broke</p><h2>The game hit an error</h2><p>Your saves are safe. Reloading usually fixes it; if it keeps happening, please report it.</p><p style="color:var(--muted);font-size:12px">${esc(String((err && err.message) || err)).slice(0, 200)}</p><div class="row"><button class="btn" id="errReload">Reload</button></div></div>`;
+    const rb = document.getElementById('errReload');
+    if (rb && rb.addEventListener) rb.addEventListener('click', () => location.reload());
   } catch (e) {}
 }
 // Coming back to the tab: start timing fresh so there's no catch-up burst.

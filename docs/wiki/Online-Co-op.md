@@ -21,7 +21,7 @@ sequenceDiagram
   F->>F: createAnswer, wait for ICE gathering
   F->>L: POST /rooms/K7QHM/answer {answer}
   loop every 1.5 s
-    H->>L: GET /rooms/K7QHM/answer
+    H->>L: GET /rooms/K7QHM/answer?key=…
   end
   L-->>H: {answer}
   H-->>F: data channel opens
@@ -101,7 +101,8 @@ The host keeps runner 2 (`NET.away`) while the room is reopened, so the friend w
 | `POST /rooms` | stores an invite, returns a code and a key | 20 an hour |
 | `GET /rooms/CODE` | the invite | 120 an hour |
 | `POST /rooms/CODE/answer` | the reply, once | 30 an hour |
-| `GET /rooms/CODE/answer` | the reply, or 204 while waiting | none (the host polls) |
+| `GET /rooms/CODE/answer?key=KEY` | the reply, or 204 while waiting; 403 with the wrong key (the reply holds the friend's network address, so only the host reads it) | none (the host polls) |
+| `GET /rooms/CODE/answer` (no key, games from before keys) | the same | 2,400 an hour |
 | `POST /rooms/CODE/reopen` | a fresh invite under the same code, with the key | shares the rooms limit |
 
 - Invites last 15 minutes. The key lasts four hours, so nobody else can take a code mid-game.

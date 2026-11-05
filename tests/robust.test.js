@@ -163,9 +163,10 @@ ok(
 );
 // ?lobby= only reaches our lobby or a local one
 ok(
-  A.netLobbyOk('http://localhost:8787') && A.netLobbyOk('https://cct-lobby.someone.workers.dev'),
-  'local and workers.dev lobbies pass'
+  A.netLobbyOk('http://localhost:8787') && A.netLobbyOk(A.NET_LOBBY),
+  'a local lobby and the game’s own pass'
 );
+ok(!A.netLobbyOk('https://cct-lobby.someone.workers.dev'), 'someone else’s workers.dev lobby is refused');
 ok(
   !A.netLobbyOk('https://evil.example') && !A.netLobbyOk('javascript:alert(1)'),
   'other lobby hosts are refused'

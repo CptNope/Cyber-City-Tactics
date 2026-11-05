@@ -27,7 +27,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `grabs.test.js` | headless | 22 | Double Dragon grabs. |
 | `graphics.test.js` | headless | 38 | Drawing rules that are easy to break and hard to spot. |
 | `legend.test.js` | headless | 41 | Feats, legendaries, the Codex, lore, Decker unlock, bounties, hidden doors, couriers, daily challenge. |
-| `lobby.test.js` | headless | 39 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
+| `lobby.test.js` | headless | 43 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
 | `livingsprawl.test.js` | headless | 32 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
 | `market.test.js` | headless | 15 | District 4, the Undercity Market. |
 | `mastery.test.js` | headless | 25 | Archetype mastery: the tiers, the growing numbers, and every archetype's tier III twist; the HUD's Archon counter and skill frames. |
@@ -44,6 +44,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `weather.test.js` | headless | 14 | Weather: which is where, slick wet streets, drones shorting out, gunmen in fog, the Den dry, fog break-ins, acid-rain corrosion. |
 | `tags.test.js` | headless | 15 | Graffiti tags: spraying, cred over time, painters covering a tag, stopping one, saving. |
 | `rival.test.js` | headless | 22 | Vane: where Vane turns up, the count of what hits, the memory and resistance, getting tougher, both specials, the Sprawl, the legend. |
+| `security.test.js` | headless | 24 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

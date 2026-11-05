@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '104e6ca24c0e';
+const VERSION = '52682458b35b';
 const PRECACHE = [
   './',
   'index.html',
@@ -92,8 +92,8 @@ const PRECACHE = [
 /* /BUILD:MANIFEST */
 
 const SHELL = 'cct-shell-' + VERSION;
-const RUNTIME = 'cct-runtime-' + VERSION; // fonts and anything else fetched later; per version, so nothing goes stale
-const FONT_HOSTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com$/;
+const RUNTIME = 'cct-runtime-' + VERSION; // anything fetched later; per version, so nothing goes stale
+// (the brand fonts ship with the game, so nothing is fetched from other sites)
 
 self.addEventListener('install', event => {
   // cache: 'reload' skips the HTTP cache so a deploy never precaches a stale file.
@@ -160,11 +160,16 @@ self.addEventListener('fetch', event => {
   }
 
   if (req.mode === 'navigate') return; // a file opened directly: straight from the network, not cached
-  // Game files: cache first from the shell, network as a fallback.
-  if (url.origin === location.origin) {
+  // Game files: cache first from the shell, network as a fallback. Only files under the game's own folder, and
+  // only from this version's own caches: the site's origin (cptnope.github.io) is shared with other projects,
+  // and caches.match() would search their caches too.
+  const scope = new URL(self.registration.scope).pathname;
+  if (url.origin === location.origin && url.pathname.startsWith(scope)) {
     event.respondWith(
       (async () => {
-        const hit = await caches.match(req, { ignoreSearch: true });
+        const hit =
+          (await (await caches.open(SHELL)).match(req, { ignoreSearch: true })) ||
+          (await (await caches.open(RUNTIME)).match(req, { ignoreSearch: true }));
         if (hit) return hit;
         const res = await fetch(req);
         if (res.ok) (await caches.open(RUNTIME)).put(req, res.clone());
@@ -172,23 +177,5 @@ self.addEventListener('fetch', event => {
       })()
     );
     return;
-  }
-
-  // Google Fonts: serve the cached copy at once and refresh it in the background.
-  if (FONT_HOSTS.test(url.origin)) {
-    event.respondWith(
-      (async () => {
-        const cache = await caches.open(RUNTIME);
-        const hit = await cache.match(req);
-        const fresh = fetch(req)
-          .then(res => {
-            if (res.ok || res.type === 'opaque') cache.put(req, res.clone());
-            return res;
-          })
-          // Offline with nothing cached yet: an empty stylesheet lets the game fall back to system fonts quietly.
-          .catch(() => hit || new Response('', { headers: { 'Content-Type': 'text/css' } }));
-        return hit || fresh;
-      })()
-    );
   }
 });
