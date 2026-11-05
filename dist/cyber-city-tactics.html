@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-MUnifhOjTxOSmvVoOYUCnsqLfMFNceeT9g7QIfyK6I0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-zbMrqg6a6WRPoF8s1CjCFxAM34mCXc3LgJdsaL8MNVc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1321,7 +1321,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+5268245';
+const APP_VERSION = '2.0.0+31e36bb';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1512,6 +1512,12 @@ function parseSeed(raw) {
   return null;
 }
 const newSeed = () => Math.floor(Math.random() * 2e9);
+// an item's id: seven base-36 characters from the platform's cryptographic random source
+function newUid() {
+  const b = new Uint32Array(2);
+  crypto.getRandomValues(b);
+  return (b[0].toString(36) + b[1].toString(36)).slice(0, 7).padEnd(7, '0');
+}
 function srng(seed) {
   let s = seed >>> 0;
   return () => {
@@ -2149,8 +2155,7 @@ const keyName = c =>
     .replace(/^Digit/, '')
     .replace(/^Arrow/, '')
     .replace(/^Numpad/, 'Num ')
-    .replace(/(Left|Right)$/, ' $1')
-    .replace('Space', 'Space') || c;
+    .replace(/(Left|Right)$/, ' $1') || c;
 const keysOf = (who, a) =>
   Object.keys(who ? KB : KA)
     .filter(k => (who ? KB : KA)[k] === a)
@@ -4171,7 +4176,7 @@ function mkItem(slot, base, rar, mod, mfr) {
   const b = BASES[slot][base] ? BASES[slot][base] : Object.values(BASES[slot])[0];
   if (!BASES[slot][base]) base = Object.keys(BASES[slot])[0];
   const it = {
-    uid: Math.random().toString(36).slice(2, 9),
+    uid: newUid(),
     slot,
     base,
     rar: 0,
@@ -17956,11 +17961,18 @@ function lobbyUrl() {
   try {
     const q = new URLSearchParams(location.search).get('lobby');
     if (q === 'off') return '';
-    if (q && netLobbyOk(q)) return q.replace(/\/+$/, ''); // the real lobby, or one on this machine for testing
+    // the real lobby, or one on this machine for testing, rebuilt from its parts rather than passed through
+    if (q && netLobbyOk(q)) {
+      const u = new URL(q);
+      return u.origin === NET_LOBBY ? NET_LOBBY : 'http://' + u.hostname + (u.port ? ':' + +u.port : '');
+    }
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
 }
+// the only requests the game ever makes to its lobby
+const LOBBY_PATH = /^\/(ice|rooms(\/[A-Z0-9]{5}(\/(answer|reopen))?)?)(\?key=[A-Za-z0-9_%-]{1,64})?$/;
 async function lobby(path, body) {
+  if (!LOBBY_PATH.test(path)) throw new Error('not a lobby request');
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null,
     t = setTimeout(() => ctl && ctl.abort(), 6000);
   try {

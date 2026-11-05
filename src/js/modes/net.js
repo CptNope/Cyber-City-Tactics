@@ -228,11 +228,18 @@ function lobbyUrl() {
   try {
     const q = new URLSearchParams(location.search).get('lobby');
     if (q === 'off') return '';
-    if (q && netLobbyOk(q)) return q.replace(/\/+$/, ''); // the real lobby, or one on this machine for testing
+    // the real lobby, or one on this machine for testing, rebuilt from its parts rather than passed through
+    if (q && netLobbyOk(q)) {
+      const u = new URL(q);
+      return u.origin === NET_LOBBY ? NET_LOBBY : 'http://' + u.hostname + (u.port ? ':' + +u.port : '');
+    }
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
 }
+// the only requests the game ever makes to its lobby
+const LOBBY_PATH = /^\/(ice|rooms(\/[A-Z0-9]{5}(\/(answer|reopen))?)?)(\?key=[A-Za-z0-9_%-]{1,64})?$/;
 async function lobby(path, body) {
+  if (!LOBBY_PATH.test(path)) throw new Error('not a lobby request');
   const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null,
     t = setTimeout(() => ctl && ctl.abort(), 6000);
   try {

@@ -65,8 +65,9 @@ export function serveLobby(port, extra = {}) {
       res.writeHead(r.status, Object.fromEntries(r.headers));
       res.end(Buffer.from(await r.arrayBuffer()));
     } catch (e) {
-      res.writeHead(500);
-      res.end(String(e));
+      console.error('lobby-local:', e); // the details stay in this terminal, not in the response
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('lobby error');
     }
   });
   return new Promise(ok => server.listen(port, () => ok(server)));

@@ -2,8 +2,8 @@
 /* A tiny static server for local play and testing: `npm start`, then open the printed URL.
  * The service worker is off on localhost so your edits show up on reload; add ?sw=1 to test it. */
 import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { join, extname, normalize, dirname } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { join, extname, normalize, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,13 +25,14 @@ export function serve(port = PORT) {
       let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
       if (p.endsWith('/')) p += 'index.html';
       const file = normalize(join(ROOT, p));
-      if (!file.startsWith(ROOT)) throw new Error('outside root');
-      await stat(file);
+      // inside the project folder itself, not a sibling whose name merely starts the same way
+      if (file !== ROOT && !file.startsWith(ROOT + sep)) throw new Error('outside root');
+      const body = await readFile(file); // one read: no gap between checking a file and opening it
       res.writeHead(200, {
         'Content-Type': TYPES[extname(file)] || 'application/octet-stream',
         'Cache-Control': 'no-cache'
       });
-      res.end(await readFile(file));
+      res.end(body);
     } catch (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('Not found');

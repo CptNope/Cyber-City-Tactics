@@ -116,8 +116,7 @@ const keyName = c =>
     .replace(/^Digit/, '')
     .replace(/^Arrow/, '')
     .replace(/^Numpad/, 'Num ')
-    .replace(/(Left|Right)$/, ' $1')
-    .replace('Space', 'Space') || c;
+    .replace(/(Left|Right)$/, ' $1') || c;
 const keysOf = (who, a) =>
   Object.keys(who ? KB : KA)
     .filter(k => (who ? KB : KA)[k] === a)

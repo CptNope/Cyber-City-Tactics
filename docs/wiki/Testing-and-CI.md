@@ -44,7 +44,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `weather.test.js` | headless | 14 | Weather: which is where, slick wet streets, drones shorting out, gunmen in fog, the Den dry, fog break-ins, acid-rain corrosion. |
 | `tags.test.js` | headless | 15 | Graffiti tags: spraying, cred over time, painters covering a tag, stopping one, saving. |
 | `rival.test.js` | headless | 22 | Vane: where Vane turns up, the count of what hits, the memory and resistance, getting tougher, both specials, the Sprawl, the legend. |
-| `security.test.js` | headless | 24 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
+| `security.test.js` | headless | 29 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

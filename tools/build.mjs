@@ -130,7 +130,12 @@ ${script}
 let stale = [];
 for (const [p, content] of Object.entries(outputs)) {
   const full = join(ROOT, p);
-  const cur = existsSync(full) ? readFileSync(full, 'utf8') : null;
+  let cur = null;
+  try {
+    cur = readFileSync(full, 'utf8'); // one read, no exists-then-read gap
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
   if (cur === content) continue;
   stale.push(p);
   if (!CHECK) {
