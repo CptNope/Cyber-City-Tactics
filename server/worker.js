@@ -27,6 +27,7 @@ const ICE_PER_HOUR = 12; // a few games an hour from one address; each host and 
 const ROOMS_PER_HOUR = 20;
 const LOOKUPS_PER_HOUR = 120; // friends typing codes; generous, but stops anyone walking the code space
 const ANSWERS_PER_HOUR = 30;
+const POLLS_PER_HOUR = 2400; // the host checks for the friend's reply about once a second while waiting
 const ICE_PER_DAY = 5000; // every address together: a ceiling on relay passes, so a botnet can't run up the bill
 const KEY_TTL_MS = 4 * 60 * 60 * 1000; // the host's key outlives the invite, so a long game can still reopen
 const HOUR = 60 * 60 * 1000;
@@ -48,7 +49,13 @@ export function ipBucket(ip) {
   );
 }
 
-export function makeCode(rand = Math.random) {
+// codes come from the platform's cryptographic random source, so they can't be predicted from earlier ones
+const cryptoRand = () => {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  return b[0] / 4294967296;
+};
+export function makeCode(rand = cryptoRand) {
   let s = '';
   for (let i = 0; i < CODE_LEN; i++) s += CODE_CHARS[Math.floor(rand() * CODE_CHARS.length)];
   return s;
@@ -75,6 +82,7 @@ function allowedOrigin(origin, env) {
 }
 function cors(origin) {
   return {
+    'X-Content-Type-Options': 'nosniff',
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -180,8 +188,17 @@ export default {
         if (!(await allow(env, 'look:' + ip, LOOKUPS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
         return relay(await stub.fetch('https://room/offer'), h);
       }
-      if (m[2] === '/answer' && req.method === 'GET')
+      if (m[2] === '/answer' && req.method === 'GET') {
+        // the reply holds the friend's network address, so only the host (who holds the room's key) reads it;
+        // a game from before keys were sent still works, under a per-address limit
+        const key = url.searchParams.get('key');
+        if (key) {
+          if (key.length !== KEY_LEN) return json({ error: 'not your room' }, 403, h);
+          return relay(await stub.fetch('https://room/answer?key=' + encodeURIComponent(key)), h);
+        }
+        if (!(await allow(env, 'poll:' + ip, POLLS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
         return relay(await stub.fetch('https://room/answer'), h);
+      }
       if (m[2] === '/answer' && req.method === 'POST') {
         if (!(await allow(env, 'ans:' + ip, ANSWERS_PER_HOUR))) return json({ error: 'slow down' }, 429, h);
         const b = await readBody(req);
@@ -259,6 +276,8 @@ export class Room {
       return new Response(null, { status: 204 });
     }
     if (url.pathname === '/answer') {
+      const k = url.searchParams.get('key');
+      if (k && k !== (await st.get('key'))) return json({ error: 'not your room' }, 403);
       const a = await st.get('answer');
       return a ? json({ answer: a }, 200) : new Response(null, { status: 204 });
     }

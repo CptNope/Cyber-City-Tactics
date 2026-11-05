@@ -860,6 +860,10 @@ Cyber City Tactics is a Progressive Web App.
   - **Sync file** (Chrome and Edge on a computer or Android): *New file* and save it into a Dropbox, Google Drive, OneDrive or iCloud folder. From then on the game keeps that file up to date as it saves. On the other device, *Open file* and pick the same file. When the file holds newer saves than the device (by when they last changed, not the file date), the game asks whether to load them or keep the device's. After a browser restart it asks for one click (*Resume*) before touching the file again.
 - The screen stays awake while you play, and the game pauses itself when you switch away.
 
+## Security
+
+See **[SECURITY.md](SECURITY.md)** for how to report a problem privately and what the game does to stay safe: a strict Content Security Policy, untrusted text from saves and online partners defused before it reaches the page, an online lobby that only the game itself can use, and a locked-down CI with CodeQL scanning and Dependabot.
+
 ## Saves
 Everything is stored in the browser's `localStorage` on the device. Nothing is sent anywhere.
 

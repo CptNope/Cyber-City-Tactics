@@ -13,8 +13,8 @@
     "format": "prettier --write \"src/**/*.{js,css}\" \"tests/**/*.js\" \"tools/**/*.mjs\" sw.js"
   },
   "devDependencies": {
-    "playwright": "^1.47.0",
-    "prettier": "^3.3.3"
+    "playwright": "1.63.0",
+    "prettier": "3.8.1"
   },
   "engines": {
     "node": ">=18"

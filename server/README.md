@@ -26,7 +26,7 @@ The Workers Free plan covers the lobby: a game uses a few dozen requests to conn
 | `POST /rooms {offer}` | `201 {code}` |
 | `GET /rooms/CODE` | `200 {offer}` or `404` |
 | `POST /rooms/CODE/answer {answer}` | `204`, `404`, or `409` if someone already answered |
-| `GET /rooms/CODE/answer` | `200 {answer}`, `204` if not answered yet, or `404` |
+| `GET /rooms/CODE/answer?key=KEY` | `200 {answer}`, `204` if not answered yet, `403` with the wrong key, or `404`. Without a key (older games) it still answers, under a per-address limit |
 | `POST /rooms/CODE/reopen {offer, key}` | `204`, or `403` without the room's key (the host reopening after a drop; `POST /rooms` returns the key with the code) |
 | `GET /ice` | `200 {iceServers, relay}` |
 | `GET /health` | `200 {ok}` |

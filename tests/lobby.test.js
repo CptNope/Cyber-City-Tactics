@@ -65,6 +65,15 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   ok(r.status === 409, 'a room takes one reply only');
   r = await call('GET', '/rooms/' + code + '/answer');
   ok(r.status === 200 && (await r.json()).answer === ANSWER, 'host picks up the reply');
+  // the reply holds the friend's address: with a key, only the right one reads it
+  r = await call('GET', '/rooms/' + code + '/answer?key=' + encodeURIComponent(key));
+  ok(r.status === 200 && (await r.json()).answer === ANSWER, 'the host reads the reply with its key');
+  r = await call('GET', '/rooms/' + code + '/answer?key=' + 'x'.repeat(24));
+  ok(r.status === 403, 'a wrong key can’t read the reply');
+  r = await call('GET', '/rooms/' + code + '/answer?key=short');
+  ok(r.status === 403, 'nor a malformed one');
+  const pre2 = await call('GET', '/rooms/' + code + '/answer');
+  ok(pre2.headers.get('X-Content-Type-Options') === 'nosniff', 'answers are never sniffed as another type');
   ok((await call('GET', '/rooms/ZZZZZ')).status === 404, 'unknown rooms are 404');
   // rejoining: the host reopens the same code with its key; anyone else is refused
   ok(typeof key === 'string' && key.length === 24, 'the host gets a room key with the code');

@@ -103,11 +103,19 @@ const headStatic = head
   .replace(/<link rel="stylesheet" href="(?!https?:)[^"]+">\n?/g, '')
   .replace(/<link rel="(manifest|icon|apple-touch-icon)"[^>]*>\n?/g, '')
   .trim();
-const script = `<script>\n(()=>{\n'use strict';\nconst BUNDLED = true;\n${js}\n})();\n</script>`;
+const scriptBody = `\n(()=>{\n'use strict';\nconst BUNDLED = true;\n${js}\n})();\n`;
+const script = `<script>${scriptBody}</script>`;
+// The page's Content-Security-Policy allows only the site's own script files. The single file has one inline
+// script instead, so its policy names that exact script by hash: anything injected still can't run.
+const scriptHash = "'sha256-" + createHash('sha256').update(scriptBody).digest('base64') + "'";
+const headSingle = headStatic.replace(
+  /(<meta http-equiv="Content-Security-Policy" content="[^"]*script-src )'self'/,
+  `$1${scriptHash}`
+);
 outputs['dist/cyber-city-tactics.html'] = `<!doctype html>
 <html lang="en">
 <head>
-${headStatic}
+${headSingle}
 <style>
 ${css}</style>
 </head>
@@ -132,7 +140,8 @@ for (const [p, content] of Object.entries(outputs)) {
 }
 if (FRAGMENT) {
   // The claude.ai artifact viewer supplies <html>, <head>, <body> and the viewport, so the preview gets a fragment.
-  const frag = `${headStatic.replace(/<meta (charset|name="viewport")[^>]*>\n?/g, '')}\n<style>\n${css}</style>\n${markup}\n${script}\n`;
+  // (and no CSP: the viewer runs the page inside its own sandbox with its own policy)
+  const frag = `${headStatic.replace(/<meta (charset|name="viewport"|http-equiv="Content-Security-Policy")[^>]*>\n?/g, '')}\n<style>\n${css}</style>\n${markup}\n${script}\n`;
   writeFileSync(FRAGMENT, frag);
   console.log('fragment ->', FRAGMENT, frag.length, 'bytes');
 }

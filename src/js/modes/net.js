@@ -24,6 +24,7 @@ const NET_ICE = [{ urls: 'stun:stun.cloudflare.com:3478' }];
 // The lobby (server/worker.js on Cloudflare): short room codes instead of long ones, and relay passes (TURN)
 // for networks that block direct connections. Empty means long codes only. ?lobby=URL overrides it.
 const NET_LOBBY = 'https://cct-lobby.jca2016satx.workers.dev';
+const NET_MAX_MSG = 1 << 20; // a full snapshot is a few tens of KB; anything past a megabyte isn't ours
 const NET_ROOM_RE = /^[A-HJ-NP-Za-hj-np-z2-9]{5}$/;
 const NET_ACTS = [
   'left',
@@ -215,10 +216,9 @@ function netLobbyOk(q) {
     const u = new URL(q);
     if (!/^https?:$/.test(u.protocol) || u.username || u.password) return false;
     if (/^(localhost|127\.0\.0\.1|\[::1\])$/.test(u.hostname)) return true;
-    return (
-      u.protocol === 'https:' &&
-      (u.origin === NET_LOBBY || /^cct-lobby\.[a-z0-9-]+\.workers\.dev$/.test(u.hostname))
-    );
+    // only the game's own lobby: a link pointing the game at someone else's server could put a stranger
+    // between you and your friend
+    return u.origin === NET_LOBBY;
   } catch (e) {
     return false;
   }
@@ -228,7 +228,7 @@ function lobbyUrl() {
   try {
     const q = new URLSearchParams(location.search).get('lobby');
     if (q === 'off') return '';
-    if (q && netLobbyOk(q)) return q.replace(/\/+$/, '');
+    if (q && netLobbyOk(q)) return q.replace(/\/+$/, ''); // the real lobby, or one on this machine for testing
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
 }
@@ -271,7 +271,10 @@ function netPollAnswer() {
   NET.pollT = setInterval(async () => {
     if (NET.room !== room || NET.status !== 'offer') return netPollStop();
     try {
-      const r = await lobby('/rooms/' + room + '/answer');
+      // the room's key proves this is the host: nobody else can read the friend's reply (it holds their address)
+      const r = await lobby(
+        '/rooms/' + room + '/answer' + (NET.roomKey ? '?key=' + encodeURIComponent(NET.roomKey) : '')
+      );
       if (NET.room !== room || NET.status !== 'offer') return;
       if (r.status === 200) {
         netPollStop();
@@ -549,12 +552,13 @@ function netAwayTag() {
 /* ---------- messages ---------- */
 function netRecv(data) {
   const fix = [];
+  if (typeof data !== 'string' || data.length > NET_MAX_MSG) return;
   const m = JSON.parse(data, function (k, v) {
     if (v && typeof v === 'object' && v.$e !== undefined) {
       fix.push([this, k, v.$e]);
       return null;
     }
-    return v;
+    return typeof v === 'string' ? safeStr(v) : v; // whatever comes over the wire, no markup in its strings
   });
   if (!m || typeof m !== 'object') return;
   NET.rxT = performance.now();

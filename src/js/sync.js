@@ -270,6 +270,12 @@ addEventListener('visibilitychange', () => {
   if (document.hidden && SYNC.state === 'on' && syncMeta().stamp > (syncMeta().synced || 0)) syncFlush();
 });
 
+// a click on the code selects all of it (a listener, not an inline handler: the page's CSP allows no inline script)
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function')
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t && t.matches && t.matches('.codebox textarea[readonly]')) t.select();
+  });
 const agoText = t => {
   const s = Math.round((Date.now() - t) / 1000);
   return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : Math.round(s / 3600) + ' h ago';
@@ -282,7 +288,7 @@ function syncSettingsRows(row) {
     '<span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ghost" data-a="codemake">Make</button><button class="btn sm ghost" data-a="codeenter">Enter</button></span>'
   );
   if (G.codeOut)
-    out += `<div class="job codebox"><b>Your save code</b><textarea readonly rows="3" aria-label="Save code" onclick="this.select()">${esc(G.codeOut)}</textarea>
+    out += `<div class="job codebox"><b>Your save code</b><textarea readonly rows="3" aria-label="Save code">${esc(G.codeOut)}</textarea>
       <span style="color:var(--muted);font-size:13px">${G.codeOut.length.toLocaleString()} characters · it holds every save, so anyone with it can load your progress</span>
       <div class="row"><button class="btn sm" data-a="codecopy">Copy</button><button class="btn sm ghost" data-a="codeclose">Done</button></div></div>`;
   if (G.codeIn)

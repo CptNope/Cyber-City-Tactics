@@ -36,10 +36,17 @@ function srng(seed) {
     return s / 4294967296;
   };
 }
+// Saves can be edited by hand, imported from a file or a save code, or come in over the network, and their strings
+// end up in HTML. Nothing the game writes itself contains < > " or a backtick, so any that turn up are dropped:
+// no tag or attribute can be smuggled in through a name. (The Content-Security-Policy in index.html is the other
+// half: even injected markup couldn't run a script.)
+const UNSAFE_CHARS = /[<>"`]/g;
+const safeStr = s => s.replace(UNSAFE_CHARS, '');
+const cleanJson = (k, v) => (typeof v === 'string' ? safeStr(v) : v);
 const store = {
   get(k) {
     try {
-      return JSON.parse(localStorage.getItem(k));
+      return JSON.parse(localStorage.getItem(k), cleanJson);
     } catch (e) {
       return null;
     }
