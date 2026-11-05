@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '52682458b35b';
+const VERSION = '31e36bb433b6';
 const PRECACHE = [
   './',
   'index.html',
@@ -128,6 +128,9 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('message', event => {
+  // only the game's own pages may tell the new version to take over
+  const from = event.source && event.source.url ? new URL(event.source.url).origin : event.origin;
+  if (from !== self.location.origin) return;
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 

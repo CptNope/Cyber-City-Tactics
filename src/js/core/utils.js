@@ -29,6 +29,12 @@ function parseSeed(raw) {
   return null;
 }
 const newSeed = () => Math.floor(Math.random() * 2e9);
+// an item's id: seven base-36 characters from the platform's cryptographic random source
+function newUid() {
+  const b = new Uint32Array(2);
+  crypto.getRandomValues(b);
+  return (b[0].toString(36) + b[1].toString(36)).slice(0, 7).padEnd(7, '0');
+}
 function srng(seed) {
   let s = seed >>> 0;
   return () => {

@@ -423,7 +423,7 @@ function mkItem(slot, base, rar, mod, mfr) {
   const b = BASES[slot][base] ? BASES[slot][base] : Object.values(BASES[slot])[0];
   if (!BASES[slot][base]) base = Object.keys(BASES[slot])[0];
   const it = {
-    uid: Math.random().toString(36).slice(2, 9),
+    uid: newUid(),
     slot,
     base,
     rar: 0,

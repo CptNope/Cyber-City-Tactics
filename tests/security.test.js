@@ -171,3 +171,35 @@ ok(
   fs.existsSync(path.join(ROOT, 'SECURITY.md')) && fs.existsSync(path.join(ROOT, '.github/dependabot.yml')),
   'a security policy and Dependabot'
 );
+
+/* ---------- CodeQL's findings, kept fixed ---------- */
+const ids = new Set();
+for (let i = 0; i < 200; i++) ids.add(A.newUid());
+ok(
+  ids.size === 200 && [...ids].every(u => /^[0-9a-z]{7}$/.test(u)),
+  'item ids come from the crypto source, seven characters, unique'
+);
+ok(
+  /getRandomValues/.test(read('src/js/core/utils.js')) &&
+    !/uid: Math\.random/.test(read('src/js/data/gear.js')),
+  'and not from Math.random'
+);
+(async () => {
+  let refused = 0;
+  for (const p of [
+    '//evil.example/x',
+    '/rooms/../../x',
+    '/rooms/ABCDE/answer?key=<x>',
+    'https://evil.example'
+  ])
+    await A.lobby(p).catch(() => refused++);
+  ok(refused === 4, 'the lobby client refuses any request that isn’t one of its own');
+})();
+ok(
+  /event\.source/.test(sw) && /self\.location\.origin/.test(sw),
+  'the service worker only takes orders from its own pages'
+);
+ok(
+  /startsWith\(ROOT \+ sep\)/.test(read('tools/serve.mjs')),
+  'the dev server can’t be walked out of the project folder'
+);

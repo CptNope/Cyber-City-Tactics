@@ -89,7 +89,7 @@ const TESTS = [
   { file: 'weather', minPass: 14 },
   { file: 'tags', minPass: 15 },
   { file: 'rival', minPass: 22 },
-  { file: 'security', minPass: 24 },
+  { file: 'security', minPass: 29 },
   { file: 'lobby', minPass: 43 },
   { file: 'drive', minPass: 36 },
   { file: 'sidejob', minPass: 18 },
