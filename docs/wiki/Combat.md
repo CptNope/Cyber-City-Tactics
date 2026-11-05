@@ -215,3 +215,7 @@ stateDiagram-v2
 | Thrall | – | 20% |
 
 Only a runner's hit can make a foe quit, and the blow that would finish one can be the moment it gives up (on 1 HP, unless the hit is over 60% of its max HP). Bosses, elites, hit squads, bounty hunters and couriers never quit, nor do an open contract's targets (so the contract can always be finished), and nobody begs in Training or under Pacifist. A spared foe leaves untouchable. Sparing counts toward the Street Mercy feat (10), and wall bounces toward Off the Wall (25). Sparing a cop or guard in the Sprawl lifts your street cred by one. Bosses say a line from `TAUNTS` when they enrage (half health) and again under a quarter.
+
+## Environmental finishers
+
+game/finishers.js. While a thrown foe is in the air, `upEnemy()` calls `envTick()`, which checks three things: a burning barrel within 14 px when the foe is in the back lane (`barrelAt()`, from `fixtureAt()`, the same function the renderer draws the street's barrels and lamps from), a drum in `G.props` (it's removed and `shatter()`ed with the thrower as its source), and the live lane of a `shock` hazard while it's live. `envFinish()` drops creds (20 + 12 × depth) and a 25% shot at gear, then takes the foe's remaining health, or a quarter of a boss's. Each one bumps `envkills`, toward the *Use the Scenery* feat.

@@ -501,6 +501,7 @@ function startWorld(coop, ch) {
     ally: null,
     crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
     safe: {},
+    turfs: [],
     ice: 2
   });
   G.wd = ch ? newWorld(ch.level, ch.seed) : newWorld(1);
@@ -542,7 +543,8 @@ function saveWorld() {
             courDone: w.courDone,
             clock: w.clock,
             prog: w.prog,
-            medUsed: !!w.medUsed
+            medUsed: !!w.medUsed,
+            turf: w.turf || null
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -594,6 +596,8 @@ function loadWorld(s) {
   if (!isObj(G.wd.fac)) G.wd.fac = {};
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
+  if (!CREWS.includes(G.wd.turf)) G.wd.turf = null;
+  if (!Array.isArray(PARTY.turfs)) PARTY.turfs = [];
   for (const k of Object.keys(G.wd.prog))
     if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
@@ -875,10 +879,12 @@ function worldTick() {
   }
   blockEventTick(w);
   factionTick(w);
+  turfTick(w);
   w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
-    if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
+    // a block a friendly crew holds has no hostile gangs walking it
+    if (!w.turf && G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
       for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0) + (isNight(w) ? 1 : 0); i++)
         spawnEnemy(pick(k), i % 2 ? -1 : 1);

@@ -245,13 +245,12 @@ function drawStreetLights(S, cx) {
     lamp = lampColor(S),
     lite = lowFx();
   for (let k = k0; k * step - cx < W + 120; k++) {
-    const h = hash01(k * 6151 + 29);
-    if (h < 0.3) continue;
-    const x = k * step + 40 + hash01(k * 37) * 150 - cx,
-      y = FY0 + 5;
-    if (tr && Math.abs(x + cx - tr.x) < 50) continue; // leave Sable's corner to her own sign
-    // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
-    const barrel = (S.market || (!S.tunnel && !S.grid)) && h < 0.62;
+    // where they stand comes from fixtureAt() (game/finishers.js), so a barrel you see is one that burns
+    const f = fixtureAt(k, S);
+    if (!f) continue;
+    const x = f.x - cx,
+      y = FY0 + 5,
+      barrel = f.barrel;
     if (barrel) {
       const fl = 0.75 + 0.25 * Math.sin(G.t * 0.31 + k * 2.1) * Math.sin(G.t * 0.13 + k);
       if (!lite) glow(x, y - 4, 42, 12, '#ff6a3d', 0.22 * fl); // light pooled on the ground

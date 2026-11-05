@@ -110,7 +110,8 @@ function jobCrew(coop) {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
 }
 // karma earned on a job: on the runners now, and counted so it survives the trip back to the Den

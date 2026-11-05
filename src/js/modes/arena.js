@@ -269,7 +269,8 @@ function startArena(coop, challenge) {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
   // the daily challenge sets runner 1's archetype for this run only, leaving your own pick alone
   PL.forEach((p, i) =>

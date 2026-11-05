@@ -26,7 +26,10 @@ Each runner rides a bike in the street's lanes. Hold right to throttle, left to 
 |---|---|---|---|---|---|
 | The Causeway Run | Rustline Barrens | 110 s | ¥260 | 120 | Get Juno's package across the bridge before Kagemori shuts it |
 | Neon Market Getaway | Neon Market | 95 s | ¥340 | 160 | Out through the market with half the Rustline crews behind you |
+| Fragile Cargo | Neon Market | 105 s | ¥420 × cargo | 170 | Cryo-cases for Doc's clinic through the Neon Market. Speed pays; every bump costs |
 | Kagemori Pursuit | Kagemori Arcology | 100 s | ¥380 | 180 | Pixel's stolen Kagemori car, out of the Arcology garage with the corp's pursuit cars on the bumper |
+
+**The delivery run** (`J.cargo`): `G.drive.cargo` starts at 100. `cargoHit()` takes 12 for a crash, 25 for a wreck and 0.6 × damage for a hit (`CARGO`); at 0 it sets `cargoLost` and ends the job. `driveFinish()` pays `J.pay × cargo / 100` plus the usual bonuses, and ¥120 more at 90 or better (`mint`). Running out of time still says *Too late*.
 
 **The car chase** (`J.car`): `carSeat()` marks runner 1 as the driver (`bk.car`, 140 HP) and anyone else as a passenger (`bk.pass`). `carPassenger()` keeps the passenger in the back seat, fires their gun for free (`driveAim()`, so holding left fires behind) and casts; `driveHurt()` and `driveCrash()` pass anything that lands on a passenger to the car, and `driveTarget()` skips passengers. Solo, `carAutogun()` fires every 38 steps. The car's collision box with traffic is 1.4 times a bike's. `J.pursuit` spawns pursuit cars (`pcar`: an Interceptor body at 30% health and 60% damage that rams like the van) from behind, up to one (two in co-op), plus one past 40% of the run.
 

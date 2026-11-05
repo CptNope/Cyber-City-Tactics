@@ -201,7 +201,8 @@ function startTraining() {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
   G.training = true;
   G.arena = false;

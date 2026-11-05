@@ -1320,7 +1320,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+01295d8';
+const APP_VERSION = '2.0.0+5a634f4';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -4930,6 +4930,21 @@ const FEATS = [
   { id: 'el25', name: 'Elite Hunter', desc: 'Take down 25 elites.', lp: 15, stat: 'elites', n: 25 },
   { id: 'mercy', name: 'Street Mercy', desc: 'Spare 10 foes who begged.', lp: 10, stat: 'spared', n: 10 },
   { id: 'walls', name: 'Off the Wall', desc: 'Bounce 25 foes off a wall.', lp: 10, stat: 'walls', n: 25 },
+  { id: 'turf', name: 'Landlord', desc: 'Hold three Sprawl blocks for friendly crews at once.', lp: 15 },
+  {
+    id: 'mint',
+    name: 'Handle With Care',
+    desc: 'Deliver Fragile Cargo with nine tenths of it intact.',
+    lp: 10
+  },
+  {
+    id: 'scenery',
+    name: 'Use the Scenery',
+    desc: 'Finish 10 foes by throwing them into a fire barrel, a drum or a live floor.',
+    lp: 10,
+    stat: 'envkills',
+    n: 10
+  },
   { id: 'c25', name: 'Chain Reaction', desc: 'Land a 25-hit combo.', lp: 10, stat: 'combo', n: 25 },
   {
     id: 'c60',
@@ -5942,7 +5957,17 @@ const G = {
   denPrompt: null,
   briefFromDen: false
 };
-const PARTY = { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {} };
+const PARTY = {
+  creds: 0,
+  bag: [],
+  stash: [],
+  med: 2,
+  contract: null,
+  ally: null,
+  crew: {},
+  safe: {},
+  turfs: []
+};
 let PL = [];
 
 const RUNNER_KEYS = [
@@ -6149,7 +6174,7 @@ function restoreRunner(r, i) {
 function restoreParty(sp, extra) {
   Object.assign(
     PARTY,
-    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {} },
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {}, turfs: [] },
     extra || {},
     isObj(sp) ? sp : {}
   );
@@ -7785,6 +7810,104 @@ function tryGrab(p, dx) {
     return true;
   }
   return false;
+}
+
+/* ===== src/js/game/finishers.js ===== */
+/* Cyber City Tactics · src/js/game/finishers.js
+ * Environmental finishers: throw a foe into the street itself. A burning barrel by the back wall, a drum lying
+ * on the floor, or the live lane of a wired floor finishes them on the spot (bosses take a quarter of their
+ * health instead), and they drop their creds early, with a shot at gear. Everything checks while a thrown foe
+ * is in the air (upEnemy calls envTick), so it works with every throw: forward, back and into another lane.
+ *
+ * The street's barrels and lamps come from fixtureAt(), which the renderer uses too, so the barrel you see is
+ * the barrel that burns.
+ * Loaded as a classic script after props.js: every file shares one global scope, in the order in index.html. */
+const FIX_STEP = 260;
+// cheap integer hash -> 0..1 (the same as atmos.js uses), for things that must look random but stay put
+const fixHash = n => {
+  n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d);
+  n = Math.imul(n ^ (n >>> 12), 0x297a2d39);
+  return ((n ^ (n >>> 15)) >>> 0) / 4294967296;
+};
+/** The k-th street fixture by the back wall: { x, barrel } in world coordinates, or null for a gap. */
+function fixtureAt(k, S) {
+  const h = fixHash(k * 6151 + 29);
+  if (h < 0.3) return null;
+  const x = k * FIX_STEP + 40 + fixHash(k * 37) * 150,
+    tr = G.world && G.wd ? traderOf(G.wd) : null;
+  if (tr && Math.abs(x - tr.x) < 50) return null; // Sable's corner has her own sign
+  // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
+  return { x, barrel: !!((S.market || (!S.tunnel && !S.grid)) && h < 0.62) };
+}
+const envOutdoors = S => !!S && !G.dun && !S.matrix && !G.drive && !G.stealth && !G.flight;
+/** A burning barrel within reach of x, if the street has one there. */
+function barrelAt(x) {
+  const S = curS();
+  if (!envOutdoors(S)) return null;
+  const k0 = Math.floor((x - 200) / FIX_STEP);
+  for (let k = k0; k <= k0 + 2; k++) {
+    const f = fixtureAt(k, S);
+    if (f && f.barrel && Math.abs(f.x - x) < 14) return f;
+  }
+  return null;
+}
+const ENV = {
+  fire: { s: 'INTO THE FIRE', c: '#ff6a3d' },
+  drum: { s: 'KABOOM', c: '#ffc63d' },
+  wire: { s: 'SHORTED OUT', c: '#45d2ff' }
+};
+/** Each step a thrown foe is in the air: did they land in something? */
+function envTick(e) {
+  if (e.envDone || e.state === 'dead' || !e.thrown) return;
+  // a barrel by the back wall: thrown into the back lane
+  if (e.y < FY0 + 16 && barrelAt(e.x)) return envFinish(e, 'fire');
+  // a drum on the floor
+  const dr = G.props.find(
+    pr => pr.kind === 'drum' && !pr.held && Math.abs(pr.x - e.x) < 14 && Math.abs(pr.y - e.y) < 10 && e.z < 24
+  );
+  if (dr) {
+    G.props = G.props.filter(pr => pr !== dr);
+    dr.src = e.thrown.kind === 'player' ? e.thrown : null;
+    dr.team = 0;
+    dr.dmg = 28 + ((e.thrown.D && e.thrown.D.melee) || 0);
+    dr.z = e.z;
+    envFinish(e, 'drum');
+    shatter(dr); // and the blast takes whoever's standing near
+    return;
+  }
+  // the live lane of a wired floor, while it's live
+  const h = G.hazard;
+  if (h && h.k === 'shock' && e.z < 8) {
+    const c = h.t % 240;
+    if (c >= 70 && c < 170 && e.y >= laneY(h.lane) && e.y < laneY(h.lane + 1)) return envFinish(e, 'wire');
+  }
+}
+function envFinish(e, k) {
+  const src = e.thrown && e.thrown.kind === 'player' ? e.thrown : null,
+    E = ENV[k],
+    dir = Math.sign(e.vx) || 1;
+  e.envDone = true;
+  const boss = e.d && e.d.boss;
+  const dmg = boss ? Math.round(e.maxHp * 0.25) : e.hp + 1;
+  // the loot comes out first: creds, and sometimes gear
+  if (!boss && !e.revived) {
+    drop('cred', e.x, e.y + 4, { v: 20 + depth() * 12 });
+    if (Math.random() < 0.25) drop('gear', e.x + 10, e.y + 6, { item: randItem(G.stage, false) });
+  }
+  if (k === 'fire') e.burnT = Math.max(e.burnT || 0, 180);
+  burst(e.x, e.y, e.z + 10, E.c, 18);
+  G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: E.c, life: 18, max: 18, r: 30 });
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 60, s: E.s, c: E.c, life: 70 });
+  G.shake = Math.max(G.shake, 7);
+  if (k === 'wire') sfx.zap();
+  else sfx.boom();
+  e.hp -= dmg;
+  e.flash = 10;
+  if (e.hp <= 0) {
+    e.thrown = null;
+    kill(e, dir, { src });
+  }
+  if (src) bump('envkills');
 }
 
 /* ===== src/js/game/runners.js ===== */
@@ -9842,6 +9965,8 @@ function upEnemy(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
   if (e.thrown && e.z > 0) {
+    envTick(e); // a barrel, a drum or a live floor on the way down
+    if (e.state === 'dead') return;
     if (e.laneV) e.y = clamp(e.y + e.laneV, FY0 + 6, FY1); // thrown across the lanes
     for (const o of G.ents) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;
@@ -12035,6 +12160,7 @@ function startWorld(coop, ch) {
     ally: null,
     crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
     safe: {},
+    turfs: [],
     ice: 2
   });
   G.wd = ch ? newWorld(ch.level, ch.seed) : newWorld(1);
@@ -12076,7 +12202,8 @@ function saveWorld() {
             courDone: w.courDone,
             clock: w.clock,
             prog: w.prog,
-            medUsed: !!w.medUsed
+            medUsed: !!w.medUsed,
+            turf: w.turf || null
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -12128,6 +12255,8 @@ function loadWorld(s) {
   if (!isObj(G.wd.fac)) G.wd.fac = {};
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
+  if (!CREWS.includes(G.wd.turf)) G.wd.turf = null;
+  if (!Array.isArray(PARTY.turfs)) PARTY.turfs = [];
   for (const k of Object.keys(G.wd.prog))
     if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
@@ -12409,10 +12538,12 @@ function worldTick() {
   }
   blockEventTick(w);
   factionTick(w);
+  turfTick(w);
   w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
-    if (G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
+    // a block a friendly crew holds has no hostile gangs walking it
+    if (!w.turf && G.ents.filter(e => e.team === 1 && e.state !== 'dead' && !e.d.passive).length < 3) {
       const k = ['ganger', 'ganger', 'orc', 'shaman'];
       for (let i = 0; i < 2 + (w.level > 2 ? 1 : 0) + (isNight(w) ? 1 : 0); i++)
         spawnEnemy(pick(k), i % 2 ? -1 : 1);
@@ -12653,6 +12784,106 @@ function safeUpHtml() {
     })
     .join('')}</div>
   <p class="ds">${n} of ${Object.keys(SAFE_UPS).length} built.</p>`;
+}
+
+/* ===== src/js/modes/turf.js ===== */
+/* Cyber City Tactics · src/js/modes/turf.js
+ * Crew turf. Clear every crew building on a block (its hideouts and clubs) and the crew you stand best with
+ * moves in, if they're at least warm to you (standing +10): the cleared doors carry their name, their people
+ * walk the street instead of hostile gangs, and every time you move on to a new block, each block you hold
+ * pays you a tithe. Let your standing with them drop below +10 and they cut ties: the turf is gone.
+ *
+ * The block's holder is G.wd.turf (saved with the block); the blocks you hold are PARTY.turfs, saved with the
+ * Sprawl party.
+ * Loaded as a classic script after sprawl.js: every file shares one global scope, in the order in index.html. */
+const TURF_MIN = 10; // standing a crew needs to take a block, and to keep it
+const TURF_MAX = 6; // blocks held at once (the oldest is let go)
+const tithe = lv => 60 + lv * 30;
+const turfs = () => (Array.isArray(PARTY.turfs) ? PARTY.turfs.filter(t => isObj(t) && FACTIONS[t.crew]) : []);
+const crewBuildings = w =>
+  w.street.buildings.filter(b => (b.type === 'hideout' || b.type === 'club') && CREWS.includes(b.fac));
+
+/** After a cache is looted: was that the block's last crew building? Then someone moves in. */
+function turfCheck() {
+  const w = G.wd;
+  if (!w || w.turf) return;
+  const cb = crewBuildings(w);
+  if (!cb.length || !cb.every(b => w.looted.includes(b.id))) return;
+  const crew = CREWS.slice().sort((a, b) => facStand(b) - facStand(a))[0];
+  const p = alive()[0];
+  if (facStand(crew) < TURF_MIN) {
+    if (p) say(p, 'NOBODY STEPS IN', '#a79dc2', 90, 90);
+    tip('turf', 'Clear a block of its crews while one of them is warm to you (+10) and they take it over.');
+    return;
+  }
+  w.turf = crew;
+  const list = turfs().filter(t => t.lv !== w.level);
+  list.push({ lv: w.level, crew });
+  while (list.length > TURF_MAX) list.shift();
+  PARTY.turfs = list;
+  if (list.length >= 3) feat('turf');
+  const F = FACTIONS[crew];
+  if (p) say(p, F.name.toUpperCase() + ' TAKE THE BLOCK', F.col, 100, 120);
+  tip(
+    'turf',
+    `The ${F.name} hold this block now: their people walk the street, and every block you hold pays a tithe when you move on.`
+  );
+  saveWorld();
+}
+/** On the street each step: a friendly patrol now and then, and the turf lost if standing slips. */
+function turfTick(w) {
+  if (!w.turf) return;
+  if (facStand(w.turf) < TURF_MIN) return turfLose(w.turf);
+  w.turfT = (w.turfT === undefined ? 900 : w.turfT) - 1;
+  if (w.turfT > 0) return;
+  w.turfT = ri(2000, 2800);
+  const p = alive()[0];
+  if (!p || G.ents.some(e => e.turfPatrol && e.state !== 'dead')) return;
+  const F = FACTIONS[w.turf],
+    e = spawnSummon('crew', p, 1500, 1);
+  e.turfPatrol = true;
+  e.name = F.name + ' patrol';
+  e.pal = Object.assign({}, e.pal, { hair: F.col, acc: F.col });
+}
+function turfLose(crew) {
+  const F = FACTIONS[crew],
+    held = turfs();
+  if (!held.some(t => t.crew === crew) && !(G.wd && G.wd.turf === crew)) return;
+  PARTY.turfs = held.filter(t => t.crew !== crew);
+  if (G.wd && G.wd.turf === crew) G.wd.turf = null;
+  const p = alive()[0];
+  if (p) say(p, F.name.toUpperCase() + ' CUT TIES', '#ff3d4a', 100, 120);
+}
+/** Moving to a new block: every block still held pays up; any crew gone cold takes theirs back. */
+function turfTithe() {
+  let total = 0;
+  for (const t of turfs()) {
+    if (facStand(t.crew) < TURF_MIN) {
+      turfLose(t.crew);
+      continue;
+    }
+    total += tithe(t.lv);
+  }
+  if (total) {
+    PARTY.creds += total;
+    G.texts.push({ x: G.camX + W / 2, y: 130, z: 0, s: 'TITHE · ¥' + total, c: '#ffc63d', life: 110 });
+  }
+  G.titheLast = total;
+  return total;
+}
+/** The safehouse's Lay low tab: what you hold and what it pays. */
+function turfHtml() {
+  const held = turfs();
+  if (!held.length && !G.wd.turf)
+    return `<div class="job"><div class="row" style="justify-content:space-between"><b>Turf</b><span class="st" style="color:var(--muted)">None yet</span></div>
+    <span style="color:var(--muted);font-size:13px">Clear every hideout and club on a block while a crew is warm to you (+${TURF_MIN}) and they take the block over. Each block you hold pays a tithe every time you move on.</span></div>`;
+  return `<div class="job"><div class="row" style="justify-content:space-between"><b>Turf</b><span class="st" style="color:var(--gold)">¥${held.reduce((t, x) => t + tithe(x.lv), 0)} a block</span></div>
+    <span style="color:var(--muted);font-size:13px">${held
+      .map(
+        t =>
+          `Block ${t.lv}: <b style="color:${FACTIONS[t.crew].col}">${esc(FACTIONS[t.crew].name)}</b> (¥${tithe(t.lv)})`
+      )
+      .join(' · ')}. Keep them at +${TURF_MIN} or better or they cut ties.</span></div>`;
 }
 
 /* ===== src/js/modes/choices.js ===== */
@@ -13079,6 +13310,7 @@ function lootChest(t) {
   if (fam || Math.random() < 0.4) drop('med', t.x + 20, t.y + 14);
   if (!G.wd.looted.includes(b.id)) {
     G.wd.looted.push(b.id);
+    turfCheck();
     // the block remembers: shops nearby cheaper for a cleared crew, dearer for a robbed home or business
     const crew = b.type === 'hideout' || b.type === 'club',
       hurtFolk = !isGood(b) && !isShop(b);
@@ -13785,7 +14017,8 @@ function startTraining() {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
   G.training = true;
   G.arena = false;
@@ -14154,7 +14387,8 @@ function startArena(coop, challenge) {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
   // the daily challenge sets runner 1's archetype for this run only, leaving your own pick alone
   PL.forEach((p, i) =>
@@ -14618,7 +14852,8 @@ function jobCrew(coop) {
     contract: null,
     ally: null,
     crew: {},
-    safe: {}
+    safe: {},
+    turfs: []
   });
 }
 // karma earned on a job: on the runners now, and counted so it survives the trip back to the Den
@@ -14709,6 +14944,9 @@ function cjobLocked() {
  * (no ammo used; hold left to fire behind), and solo an autogun on the roof does the shooting. Kagemori
  * pursuit cars ram from behind all the way, and the Interceptor still waits at the end.
  *
+ * The delivery run (Fragile Cargo) carries cryo-cases on the bikes: the cargo has its own bar, every crash and
+ * hit costs some of it, the pay is the share that arrives, and lose it all and the job is over.
+ *
  * Everything on the road is an ordinary entity in G.ents (riders carry a `bk` bike, vehicles a `veh` kind), so
  * couch co-op and online co-op work exactly as they do on foot: the friend's runner is just another rider.
  * update() hands the whole step to driveUpdate() while G.drive is set.
@@ -14740,6 +14978,21 @@ const DRIVE_JOBS = {
     fail: 'BOXED IN',
     failTxt: 'The crews boxed you in before you cleared the market. Juno only pays for the takedowns.'
   },
+  delivery: {
+    name: 'Fragile Cargo',
+    sub: "Cryo-cases for Doc's clinic through the Neon Market. Speed pays; every bump costs",
+    stage: 1,
+    len: 10500,
+    time: 105 * 60,
+    bikers: 1.1,
+    traffic: 1.3,
+    cargo: true,
+    pay: 420,
+    karma: 170,
+    fail: 'TOO LATE',
+    failTxt: 'The cryo-cases thawed before they got to Doc. Juno only pays for the takedowns.',
+    lostTxt: 'The cryo-cases didn’t make it. Doc pays nothing for broken glass; Juno covers the takedowns.'
+  },
   chase: {
     name: 'Kagemori Pursuit',
     sub: "Pixel's stolen Kagemori car, out of the Arcology garage with the corp's pursuit cars on the bumper",
@@ -14758,6 +15011,8 @@ const DRIVE_JOBS = {
   }
 };
 const CAR = { autoT: 38, autoDmg: 12, slack: 26 };
+// the delivery run: what each mishap costs the cargo (out of 100)
+const CARGO = { crash: 12, wreck: 25, hit: 0.6, mint: 90 };
 const carOf = () => (G.drive && driveJob().car ? PL[0] : null); // the driver
 const isPass = p => !!(p && p.bk && p.bk.pass);
 const DRIVE = {
@@ -14809,7 +15064,8 @@ function startDrive(id, coop) {
     spawnX: 520,
     carX: 380,
     oilX: 1500,
-    pcarX: 900
+    pcarX: 900,
+    cargo: J.cargo ? 100 : null
   };
   G.ddist = 0;
   G.dtime = 0;
@@ -15212,6 +15468,7 @@ function driveCrash(p, frames, dmg) {
   if (isPass(p)) return carOf() && driveCrash(carOf(), frames, dmg);
   const b = p.bk;
   if (!b || b.crash > 0 || p.inv > 0) return;
+  cargoHit(p, p.hp - dmg <= 0 ? CARGO.wreck : CARGO.crash);
   p.hp -= dmg;
   p.flash = 8;
   G.drive.crashes++;
@@ -15234,6 +15491,7 @@ function driveCrash(p, frames, dmg) {
 function driveHurt(p, dmg) {
   if (isPass(p)) return carOf() && driveHurt(carOf(), dmg); // anything that hits the window hits the car
   if (!p.bk || p.bk.crash > 0 || p.inv > 0) return;
+  cargoHit(p, dmg * CARGO.hit);
   p.hp -= dmg;
   p.flash = 8;
   sfx.hurt();
@@ -15480,6 +15738,27 @@ function driveSpawns(D, J) {
     musicPlay('boss');
   }
 }
+/* ---------- the delivery run ---------- */
+function cargoHit(p, n) {
+  const D = G.drive;
+  if (!D || D.cargo == null || D.done || !(n > 0)) return;
+  const was = D.cargo;
+  D.cargo = Math.max(0, Math.round((D.cargo - n) * 10) / 10);
+  if (Math.floor(was / 10) !== Math.floor(D.cargo / 10))
+    G.texts.push({
+      x: p.x,
+      y: p.y,
+      z: p.z + 60,
+      s: 'CARGO ' + Math.ceil(D.cargo) + '%',
+      c: '#45d2ff',
+      life: 40,
+      sm: true
+    });
+  if (D.cargo <= 0) {
+    D.cargoLost = true;
+    driveEnd(false);
+  }
+}
 /* ---------- the car chase ---------- */
 // the passenger rides at the window: no steering, a gun that doesn't use ammo, spells as usual
 function carPassenger(p, I) {
@@ -15523,7 +15802,7 @@ function driveEnd(win) {
     x: G.camX + W / 2,
     y: 150,
     z: 0,
-    s: win ? 'DELIVERED' : driveJob().fail || 'TOO LATE',
+    s: win ? 'DELIVERED' : D.cargoLost ? 'CARGO LOST' : driveJob().fail || 'TOO LATE',
     c: win ? '#ffc63d' : '#ff3d4a',
     life: 110,
     big: true
@@ -15534,8 +15813,14 @@ function driveFinish() {
   const D = G.drive,
     J = driveJob(),
     left = Math.max(0, Math.round((J.time - G.dtime) / 60));
-  const pay = D.win ? J.pay + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 : D.takedowns * 5,
+  // the delivery run pays for the share of the cargo that arrives, and a bonus if it's nearly all there
+  const share = D.cargo == null ? 1 : D.cargo / 100,
+    mint = D.cargo != null && D.cargo >= CARGO.mint;
+  const pay = D.win
+      ? Math.round(J.pay * share) + D.takedowns * 10 + (D.bossDown ? 150 : 0) + left * 2 + (mint ? 120 : 0)
+      : D.takedowns * 5,
     karma = D.win ? J.karma + D.takedowns * 4 + (D.bossDown ? 60 : 0) : 0;
+  if (mint && D.win) feat('mint');
   PARTY.creds += pay;
   if (karma) jobKarma(karma);
   const rec = store.load('cs_drive') || {},
@@ -15559,6 +15844,9 @@ function driveFinish() {
     takedowns: D.takedowns,
     crashes: D.crashes,
     boss: D.bossDown,
+    cargo: D.cargo,
+    lost: !!D.cargoLost,
+    mint: mint && D.win,
     pay,
     karma,
     best,
@@ -15621,11 +15909,12 @@ function jobsHtml() {
 function driveOverHtml() {
   const r = G.dresult || {},
     J = driveJob();
-  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
-    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc(J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
+  return `<div class="card"><p class="eyebrow">Job · ${esc(J.name)}${r.coop ? ' · co-op' : ''}</p><h1>${r.win ? 'Delivered' : r.lost ? 'Cargo lost' : J.fail ? J.fail[0] + J.fail.slice(1).toLowerCase() : 'Too late'}</h1>
+    <p>${r.win ? `Across in ${fmtTime(r.time)}.${r.best ? ' Your best time yet.' : ''}` : esc((r.lost && J.lostTxt) || J.failTxt || 'Out of time. Juno only pays for the takedowns.')}</p>
     <div class="list">
       <div class="item"><div><div class="nm">Takedowns</div></div><div class="acts">${r.takedowns || 0}</div></div>
       <div class="item"><div><div class="nm">Crashes</div></div><div class="acts">${r.crashes || 0}</div></div>
+      ${r.cargo != null ? `<div class="item"><div><div class="nm">Cargo</div></div><div class="acts">${Math.ceil(r.cargo)}% arrived${r.mint ? ' (+¥120, mint)' : ''}</div></div>` : ''}
       <div class="item"><div><div class="nm">Interceptor</div></div><div class="acts">${r.boss ? (r.win ? 'Wrecked (+¥150)' : 'Wrecked') : 'Got away'}</div></div>
       <div class="item"><div><div class="nm">Paid</div></div><div class="acts" style="color:var(--gold)">¥${r.pay || 0}${r.karma ? ` · ${r.karma} karma` : ''}</div></div>
     </div>
@@ -20779,13 +21068,12 @@ function drawStreetLights(S, cx) {
     lamp = lampColor(S),
     lite = lowFx();
   for (let k = k0; k * step - cx < W + 120; k++) {
-    const h = hash01(k * 6151 + 29);
-    if (h < 0.3) continue;
-    const x = k * step + 40 + hash01(k * 37) * 150 - cx,
-      y = FY0 + 5;
-    if (tr && Math.abs(x + cx - tr.x) < 50) continue; // leave Sable's corner to her own sign
-    // the Barrens and the Sprawl burn barrels; the corp districts and tunnels get proper lamps
-    const barrel = (S.market || (!S.tunnel && !S.grid)) && h < 0.62;
+    // where they stand comes from fixtureAt() (game/finishers.js), so a barrel you see is one that burns
+    const f = fixtureAt(k, S);
+    if (!f) continue;
+    const x = f.x - cx,
+      y = FY0 + 5,
+      barrel = f.barrel;
     if (barrel) {
       const fl = 0.75 + 0.25 * Math.sin(G.t * 0.31 + k * 2.1) * Math.sin(G.t * 0.13 + k);
       if (!lite) glow(x, y - 4, 42, 12, '#ff6a3d', 0.22 * fl); // light pooled on the ground
@@ -21481,6 +21769,21 @@ function drawDriveHud() {
       ctx.fillRect(bx + bw + 3 + j * 3, by - 1 + i * 3, 3, 3);
     }
   const left = (J.time - (G.dtime || 0)) / 60;
+  // the delivery run's cargo, under the progress line
+  const cg = G.drive && G.drive.cargo;
+  if (cg != null) {
+    // the middle of the box only, clear of the runners' panels on either side
+    const cx0 = bx + bw * 0.25,
+      cw = bw * 0.5,
+      lw = 52;
+    ctx.fillStyle = 'rgba(11,8,18,.75)';
+    ctx.fillRect(cx0 - 6, by + 22, cw + 12, 14);
+    ctx.fillStyle = '#2a2436';
+    ctx.fillRect(cx0 + lw, by + 27, cw - lw, 4);
+    ctx.fillStyle = cg > 50 ? '#45d2ff' : cg > 25 ? '#ffc63d' : '#ff3d4a';
+    ctx.fillRect(cx0 + lw, by + 27, ((cw - lw) * cg) / 100, 4);
+    txt('CARGO ' + Math.ceil(cg) + '%', cx0, by + 32, 9, '#9fe9ff', 'left');
+  }
   txt(
     fmtTime(Math.max(0, J.time - (G.dtime || 0))),
     W / 2,
@@ -22676,9 +22979,18 @@ function drawBuildings(base) {
       ctx.fillStyle = '#7a5a34';
       for (const yy of [-24, -14]) ctx.fillRect(dx - 15, base + yy, 30, 3);
     } else if (looted && (b.type === 'hideout' || b.type === 'club')) {
+      // a cleared crew door says so; on a block a friendly crew holds, it carries their name in their colour
+      const T = G.wd && G.wd.turf && FACTIONS[G.wd.turf];
       ctx.font = '600 9px Teko, Impact, sans-serif';
-      ctx.fillStyle = goodCol();
-      ctx.fillText('CLEARED', dx, base - 61);
+      ctx.fillStyle = T ? T.col : goodCol();
+      ctx.fillText(T ? T.name.toUpperCase() + ' TURF' : 'CLEARED', dx, base - 61);
+      if (T) {
+        ctx.fillStyle = T.col;
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(dx - 12, base - 40, 24, 2);
+        ctx.fillRect(dx - 8, base - 36, 16, 2);
+        ctx.globalAlpha = 1;
+      }
     }
     if (shopShut(b)) {
       ctx.font = '600 9px Teko, Impact, sans-serif';
@@ -22982,7 +23294,8 @@ function drawHudTop() {
         ? G.dun.b.name.toUpperCase() + ' · ' + (G.dun.room + 1) + '/' + G.dun.rooms
         : 'BLOCK ' +
           G.wd.level +
-          (G.wd.street.event ? ' · ' + EVENTS[G.wd.street.event].name.toUpperCase() : '')
+          (G.wd.street.event ? ' · ' + EVENTS[G.wd.street.event].name.toUpperCase() : '') +
+          (G.wd.turf && !G.wd.street.event ? ' · ' + FACTIONS[G.wd.turf].name.toUpperCase() + ' TURF' : '')
       : G.arena
         ? 'WAVE ' + G.awave
         : G.training
@@ -24247,6 +24560,7 @@ function safeHtml() {
     <span style="color:var(--muted);font-size:13px">${cleared(w)} crew hideout${cleared(w) === 1 ? '' : 's'} cleared (shops 10% cheaper each), ${robbed(w)} home${robbed(w) === 1 ? '' : 's'} or business${robbed(w) === 1 ? '' : 'es'} robbed (10% dearer each, and they stay boarded up). Leave a building halfway and you come back to the room you left.</span></div>
   <div class="job"><div class="row" style="justify-content:space-between"><b>Street cred ${rp > 0 ? '+' : ''}${rp}</b><span class="st" style="color:${rp >= 30 ? 'var(--ok)' : rp <= -30 ? 'var(--neon)' : 'var(--muted)'}">${rp >= 30 ? 'Respected' : rp <= -30 ? 'Feared' : 'Unknown'}</span></div>
     <span style="color:var(--muted);font-size:13px">At +30 the doc and Kit give you 15% off. At −30 Ratchet pays 60% instead of 40% for your loot, because nobody else will deal with you.</span></div>
+  ${turfHtml()}
   <div class="job"><div class="row" style="justify-content:space-between"><b>Move to a new block</b><span class="st" style="color:var(--gold)">${done}/${total} cleaned out</span></div>
     <span style="color:var(--muted);font-size:13px">A fresh street with tougher locks, meaner guards and better loot. Heat stays behind; cred comes with you.</span>
     <div class="row"><button class="btn sm" data-a="newblock">Go to block ${w.level + 1}</button></div></div>
@@ -25185,7 +25499,8 @@ function newRun(coop, noBrief) {
     contract: null,
     ally: null,
     crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
-    safe: {}
+    safe: {},
+    turfs: []
   });
   G.debrief = null;
   G.stock = [];
@@ -25754,6 +26069,7 @@ ov.addEventListener('click', e => {
       G.wd.fac = fac || {};
       G.wd.copKills = ck;
       safeArmory();
+      turfTithe();
       G.stock = [
         randItem(G.wd.level, false),
         randItem(G.wd.level, false),

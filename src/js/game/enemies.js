@@ -28,6 +28,8 @@ function upEnemy(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
   if (e.thrown && e.z > 0) {
+    envTick(e); // a barrel, a drum or a live floor on the way down
+    if (e.state === 'dead') return;
     if (e.laneV) e.y = clamp(e.y + e.laneV, FY0 + 6, FY1); // thrown across the lanes
     for (const o of G.ents) {
       if (o === e || o.team !== 1 || o.state === 'dead' || e.thrownHit.includes(o)) continue;

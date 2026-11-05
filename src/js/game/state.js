@@ -58,7 +58,17 @@ const G = {
   denPrompt: null,
   briefFromDen: false
 };
-const PARTY = { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {} };
+const PARTY = {
+  creds: 0,
+  bag: [],
+  stash: [],
+  med: 2,
+  contract: null,
+  ally: null,
+  crew: {},
+  safe: {},
+  turfs: []
+};
 let PL = [];
 
 const RUNNER_KEYS = [
@@ -265,7 +275,7 @@ function restoreRunner(r, i) {
 function restoreParty(sp, extra) {
   Object.assign(
     PARTY,
-    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {} },
+    { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null, crew: {}, safe: {}, turfs: [] },
     extra || {},
     isObj(sp) ? sp : {}
   );

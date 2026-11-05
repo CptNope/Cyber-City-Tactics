@@ -592,7 +592,8 @@ function newRun(coop, noBrief) {
     contract: null,
     ally: null,
     crew: {}, // a fresh party: no crew loyalty or safehouse upgrades carried over from another mode
-    safe: {}
+    safe: {},
+    turfs: []
   });
   G.debrief = null;
   G.stock = [];

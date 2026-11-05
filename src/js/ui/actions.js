@@ -559,6 +559,7 @@ ov.addEventListener('click', e => {
       G.wd.fac = fac || {};
       G.wd.copKills = ck;
       safeArmory();
+      turfTithe();
       G.stock = [
         randItem(G.wd.level, false),
         randItem(G.wd.level, false),
