@@ -3,7 +3,8 @@
  *  - registers the service worker (sw.js) and shows an "update ready" bar when a new version has downloaded
  *  - captures the browser's install prompt so Settings and the title screen can offer "Install app"
  *  - asks the browser to keep saves from being evicted (persistent storage)
- *  - save backups: export every save to a JSON file and import it on another device
+ *  - save backups: export every save to a JSON file and import it on another device (save codes and the sync
+ *    file are in sync.js)
  *  - app shortcuts: ?go=daily, ?go=arena, ?go=sprawl or ?go=codex open that screen on launch
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
@@ -76,14 +77,15 @@ function pwaSettingsRows(row) {
       'Use your browser menu: “Install app” or “Add to Home screen”.',
       '<span class="ds">Browser menu</span>'
     );
+  const fromSync = G.importData && G.importData.from === 'sync';
   const imp = G.importData
-    ? `<div class="job" style="border-color:var(--gold)"><b>Replace your saves with this backup?</b><span style="color:var(--muted);font-size:13px">Backup from ${esc(G.importData.date || 'an unknown date')} · ${Object.keys(G.importData.data).length} save slots. Everything on this device is replaced and the game restarts.</span>
-      <div class="row"><button class="btn sm" data-a="importok">Replace and restart</button><button class="btn sm ghost" data-a="importno">Cancel</button></div></div>`
+    ? `<div class="job" style="border-color:var(--gold)"><b>${fromSync ? 'Your sync file has newer saves. Load them?' : `Replace your saves with this ${G.importData.from === 'code' ? 'code' : 'backup'}?`}</b><span style="color:var(--muted);font-size:13px">Saved ${esc(G.importData.date || 'on an unknown date')} · ${Object.keys(G.importData.data).length} save slots. Everything on this device is replaced and the game restarts.</span>
+      <div class="row"><button class="btn sm" data-a="importok">${fromSync ? 'Load and restart' : 'Replace and restart'}</button><button class="btn sm ghost" data-a="importno">${fromSync ? 'Keep this device’s saves' : 'Cancel'}</button></div></div>`
     : G.importErr
       ? `<p class="say"><b>Import failed</b>${esc(G.importErr)}</p>`
       : '';
-  // The claude.ai preview can't download or pick files, so backups are only offered on the real site.
-  if (/claude\.ai|claudeusercontent/.test(location.hostname)) return install;
+  // The claude.ai preview can't download or pick files, so only save codes are offered there.
+  if (/claude\.ai|claudeusercontent/.test(location.hostname)) return install + syncSettingsRows(row) + imp;
   return (
     install +
     row(
@@ -91,6 +93,7 @@ function pwaSettingsRows(row) {
       'Download every save (campaign, Sprawl, Arena scores, your legend) as a file, or load one from another device',
       '<span class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ghost" data-a="export">Export</button><button class="btn sm ghost" data-a="import">Import</button></span>'
     ) +
+    syncSettingsRows(row) +
     imp +
     `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}</p>`
   );
@@ -172,15 +175,9 @@ addEventListener(
 /* ---------- save backups ---------- */
 const SAVE_PREFIX = 'cs_';
 function pwaExport() {
-  const data = {};
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(SAVE_PREFIX)) data[k] = localStorage.getItem(k);
-    }
-  } catch (err) {}
-  const date = new Date().toISOString().slice(0, 10);
-  const blob = new Blob([JSON.stringify({ app: 'cyber-city-tactics', v: 1, date, data }, null, 1)], {
+  const b = saveBundle(),
+    date = b.date;
+  const blob = new Blob([JSON.stringify(b, null, 1)], {
     type: 'application/json'
   });
   const a = document.createElement('a');
@@ -204,8 +201,8 @@ function pwaImportPick() {
   };
   inp.click();
 }
-/** Validate a backup file's text; on success the Settings screen asks for confirmation. */
-function pwaImportText(t) {
+/** Validate a backup's text (a file, a save code or the sync file: `from`); on success Settings asks first. */
+function pwaImportText(t, from) {
   G.importData = null;
   G.importErr = null;
   try {
@@ -215,9 +212,17 @@ function pwaImportText(t) {
     const keys = Object.keys(o.data).filter(k => k.startsWith(SAVE_PREFIX) && typeof o.data[k] === 'string');
     if (!keys.length) throw new Error('empty');
     for (const k of keys) JSON.parse(o.data[k]); // every slot must be valid JSON
-    G.importData = { date: o.date, data: Object.fromEntries(keys.map(k => [k, o.data[k]])) };
+    G.importData = {
+      date: o.date,
+      stamp: +o.stamp || 0,
+      from: from || 'file',
+      data: Object.fromEntries(keys.map(k => [k, o.data[k]]))
+    };
   } catch (err) {
-    G.importErr = "That file isn't a Cyber City Tactics save backup.";
+    G.importErr =
+      from === 'code'
+        ? "That code doesn't hold Cyber City Tactics saves."
+        : "That file isn't a Cyber City Tactics save backup.";
   }
   if (G.mode === 'settings') renderOv();
 }
@@ -238,6 +243,12 @@ function pwaImportApply() {
     if (G.mode === 'settings') renderOv();
     return;
   }
+  // loaded from the sync file: this device now matches it. Loaded from a file or a code: a deliberate change,
+  // so it counts as the newest saves and goes out to a linked sync file
+  const m = syncMeta();
+  if (d.from === 'sync') m.stamp = m.synced = d.stamp;
+  else m.stamp = Math.max(Date.now(), (m.stamp || 0) + 1);
+  syncMetaSet(m);
   location.reload();
 }
 

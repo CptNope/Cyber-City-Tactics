@@ -88,13 +88,35 @@ function drawPanel(p, x) {
     12,
     '#ffe28a'
   );
+  // Archon: the next cast is free on every fourth, so count up to it
+  const arc = has(p, 'archon') ? (p.casts || 0) % 4 : -1,
+    freeNext = arc === 3;
   txt(
-    sp.name.toUpperCase() + ' ' + spellCost(p, sp) + (p.spells.length > 1 ? ' ⇄' : ''),
+    sp.name.toUpperCase() +
+      ' ' +
+      (freeNext ? 'FREE ×2' : spellCost(p, sp)) +
+      (p.spells.length > 1 ? ' ⇄' : '') +
+      (arc >= 0 && !freeNext ? ' ' + '◆'.repeat(arc) + '◇'.repeat(3 - arc) : ''),
     x + 104,
     41,
     12,
-    '#45d2ff'
+    freeNext && ((G.t >> 4) % 2 || RM) ? '#b98cff' : '#45d2ff'
   );
+  // skills that switch on by themselves frame the health bar: Berserker below 40% HP, Spirit Walk by a spirit
+  const tags = skillTags(p);
+  tags.forEach((t, i) => {
+    ctx.strokeStyle = t.col;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 1.5 - i * 2, 20.5 - i * 2, 99 + i * 4, 9 + i * 4);
+  });
+}
+/** Passive skills that are switched on right now, for the HUD (and the Skills tab). */
+function skillTags(p) {
+  const out = [];
+  if (has(p, 'berserk') && p.hp > 0 && p.hp < p.maxHp * 0.4)
+    out.push({ k: 'berserk', n: 'BERSERK', col: '#ff6a3d' });
+  if (has(p, 'swalk') && spiritNear(p)) out.push({ k: 'swalk', n: 'SPIRIT WALK', col: '#b98cff' });
+  return out;
 }
 function wrapTip(s, max) {
   ctx.font = '11px "Chakra Petch", sans-serif';

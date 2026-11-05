@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '4e588883ff6c';
+const VERSION = 'e7c3e98af235';
 const PRECACHE = [
   './',
   'index.html',
@@ -69,6 +69,7 @@ const PRECACHE = [
   'src/js/ui/overlay.js',
   'src/js/ui/actions.js',
   'src/js/pwa.js',
+  'src/js/sync.js',
   'src/js/main.js',
   'icons/apple-touch-icon.png',
   'icons/favicon-32.png',

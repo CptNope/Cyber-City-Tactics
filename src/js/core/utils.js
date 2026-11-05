@@ -44,6 +44,7 @@ const store = {
   set(k, v) {
     try {
       localStorage.setItem(k, JSON.stringify(v));
+      if (typeof syncTouch === 'function' && String(k).startsWith('cs_')) syncTouch();
       return true;
     } catch (e) {
       store.failed = (store.failed || 0) + 1;
@@ -53,6 +54,7 @@ const store = {
   del(k) {
     try {
       localStorage.removeItem(k);
+      if (typeof syncTouch === 'function' && String(k).startsWith('cs_')) syncTouch();
     } catch (e) {}
   }
 };

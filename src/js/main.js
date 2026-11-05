@@ -101,3 +101,4 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 setTimeout(fit, 300);
 pwaRegister();
 pwaShortcut();
+syncBoot();

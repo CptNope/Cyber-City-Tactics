@@ -30,8 +30,9 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `lobby.test.js` | headless | 39 | The online lobby Worker (server/worker.js), run in Node with an in-memory Durable Object stand-in. |
 | `livingsprawl.test.js` | headless | 32 | Day and night, the block’s memory of what you did, buildings that remember the room you left, sentry turrets and hacking in a fight. |
 | `market.test.js` | headless | 15 | District 4, the Undercity Market. |
-| `mastery.test.js` | headless | 19 | Archetype mastery: the tiers, the growing numbers, and every archetype's tier III twist. |
+| `mastery.test.js` | headless | 25 | Archetype mastery: the tiers, the growing numbers, and every archetype's tier III twist; the HUD's Archon counter and skill frames. |
 | `hackgames.test.js` | headless | 28 | The newer locks: which building gets which, Sequence, Trace and Firewall wins, misses and lockouts, icebreakers, Port Scanner, and the card. |
+| `sync.test.js` | headless | 42 | Cloud save: change stamps, save codes (round trip, junk, half codes, invite codes), and the sync file with a fake handle: first link, newer file offered, keep or load, older file overwritten, a missing file, Resume, Unlink. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

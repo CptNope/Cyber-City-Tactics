@@ -79,7 +79,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Active skills.**~~ Shipped: Ground Slam, Fan the Hammer, Summon Spirit and Short Circuit (the roadmap's Overload, renamed since it's the Decker archetype's special), unlocked by three points in a tree and picked for the ★ button on the Skills tab.
 - [x] ~~**A fifth tree: Shaman.**~~ Shipped: Spirit Kin, Hex, Ward Totem, Wild Call, Withering and Spirit Walk, plus the Totem active skill.
 - [x] ~~**Archetype mastery.**~~ Shipped: Mastery I and II (levels 15 and 20) make the archetype's special 25% stronger each, and Mastery III (level 25) changes how it works.
-- [ ] **Show skill effects in the HUD (S).** For example, a small Archon counter showing how many casts until the free one.
+- [x] ~~**Show skill effects in the HUD.**~~ Shipped: Archon counts the casts toward the free one on the spell line (FREE ×2 when it's next), and Berserker and Spirit Walk frame the health bar while they're on, with a callout as they switch on.
 
 ### The Sprawl
 - [x] ~~**Nightclubs and cop precincts.**~~ Shipped: dance-floor brawls, and precincts that open up at street cred +30.
@@ -167,7 +167,7 @@ Picked from what the graphics pass turned up:
 - [ ] **Deploy gate (S).** Deploy Pages from a workflow that only runs after CI passes.
 - [ ] **ES modules (M).** Move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses. The current split makes this a mechanical change, file by file.
 - [ ] **Type checking (S).** JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
-- [ ] **Cloud save (M).** Optional sync of the save backup through a file the player picks (File System Access API) or a share code.
+- [x] ~~**Cloud save.**~~ Shipped without a server: save codes (every save deflated into one line of text) and a sync file the game keeps up to date (File System Access API; put it in a cloud folder), with change stamps so a newer file is offered, never silently loaded.
 - [x] ~~**Full-screen on any device.**~~ The canvas fills every screen shape; wider views see more street, taller ones get HUD and control bands.
 - [x] ~~**Frame timing.**~~ Fixed-timestep logic with interpolated rendering, stall recovery, a crash-proof loop and adaptive graphics quality.
 - [x] ~~**Performance pass.**~~ Profiled: pixels, not script, limit slow devices, so caching layers wouldn't help. Shipped instead: a four-step quality ladder (sharpness, then effects, then ¾ resolution), sprite-based glows and atmosphere baked into existing fills.

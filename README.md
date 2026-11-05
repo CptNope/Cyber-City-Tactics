@@ -809,6 +809,9 @@ Cyber City Tactics is a Progressive Web App.
 - **Updates:** new versions download in the background. Between fights, an *A new version is ready* bar appears; tap **Update now** when it suits you. You're never pulled out of a fight.
 - **Shortcuts:** long-press the app icon for *Daily challenge*, *The Sprawl*, *Arena* and *Codex*.
 - **Your saves are safe:** the game asks the browser for persistent storage so saves aren't cleared to free space. Settings → *Save backup* → **Export** downloads every save as a file; **Import** loads it on another device.
+- **Cloud save, no account:** two ways to carry your saves between devices, both in Settings.
+  - **Save code:** *Make* packs every save into one line of text (a few thousand characters for a well-played game) to copy; *Enter* on the other device and paste it. Anyone with the code can load your progress, so keep it to yourself. Works everywhere, including the claude.ai preview.
+  - **Sync file** (Chrome and Edge on a computer or Android): *New file* and save it into a Dropbox, Google Drive, OneDrive or iCloud folder. From then on the game keeps that file up to date as it saves. On the other device, *Open file* and pick the same file. When the file holds newer saves than the device (by when they last changed, not the file date), the game asks whether to load them or keep the device's. After a browser restart it asks for one click (*Resume*) before touching the file again.
 - The screen stays awake while you play, and the game pauses itself when you switch away.
 
 ## Saves
@@ -862,6 +865,7 @@ src/js/modes/          the Sprawl, dungeons, hacking, training, Arena, jobs (dri
 src/js/render/         drawing and the HUD
 src/js/ui/             menus and buttons
 src/js/pwa.js          install, updates, backups, shortcuts
+src/js/sync.js         save codes and the sync file
 src/js/main.js         game loop and boot
 icons/, screenshots/   app icons and install-dialog screenshots
 docs/store/            store kit: trailer, cover, social card, screenshots and itch.io copy (tools/capture.mjs)

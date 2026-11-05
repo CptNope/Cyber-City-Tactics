@@ -200,6 +200,7 @@ ov.addEventListener('click', e => {
       pwaImportApply();
       break;
     case 'importno':
+      if (G.importData && G.importData.from === 'sync') syncKeepLocal();
       G.importData = null;
       G.importErr = null;
       renderOv();
@@ -209,8 +210,55 @@ ov.addEventListener('click', e => {
       setMode('settings');
       keep = false;
       break;
+    case 'codemake':
+      codeMake();
+      break;
+    case 'codecopy':
+      codeCopy();
+      break;
+    case 'codeenter':
+      G.codeIn = true;
+      G.codeOut = null;
+      G.codeMsg = '';
+      renderOv();
+      setTimeout(() => {
+        const t = document.getElementById('codeIn');
+        if (t) t.focus();
+      }, 30);
+      break;
+    case 'codeload': {
+      const t = document.getElementById('codeIn');
+      codeLoad(t ? t.value : '');
+      break;
+    }
+    case 'codeclose':
+      G.codeIn = false;
+      G.codeOut = null;
+      G.codeMsg = '';
+      renderOv();
+      break;
+    case 'synclink':
+      syncLink(false);
+      break;
+    case 'syncopen':
+      syncLink(true);
+      break;
+    case 'syncresume':
+      syncResume();
+      break;
+    case 'syncnow':
+      syncFlush();
+      break;
+    case 'syncoff':
+      syncUnlink();
+      break;
     case 'setdone':
-      G.importData = G.importErr = null;
+      // a newer sync file stays on offer until the player answers it
+      if (!(G.importData && G.importData.from === 'sync')) G.importData = null;
+      G.importErr = null;
+      G.codeIn = false;
+      G.codeOut = null;
+      G.codeMsg = '';
       setMode(G.setRet || 'title');
       break;
     case 'pref': {
