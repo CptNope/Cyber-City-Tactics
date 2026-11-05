@@ -35,6 +35,9 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `sync.test.js` | headless | 42 | Cloud save: change stamps, save codes (round trip, junk, half codes, invite codes), and the sync file with a fake handle: first link, newer file offered, keep or load, older file overwritten, a missing file, Resume, Unlink. |
 | `gauntlet.test.js` | headless | 38 | The Gauntlet: seeds and plans, the pick screen, one life, perks between districts, depth scaling, falling and winning, never saving, today's run, shared links. |
 | `crew.test.js` | headless | 30 | Crew contracts: hiring at Kit's, each special, the cooldown, downed and revived, paydays and loyalty, the loyal specials, saving. |
+| `safehouse.test.js` | headless | 19 | Safehouse upgrades: buying, the bolt-hole's price and heat, the scanner, the armory on a new block, the med bay once a block, saving, and fresh parties starting clean. |
+| `fireteam.test.js` | headless | 15 | Kagemori fireteams: the unit, the spotter's mark and its damage, the shield covering the gunner, the medic's revive, one payout only, a medic hit mid-revive, no medic left. |
+| `chase.test.js` | headless | 14 | The car chase: the roof gun, the car slam, the wider car in traffic, pursuit cars, the passenger's free window shots, hits passed to the car, the finish. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |

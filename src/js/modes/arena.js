@@ -261,7 +261,16 @@ function startArena(coop, challenge) {
   newRunStats();
   PL = [newRunner(0)];
   if (coop) PL.push(newRunner(1));
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, {
+    creds: 0,
+    bag: [],
+    stash: [],
+    med: 2,
+    contract: null,
+    ally: null,
+    crew: {},
+    safe: {}
+  });
   // the daily challenge sets runner 1's archetype for this run only, leaving your own pick alone
   PL.forEach((p, i) =>
     applyArch(p, i === 0 && G.challenge && G.challenge.daily ? G.challenge.arch : G.pendArch[i])

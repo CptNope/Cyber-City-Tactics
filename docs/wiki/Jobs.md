@@ -26,6 +26,9 @@ Each runner rides a bike in the street's lanes. Hold right to throttle, left to 
 |---|---|---|---|---|---|
 | The Causeway Run | Rustline Barrens | 110 s | ¥260 | 120 | Get Juno's package across the bridge before Kagemori shuts it |
 | Neon Market Getaway | Neon Market | 95 s | ¥340 | 160 | Out through the market with half the Rustline crews behind you |
+| Kagemori Pursuit | Kagemori Arcology | 100 s | ¥380 | 180 | Pixel's stolen Kagemori car, out of the Arcology garage with the corp's pursuit cars on the bumper |
+
+**The car chase** (`J.car`): `carSeat()` marks runner 1 as the driver (`bk.car`, 140 HP) and anyone else as a passenger (`bk.pass`). `carPassenger()` keeps the passenger in the back seat, fires their gun for free (`driveAim()`, so holding left fires behind) and casts; `driveHurt()` and `driveCrash()` pass anything that lands on a passenger to the car, and `driveTarget()` skips passengers. Solo, `carAutogun()` fires every 38 steps. The car's collision box with traffic is 1.4 times a bike's. `J.pursuit` spawns pursuit cars (`pcar`: an Interceptor body at 30% health and 60% damage that rams like the van) from behind, up to one (two in co-op), plus one past 40% of the run.
 
 ## Drone stealth
 

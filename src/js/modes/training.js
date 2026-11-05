@@ -193,7 +193,16 @@ function startTraining() {
   G.coop = false;
   PL = [newRunner(0)];
   applyArch(PL[0], G.pendArch[0]);
-  Object.assign(PARTY, { creds: 0, bag: [], stash: [], med: 2, contract: null, ally: null });
+  Object.assign(PARTY, {
+    creds: 0,
+    bag: [],
+    stash: [],
+    med: 2,
+    contract: null,
+    ally: null,
+    crew: {},
+    safe: {}
+  });
   G.training = true;
   G.arena = false;
   G.den = false;

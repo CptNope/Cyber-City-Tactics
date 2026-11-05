@@ -199,6 +199,53 @@ const DEF = {
       boot: '#0d1119'
     }
   },
+  // Kagemori fireteams: a spotter, a shield, a gunner and a medic who fight as a unit (game/enemies.js)
+  spotter: {
+    name: 'Kagemori spotter',
+    hp: 28,
+    spd: 0.75,
+    dmg: 6,
+    reach: 20,
+    cool: 130,
+    scale: 0.95,
+    ranged: 'bullet',
+    range: 170,
+    role: 'spot',
+    creds: [14, 22],
+    karma: 18,
+    style: 'helmet',
+    pal: {
+      skin: '#d6a37f',
+      coat: '#3a3f4f',
+      coat2: '#2b2f3d',
+      pants: '#1c2030',
+      hair: '#ff6a3d',
+      acc: '#ff6a3d',
+      boot: '#10141e'
+    }
+  },
+  medic: {
+    name: 'Kagemori medic',
+    hp: 36,
+    spd: 0.9,
+    dmg: 7,
+    reach: 20,
+    cool: 120,
+    scale: 1,
+    role: 'medic',
+    creds: [16, 26],
+    karma: 20,
+    style: 'helmet',
+    pal: {
+      skin: '#c99a78',
+      coat: '#d8dde6',
+      coat2: '#b8bfcc',
+      pants: '#2a3142',
+      hair: '#ff3d4a',
+      acc: '#ff3d4a',
+      boot: '#10141e'
+    }
+  },
   shaman: {
     name: 'Street shaman',
     hp: 30,
@@ -809,7 +856,7 @@ const STAGES = [
       ['vend', 1150, 182]
     ],
     waves: [
-      { at: 120, spawn: ['sec', 'riot', 'drone'] },
+      { at: 120, spawn: ['team', 'drone'] }, // a Kagemori fireteam at the door
       { at: 430, spawn: ['mech', 'sec', 'shaman'] },
       { at: 760, spawn: ['blade!', 'drone', 'sec'] },
       { at: 1040, spawn: ['ninja', 'ninja', 'riot'] },

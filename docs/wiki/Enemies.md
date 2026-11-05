@@ -33,7 +33,9 @@ Base numbers before scaling (see below). Bosses enrage at half health.
 | `ganger` | Ganger | 28 | 6 | 22 | 0.85 | 72 | grab, thrower | Rustline crews. Cheap chrome, cheap knives, a lot of nerve. They grab (a "!" warns you; mash to break free) and pick up cans, crates and dru |
 | `orc` | Orc bruiser | 56 | 10 | 24 | 0.7 | 86 | grab, thrower | Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around. |
 | `sec` | Corp security | 34 | 9 | 22 | 0.8 | 115 | ranged:bullet | Kagemori security on a corp salary. They shoot first and file reports later. |
-| `riot` | Riot trooper | 58 | 12 | 24 | 0.6 | 95 |  | Shields stop punches from the front. Kick them, throw something, or get behind. |
+| `riot` | Riot trooper | 58 | 12 | 24 | 0.6 | 95 |  | Shields stop punches from the front. Kick them, throw something, or get behind. In a fireteam, they stand in front of the gunner. |
+| `spotter` | Kagemori spotter | 28 | 6 | 20 | 0.75 | 130 | ranged:bullet, role:spot | Fireteam eyes: marks a runner, who takes 25% more until the spotter goes down. |
+| `medic` | Kagemori medic | 36 | 7 | 20 | 0.9 | 120 | role:medic | Fireteam medics get a downed teammate back up, once each. |
 | `shaman` | Street shaman | 30 | 11 | 20 | 0.75 | 150 | ranged:hex | Street shamans throw spells from the back line. Close the distance fast. |
 | `ghoul` | Ghoul | 22 | 7 | 18 | 1.25 | 55 | lunge | They lunge from far away. Roll through and punish the recovery. |
 | `thrall` | Thrall | 40 | 8 | 22 | 1.15 | 66 | drain | Mother Vesper's people. Quick, pale, and every hit they land heals them a little. Don't trade blows; stagger them and keep the pressure on. |
@@ -55,6 +57,21 @@ Base numbers before scaling (see below). Bosses enrage at half health.
 | `dragon` | Ssareth | 1500 | 20 | 62 | 0.55 | 80 | boss, heavy | Ssareth, who lights the way. On the ground it claws and sweeps its tail; in the air you can only shoot it, cast at it or jump-kick it, while |
 | `vesper` | Mother Vesper | 280 | 14 | 26 | 1.05 | 60 | boss, drain | Mother Vesper steps into mist and reforms behind you mid-swing. Roll as the fog closes in, and remember she drinks from every hit. Once angr |
 | `archmage` | Director Voss | 270 | 13 | 24 | 0.8 | 100 | boss, ranged:hex3, teleport | Director Voss teleports and fires hexes, five at a time when enraged. |
+
+## Fireteams
+
+A **fireteam** is four foes with one `e.unit` id: `spotter`, `riot`, `sec` and `medic` (`TEAM_KINDS`). A wave's `'team'` entry expands to one (`teamSpawnList()`, used by `waves()`; the Arcology's first wave has one), and `spawnTeam()` puts one in half the inner rooms of black sites. `unitTick()` runs each role before the usual AI:
+
+```mermaid
+flowchart TD
+  S["spotter: marks the closest runner<br/>(markT, markBy; every 3 s at most)"] -->|"hurt(): ×1.25 while marked()"| R[runner]
+  SH["riot: walks to gunner.x ± 26, shield toward the runner"] --> G[gunner]
+  M{"medic: a teammate down?"} -- no --> B[hang back behind the team]
+  M -- yes --> W["walk over; HEAL_T 90 steps beside them"] --> UP["back up at 50%, revived = true"]
+  H[medic hit] -->|healT = 0| W
+```
+
+A downed unit member waits up to 420 steps (instead of 70) while their medic is up. `kill()` on a foe with `revived` set pays nothing (no drops, karma, kill count or contract tick) and marks it `'twice'`, so a medic can't be farmed. In `choiceSpawn()`, a `'team'` counts as four for the leaked-books guard removal.
 
 ## Elites
 

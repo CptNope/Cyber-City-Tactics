@@ -76,6 +76,17 @@ Worked out from `w.looted`, so nothing new needs saving:
 
 `blockMul(w)` feeds `buyMul()`. `w.prog[building id]` is the room you last entered (`enterRoom`); `enterBuilding` resumes there, so leaving halfway (or quitting) doesn't restock the rooms you already cleared.
 
+## Safehouse upgrades
+
+`SAFE_UPS` in modes/safehouse.js, bought on the safehouse's Upgrades tab (`G.safeTab = 'home'`) with `buyUp()`, and kept in `PARTY.safe`, which goes into the Sprawl save with the party. `hasUp(k)` is only ever true in the Sprawl. A fresh party (campaign, Arena, jobs, training, a new Sprawl) starts with `crew: {}` and `safe: {}`, so nothing carries over from another mode.
+
+| Upgrade | Cost | Hook |
+|---|---|---|
+| Med bay | ¥600 | `worldWipe()`: the first wipe on a block (`G.wd.medUsed`, saved) loses no creds |
+| Scanner | ¥450 | `safeScan()` from `enterStreet()`: every hidden door goes into `w.found` |
+| Bolt-hole | ¥400 | `layCost()` halves; the heat timer runs twice as fast |
+| Armory | ¥500 | `safeArmory()` on a new block: +20 rounds each, +1 medkit (up to 5) |
+
 ## Locks
 
 `startHack(b, vault)` sets `G.hack.kind` from `hackKindFor(b, vault)`: `seq` for hideouts, `trace` for precincts, `wall` for black sites, and the timing `lock` for everything else, for vaults, in drone jobs, and whenever `prefs.hackKind` is `'classic'`. Direction input (keys, pad, touch pads, the `hkdir:<dir>` action) goes to `hackDir()`, which hands it to `seqDir`, `traceDir` or `wallDir`; `hackStep()` ticks the clock or the scroller. Every kind shares `miss`/`maxMiss` through `hackMiss()` and ends in `hackWin()` or `hackFail()`.

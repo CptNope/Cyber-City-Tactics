@@ -49,7 +49,11 @@ function enterRoom(i) {
       : pool.length
         ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
         : 0;
-  for (let k = 0; k < n; k++) spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
+  // inner rooms of black sites can hold a Kagemori fireteam instead of three of the usual guards
+  const team = b.type === 'blacksite' && i >= 1 && !b.roost && n >= 3 && r() < 0.5;
+  for (let k = 0; k < n - (team ? 3 : 0); k++)
+    spawnEnemy(pool[Math.floor(r() * pool.length)], k % 2 ? -1 : 1);
+  if (team) spawnTeam(1);
   // black sites and precincts bolt sentry turrets to the back wall of their inner rooms
   if ((b.type === 'blacksite' || b.type === 'precinct') && i >= 1 && !b.roost && r() < 0.65) {
     const tu = spawnEnemy('turret', 1);
@@ -381,7 +385,10 @@ function exitBuilding() {
 }
 function worldWipe() {
   logRun('Sprawl', 'Flatlined', 'block ' + G.wd.level + ' · cred ' + Math.round(G.wd.rep));
-  const lost = Math.round(PARTY.creds * 0.3);
+  // the med bay, once a block: Doc patches everyone up and the medics take nothing
+  G.wipeMed = hasUp('med') && !G.wd.medUsed;
+  if (G.wipeMed) G.wd.medUsed = true;
+  const lost = G.wipeMed ? 0 : Math.round(PARTY.creds * 0.3);
   PARTY.creds -= lost;
   G.wd.heat = 0;
   G.wd.heatT = 0;

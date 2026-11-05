@@ -269,18 +269,22 @@ function safeHtml() {
     ['wen', 'Old Wen'],
     ['ratchet', 'Ratchet'],
     ['stash', 'Stash'],
+    ['home', 'Upgrades'],
     ['lay', 'Lay low']
   ];
   const bar = `<div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button class="tab" role="tab" aria-selected="${G.safeTab === k}" data-a="safetab:${k}">${n}</button>`).join('')}</div>`;
   if (G.safeTab === 'stash')
     return `<div class="card"><p class="eyebrow">Safehouse · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Stash</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}${stashHtml()}
     <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
+  if (G.safeTab === 'home')
+    return `<div class="card"><p class="eyebrow">Safehouse · block ${G.wd.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Upgrades</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}${safeUpHtml()}
+    <div class="row"><button class="btn" data-a="leave">Back to the street</button><button class="btn ghost" data-a="sheet">Character</button></div></div>`;
   if (G.safeTab !== 'lay')
     return npcHtml(G.safeTab)
       .replace('<p class="eyebrow">The Den ·', '<p class="eyebrow">Safehouse ·')
       .replace('<p class="say">', bar + '<p class="say">');
   const w = G.wd,
-    lc = 60 * w.heat * w.level,
+    lc = layCost(w),
     rp = Math.round(w.rep),
     done = w.looted.length,
     total = w.street.buildings.filter(b => b.type !== 'safe' && !b.hidden).length;
@@ -289,7 +293,7 @@ function safeHtml() {
     : '';
   return `<div class="card"><p class="eyebrow">Safehouse · block ${w.level}</p><div class="row" style="justify-content:space-between;align-items:baseline"><h2>Lay low</h2><span class="wallet">¥${PARTY.creds}</span></div>${bar}${evb}
   <div class="job"><div class="row" style="justify-content:space-between"><b>Heat ${'★'.repeat(w.heat)}${'☆'.repeat(5 - w.heat)}</b><span class="st" style="color:${w.heat ? 'var(--neon)' : 'var(--ok)'}">${w.heat ? 'Wanted' : 'Clean'}</span></div>
-    <span style="color:var(--muted);font-size:13px">Heat cools by a star for every 25 seconds with no cops around. Or pay someone to make the paperwork disappear.</span>
+    <span style="color:var(--muted);font-size:13px">Heat cools by a star for every ${hasUp('bolt') ? '12' : '25'} seconds with no cops around. Or pay someone to make the paperwork disappear.${hasUp('bolt') ? ' The bolt-hole halves the price.' : ''}</span>
     <div class="row"><button class="btn sm${w.heat && PARTY.creds >= lc ? '' : ' ghost'}" data-a="laylow" ${w.heat && PARTY.creds >= lc ? '' : 'disabled'}>${w.heat ? 'Lay low · ¥' + lc : 'Nothing to clear'}</button></div></div>
   <div class="job"><div class="row" style="justify-content:space-between"><b>${isNight(w) ? '☾ Night' : '☀ Day'}</b><span class="st" style="color:var(--muted)">${Math.ceil(phaseLeft(w) / 3600)} min till ${isNight(w) ? 'morning' : 'nightfall'}</span></div>
     <span style="color:var(--muted);font-size:13px">${isNight(w) ? 'Gangs are out and the cops are thin; caches hold more. The back-alley clinic and the talisman shop are shut till dawn.' : 'Shops are open. Break into a home, a business or a precinct now and there are witnesses: one more heat star.'}</span>

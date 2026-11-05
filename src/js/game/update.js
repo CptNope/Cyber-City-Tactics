@@ -366,10 +366,11 @@ function waves() {
       G.camX = at;
       G.lock = at;
       G.waveLive = true;
-      choiceSpawn(G.stage, w).forEach((k0, i) => {
+      teamSpawnList(choiceSpawn(G.stage, w)).forEach(([k0, unit], i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;
         const e = spawnEnemy(k, i % 2 ? -1 : 1);
+        if (unit) e.unit = unit;
         e.x += (i >> 1) * (i % 2 ? -18 : 18);
         if (DEF[k].boss) {
           e.x = G.camX + W - 40;
