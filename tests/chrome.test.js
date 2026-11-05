@@ -13,9 +13,17 @@ G.pendArch = ['runner', 'samurai'];
 click('arenapick');
 click('arena1');
 const p = __PL()[0];
+// plain gear: a random starting set or affix (an arc, a concussive daze) would muddy every check
+p.eq.weapon = A.mkItem('weapon', 'pipe', 0, false, 'rustline');
+p.eq.gun = A.mkItem('gun', 'light', 0);
+p.eq.armor = A.mkItem('armor', 'coat', 0);
+p.eq.deck = null;
+A.refresh(p);
 // a quiet arena: no waves, one sparring partner at a time
 const calm = () => {
   G.ents = G.ents.filter(e => e.team !== 1);
+  G.props = [];
+  G.picks = [];
   G.waveLive = false;
   G.nextWaveT = 1e9;
 };

@@ -11,6 +11,9 @@ A.newRun(false);
 A.startStage(4);
 step(5);
 const P = __PL()[0];
+// a plain pipe: a starting Voltaic set would arc each hit into the rest of the team
+P.eq.weapon = A.mkItem('weapon', 'pipe', 0, false, 'rustline');
+A.refresh(P);
 const realRandom = Math.random;
 const calm = () => {
   // nothing else in the street: no props to knock anyone into, no waves arriving
