@@ -54,6 +54,8 @@ The guiding rules:
 
 ## Next up
 
+The first wave, nearly all shipped. Open items from it moved to Horizon two below.
+
 ### Missions: new ways to play a job
 Side jobs from Juno (and a **Jobs** board on the title and online hub) that break up the brawling. Each works solo, in couch co-op and online, because each runs on the same entities and snapshots as everything else.
 
@@ -67,7 +69,6 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 
 ### Gear and loot
 - [x] ~~**Black-market rarity.**~~ Shipped as eight legendaries unlocked by feats.
-- [ ] **More legendaries (S each).** One per new boss and per new hidden feat, so there's always a ??? left in the Codex.
 - [x] ~~**Weapon-specific moves.**~~ Shipped: dash slash, flurry, yank, shock stun, cleave and ground pound.
 - [x] ~~**Gun mods.**~~ Shipped: extended mag, laser sight, suppressor and underbarrel launcher at Ratchet's bench.
 - [x] ~~**Item comparison.**~~ Shipped as a floating card over gear on the floor.
@@ -120,7 +121,6 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Street weapons.**~~ Shipped: lead pipes, bike chains and spiked bats to pick up, swing until they break and throw from the air; foes carry them, pick them up and throw them too.
 - [x] ~~**Taunts and begging.**~~ Shipped: bosses talk when they enrage and on their last quarter; beaten gangers, orcs and cops may beg (spare them for a payoff and karma), and bikers, security and thralls may run.
 - [x] ~~**Juggles and wall bounces.**~~ Shipped: foes knocked into the screen edge while a fight holds the camera bounce back and can be juggled up to three times.
-- [ ] **Status effects on enemies too (S).** Some enemies use shock and fire rounds against you, with counters from armor affixes.
 
 ### Co-op and online
 - [x] ~~**Team attacks.**~~ Shipped: two hits on one enemy within half a second trigger a combined finisher.
@@ -129,13 +129,11 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Online co-op beyond the Arena.**~~ Shipped: the host's hub starts any mode with the friend as Runner 2, and the friend has their own character sheet.
 - [x] ~~**Online co-op, round three.**~~ Shipped: the friend shops at the host's counter for their own runner, rejoins the same room after a drop, and watches the host's training.
 - [x] ~~**Daily challenge.**~~ Shipped, with a set archetype per day and a play streak.
-- [ ] **Leaderboard snapshots (M).** An optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
 
 ### Presentation
 - [x] ~~**Animated title and menus.**~~ Shipped: the title powers on like a neon tube and skills pop when bought. Menus stay instant, as the brand book asks.
 - [x] ~~**Per-district music variations.**~~ Shipped: each district song has a calm loop between waves and the full track during fights, switching on a bar line.
 - [x] ~~**Accessibility.**~~ Shipped: a Motion setting (system, reduced, full), high contrast, a colour-blind safe palette for signs, the map and affixes, remappable keys for both runners, and a double-tap heavy blow.
-- [ ] **Localization scaffolding (M).** Move all text into one table so the game can be translated.
 
 ### Feel and presentation, round two
 Picked from what the graphics pass turned up:
@@ -164,9 +162,6 @@ Picked from what the graphics pass turned up:
 - [x] ~~**Save export and import.**~~ In Settings → Save backup.
 - [x] ~~**Robust PWA.**~~ App-shell service worker with versioned precache, an update-ready bar, install button, shortcuts, maskable icons, screenshots, persistent storage and save validation.
 - [x] ~~**GitHub Actions.**~~ `.github/workflows/ci.yml` runs the build check, formatting, `npm test` and the browser tests on every push and pull request.
-- [ ] **Deploy gate (S).** Deploy Pages from a workflow that only runs after CI passes.
-- [ ] **ES modules (M).** Move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses. The current split makes this a mechanical change, file by file.
-- [ ] **Type checking (S).** JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
 - [x] ~~**Cloud save.**~~ Shipped without a server: save codes (every save deflated into one line of text) and a sync file the game keeps up to date (File System Access API; put it in a cloud folder), with change stamps so a newer file is offered, never silently loaded.
 - [x] ~~**Full-screen on any device.**~~ The canvas fills every screen shape; wider views see more street, taller ones get HUD and control bands.
 - [x] ~~**Frame timing.**~~ Fixed-timestep logic with interpolated rendering, stall recovery, a crash-proof loop and adaptive graphics quality.
@@ -186,20 +181,69 @@ These are the next ways to keep "one more run" alive:
 - [x] ~~**Adept archetype.**~~ Shipped as the Physical Adept: no guns, chi blasts, Killing Hands.
 - [x] ~~**Cosmetics from feats.**~~ Shipped as eight runner coats.
 - [x] ~~**Weapon trails.**~~ Shipped: six trails unlocked by feats.
-- [ ] **More cosmetics (S).** Visor colors, hair styles and a title under your name.
-- [ ] **Achievement-only secrets (S).** Hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
 - [x] ~~**Run history.**~~ Shipped in the Codex.
 - [x] ~~**Challenge seeds.**~~ Shipped: S3-XXXX and A-XXXX codes, share links.
+
+## Horizon two
+
+The next wave, picked from what playing the shipped systems turned up. Every item still has to work on a phone, in couch co-op and online, and should add a decision rather than a number. **Suggested first three:** Crew contracts, the Roguelite run and Doors the hack can open: each reuses systems that already exist, so they're mostly content and rules.
+
+### The crew
+- [ ] **Crew contracts (M).** Hire a named NPC runner from the Den for a district or a Sprawl block (Kit's merc, Pixel the decker, a street shaman). They fight beside you with their own archetype special, take a cut of the take, can be downed and revived, and gain loyalty with every job: at high loyalty they unlock a personal side job and a tier III twist of their own. The ally code from companions and crew backup carries most of it.
+- [ ] **Loyalty and betrayal (S).** A hired runner with low loyalty may walk off with a share of the loot if you keep skipping their cut, or sell your position to a hostile crew (a hit squad that arrives knowing where you are).
+- [ ] **The safehouse grows (M).** Spend creds on safehouse upgrades that change how the Sprawl plays: a workbench (craft without Ratchet), a med bay (one free revive a block), a scanner (shows the block's hidden doors), a garage (bike upgrades for driving jobs). Each is a choice, because creds spent here aren't spent on gear.
+
+### Jobs, round two
+- [ ] **Doors the hack can open (S).** In drone stealth, terminals open locked doors, shortcuts and a vault room off the main route, using the new hacking minigames.
+- [ ] **Car chase (M).** The driving job's "still to come": a rigger drives a car in the depth lanes while the partner leans out to shoot. Solo, the autogun from flight takes the window.
+- [ ] **Delivery run (S).** A driving variant where the cargo has its own health bar: speed pays, but every crash and every hit costs the client's goods.
+- [ ] **Heist planning (L).** A multi-stage job on a Kagemori tower: pick an entry (drone stealth through the vents, a flight drop on the roof, or a loud front door brawl), and each choice changes the next stage's guards, alarm level and loot. The job modes that exist become the stages.
+
+### The Sprawl
+- [ ] **Crew turf (M).** Clearing a gang's hideouts on a block flips that block's turf to a friendly crew: their colours on the walls, their patrols instead of hostile ones, and a tithe paid into your stash each block. Lose standing and they take it back.
+- [ ] **Graffiti tags (S).** Promoted from the parking lot: leave your runner's tag on a cleared hideout. Tags persist with the block's memory, raise street cred over time, and rival crews paint over them (a fight if you catch them at it).
+- [ ] **Weather that matters (S).** Rain makes the street slick (longer slides, wall bounces carry further) and shorts out drones; fog shortens enemy sight lines for stealthier break-ins; acid rain already hurts, so let cheap armor corrode.
+- [ ] **Living market (S).** Prices drift block to block by supply: a gang war makes guns cost more and armor less, a lockdown doubles medkit prices. Sable's black-market cart reacts the same way.
+
+### Combat and enemies
+- [ ] **Status effects on enemies too (S).** Moved here from above: some enemies use shock and fire rounds against you, with counters from armor affixes.
+- [ ] **Enemy squads with roles (M).** Kagemori teams that act as a unit: a spotter marks you (more damage taken while marked), a shield trooper covers the gunner, a medic revives the downed unless you get to them first. Target order becomes the puzzle.
+- [ ] **Environmental finishers (S).** Throw a dazed foe into a live wire, a fire barrel or a car's path for a finisher that drops their loot early. Builds on props, hazards and wall bounces.
+- [ ] **A rival runner (M).** A named runner who appears in three districts and two Sprawl blocks, levelling with you, using your own archetype's moves against you, and remembering how you beat them last time (they learn to parry your favourite combo).
+
+### Progression
+- [ ] **More legendaries (S each).** Moved here from above: one per new boss and per new hidden feat, so there's always a ??? left in the Codex.
+- [ ] **Paragon points past 25 (S).** Every level after 25 gives a small, uncapped choice (2% damage, 2% health, 2% hacking time, or 1% crit), so long-running saves keep a reason to fight.
+- [ ] **Cyberware with drawbacks (S).** Rare implants with a real cost: a reflex wire that doubles the parry window but halves mana, an armoured skin that stops dodging. Doc can pull them back out for a price.
+
+### Modes
+- [ ] **Roguelite run (M).** Promoted from the parking lot: one life, a random order of districts with random mutators, a perk choice after every boss (from the Arena's perks), and a legend-rank bonus for how far you get. Seeded, so it fits the daily challenge and share codes.
+- [ ] **Boss rush (S).** Every boss back to back, with a perk between each, on a timer. Unlocked by finishing the campaign; best times saved per difficulty.
+- [ ] **Photo mode (S).** Promoted from the parking lot: pause, free the camera across the street, hide the HUD, pick a filter (neon, noir, VHS), and save the picture. Uses the downloads path that Save backup uses.
+
+### Online and sharing
+- [ ] **Leaderboard snapshots (M).** Moved here from above: an optional, opt-in way to compare daily and weekly scores with friends, for example a share code that encodes your score and seed so others can verify it.
+- [ ] **Ghost runs (M).** The daily challenge records your runner's position each step (small, and it doesn't depend on the game replaying exactly the same); share the code and a friend races your ghost, drawn as a translucent runner.
+- [ ] **Spectate (M).** A third browser joins an online room as a watcher, drawing the host's snapshots without sending buttons. Needs the host to hold two peer connections.
+
+### Presentation
+- [ ] **Pixel VFX pass (M).** A pixel-art effects library (patch-gg/pixelfx is the candidate) for sparks, smoke, explosions and spell impacts, under the existing quality ladder so slow phones keep the cheap versions.
+- [ ] **More cosmetics (S).** Moved here from above: visor colors, hair styles and a title under your name.
+- [ ] **Achievement-only secrets (S).** Moved here from above: hidden rooms that only appear once you hold a certain legendary, or once you've earned a certain feat.
+- [ ] **Localization scaffolding (M).** Moved here from above: move all text into one table so the game can be translated.
+
+### Engineering
+- [ ] **Deploy gate (S).** Moved here from above: deploy Pages from a workflow that only runs after CI passes.
+- [ ] **ES modules (M).** Moved here from above: move from shared-global classic scripts to `import`/`export`, so each file declares exactly what it uses.
+- [ ] **Type checking (S).** Moved here from above: JSDoc types on the core objects (entities, items, saves) checked with `tsc --checkJs`, no TypeScript build needed.
+- [ ] **Replay-based bug reports (M).** The performance report gains an opt-in "copy the last 30 seconds": the seed and inputs, so a bug can be replayed on a developer's machine. First step: check where the simulation isn't yet deterministic (unseeded `Math.random` calls) and seed them.
 
 ---
 
 ## Ideas parking lot
-Not planned, but worth keeping:
-- A **vehicle chase** level on a highway, punching off bikers
+Not planned, but worth keeping (graffiti tags, photo mode and the roguelite run moved up to Horizon two):
+- A **vehicle chase** level on a highway, punching off bikers (partly shipped as the driving jobs; the car chase is in Horizon two)
 - **Pets:** a cyber-dog that fetches loot
-- **Graffiti tags** you can leave on cleared hideouts, which show up on later blocks
-- **Photo mode** with filters and a share button
 - **A level editor** for custom districts, shared as a URL
-- A **roguelite mode:** one life, random districts, perks only
 
 Have an idea? Open an issue in this repo.
