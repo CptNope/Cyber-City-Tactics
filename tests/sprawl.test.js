@@ -167,6 +167,7 @@ ok(
     G.mode === 'bcard',
   'family home card'
 );
+__api.curS().weather = 'clear'; // fog would take a star off the break-in
 G.wd.clock = __api.DAY_STEPS; // at night: no witnesses, so the break-in adds only its own heat (day adds a star)
 click('hack');
 let n = 0;
