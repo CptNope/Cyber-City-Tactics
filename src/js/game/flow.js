@@ -94,6 +94,7 @@ function startStage(si) {
   for (const [k, x, y] of S.passives || []) spawnPassive(k, x, y);
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   makeRain(S.rain || S.weather === 'sleet');
+  wxTip();
   saveGame('play');
   musicPlay('d' + si);
   setMode('play');

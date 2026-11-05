@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '5a634f441702';
+const VERSION = '104e6ca24c0e';
 const PRECACHE = [
   './',
   'index.html',
@@ -39,6 +39,8 @@ const PRECACHE = [
   'src/js/game/combat.js',
   'src/js/game/props.js',
   'src/js/game/finishers.js',
+  'src/js/game/weather.js',
+  'src/js/game/rival.js',
   'src/js/game/runners.js',
   'src/js/game/allies.js',
   'src/js/game/crew.js',
@@ -48,6 +50,7 @@ const PRECACHE = [
   'src/js/modes/blackmarket.js',
   'src/js/modes/safehouse.js',
   'src/js/modes/turf.js',
+  'src/js/modes/tags.js',
   'src/js/modes/choices.js',
   'src/js/modes/dungeons.js',
   'src/js/modes/hacking.js',

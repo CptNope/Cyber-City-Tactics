@@ -230,7 +230,8 @@ function bcardHtml(b) {
     : '';
   return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>${HACK_NAMES[hackKindFor(b)]}, strength ${b.tier}: ${{ lock: b.tier + 1 + ' clean hits to crack', seq: 'repeat a pattern of ' + (3 + b.tier), trace: 'walk a signal through the network before the trace', wall: 'dodge ICE for ' + (5 + b.tier * 2) + ' seconds' }[hackKindFor(b)]}. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
-  <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
+  ${lo && (b.type === 'hideout' || b.type === 'club') ? `<p style="font-size:13px;color:var(--muted)">${tagsOf(G.wd).includes(b.id) ? 'Your tag is on the wall: a point of street cred every half minute. Watch for painters.' : 'Cleaned out. Spray your tag on it for street cred, every half minute you are on the block.'}</p>` : ''}
+  <div class="row">${lo && canTag(b) ? '<button class="btn" data-a="spraytag">Spray your tag</button>' : lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
 function hackHtml() {
   const h = G.hack,

@@ -1320,7 +1320,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+5a634f4';
+const APP_VERSION = '2.0.0+104e6ca';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2937,6 +2937,29 @@ const DEF = {
       hair: '#9fb4d8',
       acc: '#9fb4d8',
       boot: '#0d1119'
+    }
+  },
+  // Vane, the rival runner (game/rival.js): fights in your archetype's style and remembers how you won
+  rival: {
+    name: 'Vane',
+    hp: 120,
+    spd: 1.05,
+    dmg: 11,
+    reach: 24,
+    cool: 70,
+    scale: 1,
+    rival: true,
+    creds: [30, 50],
+    karma: 90,
+    style: 'runner',
+    pal: {
+      skin: '#e8c4a8',
+      coat: '#2a2440',
+      coat2: '#1f1a33',
+      pants: '#16131f',
+      hair: '#dcd6ff',
+      acc: '#b98cff',
+      boot: '#0e0c14'
     }
   },
   // Kagemori fireteams: a spotter, a shield, a gunner and a medic who fight as a unit (game/enemies.js)
@@ -4811,6 +4834,8 @@ const BEST = {
   orc: 'Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around.',
   sec: 'Kagemori security on a corp salary. They shoot first and file reports later.',
   riot: 'Shields stop punches from the front. Kick them, throw something, or get behind. In a fireteam, they stand in front of the gunner.',
+  rival:
+    'Vane: a runner for hire on the other side of every job. Fights in your own style, and remembers how you beat them: whatever you leaned on last time, Vane is ready for. Mix it up.',
   spotter:
     'Fireteam eyes. A red laser means you are marked: everything hits you a quarter harder until the spotter goes down. Take them out first.',
   medic:
@@ -4930,6 +4955,15 @@ const FEATS = [
   { id: 'el25', name: 'Elite Hunter', desc: 'Take down 25 elites.', lp: 15, stat: 'elites', n: 25 },
   { id: 'mercy', name: 'Street Mercy', desc: 'Spare 10 foes who begged.', lp: 10, stat: 'spared', n: 10 },
   { id: 'walls', name: 'Off the Wall', desc: 'Bounce 25 foes off a wall.', lp: 10, stat: 'walls', n: 25 },
+  { id: 'rival', name: 'Know Your Enemy', desc: 'Beat Vane, your rival, three times.', lp: 20 },
+  {
+    id: 'tagger',
+    name: 'Writer',
+    desc: 'Spray your tag on 5 cleared crew buildings.',
+    lp: 10,
+    stat: 'tags',
+    n: 5
+  },
   { id: 'turf', name: 'Landlord', desc: 'Hold three Sprawl blocks for friendly crews at once.', lp: 15 },
   {
     id: 'mint',
@@ -6423,6 +6457,7 @@ function startStage(si) {
   for (const [k, x, y] of S.passives || []) spawnPassive(k, x, y);
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   makeRain(S.rain || S.weather === 'sleet');
+  wxTip();
   saveGame('play');
   musicPlay('d' + si);
   setMode('play');
@@ -6895,6 +6930,12 @@ function hurt(t, dmg, dir, o) {
   if (t.kind === 'ally' && anyHas('kin')) dmg *= 0.8;
   if (t.kind === 'player' && has(t, 'swalk') && spiritNear(t)) dmg *= 0.8;
   if (t.kind === 'player' && marked(t)) dmg *= 1.25; // a fireteam spotter's laser is on them
+  // a hit on a fireteam spotter knocks the laser off whoever it was on
+  if (t.d && t.d.role === 'spot' && t.team === 1) for (const q of PL) if (q.markBy === t) q.markT = 0;
+  if (t.d && t.d.rival && t.team === 1) {
+    dmg = rivalHit(t, o, dmg); // Vane notes every hit, and turns away the kind it's ready for
+    if (dmg <= 0) return true;
+  }
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -6904,7 +6945,7 @@ function hurt(t, dmg, dir, o) {
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
   const heavy = !!(t.d && t.d.heavy);
   const wkb = o.melee && o.src && o.src.eq && o.src.eq.weapon ? o.src.eq.weapon.kb || 1 : 1; // Brutal and Rustline knock further
-  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb;
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb * (wxWet() ? WX.slide : 1); // a wet street slides
   if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
@@ -7271,6 +7312,8 @@ function kill(t, dir, o) {
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
   if (t.squad && G.wd && !G.ents.some(e => e !== t && e.squad && e.state !== 'dead')) feat('squad');
+  if (t.wasPainter) painterDown(t);
+  if (d.rival) rivalDown(t);
   if (t.hunter && G.wd) {
     const v = 80 + G.wd.level * 40;
     drop('cred', t.x + 8, t.y + 6, { v });
@@ -7910,6 +7953,195 @@ function envFinish(e, k) {
   if (src) bump('envkills');
 }
 
+/* ===== src/js/game/weather.js ===== */
+/* Cyber City Tactics · src/js/game/weather.js
+ * Weather that changes how a street plays, not only how it looks:
+ *  - rain and storms: the street is slick (every knock carries 30% further) and flying machines short out now
+ *    and then (a drone or ICE drops sparking for a second and a half)
+ *  - fog: foes with guns need to be a third closer to open up, and in the Sprawl a break-in in the fog adds one
+ *    less heat star
+ *  - acid rain (a Sprawl block event): cheap Street-grade armor corrodes, a point every half minute
+ * Indoors (buildings, the Matrix) and on jobs, the weather stays outside.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const WX = { slide: 1.3, fogSight: 0.65, shortT: 600, shortP: 0.25, corrodeT: 1800 };
+/** The weather where the fight is: rain, storm, fog, sleet or clear. */
+function wxNow() {
+  if (G.drive || G.stealth || G.flight || G.training || G.den) return 'clear';
+  const S = curS();
+  return S ? weatherOf(S) : 'clear';
+}
+const wxWet = () => {
+  const w = wxNow();
+  return w === 'rain' || w === 'storm';
+};
+const wxSight = () => (wxNow() === 'fog' ? WX.fogSight : 1);
+/** A flying machine in the rain: every so often, it shorts out. */
+function wxShort(e) {
+  e.wxT = (e.wxT === undefined ? WX.shortT : e.wxT) - 1;
+  if (e.wxT > 0) return;
+  e.wxT = WX.shortT;
+  if (Math.random() >= WX.shortP || (e.d && e.d.boss)) return;
+  e.stunT = Math.max(e.stunT || 0, 90);
+  burst(e.x, e.y, e.z + 20, '#45d2ff', 8);
+  G.texts.push({ x: e.x, y: e.y, z: e.z + 40, s: 'SHORTED', c: '#45d2ff', life: 40, sm: true });
+  sfx.zap();
+}
+/** Acid rain on a Sprawl block: Street-grade armor loses a point every half minute (never below 1). */
+function wxCorrode() {
+  if (G.t % WX.corrodeT !== 0) return;
+  for (const p of active()) {
+    const a = p.eq && p.eq.armor;
+    if (!a || a.rar > 0 || !(a.arm > 1)) continue;
+    a.arm--;
+    a.corroded = (a.corroded || 0) + 1;
+    refresh(p);
+    say(p, 'ARMOR CORRODING', '#b8ff4a', 70, 50, true);
+  }
+}
+/** The first time each kind of weather starts to matter, say what it does. */
+function wxTip() {
+  const w = wxNow();
+  if (w === 'rain' || w === 'storm')
+    tip(
+      'wxwet',
+      'Rain: the street is slick, so every knock carries further, and drones short out now and then.'
+    );
+  else if (w === 'fog')
+    tip(
+      'wxfog',
+      'Fog: gunmen have to get closer to shoot, and in the Sprawl a break-in in the fog draws one less heat star.'
+    );
+}
+
+/* ===== src/js/game/rival.js ===== */
+/* Cyber City Tactics · src/js/game/rival.js
+ * Vane, a rival runner. Vane turns up in three campaign districts (the Neon Market, the Undercity Market and the
+ * Arcology) and on Sprawl blocks 2 and 4, fights with your own archetype's style, levels with you, and gets a
+ * quarter tougher every meeting. Vane also remembers: the attack you leaned on hardest last time (fists and
+ * feet, guns, spells or throws) is the one Vane is ready for, turning nearly a third of those away outright and
+ * shrugging off some of the rest. Mix it up.
+ *
+ * The memory lives in your legend (LEG.rival), so it carries from run to run.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+const RIVAL_STAGES = [1, 3, 4]; // the campaign districts Vane turns up in
+const RIVAL_BLOCKS = [2, 4]; // and the Sprawl blocks
+const RIVAL_KINDS = { melee: 'fists and feet', gun: 'guns', spell: 'spells', throw: 'throws' };
+const RIVAL_SAY = {
+  first: 'Nice chrome. Shame about the runner wearing it.',
+  melee: 'I watched the tapes. Lead with your fists again. Go on.',
+  gun: 'Still hiding behind that gun? I know where it points now.',
+  spell: 'Your spells are slow. I timed them.',
+  throw: 'Grab me again. See what happens.'
+};
+const rivalRec = () => {
+  if (!isObj(LEG.rival)) LEG.rival = { meets: 0, wins: 0, fav: null };
+  const r = LEG.rival;
+  r.meets = Math.max(0, +r.meets || 0);
+  r.wins = Math.max(0, +r.wins || 0);
+  if (!RIVAL_KINDS[r.fav]) r.fav = null;
+  return r;
+};
+const rivalStyle = arch => (['gunslinger', 'rigger', 'decker'].includes(arch) ? 'burst' : 'dash');
+function spawnRival(side) {
+  const r = rivalRec(),
+    arch = (PL[0] && PL[0].arch) || 'runner';
+  const e = spawnEnemy('rival', side || 1);
+  e.rivalArch = arch;
+  e.eq = {}; // drawn as a runner, who has gear
+  e.rivalFav = r.fav;
+  e.taken = { melee: 0, gun: 0, spell: 0, throw: 0 };
+  e.elite = null;
+  e.mercy = 'rolled'; // a rival never begs
+  const m = 1 + 0.25 * Math.min(4, r.meets);
+  e.hp = e.maxHp = Math.round(e.maxHp * m);
+  e.dmg = Math.round(e.dmg * (1 + 0.12 * Math.min(4, r.meets)));
+  e.spT = 300;
+  e.name = 'Vane · rival ' + (ARCH[arch] ? ARCH[arch].short.toLowerCase() : 'runner');
+  r.meets++;
+  legDirty = true;
+  G.texts.push({ x: G.camX + W / 2, y: 140, z: 0, s: 'RIVAL · VANE', c: '#b98cff', life: 110, big: true });
+  say(e, r.fav ? RIVAL_SAY[r.fav] : RIVAL_SAY.first, '#b98cff', 80, 160);
+  tip('rival', 'Vane remembers how you won last time and is ready for it. Mix up your attacks.');
+  return e;
+}
+/** What kind of attack a hit is, for Vane's memory. */
+const hitKind = o => (o.thrownBy ? 'throw' : o.bullet ? 'gun' : o.magic ? 'spell' : o.melee ? 'melee' : null);
+/** Every hit on Vane passes through here: noted, and turned away if it's the kind Vane is ready for. */
+function rivalHit(t, o, dmg) {
+  const k = hitKind(o);
+  if (!k) return dmg;
+  t.taken[k] = (t.taken[k] || 0) + Math.min(dmg, Math.max(0, t.hp)); // a finisher counts for what was left
+  if (t.rivalFav !== k) return dmg;
+  if (Math.random() < 0.3) {
+    const word = k === 'gun' ? 'DODGED' : k === 'spell' ? 'WARDED' : k === 'throw' ? 'SLIPPED' : 'PARRIED';
+    G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: word, c: '#b98cff', life: 30, sm: true });
+    sfx.clank();
+    return 0;
+  }
+  return dmg * 0.7;
+}
+/** Vane's special, every ten seconds: a dash strike, or for gun archetypes a three-round burst. */
+function rivalTick(e, p) {
+  if (e.spT > 0) {
+    e.spT--;
+    return false;
+  }
+  if (!['idle', 'walk'].includes(e.state) || Math.abs(p.y - e.y) > 20) return false;
+  e.spT = 600;
+  if (rivalStyle(e.rivalArch) === 'burst') {
+    e.face = p.x >= e.x ? 1 : -1;
+    for (let i = 0; i < 3; i++) fireBullet(e, e.dmg, e.z + 27, false);
+    say(e, 'BULLET TIME', '#b98cff', 70, 40, true);
+  } else {
+    const dir = p.x >= e.x ? 1 : -1;
+    e.x = clamp(p.x - dir * 18, G.camX + 12, G.camX + W - 12);
+    e.y = p.y;
+    e.face = dir;
+    strike(e, 34, Math.round(e.dmg * 1.6), { kd: true, kb: 7, big: true });
+    G.fx.push({ k: 'ring', x: e.x, y: e.y, z: 20, c: '#b98cff', life: 14, max: 14, r: 26 });
+    say(e, 'TOO SLOW', '#b98cff', 70, 40, true);
+  }
+  return true;
+}
+/** Vane down: remember what did it, and what you'll face next time. */
+function rivalDown(e) {
+  const r = rivalRec(),
+    ks = Object.keys(RIVAL_KINDS);
+  const fav = ks.reduce((a, k) => ((e.taken[k] || 0) > (e.taken[a] || 0) ? k : a), ks[0]);
+  r.fav = (e.taken[fav] || 0) > 0 ? fav : r.fav;
+  r.wins++;
+  legDirty = true;
+  drop('cred', e.x, e.y, { v: 120 + 40 * Math.min(5, r.meets) });
+  G.texts.push({
+    x: e.x,
+    y: e.y,
+    z: 90,
+    s: r.fav ? 'VANE WILL REMEMBER YOUR ' + RIVAL_KINDS[r.fav].toUpperCase() : 'VANE IS DOWN',
+    c: '#b98cff',
+    life: 120
+  });
+  if (r.wins >= 3) feat('rival');
+}
+/** Campaign: one meeting per listed district per run, with the wave before the boss. */
+function rivalWave(wave) {
+  if (!RIVAL_STAGES.includes(G.stage) || gauntOn() || G.arena || G.world || G.cjob) return;
+  const S = STAGES[G.stage];
+  if (wave !== S.waves.length - 2) return;
+  G.run = G.run || {};
+  G.run.rival = G.run.rival || {};
+  if (G.run.rival[G.stage]) return;
+  G.run.rival[G.stage] = 1;
+  spawnRival(1);
+}
+/** The Sprawl: once on each listed block, a while after you arrive. */
+function rivalStreet(w) {
+  if (!RIVAL_BLOCKS.includes(w.level) || w.rivalDone) return;
+  w.rivalT = (w.rivalT === undefined ? 1500 : w.rivalT) - 1;
+  if (w.rivalT > 0 || G.ents.some(e => e.team === 1 && e.state !== 'dead' && !e.d.passive)) return;
+  w.rivalDone = true;
+  spawnRival(Math.random() < 0.5 ? -1 : 1);
+}
+
 /* ===== src/js/game/runners.js ===== */
 /* Cyber City Tactics · src/js/game/runners.js
  * Runner update: movement, combos, heavy blows, grabs, dodges, guns, spells, specials, medkits and respawning.
@@ -7941,8 +8173,10 @@ function physics(e) {
           e.hardLand = 1;
           e.laneV = 0;
           e.state = 'down';
-          e.hp -= Math.round(dmg);
-          G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
+          // Vane notes a throw like any other hit, and slips the ones it's ready for
+          const land = Math.round(e.d && e.d.rival ? rivalHit(e, { thrownBy: src }, dmg) : dmg);
+          e.hp -= land;
+          G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + land, c: '#efe9ff', life: 30 });
           burst(e.x, e.y, 4, '#a79dc2', 10);
           sfx.heavy();
           G.shake = 5;
@@ -10040,6 +10274,7 @@ function upEnemy(e) {
   }
   const d = e.d,
     cd = d.cool * (e.coolMul || 1);
+  if (d.fly && isTech(e) && wxWet()) wxShort(e); // rain gets into the works
   if (d.turret) return turretTick(e);
   if (d.dragon) return dragonTick(e, cd);
   if (d.stealth) {
@@ -10054,6 +10289,8 @@ function upEnemy(e) {
   e.tgt = pickTarget(e);
   const p = e.tgt;
   if (e.unit && p && unitTick(e, d, p)) return;
+  if (e.painter && painterTick(e)) return; // on their way to paint over a tag
+  if (d.rival && p && rivalTick(e, p)) return;
   if (d.fly && e.state !== 'vent') {
     e.hover += 0.08;
     const zt = (d.spirit ? 18 : d.ice ? 20 : 24) + Math.sin(e.hover) * 3;
@@ -10358,7 +10595,7 @@ function upEnemy(e) {
       setS(e, 'windup');
       return;
     }
-    if (ady < 7 && adx < 230 && adx > 50 && e.cool <= 0) {
+    if (ady < 7 && adx < 230 * wxSight() && adx > 50 && e.cool <= 0) {
       setS(e, 'aim');
       return;
     }
@@ -10455,7 +10692,7 @@ function unitTick(e, d, p) {
     if (!marked(p) && Math.abs(p.x - e.x) < 260 && !(e.markCD > G.t)) {
       p.markT = G.t + MARK_T;
       p.markBy = e;
-      e.markCD = G.t + 180;
+      e.markCD = G.t + 360; // and a breather between marks
       say(p, 'MARKED', '#ff6a3d', 70, 40, true);
       sfx.click();
     }
@@ -11470,6 +11707,7 @@ function waves() {
       G.camX = at;
       G.lock = at;
       G.waveLive = true;
+      rivalWave(G.wave);
       teamSpawnList(choiceSpawn(G.stage, w)).forEach(([k0, unit], i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;
@@ -12203,7 +12441,8 @@ function saveWorld() {
             clock: w.clock,
             prog: w.prog,
             medUsed: !!w.medUsed,
-            turf: w.turf || null
+            turf: w.turf || null,
+            tags: tagsOf(w)
           },
           stock: G.stock,
           bestCombo: G.bestCombo
@@ -12256,6 +12495,7 @@ function loadWorld(s) {
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
   if (!CREWS.includes(G.wd.turf)) G.wd.turf = null;
+  G.wd.tags = tagsOf(G.wd).filter(Number.isInteger);
   if (!Array.isArray(PARTY.turfs)) PARTY.turfs = [];
   for (const k of Object.keys(G.wd.prog))
     if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
@@ -12302,6 +12542,7 @@ function enterStreet(x) {
   if (PARTY.ally) spawnAlly(PARTY.ally.type);
   G.camX = clamp(x - W / 2, 0, Math.max(0, st.len - W));
   makeRain(true);
+  wxTip();
   musicPlay('den');
   G.fade = 0.8;
   w.lastX = x;
@@ -12412,6 +12653,7 @@ function callBackup() {
 }
 // Acid rain, corp parade and manhunt run here each tick, out on the street only
 function blockEventTick(w) {
+  if (evOn('acidrain')) wxCorrode();
   if (evOn('acidrain') && G.t % 120 === 0)
     for (const e of G.ents) {
       if (e.state === 'dead' || e.out || (e.d && (e.d.passive || e.d.spirit || e.d.fly))) continue;
@@ -12539,6 +12781,8 @@ function worldTick() {
   blockEventTick(w);
   factionTick(w);
   turfTick(w);
+  tagTick(w);
+  rivalStreet(w);
   w.patT -= isNight(w) ? 1.6 : 1; // night: gangs patrol more often
   if (w.patT <= 0) {
     w.patT = Math.round(ri(1500, 2400) * (evOn('gangwar') ? 0.5 : 1));
@@ -12884,6 +13128,139 @@ function turfHtml() {
           `Block ${t.lv}: <b style="color:${FACTIONS[t.crew].col}">${esc(FACTIONS[t.crew].name)}</b> (¥${tithe(t.lv)})`
       )
       .join(' · ')}. Keep them at +${TURF_MIN} or better or they cut ties.</span></div>`;
+}
+
+/* ===== src/js/modes/tags.js ===== */
+/* Cyber City Tactics · src/js/modes/tags.js
+ * Graffiti tags. A crew building you've cleaned out can take your tag: open its door and spray it. Every tag
+ * on a block earns a point of street cred every half minute while you're on the street. The crew that lost
+ * the building wants its wall back: now and then one of theirs comes to paint over a tag. Catch the painter
+ * before they finish (ten seconds at the wall) and the tag stays, with a little extra cred; leave them to it
+ * and it's gone. Tags are saved with the block (G.wd.tags).
+ * Loaded as a classic script after sprawl.js: every file shares one global scope, in the order in index.html. */
+const TAG = { credT: 1800, paintT: 600, painterT: [2400, 3600] };
+const tagsOf = w => (w && Array.isArray(w.tags) ? w.tags : []);
+const canTag = b =>
+  !!(
+    G.wd &&
+    b &&
+    (b.type === 'hideout' || b.type === 'club') &&
+    G.wd.looted.includes(b.id) &&
+    !tagsOf(G.wd).includes(b.id)
+  );
+function sprayTag(b) {
+  const w = G.wd;
+  if (!canTag(b)) return false;
+  w.tags = tagsOf(w).concat(b.id);
+  w.rep = Math.min(100, w.rep + 3);
+  bump('tags');
+  const p = alive()[0];
+  if (p) say(p, 'TAGGED', p.pal.acc || '#ff3d8b', 80, 60);
+  sfx.spell();
+  tip(
+    'tags',
+    'Every tag earns street cred while you are on the block. Their old owners send painters to cover them: stop them.'
+  );
+  saveWorld();
+  return true;
+}
+/** On the street each step: cred from your tags, and now and then a painter coming for one. */
+function tagTick(w) {
+  const tags = tagsOf(w);
+  if (!tags.length) return;
+  if (G.t % TAG.credT === 0) {
+    w.rep = Math.min(100, w.rep + tags.length);
+    const p = alive()[0];
+    if (p)
+      G.texts.push({
+        x: p.x,
+        y: p.y,
+        z: 90,
+        s: 'TAGS · CRED +' + tags.length,
+        c: '#7dffb0',
+        life: 50,
+        sm: true
+      });
+  }
+  w.paintT = (w.paintT === undefined ? ri(TAG.painterT[0], TAG.painterT[1]) : w.paintT) - 1;
+  if (w.paintT > 0) return;
+  w.paintT = ri(TAG.painterT[0], TAG.painterT[1]);
+  if (G.ents.some(e => e.painter && e.state !== 'dead')) return;
+  const b = w.street.buildings.find(x => x.id === pick(tags));
+  if (!b) return;
+  const e = spawnEnemy('ganger', b.x > G.camX + W / 2 ? 1 : -1);
+  e.painter = e.wasPainter = b.id;
+  e.paintT = TAG.paintT;
+  e.elite = null;
+  e.club = null;
+  e.name = (FACTIONS[b.fac] ? FACTIONS[b.fac].name : 'Crew') + ' painter';
+  const p = alive()[0];
+  if (p) say(p, 'SOMEONE IS AT YOUR TAG', '#ffc63d', 90, 80);
+}
+/** A painter's step: walk to the wall and paint, unless someone picks a fight. True when it took the step. */
+function painterTick(e) {
+  if (e.hp < e.maxHp) {
+    e.painter = null; // hit them and they forget the wall and fight
+    return false;
+  }
+  const b = G.wd && G.wd.street.buildings.find(x => x.id === e.painter);
+  if (!b || !tagsOf(G.wd).includes(b.id)) {
+    e.painter = null;
+    return false;
+  }
+  const tx = b.x - 22,
+    ty = FY0 + 8;
+  if (Math.abs(e.x - tx) > 3 || Math.abs(e.y - ty) > 3) {
+    const s = e.d.spd * 1.2;
+    e.x += clamp(tx - e.x, -s, s);
+    e.y += clamp(ty - e.y, -s * 0.7, s * 0.7);
+    e.face = tx >= e.x ? 1 : -1;
+    if (e.state !== 'walk') setS(e, 'walk');
+    e.walk += 1;
+    return true;
+  }
+  if (e.state !== 'idle') setS(e, 'idle');
+  e.face = -1;
+  e.paintT--;
+  if (G.t % 6 === 0)
+    G.parts.push({ x: e.x - 8, y: e.y, z: 40, vx: -0.6, vy: 0, vz: 0.2, life: 18, c: '#9fb4d8', sz: 2 });
+  if (e.paintT <= 0) {
+    G.wd.tags = tagsOf(G.wd).filter(id => id !== b.id);
+    G.texts.push({ x: b.x, y: FY0, z: 70, s: 'TAG PAINTED OVER', c: '#ff3d4a', life: 80 });
+    e.gone = true;
+  }
+  return true;
+}
+/** A painter stopped before they finished: the tag stays, and the street notices. */
+function painterDown(e) {
+  if (!G.wd || !tagsOf(G.wd).includes(e.wasPainter)) return;
+  G.wd.rep = Math.min(100, G.wd.rep + 2);
+  G.texts.push({ x: e.x, y: e.y, z: 80, s: 'TAG DEFENDED', c: '#7dffb0', life: 70 });
+}
+/** On the building's wall: your runner's tag, a scrawl in their colour. */
+function drawTag(b, dx, base) {
+  if (!tagsOf(G.wd).includes(b.id)) return;
+  const col = (PL[0] && PL[0].pal && PL[0].pal.acc) || '#ff3d8b',
+    x = dx - 40,
+    y = base - 28;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const n = (PL[0] && PL[0].name) || 'RUN';
+  // a scrawl seeded by the runner's name, so the same runner always throws the same tag
+  let h = 7;
+  for (const c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  ctx.moveTo(x - 12, y + 4);
+  for (let i = 0; i < 6; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    ctx.lineTo(x - 12 + i * 5, y - 4 + ((h >>> 16) % 12));
+  }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x + 16, y - 4, 3, 0, 6.29);
+  ctx.stroke();
 }
 
 /* ===== src/js/modes/choices.js ===== */
@@ -13782,7 +14159,11 @@ function hackWin() {
     // in daylight there are witnesses: one more star
     G.wd.heat = Math.min(
       5,
-      G.wd.heat + Math.max(0, heatFor(b) + (isNight(G.wd) ? 0 : 1) - (anyHas('ghost') ? 1 : 0))
+      G.wd.heat +
+        Math.max(
+          0,
+          heatFor(b) + (isNight(G.wd) ? 0 : 1) - (anyHas('ghost') ? 1 : 0) - (wxNow() === 'fog' ? 1 : 0)
+        )
     );
     G.wd.heatT = 0;
     G.wd.rep = Math.max(-100, G.wd.rep - credLoss(b));
@@ -19950,7 +20331,7 @@ function drawFig(e) {
     ctx.moveTo(sh[0] + 3, sh[1]);
     ctx.lineTo(hip[0] + 2, hip[1] + 2);
     ctx.stroke();
-    if (e.eq.armor && e.eq.armor.arm >= 6) {
+    if (e.eq && e.eq.armor && e.eq.armor.arm >= 6) {
       ctx.fillStyle = 'rgba(255,255,255,.15)';
       ctx.fillRect(sh[0] - 5, sh[1] + 2, 10, 8);
     }
@@ -22950,6 +23331,7 @@ function drawBuildings(base) {
       ctx.fillRect(dx - 12, base - 40, 24, 40);
       ctx.globalAlpha = 1;
     }
+    drawTag(b, dx, base);
     if (looted) {
       ctx.strokeStyle = '#7a5a34';
       ctx.lineWidth = 3;
@@ -24488,7 +24870,8 @@ function bcardHtml(b) {
     : '';
   return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
   <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>${HACK_NAMES[hackKindFor(b)]}, strength ${b.tier}: ${{ lock: b.tier + 1 + ' clean hits to crack', seq: 'repeat a pattern of ' + (3 + b.tier), trace: 'walk a signal through the network before the trace', wall: 'dodge ICE for ' + (5 + b.tier * 2) + ' seconds' }[hackKindFor(b)]}. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
-  <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
+  ${lo && (b.type === 'hideout' || b.type === 'club') ? `<p style="font-size:13px;color:var(--muted)">${tagsOf(G.wd).includes(b.id) ? 'Your tag is on the wall: a point of street cred every half minute. Watch for painters.' : 'Cleaned out. Spray your tag on it for street cred, every half minute you are on the block.'}</p>` : ''}
+  <div class="row">${lo && canTag(b) ? '<button class="btn" data-a="spraytag">Spray your tag</button>' : lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
 function hackHtml() {
   const h = G.hack,
@@ -25991,6 +26374,12 @@ ov.addEventListener('click', e => {
       G.safeTab = arg;
       renderOv();
       keep = false;
+      break;
+    case 'spraytag':
+      if (G.bsel && sprayTag(G.bsel)) {
+        setMode('play');
+        keep = false;
+      }
       break;
     case 'hack':
       if (G.bsel && !G.wd.looted.includes(G.bsel.id)) {

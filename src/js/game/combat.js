@@ -211,6 +211,12 @@ function hurt(t, dmg, dir, o) {
   if (t.kind === 'ally' && anyHas('kin')) dmg *= 0.8;
   if (t.kind === 'player' && has(t, 'swalk') && spiritNear(t)) dmg *= 0.8;
   if (t.kind === 'player' && marked(t)) dmg *= 1.25; // a fireteam spotter's laser is on them
+  // a hit on a fireteam spotter knocks the laser off whoever it was on
+  if (t.d && t.d.role === 'spot' && t.team === 1) for (const q of PL) if (q.markBy === t) q.markT = 0;
+  if (t.d && t.d.rival && t.team === 1) {
+    dmg = rivalHit(t, o, dmg); // Vane notes every hit, and turns away the kind it's ready for
+    if (dmg <= 0) return true;
+  }
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -220,7 +226,7 @@ function hurt(t, dmg, dir, o) {
     t.mp = Math.min(t.maxMp, t.mp + Math.round(dmg * 0.5));
   const heavy = !!(t.d && t.d.heavy);
   const wkb = o.melee && o.src && o.src.eq && o.src.eq.weapon ? o.src.eq.weapon.kb || 1 : 1; // Brutal and Rustline knock further
-  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb;
+  if (t.state !== 'grabbed' && !fixed && !heavy) t.x += dir * (o.kb || 3) * wkb * (wxWet() ? WX.slide : 1); // a wet street slides
   if (!fixed && !heavy) t.face = -dir;
   if (G.t - t.lastHit > 50) t.hits = 0;
   t.lastHit = G.t;
@@ -587,6 +593,8 @@ function kill(t, dir, o) {
     G.texts.push({ x: t.x, y: t.y, z: 60, s: 'SPLIT', c: '#45d2ff', life: 30, sm: true });
   }
   if (t.squad && G.wd && !G.ents.some(e => e !== t && e.squad && e.state !== 'dead')) feat('squad');
+  if (t.wasPainter) painterDown(t);
+  if (d.rival) rivalDown(t);
   if (t.hunter && G.wd) {
     const v = 80 + G.wd.level * 40;
     drop('cred', t.x + 8, t.y + 6, { v });

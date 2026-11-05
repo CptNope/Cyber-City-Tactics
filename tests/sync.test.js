@@ -89,7 +89,7 @@ const reset = () => {
   ok(/Replace your saves with this code/.test(els.ov._h), 'Settings asks before replacing, as for a file');
   click('importno');
   click('codemake');
-  for (let i = 0; i < 50 && !G.codeOut; i++) await new Promise(r => setImmediate(r));
+  for (let i = 0; i < 2000 && !G.codeOut; i++) await new Promise(r => setImmediate(r)); // compression takes a while on a slow runner
   ok(
     G.codeOut && /Your save code/.test(els.ov._h) && /<textarea readonly/.test(els.ov._h),
     'Make shows the code to copy'

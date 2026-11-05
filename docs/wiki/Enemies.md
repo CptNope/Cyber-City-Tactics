@@ -34,6 +34,7 @@ Base numbers before scaling (see below). Bosses enrage at half health.
 | `orc` | Orc bruiser | 56 | 10 | 24 | 0.7 | 86 | grab, thrower | Big, tough and not as slow as they look. They grab and hold on longer than gangers (mash to break free), and throw whatever is lying around. |
 | `sec` | Corp security | 34 | 9 | 22 | 0.8 | 115 | ranged:bullet | Kagemori security on a corp salary. They shoot first and file reports later. |
 | `riot` | Riot trooper | 58 | 12 | 24 | 0.6 | 95 |  | Shields stop punches from the front. Kick them, throw something, or get behind. In a fireteam, they stand in front of the gunner. |
+| `rival` | Vane | 120 | 11 | 24 | 1.05 | 70 | rival | Your rival: fights in your archetype's style and remembers the attack you won with. |
 | `spotter` | Kagemori spotter | 28 | 6 | 20 | 0.75 | 130 | ranged:bullet, role:spot | Fireteam eyes: marks a runner, who takes 25% more until the spotter goes down. |
 | `medic` | Kagemori medic | 36 | 7 | 20 | 0.9 | 120 | role:medic | Fireteam medics get a downed teammate back up, once each. |
 | `shaman` | Street shaman | 30 | 11 | 20 | 0.75 | 150 | ranged:hex | Street shamans throw spells from the back line. Close the distance fast. |
@@ -71,7 +72,23 @@ flowchart TD
   H[medic hit] -->|healT = 0| W
 ```
 
-A downed unit member waits up to 420 steps (instead of 70) while their medic is up. `kill()` on a foe with `revived` set pays nothing (no drops, karma, kill count or contract tick) and marks it `'twice'`, so a medic can't be farmed. In `choiceSpawn()`, a `'team'` counts as four for the leaked-books guard removal.
+A hit on the spotter clears its mark (`hurt()`), and a spotter waits 360 steps between marks. A downed unit member waits up to 420 steps (instead of 70) while their medic is up. `kill()` on a foe with `revived` set pays nothing (no drops, karma, kill count or contract tick) and marks it `'twice'`, so a medic can't be farmed. In `choiceSpawn()`, a `'team'` counts as four for the leaked-books guard removal.
+
+## Vane, the rival
+
+game/rival.js. `rivalWave()` (from `waves()`) spawns Vane with the wave before the boss in districts `RIVAL_STAGES` (1, 3, 4), once per run each (`G.run.rival`), never in the Gauntlet, the Arena, the Sprawl or a side job; `rivalStreet()` brings Vane to Sprawl blocks `RIVAL_BLOCKS` (2, 4) once each (`w.rivalDone`) when the street is quiet.
+
+```mermaid
+flowchart LR
+  M["spawnRival(): health ×(1 + 0.25 × meets), damage ×(1 + 0.12 × meets)"] --> F[the fight]
+  F -->|"every hit: rivalHit()"| T["e.taken[melee | gun | spell | throw] += damage (up to what was left)"]
+  F -->|"rivalFav kind"| R["30%: turned away; else ×0.7"]
+  F -->|"every 600 steps: rivalTick()"| S["dash strike, or a three-round burst for gun archetypes"]
+  F --> D["rivalDown(): LEG.rival.fav = the kind that did the most; wins++"]
+  D --> M
+```
+
+`LEG.rival = { meets, wins, fav }` lives in the legend, so it carries from run to run; `rivalRec()` resets a malformed one. Throws count too: the landing damage in `physics()` goes through `rivalHit()` with `{ thrownBy }`.
 
 ## Elites
 

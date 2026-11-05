@@ -29,8 +29,10 @@ function physics(e) {
           e.hardLand = 1;
           e.laneV = 0;
           e.state = 'down';
-          e.hp -= Math.round(dmg);
-          G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + Math.round(dmg), c: '#efe9ff', life: 30 });
+          // Vane notes a throw like any other hit, and slips the ones it's ready for
+          const land = Math.round(e.d && e.d.rival ? rivalHit(e, { thrownBy: src }, dmg) : dmg);
+          e.hp -= land;
+          G.texts.push({ x: e.x, y: e.y, z: 40, s: '' + land, c: '#efe9ff', life: 30 });
           burst(e.x, e.y, 4, '#a79dc2', 10);
           sfx.heavy();
           G.shake = 5;

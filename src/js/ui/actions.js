@@ -482,6 +482,12 @@ ov.addEventListener('click', e => {
       renderOv();
       keep = false;
       break;
+    case 'spraytag':
+      if (G.bsel && sprayTag(G.bsel)) {
+        setMode('play');
+        keep = false;
+      }
+      break;
     case 'hack':
       if (G.bsel && !G.wd.looted.includes(G.bsel.id)) {
         startHack(G.bsel);
