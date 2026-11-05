@@ -391,7 +391,7 @@ function hurt(t, dmg, dir, o) {
   }
   // the Voltaic set: a melee hit arcs to the nearest other foe
   if (o.melee && !o.arc && o.src && o.src.kind === 'player' && t.team === 1 && setOn(o.src, 'voltaic', 2))
-    voltArc(t, dmg, o.src);
+    voltArc(t, Math.min(dmg, dmg + Math.min(0, t.hp)), o.src); // the arc carries what the hit dealt, not overkill
   if (t.hp <= 0) {
     kill(t, dir, o);
     return true;
