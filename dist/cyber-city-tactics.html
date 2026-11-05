@@ -1157,6 +1157,115 @@ body.cb {
   white-space: normal;
   text-align: center;
 }
+
+/* ---------- the newer hacking minigames ---------- */
+.hkgame {
+  position: relative;
+  margin: 10px 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #0a0812;
+  padding: 10px;
+}
+.hkgame[data-f='bad'] {
+  border-color: var(--neon);
+  box-shadow: 0 0 0 2px var(--neon) inset;
+}
+.hkgame[data-f='ok'] {
+  border-color: var(--ok);
+}
+.hkpads {
+  display: grid;
+  gap: 6px;
+  justify-content: center;
+  margin: 8px 0;
+}
+/* a D-pad cross for four directions, a stacked pair for two */
+.hkpads.cross {
+  grid-template-columns: repeat(3, minmax(48px, 64px));
+  grid-template-areas: '. up .' 'left . right' '. down .';
+}
+.hkpads.pair {
+  grid-template-columns: minmax(64px, 96px);
+  grid-template-areas: 'up' 'down';
+}
+.hkpad {
+  min-height: 52px;
+  font-size: 20px;
+}
+.hkpad.lit {
+  background: var(--mana);
+  color: #0a0812;
+  box-shadow: 0 0 18px var(--mana);
+}
+.hkgrid {
+  display: grid;
+  grid-template-columns: repeat(var(--w), 1fr);
+  gap: 4px;
+}
+.hkgrid i {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: #1f1830;
+}
+.hkgrid i.trail {
+  background: #24405a;
+}
+.hkgrid i.ice {
+  background: #5a1830;
+  box-shadow: 0 0 6px #ff3d4a inset;
+}
+.hkgrid i.exit {
+  background: #1d4a35;
+  box-shadow: 0 0 8px var(--ok);
+}
+.hkgrid i.me {
+  background: var(--mana);
+  box-shadow: 0 0 10px var(--mana);
+}
+.hktime {
+  height: 5px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: #1f1830;
+  overflow: hidden;
+}
+.hktime i {
+  display: block;
+  height: 100%;
+  background: var(--gold);
+}
+.hklanes {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+  background: repeating-linear-gradient(#0a0812 0 31px, #1f1830 31px 32px);
+}
+.hklanes i {
+  position: absolute;
+  display: block;
+}
+.hklanes .sig {
+  left: 12%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--mana);
+  box-shadow: 0 0 10px var(--mana);
+}
+.hklanes .blk {
+  width: 18px;
+  height: 22px;
+  border-radius: 3px;
+  background: #ff3d4a;
+  box-shadow: 0 0 8px #ff3d4a;
+}
+body.cb .hkgrid i.ice,
+body.cb .hklanes .blk {
+  background: #ffa630;
+  box-shadow: 0 0 8px #ffa630;
+}
 </style>
 </head>
 <body>
@@ -1186,7 +1295,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9659e4a';
+const APP_VERSION = '2.0.0+4e58888';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1467,6 +1576,7 @@ const prefs = Object.assign(
     cb: false, // colour-blind safe: blue and orange for good and bad instead of green and pink
     heavyTap: false, // heavy blow by double-tapping punch instead of holding it
     story: true, // short scenes as districts open and bosses arrive
+    hackKind: 'varied', // 'classic': every lock is the timing minigame
     keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
@@ -2043,6 +2153,11 @@ addEventListener('keydown', e => {
     if (!e.repeat) hackPress();
     return;
   }
+  if (G.mode === 'hack' && ['up', 'down', 'left', 'right'].includes(KA[c] || KB[c])) {
+    e.preventDefault(); // the newer locks steer with the directions
+    if (!e.repeat) hackDir(KA[c] || KB[c]);
+    return;
+  }
   if (c === 'Escape' || c === 'KeyP') {
     e.preventDefault();
     if (!e.repeat) {
@@ -2562,6 +2677,7 @@ function pollPads() {
       return;
     }
     if (G.mode === 'hack') {
+      for (const d of ['up', 'down', 'left', 'right']) if (pressed(d)) hackDir(d);
       if (pressed('punch') || pressed('jump')) hackPress();
       else if (pressed('spell')) useIce();
       else if (pressed('kick')) padBack();
@@ -5470,7 +5586,12 @@ const SKILLS = {
   over: { t: 'mage', row: 2, name: 'Overcharge', desc: 'Fireball blasts are 60% wider.' },
   siphon: { t: 'mage', row: 2, name: 'Siphon', desc: 'Every kill restores 4 mana.' },
   archon: { t: 'mage', row: 3, name: 'Archon', desc: 'Every fourth spell is free and hits twice as hard.' },
-  probe: { t: 'decker', row: 0, name: 'Port Scanner', desc: 'Hacking windows are 25% wider.' },
+  probe: {
+    t: 'decker',
+    row: 0,
+    name: 'Port Scanner',
+    desc: 'Hacking windows are 25% wider, and the other locks give 20% more time.'
+  },
   spare: { t: 'decker', row: 1, name: 'Spare Cycles', desc: 'One extra miss allowed on every hack.' },
   icecraft: {
     t: 'decker',
@@ -12439,7 +12560,9 @@ function worldWipe() {
 
 /* ===== src/js/modes/hacking.js ===== */
 /* Cyber City Tactics · src/js/modes/hacking.js
- * The lock-cracking minigame.
+ * The lock-cracking minigames. The building picks the lock: the classic timing lock (homes, businesses,
+ * clubs, vaults and job terminals), Sequence (gang hideouts' keypads), Trace (a precinct's network) and
+ * Firewall (a black site's ICE). Settings → Hacking minigames: Classic keeps every lock the timing one.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ----- hacking ----- */
 function startHack(b, vault) {
@@ -12467,10 +12590,176 @@ function startHack(b, vault) {
     zone: 0.5,
     flash: 0,
     flashCol: '',
-    skip: false
+    skip: false,
+    // how much more time the other locks give: Hacking, Port Scanner and a slow deck all help
+    ease:
+      (((1 + hak * 0.04) * (anyHas('probe') ? 1.2 : 1)) / Math.min(1, ...decks.map(d => d.slow || 1))) *
+      (evOn('blackout') ? 1.2 : 1)
   };
-  newZone();
+  G.hack.kind = hackKindFor(b, vault);
+  if (G.hack.kind === 'seq') seqInit(G.hack);
+  else if (G.hack.kind === 'trace') traceInit(G.hack);
+  else if (G.hack.kind === 'wall') wallInit(G.hack);
+  else newZone();
   setMode('hack');
+}
+// which lock a building has
+function hackKindFor(b, vault) {
+  if (vault || G.stealth || !b || prefs.hackKind === 'classic') return 'lock';
+  return { hideout: 'seq', precinct: 'trace', blacksite: 'wall' }[b.type] || 'lock';
+}
+const HACK_NAMES = {
+  lock: 'Timing lock',
+  seq: 'Keypad sequence',
+  trace: 'Network trace',
+  wall: 'Firewall run'
+};
+const DIRS = ['up', 'left', 'right', 'down'];
+const DIR_ICON = { up: '▲', left: '◀', right: '▶', down: '▼' };
+/* --- Sequence: watch the pattern, then repeat it --- */
+function seqInit(h) {
+  const L = 3 + h.tier;
+  h.seq = Array.from({ length: L }, () => pick(DIRS));
+  h.need = L;
+  seqShow(h);
+}
+function seqShow(h) {
+  h.phase = 'show';
+  h.i = 0;
+  h.hits = 0;
+  h.st = -30; // a beat before the first light
+  h.lit = null;
+}
+function seqTick(h) {
+  if (h.phase !== 'show') return;
+  const on = Math.round(32 * h.ease),
+    gap = 10;
+  h.st++;
+  const k = Math.floor(h.st / (on + gap)),
+    inOn = h.st >= 0 && h.st % (on + gap) < on;
+  h.lit = h.st >= 0 && k < h.seq.length && inOn ? h.seq[k] : null;
+  if (h.st >= 0 && k >= h.seq.length) {
+    h.phase = 'input';
+    h.lit = null;
+    hackInfo();
+  }
+}
+function seqDir(h, d) {
+  if (h.phase !== 'input') return;
+  h.lit = d;
+  h.litT = 8;
+  if (d === h.seq[h.i]) {
+    h.i++;
+    h.hits = h.i;
+    sfx.coin();
+    if (h.i >= h.seq.length) return hackWin();
+    hackInfo();
+  } else if (hackMiss()) seqShow(h); // wrong pad: watch it again
+}
+/* --- Trace: walk the signal through the network before the trace finds you --- */
+const TR_W = 7,
+  TR_H = 4;
+function traceInit(h) {
+  const r = Math.random;
+  h.sy = Math.floor(r() * TR_H);
+  h.ex = TR_W - 1;
+  h.ey = Math.floor(r() * TR_H);
+  // a guaranteed route first, then walls everywhere else at random
+  const path = new Set();
+  let x = 0,
+    y = h.sy;
+  path.add(x + ',' + y);
+  while (x < h.ex || y !== h.ey) {
+    if (x < h.ex && (y === h.ey || r() < 0.6)) x++;
+    else y += y < h.ey ? 1 : -1;
+    path.add(x + ',' + y);
+  }
+  h.walls = [];
+  for (let gx = 0; gx < TR_W; gx++)
+    for (let gy = 0; gy < TR_H; gy++)
+      if (!path.has(gx + ',' + gy) && r() < 0.32 + 0.06 * h.tier) h.walls.push(gx + ',' + gy);
+  h.cx = 0;
+  h.cy = h.sy;
+  h.trail = [h.cx + ',' + h.cy];
+  h.time = h.left = Math.round((7 + 3 * (4 - h.tier)) * 60 * h.ease);
+  h.need = TR_W - 1;
+  h.hits = 0;
+}
+function traceTick(h) {
+  h.left--;
+  if (h.left <= 0) hackFail();
+}
+function traceDir(h, d) {
+  const nx = h.cx + (d === 'right' ? 1 : d === 'left' ? -1 : 0),
+    ny = h.cy + (d === 'down' ? 1 : d === 'up' ? -1 : 0);
+  if (nx < 0 || ny < 0 || nx >= TR_W || ny >= TR_H) return;
+  if (h.walls.includes(nx + ',' + ny)) {
+    hackMiss(); // ran into ICE
+    return;
+  }
+  h.cx = nx;
+  h.cy = ny;
+  if (!h.trail.includes(nx + ',' + ny)) h.trail.push(nx + ',' + ny);
+  h.hits = Math.max(h.hits, nx);
+  sfx.click();
+  if (nx === h.ex && ny === h.ey) return hackWin();
+  hackInfo();
+}
+/* --- Firewall: the signal runs right; switch lanes to dodge the ICE until it's through --- */
+function wallInit(h) {
+  h.lane = 1;
+  h.blocks = [];
+  h.dur = h.left = Math.round((5 + h.tier * 2) * 60);
+  h.spd = (0.9 + 0.25 * h.tier) / h.ease; // % of the track per step
+  h.spawnT = 30;
+  h.need = 1;
+  h.hits = 0;
+}
+function wallTick(h) {
+  h.left--;
+  for (const k of h.blocks) k.x -= h.spd;
+  // the signal sits at 12% of the track: a block passing over it in its lane is a hit
+  for (const k of h.blocks)
+    if (!k.hit && k.lane === h.lane && k.x < 15 && k.x > 6) {
+      k.hit = true;
+      if (!hackMiss()) return;
+    }
+  h.blocks = h.blocks.filter(k => k.x > -8 && !k.hit);
+  if (--h.spawnT <= 0) {
+    const last = h.blocks[h.blocks.length - 1];
+    let lane = Math.floor(Math.random() * 3);
+    if (last && last.x > 80 && lane === last.lane) lane = (lane + 1) % 3;
+    h.blocks.push({ x: 104, lane });
+    h.spawnT = Math.round((46 - h.tier * 6) * h.ease);
+  }
+  if (h.left <= 0) hackWin();
+}
+function wallDir(h, d) {
+  if (d === 'up') h.lane = Math.max(0, h.lane - 1);
+  if (d === 'down') h.lane = Math.min(2, h.lane + 1);
+}
+// a direction pressed during a hack (keys, D-pad or the on-screen pads)
+function hackDir(d) {
+  const h = G.hack;
+  if (!h || G.mode !== 'hack') return;
+  if (h.kind === 'seq') seqDir(h, d);
+  else if (h.kind === 'trace') traceDir(h, d);
+  else if (h.kind === 'wall') wallDir(h, d);
+}
+// a miss in any lock: the flash, the buzz, maybe the lockout. False when the hack is over.
+function hackMiss() {
+  const h = G.hack;
+  h.miss++;
+  sfx.click();
+  buzz(40);
+  h.flash = 14;
+  h.flashCol = 'bad';
+  if (h.miss > h.maxMiss) {
+    hackFail();
+    return false;
+  }
+  hackInfo();
+  return true;
 }
 function newZone() {
   const h = G.hack;
@@ -12482,7 +12771,7 @@ function newZone() {
 }
 function hackPress() {
   const h = G.hack;
-  if (!h || G.mode !== 'hack') return;
+  if (!h || G.mode !== 'hack' || (h.kind && h.kind !== 'lock')) return;
   if (Math.abs(h.pos - h.zone) <= h.w / 2) hackHit();
   else {
     h.miss++;
@@ -12510,20 +12799,45 @@ function hackHit() {
   hackInfo();
 }
 function useIce() {
-  if (G.hack && (PARTY.ice || 0) > 0) {
+  const h = G.hack;
+  if (h && (PARTY.ice || 0) > 0) {
     if (anyHas('icecraft') && Math.random() < 0.3) {
       const p = active()[0];
       G.texts.push({ x: p.x, y: p.y, z: 70, s: 'ICEBREAKER KEPT', c: '#45d2ff', life: 50, sm: true });
     } else PARTY.ice--;
-    hackHit();
+    // an icebreaker does each lock's hardest part for you
+    if (h.kind === 'seq') {
+      if (h.phase === 'show') h.st = 1e6; // skip the replay
+      seqTick(h);
+      seqDir(h, h.seq[h.i]);
+    } else if (h.kind === 'trace') {
+      h.left += 300; // five more seconds, and the ICE around you melts
+      h.walls = h.walls.filter(w => {
+        const [x, y] = w.split(',').map(Number);
+        return Math.abs(x - h.cx) > 1 || Math.abs(y - h.cy) > 1;
+      });
+      hackInfo();
+    } else if (h.kind === 'wall') {
+      h.blocks = [];
+      h.left = Math.max(0, h.left - 120);
+      hackInfo();
+    } else hackHit();
   }
 }
 function hackInfo() {
   const h = G.hack;
   if (!h) return;
-  const el = document.getElementById('hkProg');
+  const el = document.getElementById('hkProg'),
+    left = `Misses left ${'<b style="color:var(--neon)">♦</b> '.repeat(Math.max(0, h.maxMiss + 1 - h.miss))}`;
   if (el)
-    el.innerHTML = `Nodes ${'<b style="color:var(--ok)">●</b> '.repeat(h.hits)}${'○ '.repeat(h.need - h.hits)} · Misses left ${'<b style="color:var(--neon)">♦</b> '.repeat(h.maxMiss + 1 - h.miss)}`;
+    el.innerHTML =
+      h.kind === 'seq'
+        ? `${h.phase === 'show' ? 'Watch…' : 'Your turn'} · ${'<b style="color:var(--ok)">●</b> '.repeat(h.hits)}${'○ '.repeat(h.need - h.hits)} · ${left}`
+        : h.kind === 'trace'
+          ? `Trace in ${Math.ceil(h.left / 60)} s · ${left}`
+          : h.kind === 'wall'
+            ? `Through in ${Math.ceil(h.left / 60)} s · ${left}`
+            : `Nodes ${'<b style="color:var(--ok)">●</b> '.repeat(h.hits)}${'○ '.repeat(h.need - h.hits)} · ${left}`;
   const ib = document.getElementById('hkIce');
   if (ib) {
     ib.textContent = `Icebreaker (${PARTY.ice || 0})`;
@@ -12533,6 +12847,7 @@ function hackInfo() {
 function hackStep() {
   const h = G.hack;
   if (!h) return;
+  if (h.kind && h.kind !== 'lock') return hackStep2(h);
   h.pos += (h.dir * h.speed) / 60;
   if (h.pos > 1) {
     h.pos = 1;
@@ -12552,6 +12867,56 @@ function hackStep() {
     z.style.width = h.w * 100 + '%';
   }
   if (t) t.dataset.f = h.flash > 0 ? h.flashCol : '';
+}
+// the three newer locks: tick, then draw into their boxes on the card
+function hackStep2(h) {
+  if (h.flash > 0) h.flash--;
+  if (h.litT > 0 && --h.litT === 0 && h.phase === 'input') h.lit = null;
+  if (h.kind === 'seq') seqTick(h);
+  else if (h.kind === 'trace') traceTick(h);
+  else if (h.kind === 'wall') wallTick(h);
+  if (!G.hack) return; // won or lost this step
+  const box = document.getElementById('hkGame');
+  if (box) box.dataset.f = h.flash > 0 ? h.flashCol : '';
+  if (h.kind === 'seq') {
+    for (const d of DIRS) {
+      const b = document.getElementById('hkP-' + d);
+      if (b) b.classList.toggle('lit', h.lit === d);
+    }
+  } else if (h.kind === 'trace') {
+    const g = document.getElementById('hkGrid');
+    if (g) {
+      let s = '';
+      for (let y = 0; y < TR_H; y++)
+        for (let x = 0; x < TR_W; x++) {
+          const k = x + ',' + y,
+            c =
+              x === h.cx && y === h.cy
+                ? 'me'
+                : x === h.ex && y === h.ey
+                  ? 'exit'
+                  : h.walls.includes(k)
+                    ? 'ice'
+                    : h.trail.includes(k)
+                      ? 'trail'
+                      : '';
+          s += `<i class="${c}"></i>`;
+        }
+      if (g._s !== s) g.innerHTML = g._s = s;
+    }
+    const bar = document.getElementById('hkTime');
+    if (bar) bar.style.width = (h.left / h.time) * 100 + '%';
+    if (h.left % 30 === 0) hackInfo();
+  } else if (h.kind === 'wall') {
+    const lanes = document.getElementById('hkLanes');
+    if (lanes)
+      lanes.innerHTML =
+        `<i class="sig" style="top:${h.lane * 33.3 + 8}%"></i>` +
+        h.blocks.map(k => `<i class="blk" style="left:${k.x}%;top:${k.lane * 33.3 + 4}%"></i>`).join('');
+    const bar = document.getElementById('hkTime');
+    if (bar) bar.style.width = (1 - h.left / h.dur) * 100 + '%';
+    if (h.left % 30 === 0) hackInfo();
+  }
 }
 function hackWin() {
   const b = G.hack.b;
@@ -22628,17 +22993,38 @@ function bcardHtml(b) {
     ? `<p style="font-size:13px;color:var(--muted);margin:0">Owned by <b style="color:${FACTIONS[b.fac].col}">${FACTIONS[b.fac].name}</b> (${facLabel(facStand(b.fac)).toLowerCase()}, ${Math.round(facStand(b.fac))}). Cleaning it out: ${FACTIONS[b.fac].name} −25${FACTIONS[b.fac].rival ? `, ${FACTIONS[FACTIONS[b.fac].rival].name} +15` : ', every crew +5'}.</p>`
     : '';
   return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
-  <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
+  <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>${HACK_NAMES[hackKindFor(b)]}, strength ${b.tier}: ${{ lock: b.tier + 1 + ' clean hits to crack', seq: 'repeat a pattern of ' + (3 + b.tier), trace: 'walk a signal through the network before the trace', wall: 'dodge ICE for ' + (5 + b.tier * 2) + ' seconds' }[hackKindFor(b)]}. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
 function hackHtml() {
   const h = G.hack,
     b = h.b;
+  if (h.kind && h.kind !== 'lock') return hackHtml2(h, b);
   return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${h.vault ? 'vault, lock 4' : 'lock ' + b.tier}</p><h2>${h.vault ? 'Crack the vault' : 'Crack the lock'}</h2>
   <p>${PAD.active ? 'Press A or X' : isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
   <div class="trk" id="hkTrk"><div class="zone" id="hkZone"></div><div class="cur" id="hkCur"></div></div>
   <p id="hkProg"></p>
   <div class="row"><button class="btn big" data-a="hackpress" id="hkBtn">Hack</button><button class="btn ghost" data-a="useice" id="hkIce">Icebreaker</button><button class="btn ghost" data-a="hackquit">Back off</button></div></div>`;
+}
+// the newer locks' cards: what to do, the play area, and the pads for touch (and a mouse)
+function hackHtml2(h, b) {
+  const how = PAD.active ? 'the D-pad or stick' : isTouch() ? 'the pads below' : 'the arrow keys or WASD';
+  const pads = ds =>
+    `<div class="hkpads ${ds.length === 4 ? 'cross' : 'pair'}">${ds.map(d => `<button class="btn hkpad" id="hkP-${d}" data-a="hkdir:${d}" aria-label="${d}" style="grid-area:${d}">${DIR_ICON[d]}</button>`).join('')}</div>`;
+  const lose = `Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.`;
+  const body =
+    h.kind === 'seq'
+      ? `<p>A gang keypad. Watch the pads light up, then repeat the pattern with ${how}. A wrong pad costs a miss and you watch it again. ${lose}</p>
+  <div class="hkgame seq" id="hkGame">${pads(DIRS)}</div>`
+      : h.kind === 'trace'
+        ? `<p>A precinct network. Walk the signal (the bright square) to the exit node on the right with ${how} before the trace finds you. Red nodes are ICE: running into one costs a miss. ${lose}</p>
+  <div class="hkgame" id="hkGame"><div class="hkgrid" id="hkGrid" style="--w:${TR_W}"></div><div class="hktime"><i id="hkTime"></i></div></div>${isTouch() || PAD.active ? '' : ''}${pads(DIRS)}`
+        : `<p>Black-site ICE. Your signal runs along the wire; switch lanes with ${PAD.active ? 'up and down' : isTouch() ? 'the pads' : 'up and down (W/S or the arrows)'} to dodge the ICE until it's through. Each hit costs a miss. ${lose}</p>
+  <div class="hkgame" id="hkGame"><div class="hklanes" id="hkLanes"></div><div class="hktime"><i id="hkTime"></i></div></div>${pads(['up', 'down'])}`;
+  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${HACK_NAMES[h.kind]} · lock ${b.tier}</p><h2>${h.kind === 'seq' ? 'Crack the keypad' : h.kind === 'trace' ? 'Beat the trace' : 'Run the firewall'}</h2>
+  ${body}
+  <p id="hkProg"></p>
+  <div class="row"><button class="btn ghost" data-a="useice" id="hkIce">Icebreaker</button><button class="btn ghost" data-a="hackquit">Back off</button></div></div>`;
 }
 function safeHtml() {
   const tabs = [
@@ -22725,6 +23111,16 @@ function settingsHtml() {
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row('Story scenes', 'A word from Juno as each district opens, and from each boss as it arrives', onoff('story'))}
+  ${row(
+    'Hacking minigames',
+    prefs.hackKind === 'classic'
+      ? 'Every lock is the timing lock'
+      : 'Hideouts have keypads, precincts a trace, black sites a firewall; the rest the timing lock',
+    seg('hackKind', [
+      ['varied', 'Varied'],
+      ['classic', 'Classic only']
+    ])
+  )}
   <h3>Accessibility</h3>
   ${row(
     'Motion',
@@ -24012,6 +24408,10 @@ ov.addEventListener('click', e => {
         break;
       }
       hackPress();
+      keep = false;
+      break;
+    case 'hkdir':
+      if (DIRS.includes(arg)) hackDir(arg);
       keep = false;
       break;
     case 'useice':

@@ -119,6 +119,7 @@ const prefs = Object.assign(
     cb: false, // colour-blind safe: blue and orange for good and bad instead of green and pink
     heavyTap: false, // heavy blow by double-tapping punch instead of holding it
     story: true, // short scenes as districts open and bosses arrive
+    hackKind: 'varied', // 'classic': every lock is the timing minigame
     keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}

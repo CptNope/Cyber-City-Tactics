@@ -229,17 +229,38 @@ function bcardHtml(b) {
     ? `<p style="font-size:13px;color:var(--muted);margin:0">Owned by <b style="color:${FACTIONS[b.fac].col}">${FACTIONS[b.fac].name}</b> (${facLabel(facStand(b.fac)).toLowerCase()}, ${Math.round(facStand(b.fac))}). Cleaning it out: ${FACTIONS[b.fac].name} −25${FACTIONS[b.fac].rival ? `, ${FACTIONS[FACTIONS[b.fac].rival].name} +15` : ', every crew +5'}.</p>`
     : '';
   return `<div class="card"><p class="eyebrow">${kind} · tier ${b.tier} · block ${G.wd.level}</p><h2>${esc(b.name)}</h2>${sec || moral}${special}${bty}${politics}
-  <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>Lock strength ${b.tier}: ${b.tier + 1} clean hits to crack. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
+  <div class="job"><span style="color:var(--muted);font-size:13px">${rooms} room${rooms > 1 ? 's' : ''}${f.boss[b.tier] ? ', guarded by a ' + esc(f.bossName[b.tier].toLowerCase()) : ''}. Loot: ${loot}.<br>${HACK_NAMES[hackKindFor(b)]}, strength ${b.tier}: ${{ lock: b.tier + 1 + ' clean hits to crack', seq: 'repeat a pattern of ' + (3 + b.tier), trace: 'walk a signal through the network before the trace', wall: 'dodge ICE for ' + (5 + b.tier * 2) + ' seconds' }[hackKindFor(b)]}. Your best Hacking is ${hak}. Icebreakers: ${PARTY.ice || 0}.</span></div>
   <div class="row">${lo ? '<button class="btn" disabled>Cleaned out</button>' : lock ? `<button class="btn" disabled>Alarm resets in ${Math.ceil((b.lockUntil - Date.now()) / 1000)}s</button>` : `<button class="btn" data-a="hack">Hack the door</button>`}<button class="btn ghost" data-a="leave">Walk away</button></div></div>`;
 }
 function hackHtml() {
   const h = G.hack,
     b = h.b;
+  if (h.kind && h.kind !== 'lock') return hackHtml2(h, b);
   return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${h.vault ? 'vault, lock 4' : 'lock ' + b.tier}</p><h2>${h.vault ? 'Crack the vault' : 'Crack the lock'}</h2>
   <p>${PAD.active ? 'Press A or X' : isTouch() ? 'Tap HACK' : 'Press Space or J'} while the cursor is inside the green window. ${h.need} clean hits open the door. Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.</p>
   <div class="trk" id="hkTrk"><div class="zone" id="hkZone"></div><div class="cur" id="hkCur"></div></div>
   <p id="hkProg"></p>
   <div class="row"><button class="btn big" data-a="hackpress" id="hkBtn">Hack</button><button class="btn ghost" data-a="useice" id="hkIce">Icebreaker</button><button class="btn ghost" data-a="hackquit">Back off</button></div></div>`;
+}
+// the newer locks' cards: what to do, the play area, and the pads for touch (and a mouse)
+function hackHtml2(h, b) {
+  const how = PAD.active ? 'the D-pad or stick' : isTouch() ? 'the pads below' : 'the arrow keys or WASD';
+  const pads = ds =>
+    `<div class="hkpads ${ds.length === 4 ? 'cross' : 'pair'}">${ds.map(d => `<button class="btn hkpad" id="hkP-${d}" data-a="hkdir:${d}" aria-label="${d}" style="grid-area:${d}">${DIR_ICON[d]}</button>`).join('')}</div>`;
+  const lose = `Miss ${h.maxMiss + 1} times and you're locked out${isGood(b) ? '' : ' and the alarm adds heat'}.`;
+  const body =
+    h.kind === 'seq'
+      ? `<p>A gang keypad. Watch the pads light up, then repeat the pattern with ${how}. A wrong pad costs a miss and you watch it again. ${lose}</p>
+  <div class="hkgame seq" id="hkGame">${pads(DIRS)}</div>`
+      : h.kind === 'trace'
+        ? `<p>A precinct network. Walk the signal (the bright square) to the exit node on the right with ${how} before the trace finds you. Red nodes are ICE: running into one costs a miss. ${lose}</p>
+  <div class="hkgame" id="hkGame"><div class="hkgrid" id="hkGrid" style="--w:${TR_W}"></div><div class="hktime"><i id="hkTime"></i></div></div>${isTouch() || PAD.active ? '' : ''}${pads(DIRS)}`
+        : `<p>Black-site ICE. Your signal runs along the wire; switch lanes with ${PAD.active ? 'up and down' : isTouch() ? 'the pads' : 'up and down (W/S or the arrows)'} to dodge the ICE until it's through. Each hit costs a miss. ${lose}</p>
+  <div class="hkgame" id="hkGame"><div class="hklanes" id="hkLanes"></div><div class="hktime"><i id="hkTime"></i></div></div>${pads(['up', 'down'])}`;
+  return `<div class="card"><p class="eyebrow">Hacking · ${esc(b.name)} · ${HACK_NAMES[h.kind]} · lock ${b.tier}</p><h2>${h.kind === 'seq' ? 'Crack the keypad' : h.kind === 'trace' ? 'Beat the trace' : 'Run the firewall'}</h2>
+  ${body}
+  <p id="hkProg"></p>
+  <div class="row"><button class="btn ghost" data-a="useice" id="hkIce">Icebreaker</button><button class="btn ghost" data-a="hackquit">Back off</button></div></div>`;
 }
 function safeHtml() {
   const tabs = [
@@ -326,6 +347,16 @@ function settingsHtml() {
   ${row('Screen shake', '', onoff('shake'))}${navigator.vibrate || PAD.active ? row('Vibration', PAD.active ? 'Phone buzz and controller rumble on hits and level-ups' : 'Buzz on hits and level-ups', onoff('haptics')) : ''}
   ${row('Tips', 'One-time hints as you meet each mechanic', onoff('tips'))}
   ${row('Story scenes', 'A word from Juno as each district opens, and from each boss as it arrives', onoff('story'))}
+  ${row(
+    'Hacking minigames',
+    prefs.hackKind === 'classic'
+      ? 'Every lock is the timing lock'
+      : 'Hideouts have keypads, precincts a trace, black sites a firewall; the rest the timing lock',
+    seg('hackKind', [
+      ['varied', 'Varied'],
+      ['classic', 'Classic only']
+    ])
+  )}
   <h3>Accessibility</h3>
   ${row(
     'Motion',

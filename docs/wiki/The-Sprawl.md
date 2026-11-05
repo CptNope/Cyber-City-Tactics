@@ -76,6 +76,19 @@ Worked out from `w.looted`, so nothing new needs saving:
 
 `blockMul(w)` feeds `buyMul()`. `w.prog[building id]` is the room you last entered (`enterRoom`); `enterBuilding` resumes there, so leaving halfway (or quitting) doesn't restock the rooms you already cleared.
 
+## Locks
+
+`startHack(b, vault)` sets `G.hack.kind` from `hackKindFor(b, vault)`: `seq` for hideouts, `trace` for precincts, `wall` for black sites, and the timing `lock` for everything else, for vaults, in drone jobs, and whenever `prefs.hackKind` is `'classic'`. Direction input (keys, pad, touch pads, the `hkdir:<dir>` action) goes to `hackDir()`, which hands it to `seqDir`, `traceDir` or `wallDir`; `hackStep()` ticks the clock or the scroller. Every kind shares `miss`/`maxMiss` through `hackMiss()` and ends in `hackWin()` or `hackFail()`.
+
+| Kind | State | Win | Miss |
+|---|---|---|---|
+| `lock` | cursor `pos`, window `w`, `hits`/`need` | `need` clean hits | press outside the window |
+| `seq` | `seq` (3 + tier directions), `phase` show/input, `i` | repeat all of it | wrong pad (replays the pattern) |
+| `trace` | 7×4 grid, `walls`, `cx/cy` → `ex/ey`, `left` | reach the exit | step into ICE; `left` hits 0 → fail |
+| `wall` | `lane` 0–2, `blocks`, `spd`, `left` | `left` hits 0 | a block reaches your lane |
+
+`h.ease` (Hacking, Port Scanner, a slow deck, a blackout) stretches the time the newer locks give and slows the firewall. The trace grid is generated with a guaranteed path first, then walls around it, so every network can be solved.
+
 ## Turrets and hacking in a fight
 
 `DEF.turret` is a `heavy` (never flinches, falls or gets grabbed) sentry that `turretTick` runs: it slides along the back wall toward its target's lane and fires a bullet down it. Black sites and precincts get one in their inner rooms 65% of the time.

@@ -73,7 +73,12 @@ const SKILLS = {
   over: { t: 'mage', row: 2, name: 'Overcharge', desc: 'Fireball blasts are 60% wider.' },
   siphon: { t: 'mage', row: 2, name: 'Siphon', desc: 'Every kill restores 4 mana.' },
   archon: { t: 'mage', row: 3, name: 'Archon', desc: 'Every fourth spell is free and hits twice as hard.' },
-  probe: { t: 'decker', row: 0, name: 'Port Scanner', desc: 'Hacking windows are 25% wider.' },
+  probe: {
+    t: 'decker',
+    row: 0,
+    name: 'Port Scanner',
+    desc: 'Hacking windows are 25% wider, and the other locks give 20% more time.'
+  },
   spare: { t: 'decker', row: 1, name: 'Spare Cycles', desc: 'One extra miss allowed on every hack.' },
   icecraft: {
     t: 'decker',

@@ -408,6 +408,10 @@ ov.addEventListener('click', e => {
       hackPress();
       keep = false;
       break;
+    case 'hkdir':
+      if (DIRS.includes(arg)) hackDir(arg);
+      keep = false;
+      break;
     case 'useice':
       useIce();
       keep = false;
