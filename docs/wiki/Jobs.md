@@ -31,12 +31,14 @@ Each runner rides a bike in the street's lanes. Hold right to throttle, left to 
 
 Fly a drone through a corp floor seen in cross-section. Cameras sweep, guards see ahead of them, walls only open at their vents, and lasers blink on and off. Being seen fills a meter; a full meter raises the alarm, and three alarms lock the floor down. Fly to the terminal (an arrow and the distance point the way), drop low and punch to hack it, then fly out through the exit vent, which unlocks once you have the files. Kick fires a shock dart at the nearest guard in reach: from behind it drops them, and from the front it just gives you away. Darting the target pays a bonus. Getting out with no alarms ghosts the job.
 
+**Security doors and the wall safe:** `stealthLayout()` turns the first `J.doors` walls into doors (`w.door`, with a keypad entry in `S.doors` that points back at its wall by index, since the layout goes into online snapshots and can't hold a cycle) and places `S.safe`. Each lock carries its own `hackKind` (`seq` for keypads, `trace` for the safe) and `lockTier`, which `hackKindFor()` and `startHack()` read. `stealthLockAt(p, S)` finds what a low drone can plug into; `stealthLockDone()` opens the door (its `gap` becomes floor to ceiling, so sight lines pass too) or pays out the safe, and a failed hack sets `lockT` and adds 55 to the drone's detection meter.
+
 **Overwatch co-op:** runner 2 stays off the floor with a reticle. Punch loops the camera or laser under it for seven seconds, and kick pings a noise that pulls nearby guards over. Overwatch starts with three loops and three pings, and gets a loop back (up to five) for every guard the drone drops.
 
-| Drone job | District | Cameras | Guards | Lasers | Walls | Target | Pay | Karma |
-|---|---|---|---|---|---|---|---|---|
-| Ghost in the Arcology | Kagemori Arcology | 6 | 4 | 3 | 4 | Aide Morrow | ¥320 | 150 |
-| The Night Clinic | Neon Market | 4 | 3 | 2 | 3 | Doc Varga | ¥240 | 110 |
+| Drone job | District | Cameras | Guards | Lasers | Walls | Doors | Safe | Target | Pay | Karma |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Ghost in the Arcology | Kagemori Arcology | 6 | 4 | 3 | 4 | 2 | ¥260 | Aide Morrow | ¥320 | 150 |
+| The Night Clinic | Neon Market | 4 | 3 | 2 | 3 | 1 | ¥180 | Doc Varga | ¥240 | 110 |
 
 ## Flight
 

@@ -12,7 +12,9 @@ const pick = a => a[Math.floor(Math.random() * a.length)];
    Share one and a friend plays the same street (same buildings, event and bounty) or the same arena
    waves and perk offers. */
 const seedCode = (mode, n, level) =>
-  (mode === 'sprawl' ? 'S' + level : 'A') + '-' + (n >>> 0).toString(36).toUpperCase();
+  (mode === 'sprawl' ? 'S' + level : mode === 'gauntlet' ? 'G' : 'A') +
+  '-' +
+  (n >>> 0).toString(36).toUpperCase();
 function parseSeed(raw) {
   const s = String(raw || '')
     .toUpperCase()
@@ -22,6 +24,8 @@ function parseSeed(raw) {
   if (m) return { mode: 'sprawl', level: Math.min(20, +m[1]), seed: parseInt(m[2], 36), code: s };
   m = s.match(/^A-([0-9A-Z]{1,7})$/);
   if (m) return { mode: 'arena', seed: parseInt(m[1], 36), code: s };
+  m = s.match(/^G-([0-9A-Z]{1,7})$/);
+  if (m) return { mode: 'gauntlet', seed: parseInt(m[1], 36), code: s };
   return null;
 }
 const newSeed = () => Math.floor(Math.random() * 2e9);

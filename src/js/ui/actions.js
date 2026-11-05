@@ -150,8 +150,47 @@ ov.addEventListener('click', e => {
       }
       break;
     }
+    case 'gauntpick':
+      G.seedErr = false;
+      setMode('gauntpick');
+      keep = false;
+      break;
+    case 'gaunt1':
+    case 'gaunt2':
+      gauntStart(a === 'gaunt2');
+      keep = false;
+      break;
+    case 'gauntday1':
+    case 'gauntday2':
+      G.pendDiff = 1;
+      gauntStart(a === 'gauntday2', gauntDayCode(), true);
+      keep = false;
+      break;
+    case 'gauntseed1':
+    case 'gauntseed2': {
+      const inp = document.getElementById('gauntSeed'),
+        ch = parseSeed(inp && inp.value);
+      if (!ch || ch.mode !== 'gauntlet') {
+        G.seedErr = true;
+        renderOv();
+        break;
+      }
+      G.seedErr = false;
+      G.gauntPre = '';
+      gauntStart(a === 'gauntseed2', ch.code);
+      keep = false;
+      break;
+    }
+    case 'gauntagain': {
+      const g = G.gaunt;
+      if (!g) break;
+      G.pendDiff = G.diff;
+      gauntStart(G.coop, g.code, g.daily);
+      keep = false;
+      break;
+    }
     case 'copyshare': {
-      const t = shareLine(),
+      const t = G.mode === 'gauntover' ? gauntShareLine() : shareLine(),
         btn = document.getElementById('copyBtn');
       const done = ok => {
         if (btn) btn.textContent = ok ? 'Copied' : 'Select the text above to copy';
@@ -178,7 +217,8 @@ ov.addEventListener('click', e => {
     }
     case 'perk': {
       const pk = PERKS.find(x => x.id === arg);
-      if (pk && G.mode === 'perk') {
+      if (pk && G.mode === 'perk' && gauntOn()) gauntPerk(pk);
+      else if (pk && G.mode === 'perk') {
         pk.go();
         sfx.level();
         setMode('play');
@@ -924,6 +964,10 @@ ov.addEventListener('click', e => {
       rerender();
       break;
     }
+    case 'hirecrew':
+      if (hireCrew(arg)) sfx.buy();
+      rerender();
+      break;
     case 'dismiss':
       PARTY.ally = null;
       G.ents = G.ents.filter(e => e.kind !== 'ally');

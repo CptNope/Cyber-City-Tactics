@@ -213,6 +213,7 @@ function dropRunner2() {
   if (PL[0].out && G.mode !== 'title') {
     if (G.arena) arenaOver();
     else if (G.world) worldWipe();
+    else if (gauntOn()) gauntEnd(false);
     else if (!G.training && !G.drive && !G.stealth && !G.flight) {
       musicPlay(null);
       setMode('over');
@@ -275,12 +276,15 @@ function lvlMul() {
   const l = Math.max(0, partyLvl() - 1);
   return { hp: 1 + 0.09 * l, dmg: 1 + 0.08 * l };
 }
+// how far into the run this fight is: the district, or in the Gauntlet (any district in any order) how many
+// districts in you are, so a late district drawn first plays like a first one
+const depth = () => (gauntOn() ? G.gaunt.i : G.stage);
 function spawnEnemy(kind, side) {
   const d = DEF[kind],
     DF = DIFF[G.diff],
     NG = ngMul(),
     LV = lvlMul(),
-    hpm = (1 + G.stage * 0.42) * DF.hp * NG.hp * LV.hp;
+    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp;
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -299,7 +303,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + G.stage * 0.26) * DF.dmg * NG.dmg * LV.dmg),
+    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,
@@ -315,7 +319,7 @@ function spawnEnemy(kind, side) {
   if (
     !d.boss &&
     G.mode !== 'title' &&
-    (modOn('elite') || Math.random() < DF.elite + NG.elite + G.stage * 0.02)
+    (modOn('elite') || Math.random() < DF.elite + NG.elite + depth() * 0.02)
   ) {
     const ks = Object.keys(ELITES).filter(k => !(k === 'vampiric' && d.spirit));
     const k = pick(ks);

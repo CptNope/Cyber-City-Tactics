@@ -82,7 +82,7 @@ const MUTD = {
   pacifist: 'Clear a district without firing a gun for double contract karma.'
 };
 const mutN = () => (!G.arena && !G.world && !G.training && G.muts ? G.muts.length : 0);
-const maxLives = () => (mutN() && G.muts.includes('iron') ? 1 : 3);
+const maxLives = () => (gauntOn() || (mutN() && G.muts.includes('iron')) ? 1 : 3);
 // Seeded streams so everyone gets the same waves and perk offers in a given week
 const wr = () => (G.rngW ? G.rngW() : Math.random()),
   pr = () => (G.rngP ? G.rngP() : Math.random());
@@ -231,6 +231,7 @@ const PERKS = [
   }
 ];
 function startArena(coop, challenge) {
+  G.gaunt = null;
   if (NET.role === 'host' && NET.live) coop = true; // the friend online is always runner 2
   G.diff = challenge ? 1 : G.pendDiff;
   G.ng = 0;

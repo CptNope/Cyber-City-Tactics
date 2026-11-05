@@ -28,7 +28,7 @@ function renderOv() {
     if (G.mode === 'title') G.pendDiff = sv && DIFF[sv.diff] ? sv.diff : 1;
     h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
     <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
-    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="gauntpick">Gauntlet</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {
     h = `<div class="card"><p class="eyebrow">New run</p><h2>How hard are the streets?</h2>${prefs.trained ? '' : '<p>New here? <button class="btn sm ghost" data-a="trainpick">Try training first</button></p>'}
@@ -57,6 +57,8 @@ function renderOv() {
   if (m === 'jobs') h = jobsHtml();
   if (m === 'driveover') h = driveOverHtml();
   if (m === 'stealthover') h = stealthOverHtml();
+  if (m === 'gauntpick') h = gauntPickHtml();
+  if (m === 'gauntover') h = gauntOverHtml();
   if (m === 'flightover') h = flightOverHtml();
   if (m === 'online' || m === 'netwait' || m === 'netmenu' || m === 'netlost' || m === 'nethub')
     h = netHtml(m);
@@ -100,7 +102,7 @@ function renderOv() {
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
   if (m === 'perk') {
-    h = `<div class="card"><p class="eyebrow">Arena · wave ${G.awave} cleared · score ${G.score.toLocaleString()}</p><h2>Pick a perk</h2>
+    h = `<div class="card"><p class="eyebrow">${gauntOn() ? `Gauntlet · ${G.gaunt.i} of ${G.gaunt.order.length} cleared · next: ${esc(STAGES[G.gaunt.order[G.gaunt.i]].name)}` : `Arena · wave ${G.awave} cleared · score ${G.score.toLocaleString()}`}</p><h2>Pick a perk</h2>
     <div class="list">${G.perks
       .map(id => {
         const pk = PERKS.find(x => x.id === id);
@@ -123,8 +125,8 @@ function renderOv() {
     const C = CONTRACTS[G.stage],
       S = STAGES[G.stage];
     h = `<div class="card"><p class="eyebrow">Job ${G.stage + 1} of ${STAGES.length} · ${esc(S.name)} · ${DIFF[G.diff].name}${G.ng ? ' NG+' + G.ng : ''}</p><h2>${esc(C.title)}</h2>
-    <p class="say"><b>Juno · fixer</b>${esc(C.say)}</p>${jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="go">Take the job</button><button class="btn ghost" data-a="sheet">Character</button>${G.briefFromDen ? '<button class="btn ghost" data-a="notyet">Not yet</button>' : ''}</div></div>`;
+    <p class="say"><b>Juno · fixer</b>${esc(C.say)}</p>${gauntOn() ? gauntBriefLine() : ''}${jobHtml(PARTY.contract)}
+    <div class="row"><button class="btn" data-a="go">Take the job</button><button class="btn ghost" data-a="sheet">Character</button>${G.briefFromDen && !gauntOn() ? '<button class="btn ghost" data-a="notyet">Not yet</button>' : ''}</div></div>`;
   }
   if (m === 'sheet') {
     h = `<div class="card"><p class="eyebrow">${G.ret === 'brief' ? 'Before the job' : G.ret === 'den' ? 'The Den' : G.ret === 'perk' ? 'Arena · between waves' : G.arena ? 'Paused · arena wave ' + G.awave : G.world ? 'The Sprawl · block ' + G.wd.level : 'Paused · district ' + (G.stage + 1)}</p><h2>Runners</h2>${charHtml()}${G.ret === 'play' && !G.arena ? jobHtml(PARTY.contract) : ''}
@@ -194,6 +196,8 @@ function renderOv() {
       'arenapick',
       'perk',
       'arenaover',
+      'gauntpick',
+      'gauntover',
       'trainpick',
       'trained',
       'bcard',
@@ -491,7 +495,7 @@ function npcHtml(id) {
     sayTxt =
       'Need backup? I rent muscle, metal and the odd spirit. One at a time, and no refunds if they get scrapped. I patch up whatever you bring back.';
     const cur = PARTY.ally;
-    body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. If it goes down on a job, it's gone.</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
+    body = `${cur ? `<div class="job"><div class="row" style="justify-content:space-between"><b>${esc(ALLIES[cur.type].name)}</b><span class="st up">With you</span></div><span style="color:var(--muted);font-size:13px">${cur.hp}/${cur.maxHp} HP. Fully repaired whenever you're back in the Den. ${CREW[cur.type] ? 'If they go down on a job, stand by them to get them up.' : "If it goes down on a job, it's gone."}</span><div class="row"><button class="btn sm ghost" data-a="dismiss">Dismiss</button></div></div>` : '<p>No companion yet.</p>'}
     <div class="list">${Object.keys(ALLIES)
       .filter(k => !ALLIES[k].hidden)
       .map(k => {
@@ -501,7 +505,8 @@ function npcHtml(id) {
           ok = !have && PARTY.creds >= ac;
         return `<div class="item"><div><div class="nm">${esc(A.name)}</div><div class="ds">${esc(A.desc)} ${A.hp} HP base, grows with your level.${cur && !have ? ' Replaces your current companion.' : ''}</div></div><div class="acts"><button class="btn sm${ok ? '' : ' ghost'}" data-a="hire:${k}" ${ok ? '' : 'disabled'}>${have ? 'Hired' : '¥' + ac}</button></div></div>`;
       })
-      .join('')}</div>`;
+      .join('')}</div>
+    ${crewHtml()}`;
   } else if (id === 'wen') {
     sayTxt =
       "Magic isn't bought, it's earned. But I can sell you the formula. Whether you can hold it is your business.";
@@ -561,8 +566,9 @@ function togglePause() {
   else if (G.mode === 'npc') setMode('den');
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
-function newRun(coop) {
+function newRun(coop, noBrief) {
   G.training = false;
+  G.gaunt = null; // gauntStart() sets it again after this
   // a runner kept for a dropped partner belongs to the old run
   if (typeof NET !== 'undefined' && !NET.live) NET.away = null;
   G.choices = {};
@@ -589,5 +595,5 @@ function newRun(coop) {
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;
-  briefing(0, false);
+  if (!noBrief) briefing(0, false); // the Gauntlet briefs its own first district (and must not save)
 }

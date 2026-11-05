@@ -33,6 +33,8 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `mastery.test.js` | headless | 25 | Archetype mastery: the tiers, the growing numbers, and every archetype's tier III twist; the HUD's Archon counter and skill frames. |
 | `hackgames.test.js` | headless | 28 | The newer locks: which building gets which, Sequence, Trace and Firewall wins, misses and lockouts, icebreakers, Port Scanner, and the card. |
 | `sync.test.js` | headless | 42 | Cloud save: change stamps, save codes (round trip, junk, half codes, invite codes), and the sync file with a fake handle: first link, newer file offered, keep or load, older file overwritten, a missing file, Resume, Unlink. |
+| `gauntlet.test.js` | headless | 38 | The Gauntlet: seeds and plans, the pick screen, one life, perks between districts, depth scaling, falling and winning, never saving, today's run, shared links. |
+| `crew.test.js` | headless | 30 | Crew contracts: hiring at Kit's, each special, the cooldown, downed and revived, paydays and loyalty, the loyal specials, saving. |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |
@@ -46,7 +48,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `specials.test.js` | headless |  | Archetype specials, vending machines, data nodes, Glitch splitting, Black ICE beams. |
 | `sprawl-coop.test.js` | headless | 5 | Two runners clear a Sprawl building together (bot; can occasionally lose a fight). |
 | `sprawl.test.js` | headless | 28 | The Sprawl. |
-| `stealth.test.js` | headless | 46 | Drone stealth jobs (modes/stealth.js). |
+| `stealth.test.js` | headless | 64 | Drone stealth jobs (modes/stealth.js). |
 | `story.test.js` | headless | 42 | Story scenes (open, boss, skip, once per run), music moods, motion, contrast and colour-blind settings, key remapping and the double-tap heavy blow. |
 | `streetfights.test.js` | headless | 33 | Street weapons, foes who carry and fetch them, wall bounces and juggles, mercy, runners and boss taunts. |
 | `streetfoes.test.js` | headless | 17 | Foes who fight like the runners. |

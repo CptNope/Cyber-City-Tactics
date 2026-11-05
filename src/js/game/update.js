@@ -456,6 +456,7 @@ function stageClear() {
       feat('pacifist');
     }
     PARTY.creds += def.creds;
+    deb.cut = crewPay(def.creds, 'contract');
     if (def.prize) {
       deb.prize = randItem(3, true);
     }
@@ -484,6 +485,7 @@ function stageClear() {
   G.texts.push({ x: G.camX + W / 2, y: 150, z: 0, s: 'DISTRICT CLEAR', c: '#ffc63d', life: 90, big: true });
   G.outro = 90;
   G.afterOutro = () => {
+    if (gauntOn()) return gauntCleared();
     if (G.stage >= STAGES.length - 1) {
       feat('win');
       if (G.coop) feat('coopwin');

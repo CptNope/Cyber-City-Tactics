@@ -185,6 +185,7 @@ const TRAIN = [
   }
 ];
 function startTraining() {
+  G.gaunt = null;
   G.challenge = null;
   G.rngW = G.rngP = null;
   G.diff = 1;

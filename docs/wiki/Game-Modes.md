@@ -29,6 +29,11 @@ stateDiagram-v2
   jobs --> job
   job --> results: driveover / stealthover / flightover
   results --> jobs: again, bank, or the board
+  title --> gauntpick: Gauntlet
+  gauntpick --> brief: gauntStart()
+  play --> perk: district cleared (Gauntlet)
+  perk --> brief: next district
+  play --> gauntover: everyone out, or the last district cleared
   title --> trainpick: Training
   trainpick --> training
   training --> trained: fourteen drills done
@@ -42,12 +47,23 @@ stateDiagram-v2
 | The Sprawl street | `G.world` | `enterStreet()` | `worldTick()` | a door, or a wipe |
 | Sprawl building | `G.world` and `G.dun` | `openDoor()` → `enterBuilding()` | `dunTick()`, room by room (`enterRoom()`) | `exitBuilding()`, or a wipe (`worldWipe()`) |
 | Arena | `G.arena` | `startArena()` | `arenaTick()` | `arenaOver()` |
+| The Gauntlet | `G.gaunt` (on campaign districts) | `gauntStart()` | `waves()`, as the campaign | `gauntCleared()` → a perk, then `gauntBrief()`; `gauntEnd()` → `gauntover` |
 | Training | `G.training` | `startTraining()` | `trainTick()` | fourteen drills, or skip |
 | Driving job | `G.drive` | `startDrive()` | `driveUpdate()` | `driveFinish()` → `driveover` |
 | Drone job | `G.stealth` | `startStealth()` | `stealthUpdate()` | `stealthFinish()` → `stealthover` |
 | Flight job | `G.flight` | `startFlight()` | `flightUpdate()`, then `roofTick()` on a roof | `flightFinish()` → `flightover` |
 | Juno's side job | `G.cjob` alongside the job's flag | `cjobStart()` | the job's own step | `cjobBack()` → the Den |
 | Online | `NET` | host or join | snapshots | `netLost()` → rejoin |
+
+## The Gauntlet
+
+A roguelite run on the campaign's own districts (modes/gauntlet.js). `gauntPlan(seed)` shuffles every district and draws a mutator for each from `GAUNT_MUTS` (One Life is the rule, and Pacifist only pays in contracts, so neither is drawn); perk offers come from `G.rngP`, seeded from the run's code, so a G-XXXX code replays the same run.
+
+- `G.gaunt = { seed, code, order, muts, i, perks, daily }`; `gauntOn()` is true while it's set and no other mode is.
+- `G.muts` is set to the one mutator for each district, so `modOn()` and `mutN()` work as in the campaign; `maxLives()` is 1.
+- `depth()` (flow.js) is `G.gaunt.i` instead of `G.stage` for enemy health, damage and elite odds.
+- `saveGame()` returns early, `newRun(coop, true)` skips the briefing that would save, and `stageClear()` hands off to `gauntCleared()` before the final-district branch that would delete the campaign save.
+- `cutOK()` is false (the order would tell the story out of order); the end screen keeps `cs_gaunt` (best run, today's best, runs).
 
 ## Difficulty, New Game+ and mutators
 

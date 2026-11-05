@@ -208,6 +208,7 @@ function saveWarn(ok) {
   return ok;
 }
 function saveGame(phase) {
+  if (gauntOn()) return; // the Gauntlet never saves, and must never overwrite the campaign's save
   const o = {
     v: 4, // 4: six districts (the Undercity Market is district 4)
     phase,
