@@ -99,44 +99,75 @@ function doSpecial(p) {
     doActive(p, ak);
     return;
   }
+  const mp = masteryPow(p),
+    m3 = masteryTier(p) >= 3; // archetype mastery (systems/skills.js)
+  if (masteryTier(p)) say(p, 'MASTERY ' + ['', 'I', 'II', 'III'][masteryTier(p)], '#ffc63d', 40, 60, true);
   if (p.arch === 'samurai') {
     p.danceHit = [];
-    p.inv = Math.max(p.inv, 36);
+    p.danceMul = mp;
+    p.inv = Math.max(p.inv, Math.round(36 * mp));
     setS(p, 'dance');
+    if (m3)
+      for (const s of [-1, 1])
+        G.projs.push({
+          k: 'wave',
+          team: 0,
+          src: p,
+          x: p.x + s * 12,
+          y: p.y,
+          z: 0,
+          vx: s * 4.4,
+          dmg: Math.round(16 + p.D.melee),
+          life: 30
+        });
   } else if (p.arch === 'mage') {
     setS(p, 'cast');
     p.t = 10;
     const foes = G.ents
       .filter(e => e.team === 1 && e.state !== 'dead' && e.x > G.camX - 8 && e.x < G.camX + W + 8)
       .sort(() => Math.random() - 0.5)
-      .slice(0, 6);
-    foes.forEach((e, i) => G.zaps.push({ tg: e, delay: 8 + i * 7, dmg: 18 + p.D.spell * 1.7, src: p }));
+      .slice(0, 6 + 2 * Math.min(2, masteryTier(p)));
+    foes.forEach((e, i) => {
+      G.zaps.push({ tg: e, delay: 8 + i * 7, dmg: (18 + p.D.spell * 1.7) * mp, src: p });
+      if (m3) {
+        e.burnT = 120;
+        e.burnDmg = Math.max(2, Math.round(3 + p.D.spell * 0.3));
+        e.burnSrc = p;
+      }
+    });
     if (!foes.length) say(p, 'NO TARGETS', '#a79dc2', 60, 40, true);
   } else if (p.arch === 'gunslinger') {
-    G.slowFoes = 240;
-    p.freeAmmo = 240;
+    G.slowFoes = Math.round(240 * mp);
+    p.freeAmmo = Math.round(240 * mp);
+    p.bulletPierce = m3; // mastery III: Bullet Time rounds pierce
     sfx.spell();
   } else if (p.arch === 'shaman') {
     setS(p, 'cast');
     p.t = 10;
-    for (let i = 0; i < 2; i++) spawnSummon('ember', p, 900, i ? -1 : 1);
+    for (let i = 0; i < (m3 ? 3 : 2); i++)
+      spawnSummon('ember', p, Math.round(900 * mp), i === 2 ? 0 : i ? -1 : 1);
   } else if (p.arch === 'rigger') {
     sfx.zap();
-    for (let i = 0; i < 3; i++) spawnSummon('drone', p, 720, i - 1);
+    for (let i = 0; i < (m3 ? 4 : 3); i++) spawnSummon('drone', p, Math.round(720 * mp), i - 1);
   } else if (p.arch === 'medic') {
     // Triage: heal everyone by half, a moment of invulnerability, and a downed partner gets back up
     sfx.heal();
     for (const q of PL) {
       if (q.out && q.outX != null) revive(q, p);
       if (q.out) continue;
-      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * 0.5));
-      q.inv = Math.max(q.inv, 120);
+      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * (0.5 + 0.1 * Math.min(2, masteryTier(p)))));
+      q.inv = Math.max(q.inv, Math.round(120 * mp));
+      if (m3) {
+        q.ammo += 8;
+        q.burnT = 0;
+      }
       burst(q.x, q.y, 30, '#7dffb0', 16);
       say(q, 'PATCHED UP', '#7dffb0', 64, 44, true);
     }
     G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#7dffb0', life: 26, max: 26, r: 90 });
   } else if (p.arch === 'adept') {
-    p.chiT = 360;
+    p.chiT = Math.round(360 * mp);
+    p.chiPunch = m3; // mastery III: a chi blast with every punch
     sfx.spell();
     burst(p.x, p.y, 30, '#ffc63d', 20);
   } else if (p.arch === 'decker') {
@@ -160,18 +191,29 @@ function doSpecial(p) {
         G.zaps.push({
           tg: e,
           delay: 4 + Math.floor(Math.random() * 10),
-          dmg: 20 + hk * 7,
+          dmg: (20 + hk * 7) * mp,
           src: p,
           bul: true
         });
-      e.cool = Math.max(e.cool || 0, 240);
-      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, 120); // shorted out: open to a hack
+      e.cool = Math.max(e.cool || 0, Math.round(240 * mp));
+      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, Math.round(120 * mp)); // shorted out: open to a hack
       if (!e.d.boss && !e.d.fly && !e.d.passive && e.state !== 'down') setS(e, 'hurt');
     }
+    if (m3) {
+      // mastery III: the nearest shorted-out drone or turret is hacked for free
+      const near = G.ents
+        .filter(e => hackOpen(e))
+        .sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
+      if (near) hackFoe(p, near, true);
+    }
   } else {
-    const n = Math.round(p.maxHp * 0.3);
+    const n = Math.round(p.maxHp * 0.3 * mp);
     p.hp = Math.min(p.maxHp, p.hp + n);
-    p.buffT = 300;
+    p.buffT = Math.round(300 * mp);
+    if (m3) {
+      p.burnT = 0;
+      p.inv = Math.max(p.inv, 120);
+    }
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
@@ -262,13 +304,13 @@ function hackTarget(p) {
   return G.ents.find(e => hackOpen(e) && Math.abs(e.x - p.x) < 36 && Math.abs(e.y - p.y) < 16) || null;
 }
 const hackChance = p => clamp(0.45 + (p.D.a.hak || 1) * 0.06 + (p.arch === 'decker' ? 0.15 : 0), 0.45, 0.95);
-function hackFoe(p, e) {
+function hackFoe(p, e, sure) {
   setS(p, 'cast');
   p.t = 12;
   sfx.zap();
   G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#7dffb0', life: 14, max: 14, r: 0 });
   if (G.training) G.tf.qhack = true;
-  if (Math.random() >= hackChance(p)) {
+  if (!sure && Math.random() >= hackChance(p)) {
     e.hackLock = G.t + 90;
     e.stunT = 0;
     hurt(p, 3, e.x >= p.x ? -1 : 1, { col: '#45d2ff', att: e });
@@ -506,6 +548,7 @@ function upRunner(p) {
       } else if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
     if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
+    if (p.state === 'punch' && t === 4 && !G.den && p.chiT > 0 && p.chiPunch) chiBlast(p); // adept mastery III
     if (p.state === 'upper' && t === 6 && !G.den) {
       if (C) {
         if (strike(p, 24 + R + C.reach, 8 + m * 0.9 + C.dmg * 1.3, { kd: true, kb: C.kb + 2, club: true }))
@@ -611,7 +654,7 @@ function upRunner(p) {
         if (e.team !== 1 || e.state === 'dead' || p.danceHit.includes(e)) continue;
         if (Math.abs(e.x - p.x) < 24 && Math.abs(e.y - p.y) < 14) {
           p.danceHit.push(e);
-          hurt(e, 20 + D.melee * 1.2, p.face, {
+          hurt(e, (20 + D.melee * 1.2) * (p.danceMul || 1), p.face, {
             kd: true,
             big: true,
             src: p,
@@ -1298,7 +1341,12 @@ function fireBullet(src, dmg, z, spread) {
           rail: fire === 'pierce',
           x0: src.x + src.face * 18,
           seek: fire === 'seek',
-          pierce: fire === 'pierce' ? 99 : src.team === 0 && has(src, 'pierce') ? 1 : 0,
+          pierce:
+            fire === 'pierce' || (src.team === 0 && src.bulletPierce && src.freeAmmo > 0)
+              ? 99
+              : src.team === 0 && has(src, 'pierce')
+                ? 1
+                : 0,
           hit: []
         },
         base

@@ -1186,7 +1186,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+2356af5';
+const APP_VERSION = '2.0.0+9659e4a';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -5608,6 +5608,24 @@ const spellCost = (p, sp) =>
     )
   );
 
+/* ---------- archetype mastery ---------- */
+// Past level 15 an archetype's own special keeps growing: Mastery I at 15 and II at 20 each make it 25% stronger
+// (more healing, longer, more targets, harder), and III at 25 changes how it works.
+const MASTERY_LV = [15, 20, 25];
+const masteryTier = p => (p ? MASTERY_LV.filter(l => (p.lvl || 1) >= l).length : 0);
+const masteryPow = p => 1 + 0.25 * Math.min(2, masteryTier(p)); // I and II
+const MASTERY = {
+  runner: 'Adrenaline also clears burning and makes you untouchable for two seconds.',
+  samurai: 'Blade Dance ends in a shockwave each way.',
+  mage: 'Mana Storm sets every enemy it strikes on fire.',
+  gunslinger: 'Rounds fired in Bullet Time pass through everyone in the lane.',
+  shaman: 'Spirit Call binds a third fire spirit.',
+  rigger: 'Drone Swarm launches a fourth drone.',
+  decker: 'Overload also hacks the nearest drone or sentry turret for free.',
+  medic: 'Triage also tops everyone up with 8 rounds and puts out fires.',
+  adept: 'Killing Hands throws a chi blast with every punch.'
+};
+
 /* ===== src/js/systems/haggle.js ===== */
 /* Cyber City Tactics · src/js/systems/haggle.js
  * Haggling: once per visit to any counter you can try to talk the price down. The odds come from the party's
@@ -5969,6 +5987,18 @@ function gainKarma(n) {
       p.hp = Math.min(p.maxHp, p.hp + Math.round(p.maxHp * 0.3));
       peak('lvl', p.lvl);
       say(p, 'LEVEL ' + p.lvl, '#ffc63d', 88, 80);
+      const mt = MASTERY_LV.indexOf(p.lvl);
+      if (mt >= 0)
+        (G.toasts = G.toasts || []).push({
+          s:
+            (p.name || 'Runner') +
+            ': ' +
+            (ARCH[p.arch] || ARCH.runner).spName +
+            ' mastery ' +
+            ['I', 'II', 'III'][mt],
+          d: mt < 2 ? 'Your special is 25% stronger.' : MASTERY[p.arch] || '',
+          life: 300
+        });
       sfx.level();
       buzz([20, 40, 20]);
       burst(p.x, p.y, 30, '#ffc63d', 16);
@@ -7639,44 +7669,75 @@ function doSpecial(p) {
     doActive(p, ak);
     return;
   }
+  const mp = masteryPow(p),
+    m3 = masteryTier(p) >= 3; // archetype mastery (systems/skills.js)
+  if (masteryTier(p)) say(p, 'MASTERY ' + ['', 'I', 'II', 'III'][masteryTier(p)], '#ffc63d', 40, 60, true);
   if (p.arch === 'samurai') {
     p.danceHit = [];
-    p.inv = Math.max(p.inv, 36);
+    p.danceMul = mp;
+    p.inv = Math.max(p.inv, Math.round(36 * mp));
     setS(p, 'dance');
+    if (m3)
+      for (const s of [-1, 1])
+        G.projs.push({
+          k: 'wave',
+          team: 0,
+          src: p,
+          x: p.x + s * 12,
+          y: p.y,
+          z: 0,
+          vx: s * 4.4,
+          dmg: Math.round(16 + p.D.melee),
+          life: 30
+        });
   } else if (p.arch === 'mage') {
     setS(p, 'cast');
     p.t = 10;
     const foes = G.ents
       .filter(e => e.team === 1 && e.state !== 'dead' && e.x > G.camX - 8 && e.x < G.camX + W + 8)
       .sort(() => Math.random() - 0.5)
-      .slice(0, 6);
-    foes.forEach((e, i) => G.zaps.push({ tg: e, delay: 8 + i * 7, dmg: 18 + p.D.spell * 1.7, src: p }));
+      .slice(0, 6 + 2 * Math.min(2, masteryTier(p)));
+    foes.forEach((e, i) => {
+      G.zaps.push({ tg: e, delay: 8 + i * 7, dmg: (18 + p.D.spell * 1.7) * mp, src: p });
+      if (m3) {
+        e.burnT = 120;
+        e.burnDmg = Math.max(2, Math.round(3 + p.D.spell * 0.3));
+        e.burnSrc = p;
+      }
+    });
     if (!foes.length) say(p, 'NO TARGETS', '#a79dc2', 60, 40, true);
   } else if (p.arch === 'gunslinger') {
-    G.slowFoes = 240;
-    p.freeAmmo = 240;
+    G.slowFoes = Math.round(240 * mp);
+    p.freeAmmo = Math.round(240 * mp);
+    p.bulletPierce = m3; // mastery III: Bullet Time rounds pierce
     sfx.spell();
   } else if (p.arch === 'shaman') {
     setS(p, 'cast');
     p.t = 10;
-    for (let i = 0; i < 2; i++) spawnSummon('ember', p, 900, i ? -1 : 1);
+    for (let i = 0; i < (m3 ? 3 : 2); i++)
+      spawnSummon('ember', p, Math.round(900 * mp), i === 2 ? 0 : i ? -1 : 1);
   } else if (p.arch === 'rigger') {
     sfx.zap();
-    for (let i = 0; i < 3; i++) spawnSummon('drone', p, 720, i - 1);
+    for (let i = 0; i < (m3 ? 4 : 3); i++) spawnSummon('drone', p, Math.round(720 * mp), i - 1);
   } else if (p.arch === 'medic') {
     // Triage: heal everyone by half, a moment of invulnerability, and a downed partner gets back up
     sfx.heal();
     for (const q of PL) {
       if (q.out && q.outX != null) revive(q, p);
       if (q.out) continue;
-      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * 0.5));
-      q.inv = Math.max(q.inv, 120);
+      q.hp = Math.min(q.maxHp, q.hp + Math.round(q.maxHp * (0.5 + 0.1 * Math.min(2, masteryTier(p)))));
+      q.inv = Math.max(q.inv, Math.round(120 * mp));
+      if (m3) {
+        q.ammo += 8;
+        q.burnT = 0;
+      }
       burst(q.x, q.y, 30, '#7dffb0', 16);
       say(q, 'PATCHED UP', '#7dffb0', 64, 44, true);
     }
     G.fx.push({ k: 'ring', x: p.x, y: p.y, z: 20, c: '#7dffb0', life: 26, max: 26, r: 90 });
   } else if (p.arch === 'adept') {
-    p.chiT = 360;
+    p.chiT = Math.round(360 * mp);
+    p.chiPunch = m3; // mastery III: a chi blast with every punch
     sfx.spell();
     burst(p.x, p.y, 30, '#ffc63d', 20);
   } else if (p.arch === 'decker') {
@@ -7700,18 +7761,29 @@ function doSpecial(p) {
         G.zaps.push({
           tg: e,
           delay: 4 + Math.floor(Math.random() * 10),
-          dmg: 20 + hk * 7,
+          dmg: (20 + hk * 7) * mp,
           src: p,
           bul: true
         });
-      e.cool = Math.max(e.cool || 0, 240);
-      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, 120); // shorted out: open to a hack
+      e.cool = Math.max(e.cool || 0, Math.round(240 * mp));
+      if (tech && !e.d.boss) e.stunT = Math.max(e.stunT || 0, Math.round(120 * mp)); // shorted out: open to a hack
       if (!e.d.boss && !e.d.fly && !e.d.passive && e.state !== 'down') setS(e, 'hurt');
     }
+    if (m3) {
+      // mastery III: the nearest shorted-out drone or turret is hacked for free
+      const near = G.ents
+        .filter(e => hackOpen(e))
+        .sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x))[0];
+      if (near) hackFoe(p, near, true);
+    }
   } else {
-    const n = Math.round(p.maxHp * 0.3);
+    const n = Math.round(p.maxHp * 0.3 * mp);
     p.hp = Math.min(p.maxHp, p.hp + n);
-    p.buffT = 300;
+    p.buffT = Math.round(300 * mp);
+    if (m3) {
+      p.burnT = 0;
+      p.inv = Math.max(p.inv, 120);
+    }
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
@@ -7802,13 +7874,13 @@ function hackTarget(p) {
   return G.ents.find(e => hackOpen(e) && Math.abs(e.x - p.x) < 36 && Math.abs(e.y - p.y) < 16) || null;
 }
 const hackChance = p => clamp(0.45 + (p.D.a.hak || 1) * 0.06 + (p.arch === 'decker' ? 0.15 : 0), 0.45, 0.95);
-function hackFoe(p, e) {
+function hackFoe(p, e, sure) {
   setS(p, 'cast');
   p.t = 12;
   sfx.zap();
   G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#7dffb0', life: 14, max: 14, r: 0 });
   if (G.training) G.tf.qhack = true;
-  if (Math.random() >= hackChance(p)) {
+  if (!sure && Math.random() >= hackChance(p)) {
     e.hackLock = G.t + 90;
     e.stunT = 0;
     hurt(p, 3, e.x >= p.x ? -1 : 1, { col: '#45d2ff', att: e });
@@ -8046,6 +8118,7 @@ function upRunner(p) {
       } else if (!strike(p, 22 + R, 4 + m * 0.65, { breaker: has(p, 'breaker') || D.breaker })) sfx.whiff();
     }
     if (p.state === 'upper' && t === 6 && !G.den && p.arch === 'adept') chiBlast(p);
+    if (p.state === 'punch' && t === 4 && !G.den && p.chiT > 0 && p.chiPunch) chiBlast(p); // adept mastery III
     if (p.state === 'upper' && t === 6 && !G.den) {
       if (C) {
         if (strike(p, 24 + R + C.reach, 8 + m * 0.9 + C.dmg * 1.3, { kd: true, kb: C.kb + 2, club: true }))
@@ -8151,7 +8224,7 @@ function upRunner(p) {
         if (e.team !== 1 || e.state === 'dead' || p.danceHit.includes(e)) continue;
         if (Math.abs(e.x - p.x) < 24 && Math.abs(e.y - p.y) < 14) {
           p.danceHit.push(e);
-          hurt(e, 20 + D.melee * 1.2, p.face, {
+          hurt(e, (20 + D.melee * 1.2) * (p.danceMul || 1), p.face, {
             kd: true,
             big: true,
             src: p,
@@ -8838,7 +8911,12 @@ function fireBullet(src, dmg, z, spread) {
           rail: fire === 'pierce',
           x0: src.x + src.face * 18,
           seek: fire === 'seek',
-          pierce: fire === 'pierce' ? 99 : src.team === 0 && has(src, 'pierce') ? 1 : 0,
+          pierce:
+            fire === 'pierce' || (src.team === 0 && src.bulletPierce && src.freeAmmo > 0)
+              ? 99
+              : src.team === 0 && has(src, 'pierce')
+                ? 1
+                : 0,
           hit: []
         },
         base
@@ -22852,6 +22930,16 @@ function activeHtml(p, tr) {
   <p style="font-size:13px;margin:2px 0 6px">${esc(Ac.desc)} ${open ? 'Unlocked.' : `Unlocks with ${ACTIVE_NEED} points in ${TREES[tr].name} (you have ${treePts(p, tr)}).`} It takes the place of your special on the ★ button and uses the same meter.</p>
   <p class="eyebrow" style="margin-bottom:4px">The ★ button uses</p><div class="row">${opts}</div>`;
 }
+// archetype mastery on the sheet: where the runner is, and what's next
+function masteryLine(p) {
+  const mt = masteryTier(p),
+    sp = (ARCH[p.arch] || ARCH.runner).spName;
+  const next = mt < 3 ? `${['I', 'II', 'III'][mt]} at level ${MASTERY_LV[mt]}` : '';
+  const now = mt
+    ? `${esc(sp)} mastery ${['', 'I', 'II', 'III'][mt]}: ${mt >= 2 ? '+50%' : '+25%'}${mt >= 3 ? ', and ' + esc(MASTERY[p.arch] || '').replace(/^./, c => c.toLowerCase()) : ''}.`
+    : '';
+  return `<span style="color:var(--gold)">${now || `Mastery grows the special past level 15 (+25% at 15 and 20; at 25: ${esc(MASTERY[p.arch] || '')})`}${now && next ? ' Next: ' + next + '.' : ''}</span>`;
+}
 // the maker sets a runner has going, for the character sheet
 function setsLine(p) {
   const on = setsOf(p);
@@ -22909,7 +22997,7 @@ function charHtml() {
   ${setsLine(p)}${chromeLine(p)}
   <div class="row" style="justify-content:space-between;align-items:center"><h3>Party bag · ${PARTY.bag.length}/${BAG_MAX}</h3>${sortSeg()}</div><p style="color:var(--muted);font-size:13px">Sell spare gear at any shop counter. Ratchet the fence pays best. Lock anything you want to keep: locked items can't be sold, dropped or scrapped.</p><div class="list">${bag}</div>
   <h3>Spells</h3><div class="row">${spells}</div>
-  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
+  <h3>Special · ${esc(spName(p))}</h3><p>${esc(spKey(p) === 'arch' ? ARCH[p.arch].spDesc : ACTIVES[spKey(p)].desc)} Three points in a skill tree unlock its active skill, which you can put on ★ instead (Skills tab). ${masteryLine(p)} The meter fills as you deal and take damage. ${PAD.active ? 'Press L3 or R3 (or X and B together) when it is full.' : isTouch() ? 'Tap ★ when it reads READY.' : 'Press F (Runner 2: \\) when it is full, or punch and kick together.'}</p>`;
 }
 function jobHtml(C) {
   if (!C) return '';

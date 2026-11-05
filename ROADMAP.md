@@ -42,6 +42,7 @@ The guiding rules:
 - [x] **Online co-op:** room codes through a Cloudflare lobby with TURN relay, in every mode, with shared shops, the friend's own character sheet and rejoining after a drop
 - [x] **Jobs:** driving, drone stealth (with overwatch co-op) and flight (landing in a rooftop brawl) on a Jobs board, pay banked into your saves, and one as Juno's side job in every Den
 - [x] **River City Ransom and Double Dragon fighting:** dazes and a full grab menu (punches, knees, directional throws, jump slams and pile drivers), twelve chrome techniques and moves from Doc, foes that grab, flurry and throw props, and Training drills for all of it
+- [x] **Archetype mastery:** the special grows at levels 15 and 20 and changes at 25
 - [x] **The Shaman tree:** spirits, totems and curses, with the Totem active skill
 - [x] **Story and presentation:** in-engine scenes, two-mood district music, and accessibility settings
 - [x] **The living Sprawl:** day and night, a block that remembers, sentry turrets, and hacking in a fight
@@ -77,7 +78,7 @@ Side jobs from Juno (and a **Jobs** board on the title and online hub) that brea
 - [x] ~~**Skill respec.**~~ Shipped as Doc's neural reset.
 - [x] ~~**Active skills.**~~ Shipped: Ground Slam, Fan the Hammer, Summon Spirit and Short Circuit (the roadmap's Overload, renamed since it's the Decker archetype's special), unlocked by three points in a tree and picked for the ★ button on the Skills tab.
 - [x] ~~**A fifth tree: Shaman.**~~ Shipped: Spirit Kin, Hex, Ward Totem, Wild Call, Withering and Spirit Walk, plus the Totem active skill.
-- [ ] **Archetype mastery (M).** Each archetype gets a small set of extra tiers past level 15 that change how its special works.
+- [x] ~~**Archetype mastery.**~~ Shipped: Mastery I and II (levels 15 and 20) make the archetype's special 25% stronger each, and Mastery III (level 25) changes how it works.
 - [ ] **Show skill effects in the HUD (S).** For example, a small Archon counter showing how many casts until the free one.
 
 ### The Sprawl
