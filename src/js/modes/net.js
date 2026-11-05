@@ -231,7 +231,13 @@ function lobbyUrl() {
     // the real lobby, or one on this machine for testing, rebuilt from its parts rather than passed through
     if (q && netLobbyOk(q)) {
       const u = new URL(q);
-      return u.origin === NET_LOBBY ? NET_LOBBY : 'http://' + u.hostname + (u.port ? ':' + +u.port : '');
+      if (u.origin === NET_LOBBY) return NET_LOBBY;
+      // a local lobby: only the host name from a fixed list and a port number from the link, never its text
+      const host = ['localhost', '127.0.0.1', '[::1]'].find(h => h === u.hostname) || 'localhost';
+      const port = Number(u.port);
+      return (
+        'http://' + host + (Number.isInteger(port) && port > 0 && port < 65536 ? ':' + String(port) : '')
+      );
     }
   } catch (e) {}
   return /^https?:$/.test(location.protocol) ? NET_LOBBY : '';
