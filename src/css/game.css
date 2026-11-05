@@ -1098,12 +1098,15 @@ body.cb {
 }
 .keymap {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(70px, 1fr) minmax(0, auto) minmax(0, auto);
   gap: 6px 10px;
   align-items: center;
   font-size: 13px;
 }
 .keymap kbd {
+  white-space: nowrap; /* a key's name never breaks across lines */
+  display: inline-block;
+  margin: 1px 0;
   font: 600 12px var(--font-body);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1112,4 +1115,9 @@ body.cb {
 }
 .keymap .waiting {
   color: var(--gold);
+}
+
+.keymap .btn {
+  white-space: normal;
+  text-align: center;
 }

@@ -242,9 +242,15 @@ function stickSet(dx, dy) {
   h.up = dy < -dz;
   h.down = dy > dz;
 }
+// a story scene on a phone: tap anywhere to move it on (cutTick reads it as a punch)
+function cutTap() {
+  if (typeof G !== 'undefined' && G.cut && G.mode === 'play') INP[0].pressed.punch = true;
+}
+cvs.addEventListener('pointerdown', cutTap);
 stick.addEventListener('pointerdown', e => {
   e.preventDefault();
   A.unlock();
+  cutTap();
   stickId = e.pointerId;
   stick.setPointerCapture(e.pointerId);
   const zr = stick.getBoundingClientRect(),
@@ -497,7 +503,27 @@ function padText(t) {
 }
 /** Picks the right wording for whatever the player is holding: a controller, a touch screen or a keyboard. */
 const ctl = (touchTxt, keyTxt) =>
-  PAD.active ? padText(touchTxt) : isTouch() ? touchTxt : keyTxt || touchTxt;
+  PAD.active ? padText(touchTxt) : isTouch() ? touchTxt : keyFix(keyTxt || touchTxt);
+// keyboard wording follows remapped keys: "press J" says the key punch is on now (runner 1's main keys)
+const KEY_WORD = {
+  J: 'punch',
+  K: 'kick',
+  Space: 'jump',
+  U: 'gun',
+  I: 'spell',
+  O: 'dodge',
+  Q: 'swap',
+  H: 'item',
+  F: 'special'
+};
+function keyFix(s) {
+  const K = (typeof prefs !== 'undefined' && prefs.keys && prefs.keys['0']) || {};
+  if (!s || !Object.keys(K).length) return s;
+  return s.replace(/\b(Space|[JKUIOQHF])\b(?=[\s).,:;/<]|$)/g, (m, k) => {
+    const a = KEY_WORD[k];
+    return a && K[a] ? keysOf(0, a)[0] || m : m;
+  });
+}
 
 /* Menu navigation with a pad */
 function padFocusables() {

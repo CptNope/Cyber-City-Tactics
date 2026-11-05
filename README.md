@@ -564,7 +564,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.
 - **Hit-stop, screen shake and slow-mo on big hits.** You can turn shake and vibration off in Settings.
-- **Story scenes.** As each district opens, Juno comes over the comms; when a boss arrives, its name card plays and then the two of you trade a line. The street holds still under letterbox bars, the camera leans toward whoever is talking, and their line appears in a speech bubble. PUNCH, KICK or JUMP moves on; DODGE skips the scene. Each plays once per run, only in the campaign, and Settings → Story scenes turns them off.
+- **Story scenes.** As each district opens, Juno comes over the comms; when a boss arrives, its name card plays and then the two of you trade a line. The street holds still under letterbox bars, the camera leans toward whoever is talking, and their line appears in a speech bubble. PUNCH, KICK or JUMP moves on (on a phone, tap anywhere); DODGE skips the scene. Each plays once per run, only in the campaign, and Settings → Story scenes turns them off.
 - **Music with two moods.** District songs play a calm loop between waves (bass, a softer arpeggio and hats) and the full track while foes are up, switching on a bar line.
 
 ## Enemies and bosses

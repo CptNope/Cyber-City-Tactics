@@ -55,4 +55,6 @@ flowchart LR
   S --> A["applyKeys: KA/KB = defaults + prefs.keys"]
 ```
 
-The hacking minigame reads whatever key is mapped to punch or jump, so a remap carries into it.
+The hacking minigame reads whatever key is mapped to punch or jump, so a remap carries into it. Keyboard wording follows a remap too: `ctl()` runs keyboard text through `keyFix()`, which swaps runner 1's default key names (J, K, Space, U, I, O, Q, H, F) for the keys those actions are on now. The help screen's key table goes through the same function.
+
+On touch, a tap anywhere on the screen moves a scene on (`cutTap`), and the hint moves to the top bar, clear of the buttons. With a controller the hint says X and LB.

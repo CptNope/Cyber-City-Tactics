@@ -169,3 +169,28 @@ ok(
 );
 click('keysreset');
 ok(A.NET_GDENY.has('rebind'), 'a pending key change is never mirrored to an online friend');
+/* ---------- touch and keyboard wording ---------- */
+click('keysreset');
+ok(
+  A.keyFix('Hold J to charge, then K to kick.') === 'Hold J to charge, then K to kick.',
+  'keyboard tips say the default keys'
+);
+A.setKey('0', 'punch', 'KeyN');
+ok(
+  A.keyFix('Hold J to charge, then K to kick.') === 'Hold N to charge, then K to kick.',
+  'and the remapped ones once you change them'
+);
+ok(
+  /Punch \/ talk<\/b><span>N</.test(A.keyFix(A.keysHtml)),
+  'the help screen’s key table follows the remap too'
+);
+click('keysreset');
+A.newRun(false);
+A.prefs.story = true;
+A.startStage(3);
+ok(G.cut, 'a scene is up');
+step(30);
+A.cutTap();
+step(1);
+ok(!G.cut || G.cut.i === 1, 'a tap on the screen moves it on (phones)');
+G.cut = null;

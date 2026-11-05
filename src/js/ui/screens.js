@@ -46,7 +46,7 @@ const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
 ${movesHtml}`;
 const touchHelp = `<div class="keys">
-<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, TALK or ENTER when that's what it will do.</span>
+<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, PICK UP, SWING, HACK, TALK or ENTER when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Knees a grabbed enemy (push a direction to throw).</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
 <b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
@@ -58,7 +58,7 @@ const padHelp = () => `<div class="keys">
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
 <b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
 <p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
-const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keysHtml);
+const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keyFix(keysHtml));
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
 }

@@ -1134,12 +1134,15 @@ body.cb {
 }
 .keymap {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(70px, 1fr) minmax(0, auto) minmax(0, auto);
   gap: 6px 10px;
   align-items: center;
   font-size: 13px;
 }
 .keymap kbd {
+  white-space: nowrap; /* a key's name never breaks across lines */
+  display: inline-block;
+  margin: 1px 0;
   font: 600 12px var(--font-body);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -1148,6 +1151,11 @@ body.cb {
 }
 .keymap .waiting {
   color: var(--gold);
+}
+
+.keymap .btn {
+  white-space: normal;
+  text-align: center;
 }
 </style>
 </head>
@@ -1178,7 +1186,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+13d1edf';
+const APP_VERSION = '2.0.0+f18261f';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -2118,9 +2126,15 @@ function stickSet(dx, dy) {
   h.up = dy < -dz;
   h.down = dy > dz;
 }
+// a story scene on a phone: tap anywhere to move it on (cutTick reads it as a punch)
+function cutTap() {
+  if (typeof G !== 'undefined' && G.cut && G.mode === 'play') INP[0].pressed.punch = true;
+}
+cvs.addEventListener('pointerdown', cutTap);
 stick.addEventListener('pointerdown', e => {
   e.preventDefault();
   A.unlock();
+  cutTap();
   stickId = e.pointerId;
   stick.setPointerCapture(e.pointerId);
   const zr = stick.getBoundingClientRect(),
@@ -2373,7 +2387,27 @@ function padText(t) {
 }
 /** Picks the right wording for whatever the player is holding: a controller, a touch screen or a keyboard. */
 const ctl = (touchTxt, keyTxt) =>
-  PAD.active ? padText(touchTxt) : isTouch() ? touchTxt : keyTxt || touchTxt;
+  PAD.active ? padText(touchTxt) : isTouch() ? touchTxt : keyFix(keyTxt || touchTxt);
+// keyboard wording follows remapped keys: "press J" says the key punch is on now (runner 1's main keys)
+const KEY_WORD = {
+  J: 'punch',
+  K: 'kick',
+  Space: 'jump',
+  U: 'gun',
+  I: 'spell',
+  O: 'dodge',
+  Q: 'swap',
+  H: 'item',
+  F: 'special'
+};
+function keyFix(s) {
+  const K = (typeof prefs !== 'undefined' && prefs.keys && prefs.keys['0']) || {};
+  if (!s || !Object.keys(K).length) return s;
+  return s.replace(/\b(Space|[JKUIOQHF])\b(?=[\s).,:;/<]|$)/g, (m, k) => {
+    const a = KEY_WORD[k];
+    return a && K[a] ? keysOf(0, a)[0] || m : m;
+  });
+}
 
 /* Menu navigation with a pad */
 function padFocusables() {
@@ -5351,10 +5385,14 @@ function drawCut() {
   ctx.textAlign = 'left';
   lines.forEach((l, i) => ctx.fillText(l, x + 10, y + 17 + i * 14));
   ctx.globalAlpha = 1;
-  const hint = isTouch()
-    ? 'PUNCH: next · DODGE: skip'
-    : (keysOf(0, 'punch')[0] || 'J') + ': next · ' + (keysOf(0, 'dodge')[0] || 'O') + ': skip';
-  txt(hint, W - 10, H - 9, 11, '#a79dc2', 'right');
+  // the hint speaks the device's language; on touch it sits up top, clear of the buttons
+  const hint = PAD.active
+    ? 'X: next · LB: skip'
+    : isTouch()
+      ? 'Tap to continue · DODGE: skip'
+      : (keysOf(0, 'punch')[0] || 'J') + ': next · ' + (keysOf(0, 'dodge')[0] || 'O') + ': skip';
+  if (isTouch() && !PAD.active) txt(hint, W / 2, bh - 9, 11, '#a79dc2', 'center');
+  else txt(hint, W - 10, H - 9, 11, '#a79dc2', 'right');
 }
 
 /* ===== src/js/systems/skills.js ===== */
@@ -22161,7 +22199,7 @@ const keysHtml = `<div class="cols"><div><h3>Runner 1</h3><div class="keys">
 <p style="font-size:12.5px">Gamepads: X punch (hold to charge), A jump, B kick, Y spell, RB gun, LB dodge, stick click special, Start pauses or adds Runner 2.</p></div></div>
 ${movesHtml}`;
 const touchHelp = `<div class="keys">
-<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, TALK or ENTER when that's what it will do.</span>
+<b>Move</b><span>Drag anywhere on the left side</span><b>PUNCH</b><span>Tap three times for an uppercut. Changes to LIFT, THROW, PICK UP, SWING, HACK, TALK or ENTER when that's what it will do.</span>
 <b>KICK</b><span>Breaks riot shields. Knees a grabbed enemy (push a direction to throw).</span><b>JUMP</b><span>Tap PUNCH or KICK in the air for a flying kick</span>
 <b>DODGE</b><span>Roll through attacks. Dodge right as a punch lands to parry</span><b>GUN · SPELL</b><span>Show ammo and mana cost; dim when you can't use them</span>
 <b>MED · ★ · CHAR</b><span>Medkit, your special when the meter is full, character sheet</span>
@@ -22173,7 +22211,7 @@ const padHelp = () => `<div class="keys">
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
 <b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
 <p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
-const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keysHtml);
+const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keyFix(keysHtml));
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
 }
