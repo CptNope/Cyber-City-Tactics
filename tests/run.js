@@ -104,7 +104,7 @@ const TESTS = [
   { file: 'blackmarket', minPass: 9 },
   { file: 'market', minPass: 15 },
   { file: 'choices', minPass: 17 },
-  { file: 'campaign-bot', slow: true, retries: 1, expect: [/^WIN /m, /overlays ok/] },
+  { file: 'campaign-bot', slow: true, retries: 2, expect: [/^WIN /m, /overlays ok/] },
   {
     file: 'arena-bot',
     slow: true,

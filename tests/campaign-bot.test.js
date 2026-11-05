@@ -107,7 +107,8 @@ function den() {
   );
 }
 let denDone = -1;
-for (let f = 0; f < 60 * 60 * 40; f++) {
+// an hour of game time: since fireteams, rivals and weather the bot often needs several tries at the Arcology and the Spire
+for (let f = 0; f < 60 * 60 * 60; f++) {
   if (G.mode === 'brief') {
     click('sheet');
     spend();
