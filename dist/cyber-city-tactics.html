@@ -1186,7 +1186,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+f18261f';
+const APP_VERSION = '2.0.0+2356af5';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -4813,7 +4813,7 @@ const FEATS = [
   { id: 'legall', name: 'Collector', desc: 'Find every legendary.', lp: 40, stat: 'legs', n: 8, hidden: 1 },
   { id: 'best', name: 'Field Guide', desc: 'Take down every kind of enemy.', lp: 25, stat: 'species', n: 16 },
   { id: 'cap', name: 'Master of One', desc: 'Learn a capstone skill.', lp: 10 },
-  { id: 'jack', name: 'Jack of All Trades', desc: 'Have at least one skill in all four trees.', lp: 10 },
+  { id: 'jack', name: 'Jack of All Trades', desc: 'Have at least one skill in all five trees.', lp: 10 },
   {
     id: 'lore10',
     name: 'Storyteller',
@@ -5397,14 +5397,19 @@ function drawCut() {
 
 /* ===== src/js/systems/skills.js ===== */
 /* Cyber City Tactics · src/js/systems/skills.js
- * The four skill trees (Brawler, Gunslinger, Mage, Decker), unlock rules and helpers like has(p, id).
+ * The five skill trees (Brawler, Gunslinger, Mage, Decker, Shaman), unlock rules and helpers like has(p, id).
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ---------- skill trees ---------- */
 const TREES = {
   brawler: { name: 'Brawler', col: '#ff3d8b', blurb: 'Fists, blades and bad decisions.' },
   gunner: { name: 'Gunslinger', col: '#ffc63d', blurb: 'More lead, better aim.' },
   mage: { name: 'Mage', col: '#b98cff', blurb: 'Mana, fire and lightning.' },
-  decker: { name: 'Decker', col: '#45d2ff', blurb: 'Locks, ICE, cops and cash.' }
+  decker: { name: 'Decker', col: '#45d2ff', blurb: 'Locks, ICE, cops and cash.' },
+  shaman: {
+    name: 'Shaman',
+    col: '#7dffb0',
+    blurb: 'Spirits, totems and curses: magic without the fireworks.'
+  }
 };
 const SKILLS = {
   iron: { t: 'brawler', row: 0, name: 'Iron Fists', desc: '+20% melee damage.' },
@@ -5490,6 +5495,42 @@ const SKILLS = {
     row: 3,
     name: 'Ghost Protocol',
     desc: 'Failed hacks never trip alarms, and break-ins add one less heat star.'
+  },
+  kin: {
+    t: 'shaman',
+    row: 0,
+    name: 'Spirit Kin',
+    desc: 'Companions and summons (yours and the party’s) deal 25% more damage and take 20% less.'
+  },
+  hex: {
+    t: 'shaman',
+    row: 1,
+    name: 'Hex',
+    desc: 'Your melee hits curse a foe for 4 seconds. Cursed foes take 15% more damage from everyone.'
+  },
+  ward: {
+    t: 'shaman',
+    row: 1,
+    name: 'Ward Totem',
+    desc: 'Using a medkit also plants a small totem that heals anyone beside it for 8 seconds.'
+  },
+  wild: {
+    t: 'shaman',
+    row: 2,
+    name: 'Wild Call',
+    desc: 'Your kills have a 15% chance to call a fire spirit to your side for 10 seconds.'
+  },
+  wither: {
+    t: 'shaman',
+    row: 2,
+    name: 'Withering',
+    desc: 'Your curses also make foes deal 25% less damage while they last.'
+  },
+  swalk: {
+    t: 'shaman',
+    row: 3,
+    name: 'Spirit Walk',
+    desc: 'While a companion or summon fights beside you, take 20% less damage and regain mana 50% faster.'
   }
 };
 // Active skills: three points in a tree unlock its active skill, which can take the ★ special's place
@@ -5505,6 +5546,10 @@ const ACTIVES = {
     desc: 'Six rounds fanned out in front, fast, without using ammo. Each hits like your gun.'
   },
   mage: { name: 'Summon Spirit', desc: 'A fire spirit fights at your side for 15 seconds.' },
+  shaman: {
+    name: 'Totem',
+    desc: 'Plant a spirit totem for 12 seconds: every second it heals runners beside it and curses foes near it.'
+  },
   decker: {
     name: 'Short Circuit',
     desc: 'Every drone, ICE, mech, cop and guard on screen shorts out: stunned for 3 seconds and shocked. A better cyberdeck hits harder.'
@@ -6046,6 +6091,7 @@ function placeRunners(x0) {
 }
 function resetWorld() {
   G.cut = null; // a story scene never outlives the street it was on
+  G.totems = []; // and nor does a totem
   for (const p of PL) p.club = null; // a street weapon stays on the street it was found on
   LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
@@ -6575,6 +6621,11 @@ function hurt(t, dmg, dir, o) {
     crit = true;
   }
   if (t.team === 0 && t.kind === 'player' && setOn(t, 'ironside', 3)) dmg *= 0.85; // the Ironside set
+  // the Shaman tree: curses, kin and the spirit walk
+  if (t.team === 1 && t.curseT > G.t) dmg *= 1.15;
+  if (t.team === 0 && o.att && o.att.curseT > G.t && o.att.curseW) dmg *= 0.75;
+  if (t.kind === 'ally' && anyHas('kin')) dmg *= 0.8;
+  if (t.kind === 'player' && has(t, 'swalk') && spiritNear(t)) dmg *= 0.8;
   dmg = Math.max(1, Math.round(dmg));
   if (t.state === 'beg' && o.src && o.src.team === 0) dmg = Math.max(dmg, t.hp); // no mercy: it's over
   const fixed = t.d && t.d.passive;
@@ -6740,6 +6791,13 @@ function hurt(t, dmg, dir, o) {
     taunt(t, 1);
   }
   if (t.holdP && !o.held) enemyRelease(t); // hit the one holding your partner and they let go
+  // Hex: a runner's melee hit curses the foe
+  if (o.melee && o.src && o.src.kind === 'player' && t.team === 1 && has(o.src, 'hex') && t.hp > 0) {
+    if (!(t.curseT > G.t))
+      G.texts.push({ x: t.x, y: t.y, z: t.z + 58, s: 'HEXED', c: '#7dffb0', life: 30, sm: true });
+    t.curseT = G.t + 240;
+    t.curseW = has(o.src, 'wither');
+  }
   // the Voltaic set: a melee hit arcs to the nearest other foe
   if (o.melee && !o.arc && o.src && o.src.kind === 'player' && t.team === 1 && setOn(o.src, 'voltaic', 2))
     voltArc(t, dmg, o.src);
@@ -6846,6 +6904,19 @@ function drop(k, x, y, extra) {
 function kill(t, dir, o) {
   t.flip = false;
   if (t.club) dropClub(t);
+  // Wild Call: a Shaman's kill can call a fire spirit (one at a time)
+  const wk = o && o.src && o.src.kind === 'player' ? o.src : null;
+  if (
+    wk &&
+    t.team === 1 &&
+    has(wk, 'wild') &&
+    Math.random() < 0.15 &&
+    !G.ents.some(e => e.wild && e.state !== 'dead')
+  ) {
+    const s = spawnSummon('ember', wk, 600, 1);
+    s.wild = true;
+    say(wk, 'WILD CALL', '#7dffb0', 50, 40, true);
+  }
   const ks = o && o.src && o.src.kind === 'player' ? o.src : null;
   onKill(t, ks);
   if (ks && t.team === 1 && !(t.d && t.d.passive)) {
@@ -7070,6 +7141,37 @@ function voltArc(from, dmg, src) {
     ax: from.x
   });
   if (setOn(src, 'voltaic', 3) && best.state !== 'dead' && grabbable(best)) best.dazeUntil = G.t + 60;
+}
+// a companion or summon still fighting near a runner (Spirit Walk)
+const spiritNear = p =>
+  G.ents.some(e => e.kind === 'ally' && e.state !== 'dead' && Math.abs(e.x - p.x) < 160);
+/* ---------- totems (Shaman: Ward Totem and the Totem active skill) ---------- */
+function plantTotem(p, big) {
+  G.totems = G.totems || [];
+  G.totems.push({ x: p.x + p.face * 14, y: p.y, life: big ? 720 : 480, big: !!big, src: p, t: 0 });
+  sfx.spell();
+  burst(p.x + p.face * 14, p.y, 10, '#7dffb0', 12);
+}
+function totemTick() {
+  if (!G.totems || !G.totems.length) return;
+  for (const T of G.totems) {
+    T.t++;
+    T.life--;
+    if (T.t % 60 !== 0) continue;
+    for (const q of alive())
+      if (Math.abs(q.x - T.x) < 60 && Math.abs(q.y - T.y) < 24 && q.hp < q.maxHp) {
+        const n = Math.max(1, Math.round(q.maxHp * (T.big ? 0.04 : 0.03)));
+        q.hp = Math.min(q.maxHp, q.hp + n);
+        G.texts.push({ x: q.x, y: q.y, z: 60, s: '+' + n, c: '#7dffb0', life: 24, sm: true });
+      }
+    if (T.big)
+      for (const e of G.ents)
+        if (e.team === 1 && e.state !== 'dead' && Math.abs(e.x - T.x) < 70 && Math.abs(e.y - T.y) < 26) {
+          e.curseT = G.t + 120;
+          e.curseW = !!(T.src && has(T.src, 'wither'));
+        }
+  }
+  G.totems = G.totems.filter(T => T.life > 0);
 }
 const canJuggle = (t, src) =>
   t.state === 'down' &&
@@ -7613,7 +7715,7 @@ function doSpecial(p) {
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
   }
 }
-// the four trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
+// the five trees' active skills (systems/skills.js ACTIVES), on the ★ button in place of the special
 function doActive(p, k) {
   bump('actives');
   if (k === 'brawler') {
@@ -7660,6 +7762,11 @@ function doActive(p, k) {
     p.t = 10;
     spawnSummon('ember', p, 900, 1);
     sfx.spell();
+  } else if (k === 'shaman') {
+    // Totem: a spirit totem that heals runners and curses foes around it
+    setS(p, 'cast');
+    p.t = 10;
+    plantTotem(p, true);
   } else if (k === 'decker') {
     // Short Circuit: everything electronic on screen shorts out
     sfx.zap();
@@ -7749,6 +7856,7 @@ function useItem(p) {
     sfx.heal();
     burst(p.x, p.y, 30, '#7dffb0', 12);
     say(p, '+' + n + ' HP', '#7dffb0', 60, 40);
+    if (has(p, 'ward') && !G.den) plantTotem(p, false); // the Shaman tree's Ward Totem
   } else {
     sfx.click();
     say(p, PARTY.med ? 'HP FULL' : 'NO MEDKITS', '#a79dc2', 60, 40, true);
@@ -7767,7 +7875,8 @@ function upRunner(p) {
   if (p.flash > 0) p.flash--;
   const wasAir = p.z > 0;
   physics(p);
-  if (p.mp < p.maxMp && G.t % D.regen === 0) p.mp++;
+  const rg = has(p, 'swalk') && spiritNear(p) ? Math.max(1, Math.round(D.regen / 1.5)) : D.regen; // Spirit Walk
+  if (p.mp < p.maxMp && G.t % rg === 0) p.mp++;
   if (p.state === 'dead') {
     if (p.t > 100) respawn(p);
     return;
@@ -8944,6 +9053,8 @@ function spawnSummon(type, p, life, off) {
   if (G.ents.filter(x => x.summon && x.state !== 'dead').length >= 3) feat('summon');
   return e;
 }
+// the Shaman tree's Spirit Kin: anyone in the party who has it strengthens every companion and summon
+const kinMul = () => (anyHas('kin') ? 1.25 : 1);
 function upAlly(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
@@ -9007,7 +9118,9 @@ function upAlly(e) {
   if (e.state === 'windup') {
     if (e.t === 10) {
       e.combo++;
-      if (!strike(e, 30, 12 + lv * 1.6, { kd: e.combo % 3 === 0, kb: 6, big: e.combo % 3 === 0 }))
+      if (
+        !strike(e, 30, (12 + lv * 1.6) * kinMul(), { kd: e.combo % 3 === 0, kb: 6, big: e.combo % 3 === 0 })
+      )
         sfx.whiff();
     }
     if (e.t >= 22) {
@@ -9033,7 +9146,7 @@ function upAlly(e) {
         y: e.y,
         z: e.z,
         vx: e.face * 6,
-        dmg: 6 + lv * 1.3,
+        dmg: (6 + lv * 1.3) * kinMul(),
         life: 60
       });
       sfx.zap();
@@ -9044,7 +9157,12 @@ function upAlly(e) {
     ty = tg.y;
     e.face = tg.x >= e.x ? 1 : -1;
     if (Math.abs(tg.x - e.x) < 18 && Math.abs(tg.y - e.y) < 9 && e.cool <= 0) {
-      hurt(tg, 8 + lv * 1.3, tg.x >= e.x ? 1 : -1, { src: lead, col: '#ff6a3d', ax: e.x, magic: true });
+      hurt(tg, (8 + lv * 1.3) * kinMul(), tg.x >= e.x ? 1 : -1, {
+        src: lead,
+        col: '#ff6a3d',
+        ax: e.x,
+        magic: true
+      });
       e.cool = 38;
       burst(tg.x, tg.y, 20, '#ff6a3d', 8);
     }
@@ -10167,6 +10285,7 @@ function update() {
     if (!p.out) upRunner(p);
   }
   reviveTick();
+  totemTick();
   for (const e of G.ents) if (e.kind === 'ally') upAlly(e);
   if (G.mode !== 'play' && G.mode !== 'den') return;
   // melee slots per target
@@ -21752,10 +21871,12 @@ function render() {
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });
   for (const o of G.props) list.push({ prop: o, y: o.y });
+  for (const T of G.totems || []) list.push({ totem: T, y: T.y });
   if (G.den) for (const n of NPCS) list.push({ npc: n, y: 208 });
   list.sort((a, b) => a.y - b.y);
   for (const o of list) {
     if (o.proj) drawProj(o.proj);
+    else if (o.totem) drawTotem(o.totem);
     else if (o.prop) {
       shadow(o.prop.x - G.camX, o.prop.y, 8);
       drawProp(o.prop.kind, o.prop.x - G.camX, o.prop.y);
@@ -21794,6 +21915,7 @@ function render() {
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.team === 1 && (o.e.dazeUntil > G.t || reeling(o.e)) && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
+      if (o.e.team === 1 && o.e.curseT > G.t && o.e.state !== 'dead' && !cl) drawCurse(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -21966,6 +22088,52 @@ function drawStruggle(p) {
   ctx.fillRect(x, y, 32 * k, 4);
 }
 // a dazed foe: three stars circling its head, the cue that walking into it grabs it
+// a Shaman's totem: a carved pole with a glowing mask and a pulse on every heal
+function drawTotem(T) {
+  const sx = T.x - G.camX,
+    sy = T.y,
+    h = T.big ? 34 : 24,
+    fade = Math.min(1, T.life / 40);
+  ctx.globalAlpha = fade;
+  shadow(sx, sy, 7);
+  ctx.fillStyle = '#5a3a24';
+  ctx.fillRect(sx - 2.5, sy - h, 5, h);
+  ctx.fillStyle = '#7a5a34';
+  ctx.fillRect(sx - 4, sy - h * 0.55, 8, 3);
+  const g = '#7dffb0';
+  ctx.fillStyle = '#1a2a22';
+  ctx.fillRect(sx - 5, sy - h - 8, 10, 9);
+  ctx.fillStyle = g;
+  ctx.fillRect(sx - 3, sy - h - 5, 2, 2);
+  ctx.fillRect(sx + 1, sy - h - 5, 2, 2);
+  glow(sx, sy - h - 4, 10, 8, g, 0.45 + 0.2 * Math.sin(G.t * 0.12));
+  const k = (T.t % 60) / 60;
+  if (!RM && k < 0.5) {
+    ctx.strokeStyle = `rgba(125,255,176,${0.5 - k})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 60 * (0.4 + k), 18 * (0.4 + k), 0, 0, 7);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+// a curse: a small green sigil turning over the foe's head
+function drawCurse(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z - 58 * ((e.d && e.d.scale) || 1),
+    a = G.t * 0.08;
+  ctx.strokeStyle = '#7dffb0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const x = sx + Math.cos(a + (i * Math.PI * 2) / 3) * 5,
+      y = sy + Math.sin(a + (i * Math.PI * 2) / 3) * 2;
+    if (i) ctx.lineTo(x, y);
+    else ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
 function drawDaze(e) {
   const sc = (e.d && e.d.scale) || 1,
     cx = e.x - G.camX,

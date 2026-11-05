@@ -36,6 +36,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `robust.test.js` | headless | 34 | The audit fixes: corrupt saves, "Not yet", side-job gear lock, haul once per knockdown, runner 2 drops, online message checks. |
 | `screen.test.js` | headless | 20 | Full-screen fitting on every screen shape, and every campaign district still playable at every view width (wave triggers must stay reachable when the view is wider than 480). |
 | `sets.test.js` | headless | 29 | Maker sets, cyberdecks and the four active skills, and saving the deck and the ★ choice. |
+| `shaman.test.js` | headless | 20 | The Shaman tree: hexes, withering, spirit kin, ward totems and the Totem, the wild call and the spirit walk. |
 | `shop.test.js` | headless | 41 | The bigger party bag and selling gear at every store counter. |
 | `sidejob.test.js` | headless | 18 | Juno's side jobs in the campaign (modes/jobs.js). |
 | `skills-gear.test.js` | headless | 35 | Skill trees, new weapons and armor, affixes, and save migration. |

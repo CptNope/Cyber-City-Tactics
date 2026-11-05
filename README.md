@@ -42,7 +42,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 - **Six districts, six bosses**, from the Gutter King under the dead monorail to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
 - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
 - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
-- **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
+- **A real RPG under it:** karma levels, five skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 - **Co-op your way:** one keyboard, two controllers, a phone and a gamepad, or **online** with a five-letter room code.
 - **Arena** with daily and weekly seeded challenges, and **Training** with Juno for anyone new.
 - **River City Ransom and Double Dragon in the fists:** daze a foe and grab it, then punch, knee, throw it any direction, or leap and pile drive it. Doc installs chrome that makes you faster and teaches new moves (Mach fists, Dragon feet, Grand slam, a sprint). Foes fight dirty too: they grab you, unload flurries and throw the furniture.
@@ -326,7 +326,7 @@ Each level gives **2 attribute points** and **1 skill point**.
 ---
 
 ## Skill trees
-Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills** tab. There are four trees of six skills each, and you can mix trees freely:
+Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills** tab. There are five trees of six skills each, and you can mix trees freely:
 - Rows unlock as you spend points in that tree: 0, 1, 2, then 4 points.
 - The third row needs level 4, and the capstone needs level 8.
 - Decker skills help the whole team.
@@ -340,6 +340,17 @@ Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills
 | 3 | **Whirlwind:** heavy blows hit behind you too | **Ricochet:** critical bullets bounce to a second enemy | **Siphon:** every kill restores 4 mana | **Fence Contacts:** sell for 15% more, buy for 10% less |
 | Capstone | **Berserker:** below 40% HP, +40% damage and −20% damage taken | **Deadeye:** +15% gun crit, gun crits deal 2.5× | **Archon:** every 4th spell is free and hits twice as hard | **Ghost Protocol:** failed hacks never trip alarms; break-ins add one less heat star |
 
+The fifth tree, **Shaman**, is spirits, totems and curses: magic without the fireworks.
+
+| Row | Shaman |
+|---|---|
+| 1 | **Spirit Kin:** companions and summons (yours and the party's) deal 25% more damage and take 20% less |
+| 2 | **Hex:** your melee hits curse a foe for 4 seconds; cursed foes take 15% more damage from everyone (a green sigil turns over their head) |
+| 2 | **Ward Totem:** a medkit also plants a small totem that heals anyone beside it for 8 seconds |
+| 3 | **Wild Call:** your kills have a 15% chance to call a fire spirit to your side for 10 seconds (one at a time) |
+| 3 | **Withering:** your curses also make foes deal 25% less damage |
+| Capstone | **Spirit Walk:** while a companion or summon fights beside you, take 20% less damage and regain mana 50% faster |
+
 **Active skills.** Three points in a tree unlock its active skill. On the Skills tab, pick which one the ★ button uses: your archetype's special, or any active skill you've unlocked. It spends the same full meter.
 
 | Tree | Active skill | What it does |
@@ -347,6 +358,7 @@ Open the character sheet (**C**, or **CHAR** on a phone) and choose the **Skills
 | Brawler | **Ground Slam** | Leap and slam the street: a shockwave both ways knocks down everyone close and hurts them |
 | Gunslinger | **Fan the Hammer** | Six rounds fanned across the lanes in front, fast, without using ammo |
 | Mage | **Summon Spirit** | A fire spirit fights at your side for 15 seconds |
+| Shaman | **Totem** | Plant a spirit totem for 12 seconds: every second it heals runners beside it and curses foes near it |
 | Decker | **Short Circuit** | Every drone, ICE, mech, cop and guard on screen is stunned for 3 seconds and shocked; a better cyberdeck hits harder |
 
 Old saves pick up skill points for the levels they already earned.

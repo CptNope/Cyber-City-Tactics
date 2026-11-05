@@ -682,10 +682,12 @@ function render() {
   const list = G.ents.map(e => ({ e, y: e.y }));
   for (const p of G.projs) list.push({ proj: p, y: p.y });
   for (const o of G.props) list.push({ prop: o, y: o.y });
+  for (const T of G.totems || []) list.push({ totem: T, y: T.y });
   if (G.den) for (const n of NPCS) list.push({ npc: n, y: 208 });
   list.sort((a, b) => a.y - b.y);
   for (const o of list) {
     if (o.proj) drawProj(o.proj);
+    else if (o.totem) drawTotem(o.totem);
     else if (o.prop) {
       shadow(o.prop.x - G.camX, o.prop.y, 8);
       drawProp(o.prop.kind, o.prop.x - G.camX, o.prop.y);
@@ -724,6 +726,7 @@ function render() {
       if (o.e.elite && o.e.state !== 'dead' && !cl) drawEliteFront(o.e);
       if (o.e.team === 1 && (o.e.dazeUntil > G.t || reeling(o.e)) && !cl && dazed(o.e)) drawDaze(o.e);
       if (o.e.state === 'held' && o.e.heldBy) drawStruggle(o.e);
+      if (o.e.team === 1 && o.e.curseT > G.t && o.e.state !== 'dead' && !cl) drawCurse(o.e);
       if (o.e.kind === 'player' && o.e.trail && o.e.trail !== 'none') drawTrail(o.e);
       if (o.e.team === 1 && !cl && !o.e.air) drawFoeBar(o.e);
       else if (o.e.kind === 'ally') drawAllyBar(o.e);
@@ -896,6 +899,52 @@ function drawStruggle(p) {
   ctx.fillRect(x, y, 32 * k, 4);
 }
 // a dazed foe: three stars circling its head, the cue that walking into it grabs it
+// a Shaman's totem: a carved pole with a glowing mask and a pulse on every heal
+function drawTotem(T) {
+  const sx = T.x - G.camX,
+    sy = T.y,
+    h = T.big ? 34 : 24,
+    fade = Math.min(1, T.life / 40);
+  ctx.globalAlpha = fade;
+  shadow(sx, sy, 7);
+  ctx.fillStyle = '#5a3a24';
+  ctx.fillRect(sx - 2.5, sy - h, 5, h);
+  ctx.fillStyle = '#7a5a34';
+  ctx.fillRect(sx - 4, sy - h * 0.55, 8, 3);
+  const g = '#7dffb0';
+  ctx.fillStyle = '#1a2a22';
+  ctx.fillRect(sx - 5, sy - h - 8, 10, 9);
+  ctx.fillStyle = g;
+  ctx.fillRect(sx - 3, sy - h - 5, 2, 2);
+  ctx.fillRect(sx + 1, sy - h - 5, 2, 2);
+  glow(sx, sy - h - 4, 10, 8, g, 0.45 + 0.2 * Math.sin(G.t * 0.12));
+  const k = (T.t % 60) / 60;
+  if (!RM && k < 0.5) {
+    ctx.strokeStyle = `rgba(125,255,176,${0.5 - k})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 60 * (0.4 + k), 18 * (0.4 + k), 0, 0, 7);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+// a curse: a small green sigil turning over the foe's head
+function drawCurse(e) {
+  const sx = e.x - G.camX,
+    sy = e.y - e.z - 58 * ((e.d && e.d.scale) || 1),
+    a = G.t * 0.08;
+  ctx.strokeStyle = '#7dffb0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 3; i++) {
+    const x = sx + Math.cos(a + (i * Math.PI * 2) / 3) * 5,
+      y = sy + Math.sin(a + (i * Math.PI * 2) / 3) * 2;
+    if (i) ctx.lineTo(x, y);
+    else ctx.moveTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
 function drawDaze(e) {
   const sc = (e.d && e.d.scale) || 1,
     cx = e.x - G.camX,

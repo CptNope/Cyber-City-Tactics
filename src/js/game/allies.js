@@ -87,6 +87,8 @@ function spawnSummon(type, p, life, off) {
   if (G.ents.filter(x => x.summon && x.state !== 'dead').length >= 3) feat('summon');
   return e;
 }
+// the Shaman tree's Spirit Kin: anyone in the party who has it strengthens every companion and summon
+const kinMul = () => (anyHas('kin') ? 1.25 : 1);
 function upAlly(e) {
   e.t++;
   if (e.flash > 0) e.flash--;
@@ -150,7 +152,9 @@ function upAlly(e) {
   if (e.state === 'windup') {
     if (e.t === 10) {
       e.combo++;
-      if (!strike(e, 30, 12 + lv * 1.6, { kd: e.combo % 3 === 0, kb: 6, big: e.combo % 3 === 0 }))
+      if (
+        !strike(e, 30, (12 + lv * 1.6) * kinMul(), { kd: e.combo % 3 === 0, kb: 6, big: e.combo % 3 === 0 })
+      )
         sfx.whiff();
     }
     if (e.t >= 22) {
@@ -176,7 +180,7 @@ function upAlly(e) {
         y: e.y,
         z: e.z,
         vx: e.face * 6,
-        dmg: 6 + lv * 1.3,
+        dmg: (6 + lv * 1.3) * kinMul(),
         life: 60
       });
       sfx.zap();
@@ -187,7 +191,12 @@ function upAlly(e) {
     ty = tg.y;
     e.face = tg.x >= e.x ? 1 : -1;
     if (Math.abs(tg.x - e.x) < 18 && Math.abs(tg.y - e.y) < 9 && e.cool <= 0) {
-      hurt(tg, 8 + lv * 1.3, tg.x >= e.x ? 1 : -1, { src: lead, col: '#ff6a3d', ax: e.x, magic: true });
+      hurt(tg, (8 + lv * 1.3) * kinMul(), tg.x >= e.x ? 1 : -1, {
+        src: lead,
+        col: '#ff6a3d',
+        ax: e.x,
+        magic: true
+      });
       e.cool = 38;
       burst(tg.x, tg.y, 20, '#ff6a3d', 8);
     }
