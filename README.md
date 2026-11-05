@@ -387,7 +387,7 @@ Makers favour their own parts about three times in four. Voltaic makes no armor.
 | Set | 2 pieces | 3 pieces |
 |---|---|---|
 | Kagemori Precision | +6% crit chance | crits deal 25% more, and the parry window is wider |
-| Rustline Bruiser | +10% melee damage | heavy blows charge 35% faster |
+| Rustline Bruiser | +10% melee damage | heavy blows charge 50% faster |
 | Voltaic Live Wire | melee hits arc to the nearest other foe for 30% damage | the arc dazes it too, and hacking windows are 15% wider |
 | Hexwright Coven | +15% max mana | spells cost 20% less mana |
 | Ironside Bulwark | move 6% faster | take 15% less damage |
@@ -560,7 +560,7 @@ Companions carry between districts and get patched up in the Den, but if one fal
 - **Throwables:** trash cans, crates and explosive drums.
 - **Street weapons (River City style):** lead pipes, bike chains and spiked bats lie about in every district and most Arena waves, and some gangers, bikers and orcs walk in carrying one. Punch beside one to pick it up; every punch then swings it, with extra damage and reach (the chain reaches furthest, the bat hits hardest and its finisher knocks down), until it breaks after a few hits that land. Punch in the air to throw it; it clatters to the ground for someone to pick up again. Get knocked down and you drop it, and so do foes. Gangers walk over to grab one off the street and throw it at you from range.
 - **Wall bounces and juggles:** while a fight holds the camera (or in the Arena and buildings), a foe knocked flying into the screen's edge bounces back off it, still in the air, with a little extra damage. Hit them before they land to juggle them, up to three times.
-- **Mercy:** on their last legs some regulars give up. Gangers, orcs and cops may drop to their knees and beg: leave them alone for a couple of seconds and they pay you off (more creds than a kill drops) and leave, for some karma. Hit them and they go down for good, with the usual drop. Bikers, corp security and thralls may just run for it instead. Bosses, elites, hit squads and bounty hunters never quit, but bosses do talk when they enrage and again on their last quarter.
+- **Mercy:** on their last legs some regulars give up. Gangers, orcs and cops may drop to their knees and beg: leave them alone for a couple of seconds and they pay you off (more creds than a kill drops) and leave, for some karma. Hit them and they go down for good, with the usual drop. Bikers, corp security and thralls may just run for it instead. The blow that would have finished one can be the moment it gives up. Bosses, elites, hit squads and bounty hunters never quit, and neither do the targets of a contract you're still working on, so it can always be finished. Bosses do talk when they enrage and again on their last quarter.
 - **Breakables:** vending machines spill medkits, ammo and mana.
 - **Combo meter:** long combos boost karma and creds.
 - **Hit-stop, screen shake and slow-mo on big hits.** You can turn shake and vibration off in Settings.

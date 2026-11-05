@@ -151,3 +151,21 @@ ok(R.chargeT >= 32, 'it charges without holding');
 press('KeyJ', 1);
 ok(R.state === 'heavy', 'and the next punch swings it');
 A.prefs.heavyTap = false;
+
+/* ---------- refinements ---------- */
+// a key change left half-done never grabs a key in play
+A.setMode('settings');
+G.showKeys = true;
+click('rebind:0:punch');
+click('setdone');
+key('KeyD', true);
+key('KeyD', false);
+ok(!G.rebind && A.KA.KeyD === 'right' && A.KA.KeyJ === 'punch', 'leaving Settings mid-change cancels it');
+A.prefs.keys = 'junk';
+A.applyPrefs();
+ok(
+  A.isObj(A.prefs.keys) && A.setKey('0', 'punch', 'KeyN'),
+  'a junk key map in the prefs is reset, and remapping still works'
+);
+click('keysreset');
+ok(A.NET_GDENY.has('rebind'), 'a pending key change is never mirrored to an online friend');

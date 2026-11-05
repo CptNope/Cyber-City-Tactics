@@ -1178,7 +1178,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+d0736d2';
+const APP_VERSION = '2.0.0+13d1edf';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1467,6 +1467,7 @@ const prefs = Object.assign(
 const goodCol = () => (prefs.cb ? '#45d2ff' : '#7dffb0');
 const badCol = () => (prefs.cb ? '#ffa630' : '#ff3d8b');
 function applyPrefs() {
+  if (!isObj(prefs.keys)) prefs.keys = {};
   RM =
     prefs.motion === 'reduced'
       ? true
@@ -4064,7 +4065,7 @@ const SETS = {
     two: '+6% crit chance',
     three: 'crits deal 25% more, and the parry window is wider'
   },
-  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 35% faster' },
+  rustline: { name: 'Rustline Bruiser', two: '+10% melee damage', three: 'heavy blows charge 50% faster' },
   voltaic: {
     name: 'Voltaic Live Wire',
     two: 'melee hits arc to the nearest other foe for 30% damage',
@@ -6007,6 +6008,7 @@ function placeRunners(x0) {
 }
 function resetWorld() {
   G.cut = null; // a story scene never outlives the street it was on
+  for (const p of PL) p.club = null; // a street weapon stays on the street it was found on
   LATER.length = 0; // team-ups and thorns queued in the last scene stay there
   G.hazard = null;
   G.drive = null;
@@ -7046,6 +7048,9 @@ function mercyRoll(t, o) {
   if (!M || t.mercy || t.hp >= t.maxHp * 0.18 || t.d.boss || t.elite || t.squad || t.hunter || t.courier)
     return false;
   if (G.training || G.mode !== 'play' || modOn('pacifist') || t.state === 'grabbed' || t.holdP) return false;
+  if (!o || !o.src || o.src.team !== 0) return false; // only a runner's beating makes them quit
+  const C = PARTY.contract; // an open contract's targets fight to the end, so it can always be finished
+  if (C && !C.done && !C.failed && (C.key === t.kind || (C.key === 'chip' && t.kind === 'sec'))) return false;
   t.mercy = 'rolled';
   const r = Math.random();
   const say1 = () =>
@@ -7082,6 +7087,7 @@ function spare(t) {
   G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: 'SPARED · ¥' + v, c: '#7dffb0', life: 60, sm: true });
   bump('spared');
   if (G.run) G.run.spared = (G.run.spared || 0) + 1;
+  t.inv = 9999; // spared and paid: they leave untouched (no second payout)
   if (G.world && G.wd && (t.kind === 'cop' || t.kind === 'sec')) G.wd.rep = Math.min(100, G.wd.rep + 1);
   setS(t, 'flee');
 }
@@ -7620,15 +7626,14 @@ function doActive(p, k) {
     // Short Circuit: everything electronic on screen shorts out
     sfx.zap();
     G.flash = Math.max(G.flash, 0.4);
-    const dk = p.eq.deck,
-      hk = (p.D.a.hak || 1) + (dk ? dk.hack || 0 : 0);
+    const hk = p.D.a.hak || 1; // Hacking already counts the cyberdeck
     let n = 0;
     for (const e of G.ents) {
       if (e.team !== 1 || e.state === 'dead' || e.x < G.camX - 8 || e.x > G.camX + W + 8) continue;
       if (!isTech(e)) continue;
       n++;
-      e.stunT = 180;
-      e.cool = Math.max(e.cool || 0, 180);
+      if (!e.d.boss) e.stunT = 180; // bosses take the shock but never freeze
+      e.cool = Math.max(e.cool || 0, e.d.boss ? 90 : 180);
       G.fx.push({ k: 'zap', x: e.x, y: e.y, z: e.z + 20, c: '#45d2ff', life: 14, max: 14, r: 0 });
       G.zaps.push({ tg: e, delay: 4 + Math.floor(Math.random() * 10), dmg: 12 + hk * 5, src: p, bul: true });
     }
@@ -7669,6 +7674,7 @@ function hackFoe(p, e) {
   if (e.d.turret) {
     e.team = 0;
     e.owner = p;
+    e.D = { armor: 6, crit: 0, melee: 0, spd: 0 }; // team-0 targets read their stats from D when hit
     e.hackedT = 1200;
     e.stunT = 0;
     e.cool = 20;
@@ -7695,6 +7701,7 @@ const isTech = e =>
   ((e.d.fly && !e.d.spirit) ||
     e.d.mech ||
     e.d.ice ||
+    e.d.turret ||
     ['ice', 'blackice', 'glitch', 'cop', 'sec', 'riot', 'interceptor', 'drone'].includes(e.kind));
 function useItem(p) {
   if (PARTY.med > 0 && p.hp < p.maxHp) {
@@ -8111,7 +8118,8 @@ function upRunner(p) {
         hackFoe(p, hk); // a shorted-out drone or turret: turn it
         return;
       }
-      if (prop && isClub(prop) && (!foeNear || !p.club)) {
+      if (prop && isClub(prop) && !p.sprint && (!foeNear || !p.club)) {
+        // (out of a sprint, PUNCH is always the shoulder charge)
         takeClub(p, prop); // a street weapon: grab it even mid-fight
         setS(p, 'lift');
         p.t = 8; // a quick scoop, not a two-handed lift
@@ -9721,7 +9729,12 @@ function echoSpell(e) {
 // A turret turns to the nearest target in reach (runners, or once hacked, foes), and fires down that lane.
 // A hacked one fights for the runners until its hijack runs out, then shuts down.
 function turretTick(e) {
-  if (e.state === 'dead') return;
+  if (e.flash > 0) e.flash--;
+  if (e.state === 'dead') {
+    // a wrecked hacked turret isn't run by upEnemy: clear it away here
+    if (e.team === 0 && ++e.t > 40) e.gone = true;
+    return;
+  }
   if (e.team === 0) {
     e.hackedT--;
     if (e.hackedT <= 0) {
@@ -11234,6 +11247,8 @@ function loadWorld(s) {
   if (!isObj(G.wd.fac)) G.wd.fac = {};
   if (!Number.isFinite(G.wd.clock) || G.wd.clock < 0) G.wd.clock = 0;
   if (!isObj(G.wd.prog)) G.wd.prog = {};
+  for (const k of Object.keys(G.wd.prog))
+    if (!Number.isInteger(G.wd.prog[k]) || G.wd.prog[k] < 0) delete G.wd.prog[k];
   G.wd.street = genStreet(G.wd.level, G.wd.seed);
   G.stock = s.stock || [];
   fixGear();
@@ -11805,7 +11820,7 @@ function enterBuilding(b) {
   newRunStats();
   // the building remembers how far you got: leave halfway and you come back to the room you left
   G.wd.prog = G.wd.prog || {};
-  const back = clamp(G.wd.prog[b.id] || 0, 0, G.dun.rooms - 1);
+  const back = clamp(Number.isInteger(G.wd.prog[b.id]) ? G.wd.prog[b.id] : 0, 0, G.dun.rooms - 1);
   enterRoom(back);
   if (back > 0)
     G.texts.push({
@@ -15499,6 +15514,8 @@ const NET_GDENY = new Set([
   'pendMuts',
   'pendCoat',
   'pendTrail',
+  'rebind',
+  'showKeys',
   'booted',
   'sheetIdx',
   'sheetTab',
@@ -22705,6 +22722,7 @@ function jobHtml(C) {
  * character-sheet toggles; new runs.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 function setMode(m) {
+  if (m !== 'settings') G.rebind = null; // a key change left half-done never grabs a key in play
   if (m === 'title' && NET.role === 'host' && NET.live) m = 'nethub'; // online, the hub stands in for the title
   if (legDirty) saveLeg();
   // closing the character sheet means you've seen what's new in the bag

@@ -194,7 +194,7 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> Fighting
-  Fighting --> Rolled: hit under 18% HP (once)
+  Fighting --> Rolled: a runner's hit leaves it under 18% HP, or would finish it (once)
   Rolled --> Fighting: no luck
   Rolled --> Beg: MERCY.beg chance
   Rolled --> Flee: MERCY.run chance
@@ -214,4 +214,4 @@ stateDiagram-v2
 | Corp security | – | 30% |
 | Thrall | – | 20% |
 
-Bosses, elites, hit squads, bounty hunters and couriers never quit, and nobody begs in Training or under Pacifist. Sparing counts toward the Street Mercy feat (10), and wall bounces toward Off the Wall (25). Sparing a cop or guard in the Sprawl lifts your street cred by one. Bosses say a line from `TAUNTS` when they enrage (half health) and again under a quarter.
+Only a runner's hit can make a foe quit, and the blow that would finish one can be the moment it gives up (on 1 HP, unless the hit is over 60% of its max HP). Bosses, elites, hit squads, bounty hunters and couriers never quit, nor do an open contract's targets (so the contract can always be finished), and nobody begs in Training or under Pacifist. A spared foe leaves untouchable. Sparing counts toward the Street Mercy feat (10), and wall bounces toward Off the Wall (25). Sparing a cop or guard in the Sprawl lifts your street cred by one. Bosses say a line from `TAUNTS` when they enrage (half health) and again under a quarter.
