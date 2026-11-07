@@ -396,7 +396,8 @@ const { pathToFileURL } = require('url');
         'package.json',
         'src',
         'icons',
-        'tools'
+        'tools',
+        'vendor'
       ])
         fs.cpSync(path.join(root, f), path.join(tmp, f), { recursive: true });
       const { serve: serve2 } = await import(pathToFileURL(path.join(tmp, 'tools', 'serve.mjs')).href);
