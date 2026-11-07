@@ -37,7 +37,13 @@ jobs:
         run: npm run check
 
       - name: Formatting
-        run: npx prettier --check "src/**/*.{js,css}" "tests/**/*.js" "tools/**/*.mjs" sw.js
+        # on a failure, show exactly what Prettier would change (a different local Prettier can disagree)
+        run: |
+          npx prettier --check "src/**/*.{js,css}" "tests/**/*.js" "tools/**/*.mjs" sw.js || {
+            npx prettier --write "src/**/*.{js,css}" "tests/**/*.js" "tools/**/*.mjs" sw.js > /dev/null
+            git --no-pager diff
+            exit 1
+          }
 
       - name: Headless tests
         run: npm test
