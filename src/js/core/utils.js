@@ -131,6 +131,7 @@ const prefs = Object.assign(
     size: 'm',
     lefty: false,
     gfx: 'auto',
+    view: '3d', // '3d': street fights in 3D where the device can; '2d': the classic flat view
     fps: false,
     rotDismissed: false,
     motion: 'auto', // 'auto' follows the system, 'reduced' or 'full' override it

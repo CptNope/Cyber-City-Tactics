@@ -96,6 +96,18 @@ body {
 #game {
   display: block;
   background: #000;
+  position: relative;
+  z-index: 1;
+}
+/* the 3D view's canvas, under the game canvas, which turns see-through while it shows (render/r3d.js) */
+#game3d {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+  background: #000;
+}
+body.r3 #game {
+  background: transparent;
 }
 #pauseBtn {
   position: absolute;

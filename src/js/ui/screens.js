@@ -317,6 +317,7 @@ function perfReport() {
     `Browser: ${navigator.userAgent}`,
     `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
     `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
+    `View: ${prefs.view}${R3.ok ? ', WebGL 2 ready' : R3.ok === false ? ', no WebGL 2' : ''}`,
     `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
     `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
   ].join('\n');
@@ -342,6 +343,18 @@ function settingsHtml() {
       ['auto', 'Auto'],
       ['high', 'High'],
       ['low', 'Low']
+    ])
+  )}
+  ${row(
+    'View',
+    prefs.view === '2d'
+      ? 'The classic flat street'
+      : typeof THREE === 'undefined' || R3.ok === false
+        ? '3D needs WebGL 2, which this browser doesn’t offer: showing the classic view'
+        : 'Street fights in 3D: neon, rain and reflections. Interiors, the Sprawl and minigames stay flat',
+    seg('view', [
+      ['3d', '3D'],
+      ['2d', 'Classic 2D']
     ])
   )}
   ${row('Frame rate counter', 'Shows frames per second, game speed and the quality step', onoff('fps'))}

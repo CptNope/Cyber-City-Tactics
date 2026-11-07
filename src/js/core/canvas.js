@@ -11,8 +11,10 @@ const W0 = 480,
   H = 270,
   FY0 = 170,
   FY1 = 262;
-const cvs = document.getElementById('game'),
-  ctx = cvs.getContext('2d');
+const cvs = document.getElementById('game');
+// the drawing context: the 3D view (render/r3d.js) points it at small offscreen canvases for a moment to
+// reuse the 2D drawings, so it is a let
+let ctx = cvs.getContext('2d');
 const ov = document.getElementById('ov');
 // reduced motion: the system setting, unless Settings → Motion overrides it (applyPrefs keeps it current)
 let RM = matchMedia('(prefers-reduced-motion: reduce)').matches;

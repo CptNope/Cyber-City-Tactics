@@ -47,6 +47,8 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `security.test.js` | headless | 29 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
+| `view3d.test.js` | headless | 12 | The 3D view's plumbing: no three.js means 2D, the depth mapping and camera angle, the pose and dress the 2D figure hands the puppet, and the vendored bundle (licence, every name the renderer uses, no eval). |
+| `view3d.browser.js` | browser |  | The 3D view in Chromium on software WebGL: a lit street, puppets and cards, the Den and Classic 2D fall back, all six districts build, old districts are freed, no errors. |
 | `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |
 | `robust.test.js` | headless | 34 | The audit fixes: corrupt saves, "Not yet", side-job gear lock, haul once per knockdown, runner 2 drops, online message checks. |
 | `screen.test.js` | headless | 20 | Full-screen fitting on every screen shape, and every campaign district still playable at every view width (wave triggers must stay reachable when the view is wider than 480). |

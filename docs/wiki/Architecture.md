@@ -12,7 +12,7 @@ Plain JavaScript drawing on a `<canvas>`, with HTML menus over it. There's no fr
 | `src/js/systems/` | Cross-mode systems: legend (feats, legendaries, Codex), story scenes, skill trees, haggling |
 | `src/js/game/` | The simulation: state, flow between places, combat, props and grabs, runners, allies and crew, enemies, the update step |
 | `src/js/modes/` | Mode rules: Sprawl, black market, choices, dungeons, hacking, training, Arena, the Gauntlet, jobs (driving, drone, flight), online co-op |
-| `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()` |
+| `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()`; the 3D view of street fights (`r3d.js`, `r3figs.js`, `r3world.js`) |
 | `src/js/ui/` | HTML menus: title attract, screens, overlay and `setMode`, the single action handler |
 | `src/js/pwa.js`, `src/js/sync.js`, `src/js/main.js` | Install, updates and backups; save codes and the sync file; the game loop and boot |
 | `sw.js` | Service worker: precaches the build for offline play |
@@ -30,7 +30,7 @@ flowchart LR
   DATA --> SYS["systems/<br/>legend → story → skills → haggle"]
   SYS --> GAME["game/<br/>state → flow → combat → props → runners → allies → crew → enemies → update"]
   GAME --> MODES["modes/<br/>sprawl → blackmarket → choices → dungeons → hacking → training → arena → gauntlet → jobs → drive → stealth → flight → net"]
-  MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud"]
+  MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud → r3d → r3figs → r3world"]
   REND --> UI["ui/<br/>attract → screens → overlay → actions"]
   UI --> PWA[pwa.js] --> SYNC[sync.js] --> MAIN[main.js: boots]
 ```
@@ -59,6 +59,30 @@ sequenceDiagram
   L->>R: lerpRender(): move everything to an in-between point, draw, move it back
   Note over L: perfSample() watches frame time and steps the graphics tier down on slow devices
 ```
+
+## The 3D view
+
+Street fights (the districts, Arena, Gauntlet and the title's street) are drawn with three.js when the browser has WebGL 2 and **Settings → View** is 3D. Interiors, the Den, the Sprawl, jobs, training and hazards stay 2D, as does everything without WebGL 2 or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
+
+```mermaid
+flowchart LR
+  R["render()"] -->|r3On| R3["r3Render()"]
+  R3 --> W["r3UpdateWorld: lights follow the fight, signs flicker, rain"]
+  R3 --> F["r3UpdateFigs: drawFig on a blank context → e._pose, e._rig → puppet"]
+  R3 --> GL["three.js draws, bloom"] --> C["copied onto the game canvas"]
+  C --> O["2D overlays at each object's projected spot (r3Affine)"] --> H["renderHud(): the usual HUD"]
+  R -->|otherwise| D2["the 2D street"] --> H
+```
+
+| Piece | How |
+|---|---|
+| Mapping | X = x, Y = z (height), Z = (y − FY0) × DZ toward the camera |
+| Camera | looks down at atan(1/DZ), one unit = one logical pixel across at the middle lane, that lane where the 2D view puts it (`setViewOffset`) |
+| Fighters | low-poly puppets posed from the 2D figure's eased pose every frame; falls, rolls and throws turn the whole body as in 2D |
+| Everything else | its 2D drawing on a camera-facing card, so nothing is missing |
+| The street | built once per district: wet road with glossy puddles, three instanced rows of buildings lit in the shader, neon signs and their reflections, lamps, rain in the vertex shader, district touches |
+| Overlays | foe bars, daze stars, numbers, sparks, pickups and shots drawn by their usual 2D functions over the 3D picture |
+| three.js | vendored as `vendor/three.min.js` (only the parts used); rebuild with `tools/vendor-three.mjs` |
 
 Online, the friend's browser calls `netGuestStep()` instead of `update()`: it applies the host's snapshots and eases everything toward them (see [[Online Co-op]]).
 

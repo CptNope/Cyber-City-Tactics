@@ -680,13 +680,21 @@ function drawGroundBand() {
 function render() {
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   if (!G.bg) G.bg = genBg(STAGES[0], 1000);
-  if (BAND > 0) drawSkyBand();
   let shx = 0,
     shy = 0;
   if (G.shake && !RM && prefs.shake) {
     shx = rand(-G.shake, G.shake) * 0.6;
     shy = rand(-G.shake, G.shake) * 0.6;
   }
+  // street fights in 3D (render/r3d.js) when the device can; the HUD below is the same either way
+  const r3 = r3On();
+  R3.on = r3;
+  if (R3.shown !== r3) r3Show(r3);
+  if (r3) {
+    r3Render(shx, shy);
+    return renderHud(true);
+  }
+  if (BAND > 0) drawSkyBand();
   ctx.save();
   ctx.translate(shx, shy + BAND);
   introPush();
@@ -796,7 +804,11 @@ function render() {
   ctx.globalAlpha = 1;
   drawRain();
   ctx.restore();
-  if (BOT > 0) drawGroundBand();
+  renderHud(false);
+}
+// Everything drawn over the street in screen space: bands, the HUD, cutscene bars, flashes and fades
+function renderHud(r3) {
+  if (BOT > 0 && !r3) drawGroundBand();
   drawLowHealth();
   // the title's attract scene sits behind the online menus too, so they hide the HUD the same way
   const noHud =
