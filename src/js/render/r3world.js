@@ -1,0 +1,718 @@
+/* Cyber City Tactics · src/js/render/r3world.js
+ * The 3D street, built once per stage from its colours and signs (STAGES in data/content.js): wet asphalt and a
+ * kerb, three rows of buildings whose windows and shopfronts are lit in the shader (one draw call per row), neon
+ * signs that flicker and pour their colour onto the wet road, street lamps, a skyline in the fog, rain, and
+ * each district's own touches (tunnel arches and rails, market lanterns, the Arcology's floor grid, the
+ * Host's wireframe towers). Lights move with the camera: a few lamps and signs nearest the fight light it.
+ * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
+'use strict';
+const R3_LAMP_GAP = 260;
+function r3Hex(c, k) {
+  const v = new THREE.Color(c);
+  if (k) v.multiplyScalar(k);
+  return v;
+}
+// Lit windows and shopfronts, worked out per pixel from the world position, so one box can be any building
+function r3Facade(opts) {
+  const m = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    roughness: 0.82,
+    metalness: 0.1,
+    envMapIntensity: 0.4
+  });
+  const U = {
+    uCell: { value: new THREE.Vector2(opts.cw, opts.ch) },
+    uWinCol: { value: r3Hex(opts.win, opts.glow) },
+    uShopCol: { value: r3Hex(opts.shop || opts.win, 1.1) },
+    uAlt: { value: r3Hex(opts.alt || opts.win, opts.glow) },
+    uDensity: { value: opts.density },
+    uShop: { value: opts.shop ? 1 : 0 },
+    uEra: { value: 0 },
+    uWire: { value: opts.wire ? 1 : 0 }
+  };
+  m.userData.U = U;
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vON;')
+      .replace(
+        '#include <worldpos_vertex>',
+        `#include <worldpos_vertex>
+        vec4 wq = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+        wq = instanceMatrix * wq;
+        #endif
+        vWP = (modelMatrix * wq).xyz; vON = objectNormal;`
+      );
+    sh.fragmentShader = sh.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        varying vec3 vWP; varying vec3 vON;
+        uniform vec2 uCell; uniform vec3 uWinCol; uniform vec3 uShopCol; uniform float uDensity;
+        uniform float uShop; uniform float uEra; uniform float uWire; uniform vec3 uAlt;
+        float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        if (abs(vON.y) < 0.5) {
+          vec2 p = abs(vON.z) > 0.5 ? vWP.xy : vec2(vWP.z, vWP.y);
+          vec2 c = floor(p / uCell), f = fract(p / uCell);
+          float win = step(0.22, f.x) * step(f.x, 0.78) * step(0.25, f.y) * step(f.y, 0.75);
+          float shopTop = 30.0 * uShop;
+          float up = step(shopTop + 4.0, p.y);
+          float on = win * up * step(1.0 - uDensity, h21(c)) * step(0.06, h21(c * 1.37 + uEra));
+          totalEmissiveRadiance += mix(uWinCol, uAlt, step(0.84, h21(c * 5.3))) * on * (0.35 + 0.9 * h21(c * 3.1));
+          diffuseColor.rgb *= 1.0 - win * up * 0.45;
+          if (uShop > 0.5 && abs(vON.z) > 0.5 && p.y < shopTop) {
+            // a lit shopfront under each building: glass with mullions, a dark door now and then
+            float bay = floor(vWP.x / 18.0), fx = fract(vWP.x / 18.0);
+            float glass = step(5.0, p.y) * step(p.y, 25.0) * step(0.06, fx) * step(fx, 0.94);
+            float door = step(0.82, h21(vec2(bay, 7.0)));
+            float lit = step(0.45, h21(vec2(bay, 3.0)));
+            vec3 tint = mix(uShopCol, uAlt, step(0.6, h21(vec2(bay, 9.0))));
+            totalEmissiveRadiance += tint * glass * (1.0 - door) * lit * (0.22 + 0.1 * sin(vWP.x * 0.31));
+            diffuseColor.rgb *= 1.0 - glass * 0.6;
+            // the awning line
+            float aw = step(26.0, p.y) * step(p.y, 29.0);
+            totalEmissiveRadiance += tint * aw * 0.25;
+          }
+          if (uWire > 0.5) {
+            // the Host: every edge of a cell glows
+            float e = max(step(0.94, f.x) + step(f.x, 0.06), step(0.94, f.y) + step(f.y, 0.06));
+            totalEmissiveRadiance += uWinCol * min(e, 1.0) * 0.8;
+          }
+        }`
+      );
+  };
+  return m;
+}
+// one row of buildings as a single instanced mesh
+function r3Row(list, mat, depth) {
+  const T = THREE,
+    geo = new T.BoxGeometry(1, 1, 1);
+  geo.translate(0, 0.5, -0.5);
+  const im = new T.InstancedMesh(geo, mat, list.length),
+    M = new T.Matrix4(),
+    c = new T.Color();
+  list.forEach((b, i) => {
+    M.makeScale(b.w, b.h, b.d || depth);
+    M.setPosition(b.x + b.w / 2, 0, b.z);
+    im.setMatrixAt(i, M);
+    im.setColorAt(i, c.set(b.col));
+  });
+  im.instanceMatrix.needsUpdate = true;
+  im.computeBoundingSphere();
+  return im;
+}
+// a neon sign: a dark plate with the word in its colour, bright enough to bloom
+function r3SignMesh(t, col, vert) {
+  const T = THREE,
+    cv = document.createElement('canvas'),
+    g = cv.getContext('2d'),
+    fs = 40;
+  g.font = `600 ${fs}px Teko, Impact, sans-serif`;
+  const tw = vert ? fs * 1.1 : Math.ceil(g.measureText(t).width) + 28,
+    th = vert ? t.length * fs * 0.86 + 24 : fs + 18;
+  cv.width = tw;
+  cv.height = th;
+  g.fillStyle = '#07050c';
+  g.fillRect(0, 0, tw, th);
+  g.strokeStyle = col;
+  g.lineWidth = 4;
+  g.strokeRect(4, 4, tw - 8, th - 8);
+  g.fillStyle = col;
+  g.font = `600 ${fs}px Teko, Impact, sans-serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  if (vert) t.split('').forEach((ch, i) => g.fillText(ch, tw / 2, 14 + fs * 0.43 + i * fs * 0.86));
+  else g.fillText(t, tw / 2, th / 2 + 3);
+  const tex = new T.CanvasTexture(cv);
+  tex.colorSpace = T.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const mat = new T.MeshBasicMaterial({ map: tex, toneMapped: false, color: new T.Color(2.4, 2.4, 2.4) });
+  const m = new T.Mesh(new T.BoxGeometry(tw / 2.8, th / 2.8, 3), [
+    R3.signBack,
+    R3.signBack,
+    R3.signBack,
+    R3.signBack,
+    mat,
+    R3.signBack
+  ]);
+  m.userData.mat = mat;
+  m.userData.w = tw / 2.8;
+  m.userData.h = th / 2.8;
+  return m;
+}
+function r3Dispose(o) {
+  o.traverse(c => {
+    if (c.geometry && !Object.values(R3.geo).includes(c.geometry)) c.geometry.dispose();
+    for (const m of [].concat(c.material || [])) {
+      if (m === R3.shadowMat || m === R3.signBack) continue;
+      if (m.map) m.map.dispose();
+      m.dispose();
+    }
+  });
+}
+function r3BuildWorld(S) {
+  const T = THREE,
+    F = R3;
+  if (F.world) {
+    F.scene.remove(F.world);
+    r3Dispose(F.world);
+  }
+  if (F.env) F.env.dispose();
+  const W3 = (F.world = new T.Group());
+  F.scene.add(W3);
+  F.signBack = F.signBack || new T.MeshStandardMaterial({ color: '#0b0812', roughness: 0.6 });
+  const tunnel = !!S.tunnel,
+    matrix = !!S.matrix,
+    len = Math.max(S.len || 1500, 1600) + WMAX + 400,
+    r = srng(((S.name || '').length * 7919 + (S.len || 0)) >>> 0),
+    rr = (a, b) => a + r() * (b - a),
+    wet = !!S.rain;
+  // sky and fog
+  const sky = document.createElement('canvas');
+  sky.width = 4;
+  sky.height = 256;
+  const sg = sky.getContext('2d'),
+    grd = sg.createLinearGradient(0, 0, 0, 256);
+  grd.addColorStop(0, '#05030a');
+  grd.addColorStop(0.45, S.sky[0]);
+  grd.addColorStop(1, S.sky[1]);
+  sg.fillStyle = grd;
+  sg.fillRect(0, 0, 4, 256);
+  const skyTex = new T.CanvasTexture(sky);
+  skyTex.colorSpace = T.SRGBColorSpace;
+  F.scene.background = skyTex;
+  F.skyTex = skyTex;
+  const fogCol = new T.Color(S.sky[1]).lerp(new T.Color(S.far), 0.5);
+  F.scene.fog = new T.Fog(fogCol, 700, 2600);
+  F.fogNear = 700;
+  // lights: a cold fill from the camera's side, the moon behind for rim light, and a sky/ground ambient
+  W3.add(
+    new T.HemisphereLight(
+      r3Hex(S.sky[1]).lerp(new T.Color('#9a8cff'), 0.35),
+      new T.Color(S.ground[1]),
+      tunnel ? 0.9 : 0.3
+    )
+  );
+  const moon = new T.DirectionalLight(S.moon, 1.4);
+  moon.position.set(-200, 500, -700);
+  W3.add(moon, moon.target);
+  F.moonLight = moon;
+  const fill = new T.DirectionalLight('#b8c4ff', 0.75);
+  fill.position.set(120, 260, 600);
+  W3.add(fill, fill.target);
+  F.fill = fill;
+  F.lamps = [];
+  F.pl = [];
+  for (let i = 0; i < 4; i++) {
+    const p = new T.PointLight('#ffffff', 0, 380, 1.2);
+    W3.add(p);
+    F.pl.push(p);
+  }
+  // the road: dark asphalt with puddles that are glossier than the rest
+  const gw = 512,
+    gh = 256,
+    gc = document.createElement('canvas'),
+    rc = document.createElement('canvas');
+  gc.width = rc.width = gw;
+  gc.height = rc.height = gh;
+  const g = gc.getContext('2d'),
+    rg = rc.getContext('2d');
+  g.fillStyle = S.ground[0];
+  g.fillRect(0, 0, gw, gh);
+  rg.fillStyle = wet ? '#8c8c8c' : '#cfcfcf';
+  rg.fillRect(0, 0, gw, gh);
+  for (let i = 0; i < 2600; i++) {
+    g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.12)';
+    g.fillRect(r() * gw, r() * gh, 1 + r() * 3, 1 + r() * 2);
+  }
+  // cracks and tar seams
+  g.strokeStyle = 'rgba(0,0,0,0.28)';
+  g.lineWidth = 2;
+  for (let i = 0; i < 9; i++) {
+    g.beginPath();
+    let x = r() * gw,
+      y = r() * gh;
+    g.moveTo(x, y);
+    for (let k = 0; k < 6; k++) g.lineTo((x += rr(-40, 40)), (y += rr(-18, 18)));
+    g.stroke();
+  }
+  if (wet)
+    for (let i = 0; i < 12; i++) {
+      const x = r() * gw,
+        y = r() * gh,
+        rx = rr(20, 70),
+        ry = rr(8, 22),
+        pg = rg.createRadialGradient(x, y, 1, x, y, rx);
+      pg.addColorStop(0, '#080808');
+      pg.addColorStop(0.7, '#1a1a1a');
+      pg.addColorStop(1, 'rgba(106,106,106,0)');
+      rg.fillStyle = pg;
+      rg.save();
+      rg.translate(x, y);
+      rg.scale(1, ry / rx);
+      rg.translate(-x, -y);
+      rg.beginPath();
+      rg.arc(x, y, rx, 0, 7);
+      rg.fill();
+      rg.restore();
+      g.fillStyle = 'rgba(0,0,0,0.18)';
+      g.beginPath();
+      g.ellipse(x, y, rx * 0.8, ry * 0.8, 0, 0, 7);
+      g.fill();
+    }
+  const gt = new T.CanvasTexture(gc),
+    rt = new T.CanvasTexture(rc);
+  gt.colorSpace = T.SRGBColorSpace;
+  for (const t of [gt, rt]) {
+    t.wrapS = t.wrapT = T.RepeatWrapping;
+    t.repeat.set(len / 380, 1.4);
+    t.anisotropy = 8;
+  }
+  const depth = (FY1 - FY0) * DZ + 260;
+  const road = new T.Mesh(
+    new T.PlaneGeometry(len, depth),
+    new T.MeshStandardMaterial({
+      map: gt,
+      roughnessMap: rt,
+      roughness: 1,
+      metalness: matrix ? 0.4 : 0.15,
+      envMapIntensity: wet ? 0.9 : 0.4,
+      color: matrix ? '#203040' : wet ? '#5a5466' : '#8a8494'
+    })
+  );
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(len / 2 - 300, 0, depth / 2 - 4);
+  W3.add(road);
+  // lane markings: a dashed line down the middle lane
+  const dashes = Math.ceil(len / 48),
+    dm = new T.InstancedMesh(
+      new T.BoxGeometry(22, 0.3, 2.2),
+      new T.MeshStandardMaterial({ color: S.line, roughness: 0.5, emissive: S.line, emissiveIntensity: 0.6 }),
+      dashes
+    ),
+    M = new T.Matrix4();
+  for (let i = 0; i < dashes; i++) {
+    M.makeTranslation(-300 + i * 48, 0.2, zOf(212.5));
+    dm.setMatrixAt(i, M);
+  }
+  W3.add(dm);
+  // the kerb and the pavement under the shopfronts
+  const back = -14 * DZ;
+  const kerb = new T.Mesh(
+    new T.BoxGeometry(len, 3, 3),
+    new T.MeshStandardMaterial({ color: r3Hex(S.line).multiplyScalar(1.6), roughness: 0.7 })
+  );
+  kerb.position.set(len / 2 - 300, 1.5, -1.5);
+  const walk = new T.Mesh(
+    new T.BoxGeometry(len, 3, -back),
+    new T.MeshStandardMaterial({ color: r3Hex(S.wall).multiplyScalar(1.5), roughness: 0.85 })
+  );
+  walk.position.set(len / 2 - 300, 1.5, back / 2);
+  W3.add(kerb, walk);
+  // buildings: the shopfront row, a taller row behind, and the skyline far off in the fog
+  const front = [],
+    mid = [],
+    far = [];
+  let x = -320;
+  while (x < len) {
+    const w = rr(60, 140),
+      gap = r() < 0.18 ? rr(18, 36) : 2;
+    front.push({
+      x,
+      w: tunnel ? w + gap : w,
+      h: tunnel ? 420 : rr(95, 210),
+      z: back - (!tunnel && r() < 0.25 ? 10 : 0),
+      col: r3Hex(tunnel ? S.wall : S.near, tunnel ? rr(1.6, 2.1) : rr(0.85, 1.25))
+    });
+    x += w + gap;
+  }
+  x = -400;
+  while (x < len + 200) {
+    const w = rr(90, 200);
+    mid.push({ x, w, h: rr(240, 460), z: back - 130 - rr(0, 60), d: 90, col: r3Hex(S.near, rr(0.6, 0.9)) });
+    x += w + rr(10, 60);
+  }
+  x = -1200;
+  while (x < len + 1200) {
+    const w = rr(120, 320);
+    far.push({ x, w, h: rr(380, 1100), z: -900 - rr(0, 500), d: 200, col: r3Hex(S.far, rr(0.8, 1.2)) });
+    x += w + rr(20, 120);
+  }
+  const alt = S.signs && S.signs.length ? S.signs[0][1] : S.moon;
+  const frontMat = tunnel
+    ? r3Facade({ alt, cw: 9, ch: 9, win: S.win, glow: 0.5, density: 0.012, wire: false })
+    : r3Facade({ alt, cw: 11, ch: 13, win: S.win, glow: 0.9, density: 0.16, shop: S.win, wire: matrix });
+  F.facades = [frontMat];
+  if (!tunnel) {
+    const midMat = r3Facade({ alt, cw: 12, ch: 14, win: S.win, glow: 0.8, density: 0.14, wire: matrix }),
+      farMat = r3Facade({ alt, cw: 14, ch: 16, win: S.win, glow: 1.1, density: 0.12, wire: matrix });
+    W3.add(r3Row(front, frontMat, 70), r3Row(mid, midMat, 90), r3Row(far, farMat, 200));
+    F.facades.push(midMat, farMat);
+  } else W3.add(r3Row(front, frontMat, 70));
+  // roof lines in neon on some of the front row
+  const trims = front.filter(() => r() < 0.35);
+  if (trims.length && !tunnel) {
+    const tm = new T.InstancedMesh(
+      new T.BoxGeometry(1, 1.6, 1.6),
+      new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+      trims.length
+    );
+    const c = new T.Color();
+    trims.forEach((b, i) => {
+      M.makeScale(b.w, 1, 1);
+      M.setPosition(b.x + b.w / 2, b.h, b.z + 0.8);
+      tm.setMatrixAt(i, M);
+      const sg2 = S.signs && S.signs.length ? S.signs[i % S.signs.length][1] : S.win;
+      tm.setColorAt(i, c.set(sg2).multiplyScalar(2));
+    });
+    W3.add(tm);
+  }
+  // neon signs on the shopfronts, each pouring its colour onto the wet road
+  F.signs = [];
+  const refl = [];
+  if (S.signs && S.signs.length) {
+    let si = 0;
+    for (const b of front) {
+      if (r() > 0.62 || b.x > len - 200) continue;
+      const [t, col] = S.signs[si++ % S.signs.length],
+        vert = r() < 0.35,
+        m = r3SignMesh(t, col, vert),
+        sw = m.userData.w,
+        sh = m.userData.h,
+        x = b.x + rr(sw / 2 + 4, Math.max(sw / 2 + 5, b.w - sw / 2 - 4)),
+        y = vert
+          ? rr(48, Math.max(50, b.h - sh / 2 - 10))
+          : rr(38 + sh / 2, Math.max(40 + sh / 2, b.h * 0.55));
+      m.position.set(x, y, b.z + 3);
+      W3.add(m);
+      F.signs.push({ m, x, y, col, ph: r() * 100 });
+      refl.push({ x, w: sw, col });
+    }
+  }
+  // street lamps along the kerb
+  const lampN = Math.ceil(len / R3_LAMP_GAP),
+    lampCol = S.market ? '#ffb36b' : tunnel ? '#7dffb0' : S.grid ? '#cfe6ff' : S.win || '#ffb36b';
+  const pole = new T.InstancedMesh(
+      new T.CylinderGeometry(1.4, 1.8, 110, 6).translate(0, 55, 0),
+      new T.MeshStandardMaterial({ color: '#2a2633', roughness: 0.5, metalness: 0.6 }),
+      lampN
+    ),
+    arm = new T.InstancedMesh(
+      new T.BoxGeometry(26, 2, 2).translate(13, 0, 0),
+      new T.MeshStandardMaterial({ color: '#2a2633', roughness: 0.5, metalness: 0.6 }),
+      lampN
+    ),
+    head = new T.InstancedMesh(
+      new T.BoxGeometry(12, 2.5, 6),
+      new T.MeshBasicMaterial({ color: r3Hex(lampCol, 3), toneMapped: false }),
+      lampN
+    );
+  if (!tunnel && !matrix) {
+    for (let i = 0; i < lampN; i++) {
+      const x = -200 + i * R3_LAMP_GAP;
+      M.makeTranslation(x, 0, -6);
+      pole.setMatrixAt(i, M);
+      M.makeTranslation(x, 108, -6);
+      arm.setMatrixAt(i, M);
+      M.makeTranslation(x + 24, 106, -6);
+      head.setMatrixAt(i, M);
+      F.lamps.push({ x: x + 24, y: 100, z: -6, col: lampCol, k: 1 });
+      refl.push({ x: x + 24, w: 14, col: lampCol, lamp: true });
+    }
+    W3.add(pole, arm, head);
+  }
+  for (const s of F.signs) F.lamps.push({ x: s.x, y: s.y, z: back + 10, col: s.col, k: 0.8, sign: s });
+  // reflections: soft streaks of colour on the road under each light
+  if (wet && refl.length) {
+    const sc = document.createElement('canvas');
+    sc.width = 32;
+    sc.height = 128;
+    const sg3 = sc.getContext('2d'),
+      sgr = sg3.createLinearGradient(0, 0, 0, 128);
+    sgr.addColorStop(0, 'rgba(255,255,255,0.0)');
+    sgr.addColorStop(0.15, 'rgba(255,255,255,0.9)');
+    sgr.addColorStop(1, 'rgba(255,255,255,0)');
+    sg3.fillStyle = sgr;
+    sg3.fillRect(0, 0, 32, 128);
+    const hg = sg3.createLinearGradient(0, 0, 32, 0);
+    hg.addColorStop(0, 'rgba(0,0,0,1)');
+    hg.addColorStop(0.5, 'rgba(0,0,0,0)');
+    hg.addColorStop(1, 'rgba(0,0,0,1)');
+    sg3.globalCompositeOperation = 'destination-out';
+    sg3.fillStyle = hg;
+    sg3.fillRect(0, 0, 32, 128);
+    const st = new T.CanvasTexture(sc);
+    const rm = new T.InstancedMesh(
+      new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
+      new T.MeshBasicMaterial({
+        map: st,
+        transparent: true,
+        depthWrite: false,
+        blending: T.AdditiveBlending,
+        toneMapped: false,
+        opacity: 0.55
+      }),
+      refl.length
+    );
+    const c = new T.Color();
+    refl.forEach((o, i) => {
+      M.makeScale(o.w * 0.9, 1, o.lamp ? 150 : 210);
+      M.setPosition(o.x, 0.3, -2);
+      rm.setMatrixAt(i, M);
+      rm.setColorAt(i, c.set(o.col).multiplyScalar(o.lamp ? 0.5 : 0.8));
+    });
+    W3.add(rm);
+    F.refl = rm;
+  } else F.refl = null;
+  // each district's own touches
+  if (tunnel) r3Tunnel(W3, S, len, r);
+  if (S.market) r3Lanterns(W3, len, r);
+  if (S.grid || matrix) r3Grid(W3, S, len, depth);
+  if (!tunnel) r3Moon(W3, S);
+  r3Rain(W3, S);
+  // the exit: a gate of light at the end of the street
+  const gate = new T.Mesh(
+    new T.BoxGeometry(6, 90, (FY1 - FY0) * DZ),
+    new T.MeshBasicMaterial({
+      color: r3Hex('#ff3d8b', 2),
+      toneMapped: false,
+      transparent: true,
+      opacity: 0.35
+    })
+  );
+  gate.position.set(S.len - 15, 45, ((FY1 - FY0) * DZ) / 2);
+  W3.add(gate);
+  F.gate = gate;
+  // reflections for shiny things: a tiny room of the district's neon, prefiltered once
+  r3EnvMap(S);
+}
+function r3Tunnel(W3, S, len, r) {
+  const T = THREE,
+    M = new T.Matrix4(),
+    n = Math.ceil(len / 120) + 4,
+    back = -14 * DZ,
+    span = (FY1 - FY0) * DZ + 220;
+  // concrete pillars along the wall, a beam over the track from each, and a strip light under every other
+  const conc = new T.MeshStandardMaterial({ color: r3Hex(S.wall, 2.4), roughness: 0.9 });
+  const pil = new T.InstancedMesh(new T.BoxGeometry(18, 420, 18).translate(0, 210, 0), conc, n),
+    beam = new T.InstancedMesh(new T.BoxGeometry(16, 14, span).translate(0, 0, span / 2), conc, n),
+    tube = new T.InstancedMesh(
+      new T.BoxGeometry(4, 2, 70),
+      new T.MeshBasicMaterial({ color: r3Hex(S.win, 2.6), toneMapped: false }),
+      n
+    );
+  for (let i = 0; i < n; i++) {
+    const x = -300 + i * 120;
+    M.makeTranslation(x, 0, back + 4);
+    pil.setMatrixAt(i, M);
+    M.makeTranslation(x, 300, back);
+    beam.setMatrixAt(i, M);
+    M.makeTranslation(x + 60, i % 2 ? 292 : -50, back + 90);
+    tube.setMatrixAt(i, M);
+    if (i % 2) R3.lamps.push({ x: x + 60, y: 280, z: back + 90, col: S.win, k: 1.6 });
+  }
+  W3.add(pil, beam, tube);
+  for (const ry of [226, 248]) {
+    const rail = new T.Mesh(
+      new T.BoxGeometry(len, 2, 2.5),
+      new T.MeshStandardMaterial({ color: '#6a7a72', roughness: 0.25, metalness: 0.9 })
+    );
+    rail.position.set(len / 2 - 300, 1, zOf(ry));
+    W3.add(rail);
+  }
+}
+function r3Lanterns(W3, len, r) {
+  const T = THREE,
+    n = Math.ceil(len / 14),
+    lm = new T.InstancedMesh(
+      new T.IcosahedronGeometry(2.6, 0),
+      new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+      n * 2
+    ),
+    M = new T.Matrix4(),
+    c = new T.Color(),
+    cols = ['#ff3d8b', '#ffc63d', '#ff6a3d', '#ffb36b'];
+  let i = 0;
+  for (const [y0, z] of [
+    [96, -10],
+    [130, -60]
+  ])
+    for (let k = 0; k < n; k++) {
+      const x = -300 + k * 14;
+      M.makeTranslation(x, y0 + Math.sin(x * 0.045) * 9, z);
+      lm.setMatrixAt(i, M);
+      lm.setColorAt(i++, c.set(cols[k % 4]).multiplyScalar(2.2));
+    }
+  W3.add(lm);
+}
+function r3Grid(W3, S, len, depth) {
+  const T = THREE,
+    pts = [],
+    col = S.matrix ? '#45d2ff' : '#ffc63d';
+  for (let x = -300; x < len; x += 40) pts.push(x, 0.5, -4, x, 0.5, depth - 10);
+  for (let z = 0; z < depth; z += 40) pts.push(-300, 0.5, z, len, 0.5, z);
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.Float32BufferAttribute(pts, 3));
+  W3.add(
+    new T.LineSegments(
+      g,
+      new T.LineBasicMaterial({
+        color: r3Hex(col, S.matrix ? 1.4 : 0.6),
+        transparent: true,
+        opacity: S.matrix ? 0.7 : 0.25,
+        toneMapped: false
+      })
+    )
+  );
+}
+function r3Moon(W3, S) {
+  const T = THREE,
+    c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d'),
+    gr = g.createRadialGradient(64, 64, 10, 64, 64, 64);
+  gr.addColorStop(0, S.moon);
+  gr.addColorStop(0.28, S.moon);
+  gr.addColorStop(0.32, 'rgba(255,255,255,0.25)');
+  gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 128, 128);
+  const tex = new T.CanvasTexture(c);
+  tex.colorSpace = T.SRGBColorSpace;
+  const m = new T.Sprite(
+    new T.SpriteMaterial({ map: tex, fog: false, toneMapped: false, depthWrite: false })
+  );
+  m.scale.set(420, 420, 1);
+  m.renderOrder = -1;
+  W3.add(m);
+  R3.moon = m;
+}
+// Rain: streaks falling through a box that travels with the camera, moved entirely in the vertex shader
+function r3Rain(W3, S) {
+  const T = THREE,
+    n = 1400,
+    pos = new Float32Array(n * 6),
+    seed = new Float32Array(n * 2);
+  for (let i = 0; i < n; i++) {
+    const x = Math.random(),
+      z = Math.random(),
+      y = Math.random();
+    pos.set([x, y, z, x, y, z], i * 6);
+    seed[i * 2] = 0;
+    seed[i * 2 + 1] = 1;
+  }
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.BufferAttribute(pos, 3));
+  g.setAttribute('tail', new T.BufferAttribute(seed, 1));
+  const col = S.matrix ? '#45ffb0' : '#a9c8ff';
+  const mat = new T.ShaderMaterial({
+    uniforms: {
+      uT: { value: 0 },
+      uC: { value: new T.Vector3() },
+      uCol: { value: r3Hex(col, S.matrix ? 2 : 1.2) },
+      uA: { value: 0.35 },
+      uLen: { value: S.matrix ? 22 : 12 }
+    },
+    vertexShader: `attribute float tail; uniform float uT; uniform vec3 uC; uniform float uLen; varying float vA;
+      void main() {
+        vec3 p = position;
+        float fall = fract(p.y - uT * (0.9 + p.x * 0.3));
+        vec3 w = vec3(uC.x + (p.x - 0.5) * 1400.0, fall * 420.0, -40.0 + p.z * 420.0);
+        w.x += fall * 18.0; // slanting in the wind
+        w.y += tail * uLen; w.x -= tail * uLen * 0.25;
+        vA = 1.0 - tail * 0.8;
+        gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
+      }`,
+    fragmentShader: `uniform vec3 uCol; uniform float uA; varying float vA;
+      void main() { gl_FragColor = vec4(uCol, uA * vA); }`,
+    transparent: true,
+    depthWrite: false,
+    blending: T.AdditiveBlending,
+    toneMapped: false
+  });
+  const rain = new T.LineSegments(g, mat);
+  rain.frustumCulled = false;
+  W3.add(rain);
+  R3.rain = rain;
+}
+function r3EnvMap(S) {
+  const T = THREE,
+    room = new T.Scene(),
+    pm = new T.PMREMGenerator(R3.r);
+  room.background = new T.Color(S.sky[0]).multiplyScalar(0.5);
+  const cols = (S.signs || []).map(s => s[1]).concat([S.win, S.moon]);
+  cols.forEach((c, i) => {
+    const m = new T.Mesh(
+      new T.PlaneGeometry(4, 1.2),
+      new T.MeshBasicMaterial({ color: r3Hex(c, 3), side: T.DoubleSide })
+    );
+    const a = (i / cols.length) * Math.PI * 2;
+    m.position.set(Math.cos(a) * 8, 1 + (i % 3) * 1.4, Math.sin(a) * 8);
+    m.lookAt(0, 0, 0);
+    room.add(m);
+  });
+  R3.env = pm.fromScene(room, 0.04).texture;
+  R3.scene.environment = R3.env;
+  pm.dispose();
+  room.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) o.material.dispose();
+  });
+}
+/* ---------- every frame ---------- */
+function r3UpdateWorld(S) {
+  const F = R3,
+    cx = G.camX + W / 2,
+    wx = typeof wxNow === 'function' ? wxNow() : 'clear',
+    wet = !!S.rain || wx === 'storm' || wx === 'rain' || wx === 'sleet';
+  // the lights travel with the fight: the four lamps and signs nearest the middle of the view
+  const near = F.lamps
+    .filter(l => Math.abs(l.x - cx) < W)
+    .sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx))
+    .slice(0, F.pl.length);
+  F.pl.forEach((p, i) => {
+    const l = near[i];
+    if (!l) {
+      p.intensity = 0;
+      return;
+    }
+    p.position.set(l.x, l.y, l.z + 30);
+    p.color.set(l.col);
+    const on = l.sign ? !(Math.sin(G.t * 0.05 + l.x) > 0.96) : 1;
+    p.intensity = (l.sign ? 70 : 45) * l.k * (on ? 1 : 0.1);
+  });
+  // flickering signs
+  for (const s of F.signs) {
+    const on = !(Math.sin(G.t * 0.05 + s.x) > 0.96);
+    s.m.userData.mat.color.setScalar(on ? 2.4 : 0.35);
+  }
+  // windows switch on and off over time
+  for (const m of F.facades) m.userData.U.uEra.value = G.t >> 8;
+  F.moonLight.position.set(cx - 200, 500, -700);
+  F.moonLight.target.position.set(cx, 0, 0);
+  F.fill.position.set(cx + 120, 260, 600);
+  F.fill.target.position.set(cx, 0, 60);
+  if (F.moon) F.moon.position.set(cx + 420 - G.camX * 0.02, 520, -2600);
+  // rain while it's wet, fog closing in when it's foggy
+  if (F.rain) {
+    F.rain.visible = wet || !!S.matrix;
+    const U = F.rain.material.uniforms;
+    U.uT.value = G.t * 0.022;
+    U.uC.value.set(cx, 0, 0);
+    U.uA.value = lowFx() ? 0.22 : 0.35;
+    F.rain.geometry.setDrawRange(0, lowFx() ? 900 : 2800);
+  }
+  if (F.refl) F.refl.visible = wet;
+  const fog = wx === 'fog';
+  F.scene.fog.near = fog ? 380 : F.fogNear;
+  F.scene.fog.far = fog ? 1300 : 2600;
+  F.gate.visible = !!G.exitOpen && !G.den;
+  if (F.gate.visible) F.gate.material.opacity = 0.25 + 0.2 * Math.sin(G.t * 0.15);
+  // lightning lights the whole street for a frame or two
+  F.moonLight.intensity = G.flash > 0.2 && wx === 'storm' ? 5 : 1.4;
+}

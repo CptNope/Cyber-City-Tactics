@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '7400ea7292b1';
+const VERSION = '2329fd2d832d';
 const PRECACHE = [
   './',
   'index.html',
@@ -62,6 +62,7 @@ const PRECACHE = [
   'src/js/modes/stealth.js',
   'src/js/modes/flight.js',
   'src/js/modes/net.js',
+  'vendor/three.min.js',
   'src/js/render/figures.js',
   'src/js/render/atmos.js',
   'src/js/render/looks.js',
@@ -72,6 +73,9 @@ const PRECACHE = [
   'src/js/render/world.js',
   'src/js/render/sprawl.js',
   'src/js/render/hud.js',
+  'src/js/render/r3d.js',
+  'src/js/render/r3figs.js',
+  'src/js/render/r3world.js',
   'src/js/ui/attract.js',
   'src/js/ui/screens.js',
   'src/js/ui/overlay.js',

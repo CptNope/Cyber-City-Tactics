@@ -1160,8 +1160,17 @@ function drawFig(e) {
   fkb = P[12];
   bkb = P[13];
   lean = P[14];
+  // what the 3D view needs to dress and turn the same pose (render/r3figs.js)
+  const rig = e._rig || (e._rig = {});
+  rig.style = style;
+  rig.gun = gun;
+  rig.staff = staff;
+  rig.glow = glow;
+  rig.swing = swing;
+  rig.sq = null;
   if (!lying && st !== 'roll') {
     const q = squash(e, st, t, swing);
+    rig.sq = q.slice();
     if (e.build) {
       q[0] *= e.build[0];
       q[1] *= e.build[1];

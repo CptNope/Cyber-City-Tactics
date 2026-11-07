@@ -39,6 +39,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 
 ## At a glance
 
+- **Street fights in 3D:** a tilted three-quarter camera over neon low-poly streets, wet roads that pour every sign's colour back at you, rain, fog and bloom, built with three.js. Interiors, the Sprawl and the minigames stay in the original flat art, and Settings → View switches the fights back to it too.
 - **Six districts, six bosses**, from the Gutter King under the dead monorail to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
 - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
 - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
@@ -917,9 +918,11 @@ src/js/ui/             menus and buttons
 src/js/pwa.js          install, updates, backups, shortcuts
 src/js/sync.js         save codes and the sync file
 src/js/main.js         game loop and boot
+src/js/render/r3*.js   the 3D view of street fights: renderer and camera, puppets and cards, the street
 icons/, screenshots/   app icons and install-dialog screenshots
 docs/store/            store kit: trailer, cover, social card, screenshots and itch.io copy (tools/capture.mjs)
 src/fonts/             Teko and Chakra Petch, self-hosted (SIL OFL)
+vendor/three.min.js    the parts of three.js (MIT) the 3D view uses; rebuild with tools/vendor-three.mjs
 dist/                  generated single-file build
 tools/                 build, local server, screenshot generator
 tests/                 headless tests and browser tests

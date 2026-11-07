@@ -130,7 +130,9 @@ Object.defineProperty(global, 'ovClick', { get: () => ovClick, configurable: tru
 const index = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const block = index.match(/<!-- BUILD:SCRIPTS -->([\s\S]*?)<!-- \/BUILD:SCRIPTS -->/)[1];
 const scripts = [...block.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
-for (const f of scripts) vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
+// the vendored three.js is the browser's 3D view only: Node runs the 2D game without it
+for (const f of scripts.filter(f => !f.startsWith('vendor/')))
+  vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
 
 vm.runInThisContext('global.__G = G; global.__PL = () => PL; global.__PARTY = PARTY;');
 // suites click straight into runs: treat the one-time "train first?" offer as already seen (shop.test checks it)
