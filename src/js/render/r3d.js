@@ -34,7 +34,47 @@ function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
   if (G.den || G.world || G.dun || G.drive || G.stealth || G.flight || G.training || G.hazard) return false;
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
-  return r3Ready();
+  if (!r3Ready() || (R3.soft && !R3.force)) return false;
+  // a district is built and its shaders compiled off the main thread before it is shown; until then the
+  // frame is drawn in 2D, so starting a stage never freezes the page
+  const S = curS(),
+    key = r3Key(S);
+  if (R3.key === key) return true;
+  if (R3.pending !== key) r3Prepare(S, key);
+  return false;
+}
+const r3Key = S =>
+  (G.arena ? 'a' + G.theme : 's' + G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0) + ':' + (S.len || 0);
+function r3Prepare(S, key) {
+  R3.pending = key;
+  setTimeout(() => {
+    if (R3.pending !== key || R3.ok !== true) return;
+    try {
+      R3.key = '';
+      r3BuildWorld(S);
+      r3Size();
+      r3Camera(0, 0);
+    } catch (e) {
+      R3.ok = false; // a district that can't be built: 2D for the rest of the session
+      return;
+    }
+    // compile the shaders a piece at a time between frames, so even a browser that compiles them on the main
+    // thread never stalls for long
+    const parts = [...R3.world.children, ...R3.figs.children];
+    const next = () => {
+      if (R3.pending !== key || R3.ok !== true) return;
+      const t0 = performance.now();
+      try {
+        while (parts.length && performance.now() - t0 < 12) R3.r.compile(parts.shift(), R3.cam, R3.scene);
+      } catch (e) {
+        parts.length = 0;
+      }
+      if (parts.length) return setTimeout(next, 16);
+      R3.key = key;
+      R3.pending = null;
+    };
+    setTimeout(next, 16);
+  }, 0);
 }
 function r3Ready() {
   if (R3.ok !== null) return R3.ok;
@@ -48,6 +88,11 @@ function r3Ready() {
       powerPreference: 'high-performance',
       outputBufferType: THREE.HalfFloatType
     });
+    // WebGL drawn in software (no GPU, or a blocked one) plays far better flat: keep 2D there unless asked
+    const dbg = r.getContext().getExtension('WEBGL_debug_renderer_info'),
+      who = dbg ? String(r.getContext().getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    R3.soft = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(who);
+    R3.gpu = who;
     r.setPixelRatio(1);
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.95;
@@ -156,12 +201,7 @@ function r3Affine(x, y) {
 /* ---------- the frame ---------- */
 function r3Render(shx, shy) {
   r3Size();
-  const S = curS(),
-    key = (G.arena ? 'a' : 's') + (G.arena ? G.theme : G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0);
-  if (R3.key !== key) {
-    R3.key = key;
-    r3BuildWorld(S);
-  }
+  const S = curS();
   R3.t = G.t;
   r3Camera(shx, shy);
   r3UpdateWorld(S);

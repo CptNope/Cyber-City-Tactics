@@ -67,6 +67,11 @@ function r3InitFigs() {
   F.b = new T.Vector3();
   F.col = new T.Color();
   r3InitParts();
+  // one puppet and one card kept far below the street, so their shaders compile with each district
+  const warm = r3Puppet();
+  warm.root.position.y = warm.shadow.position.y = warm.ring.position.y = -5000;
+  const wc = r3Card({ d: {} });
+  wc.card.position.y = -5000;
 }
 // a limb segment from a to b: a stretched cylinder
 function r3Seg(m, ax, ay, az, bx, by, bz, r) {

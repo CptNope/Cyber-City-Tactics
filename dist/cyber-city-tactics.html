@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-ROXT27T8O7IkeYc0u6/0LL5YLYZ+jdCo6llZ4oyyXrc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-VMBWsgejTThXatoM4aHPdcd04hlIBXxH+4BAh8bxRFE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+9cf9e20';
+const APP_VERSION = '2.0.0+e667d37';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -29063,7 +29063,47 @@ function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
   if (G.den || G.world || G.dun || G.drive || G.stealth || G.flight || G.training || G.hazard) return false;
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
-  return r3Ready();
+  if (!r3Ready() || (R3.soft && !R3.force)) return false;
+  // a district is built and its shaders compiled off the main thread before it is shown; until then the
+  // frame is drawn in 2D, so starting a stage never freezes the page
+  const S = curS(),
+    key = r3Key(S);
+  if (R3.key === key) return true;
+  if (R3.pending !== key) r3Prepare(S, key);
+  return false;
+}
+const r3Key = S =>
+  (G.arena ? 'a' + G.theme : 's' + G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0) + ':' + (S.len || 0);
+function r3Prepare(S, key) {
+  R3.pending = key;
+  setTimeout(() => {
+    if (R3.pending !== key || R3.ok !== true) return;
+    try {
+      R3.key = '';
+      r3BuildWorld(S);
+      r3Size();
+      r3Camera(0, 0);
+    } catch (e) {
+      R3.ok = false; // a district that can't be built: 2D for the rest of the session
+      return;
+    }
+    // compile the shaders a piece at a time between frames, so even a browser that compiles them on the main
+    // thread never stalls for long
+    const parts = [...R3.world.children, ...R3.figs.children];
+    const next = () => {
+      if (R3.pending !== key || R3.ok !== true) return;
+      const t0 = performance.now();
+      try {
+        while (parts.length && performance.now() - t0 < 12) R3.r.compile(parts.shift(), R3.cam, R3.scene);
+      } catch (e) {
+        parts.length = 0;
+      }
+      if (parts.length) return setTimeout(next, 16);
+      R3.key = key;
+      R3.pending = null;
+    };
+    setTimeout(next, 16);
+  }, 0);
 }
 function r3Ready() {
   if (R3.ok !== null) return R3.ok;
@@ -29077,6 +29117,11 @@ function r3Ready() {
       powerPreference: 'high-performance',
       outputBufferType: THREE.HalfFloatType
     });
+    // WebGL drawn in software (no GPU, or a blocked one) plays far better flat: keep 2D there unless asked
+    const dbg = r.getContext().getExtension('WEBGL_debug_renderer_info'),
+      who = dbg ? String(r.getContext().getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+    R3.soft = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(who);
+    R3.gpu = who;
     r.setPixelRatio(1);
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.95;
@@ -29185,12 +29230,7 @@ function r3Affine(x, y) {
 /* ---------- the frame ---------- */
 function r3Render(shx, shy) {
   r3Size();
-  const S = curS(),
-    key = (G.arena ? 'a' : 's') + (G.arena ? G.theme : G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0);
-  if (R3.key !== key) {
-    R3.key = key;
-    r3BuildWorld(S);
-  }
+  const S = curS();
   R3.t = G.t;
   r3Camera(shx, shy);
   r3UpdateWorld(S);
@@ -29344,6 +29384,11 @@ function r3InitFigs() {
   F.b = new T.Vector3();
   F.col = new T.Color();
   r3InitParts();
+  // one puppet and one card kept far below the street, so their shaders compile with each district
+  const warm = r3Puppet();
+  warm.root.position.y = warm.shadow.position.y = warm.ring.position.y = -5000;
+  const wc = r3Card({ d: {} });
+  wc.card.position.y = -5000;
 }
 // a limb segment from a to b: a stretched cylinder
 function r3Seg(m, ax, ay, az, bx, by, bz, r) {
@@ -31091,7 +31136,7 @@ function perfReport() {
     `Browser: ${navigator.userAgent}`,
     `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
     `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
-    `View: ${prefs.view}${R3.ok ? ', WebGL 2 ready' : R3.ok === false ? ', no WebGL 2' : ''}`,
+    `View: ${prefs.view}${R3.ok ? ', WebGL 2 on ' + (R3.gpu || 'an unknown GPU') + (R3.soft ? ' (software, so 2D)' : '') : R3.ok === false ? ', no WebGL 2' : ''}`,
     `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
     `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
   ].join('\n');
@@ -31125,7 +31170,9 @@ function settingsHtml() {
       ? 'The classic flat street'
       : typeof THREE === 'undefined' || R3.ok === false
         ? '3D needs WebGL 2, which this browser doesn’t offer: showing the classic view'
-        : 'Street fights in 3D: neon, rain and reflections. Interiors, the Sprawl and minigames stay flat',
+        : R3.soft
+          ? 'This device draws 3D without a graphics chip, so it shows the classic view'
+          : 'Street fights in 3D: neon, rain and reflections. Interiors, the Sprawl and minigames stay flat',
     seg('view', [
       ['3d', '3D'],
       ['2d', 'Classic 2D']

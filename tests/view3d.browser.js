@@ -27,7 +27,9 @@ const { pathToFileURL } = require('url');
     await page.goto(`http://localhost:${port}/index.html`);
     await page.waitForFunction(() => typeof G !== 'undefined', null, { timeout: 10000 });
     const gl2 = await page.evaluate(() => !!document.createElement('canvas').getContext('webgl2'));
+    // this machine draws WebGL in software, which the game would leave 2D: force 3D for the checks
     await page.evaluate(() => {
+      if (typeof r3Ready === 'function' && r3Ready()) R3.force = true;
       prefs.tips = false;
       prefs.story = false;
       G.pendArch = ['samurai', 'runner'];
@@ -51,7 +53,9 @@ const { pathToFileURL } = require('url');
           e.cool = 1e9;
         }
       });
-      await page.waitForTimeout(500);
+      // the district is prepared off the main thread first, then shown
+      await page.waitForFunction(() => R3.on, null, { timeout: 20000 });
+      await page.waitForTimeout(300);
       const s = await page.evaluate(() => {
         render();
         // sample the game canvas: a lit street has colour and contrast, a failed frame is flat
@@ -107,27 +111,24 @@ const { pathToFileURL } = require('url');
       await page.waitForTimeout(300);
       ok(await page.evaluate(() => R3.on === false && !!G.den), 'the Den stays 2D');
       // every district builds and draws
-      const built = await page.evaluate(() => {
-        const out = [];
-        for (let i = 0; i < STAGES.length; i++) {
-          startStage(i);
-          G.banner = 0;
-          render();
-          out.push(R3.on && R3.key.includes(STAGES[i].name));
-        }
-        return out;
-      });
-      ok(built.every(Boolean), `all ${built.length} districts build in 3D`);
-      // and the world it leaves behind is let go: no growing pile of GPU buffers
-      const mem = await page.evaluate(() => {
-        const a = R3.r.info.memory.geometries;
-        for (let k = 0; k < 3; k++)
-          for (let i = 0; i < STAGES.length; i++) {
+      const built = [];
+      const n = await page.evaluate(() => STAGES.length);
+      for (let k = 0; k < 3; k++)
+        for (let i = 0; i < n; i++) {
+          await page.evaluate(i => {
             startStage(i);
-            render();
-          }
-        return [a, R3.r.info.memory.geometries];
-      });
+            G.banner = 0;
+          }, i);
+          const t = await page
+            .waitForFunction(i => (render(), R3.on && R3.key.includes(STAGES[i].name)), i, { timeout: 20000 })
+            .then(() => true)
+            .catch(() => false);
+          if (k === 0) built.push(t);
+          if (k === 0 && i === n - 1) built.geo = await page.evaluate(() => R3.r.info.memory.geometries);
+        }
+      ok(built.every(Boolean), `all ${built.length} districts build in 3D`);
+      // and the worlds it leaves behind are let go: no growing pile of GPU buffers
+      const mem = [built.geo, await page.evaluate(() => R3.r.info.memory.geometries)];
       ok(mem[1] <= mem[0] + 12, `rebuilding districts frees the old ones (geometries ${mem[0]} → ${mem[1]})`);
     }
     ok(!errs.length, 'no errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
