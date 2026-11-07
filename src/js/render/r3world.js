@@ -318,7 +318,8 @@ function r3BuildWorld(S) {
   const front = [],
     mid = [],
     far = [];
-  for (let x = -320; x < len; ) {
+  let x = -320;
+  while (x < len) {
     const w = rr(60, 140),
       gap = r() < 0.18 ? rr(18, 36) : 2;
     front.push({
@@ -330,12 +331,14 @@ function r3BuildWorld(S) {
     });
     x += w + gap;
   }
-  for (let x = -400; x < len + 200; ) {
+  x = -400;
+  while (x < len + 200) {
     const w = rr(90, 200);
     mid.push({ x, w, h: rr(240, 460), z: back - 130 - rr(0, 60), d: 90, col: r3Hex(S.near, rr(0.6, 0.9)) });
     x += w + rr(10, 60);
   }
-  for (let x = -1200; x < len + 1200; ) {
+  x = -1200;
+  while (x < len + 1200) {
     const w = rr(120, 320);
     far.push({ x, w, h: rr(380, 1100), z: -900 - rr(0, 500), d: 200, col: r3Hex(S.far, rr(0.8, 1.2)) });
     x += w + rr(20, 120);

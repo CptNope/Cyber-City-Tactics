@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-VMBWsgejTThXatoM4aHPdcd04hlIBXxH+4BAh8bxRFE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-YGVb8NFy9PkgS3/ljN4zqDPV3mhd4NqzweMl0NIhp3g='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+e667d37';
+const APP_VERSION = '2.0.0+2329fd2';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -30361,7 +30361,8 @@ function r3BuildWorld(S) {
   const front = [],
     mid = [],
     far = [];
-  for (let x = -320; x < len; ) {
+  let x = -320;
+  while (x < len) {
     const w = rr(60, 140),
       gap = r() < 0.18 ? rr(18, 36) : 2;
     front.push({
@@ -30373,12 +30374,14 @@ function r3BuildWorld(S) {
     });
     x += w + gap;
   }
-  for (let x = -400; x < len + 200; ) {
+  x = -400;
+  while (x < len + 200) {
     const w = rr(90, 200);
     mid.push({ x, w, h: rr(240, 460), z: back - 130 - rr(0, 60), d: 90, col: r3Hex(S.near, rr(0.6, 0.9)) });
     x += w + rr(10, 60);
   }
-  for (let x = -1200; x < len + 1200; ) {
+  x = -1200;
+  while (x < len + 1200) {
     const w = rr(120, 320);
     far.push({ x, w, h: rr(380, 1100), z: -900 - rr(0, 500), d: 200, col: r3Hex(S.far, rr(0.8, 1.2)) });
     x += w + rr(20, 120);
