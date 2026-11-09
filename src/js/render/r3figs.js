@@ -486,7 +486,18 @@ const r3Puppeted = e =>
 function r3UpdateFigs() {
   const F = R3,
     seen = new Set();
-  for (const e of G.ents) {
+  // the Den's shopkeepers stand outside the entity list; drawing them once keeps their figure current
+  if (G.den) {
+    const keep = ctx;
+    ctx = R3NULL;
+    try {
+      for (const n of NPCS) drawNPC(n);
+    } finally {
+      ctx = keep;
+    }
+  }
+  const list = G.den ? G.ents.concat(NPCS.map(n => npcEnt[n.id]).filter(Boolean)) : G.ents;
+  for (const e of list) {
     seen.add(e);
     let o = F.pool.get(e);
     // a puppet for fighters, a model for creatures and machines, the 2D drawing on a card for the rest

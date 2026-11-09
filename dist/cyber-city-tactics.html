@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-W80BmM9Jo5NfFGhp+yN7UfS5E+r/rDz0mRkBbRYSf1A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-FNfk++JbnvasSizeOyD+sgFMtK4idMNAVwluejZ3wvk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+75a3858';
+const APP_VERSION = '2.0.0+a0c9adb';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -27603,14 +27603,16 @@ function drawInterior(base) {
   ctx.fillStyle = G.exitOpen ? '#7dffb0' : '#ff3d4a';
   ctx.fillRect(ex - 3, base - 52, 8, 4);
 }
-function drawStorefronts(base) {
+// The Den's shopfronts; with only, just that shopkeeper's (the 3D view draws each over its own facade)
+function drawStorefronts(base, only) {
+  const flat = !(typeof R3 !== 'undefined' && R3.on);
   for (const n of NPCS) {
-    if (!n.front) continue;
+    if (!n.front || (only && n !== only)) continue;
     const f = n.front,
       x = n.x - G.camX - f.w / 2;
     if (x > W || x + f.w < 0) continue;
     ctx.fillStyle = '#120d1a';
-    ctx.fillRect(x, base - 74, f.w, 74);
+    if (flat) ctx.fillRect(x, base - 74, f.w, 74);
     ctx.fillStyle = '#08060c';
     ctx.fillRect(x + f.w / 2 - 12, base - 44, 24, 44);
     ctx.fillStyle = f.c;
@@ -27675,6 +27677,16 @@ function drawBuildings(base) {
   for (const b of w.street.buildings) {
     const x = b.x - b.w / 2 - G.camX;
     if (x > W || x + b.w < 0) continue;
+    drawBuilding(b, base);
+  }
+}
+// One building's front. In the 3D view (R3.on) the walls and windows are 3D, so this draws only the door, the
+// name sign and the markers, over the 3D facade.
+function drawBuilding(b, base) {
+  const w = G.wd,
+    x = b.x - b.w / 2 - G.camX,
+    flat = !(typeof R3 !== 'undefined' && R3.on);
+  {
     if (b.type === 'secret') {
       const dx = b.x - G.camX,
         fd = w.found.includes(b.id),
@@ -27692,7 +27704,7 @@ function drawBuildings(base) {
         ctx.fill();
         ctx.globalAlpha = 1;
       }
-      continue;
+      return;
     }
     const H0 = {
         safe: 86,
@@ -27716,10 +27728,12 @@ function drawBuildings(base) {
         clinic: '#14262a',
         talisman: '#241a30'
       }[b.type];
-    ctx.fillStyle = col;
-    ctx.fillRect(x, base - H0, b.w, H0);
-    ctx.fillStyle = 'rgba(255,255,255,.05)';
-    ctx.fillRect(x, base - H0, b.w, 2);
+    if (flat) {
+      ctx.fillStyle = col;
+      ctx.fillRect(x, base - H0, b.w, H0);
+      ctx.fillStyle = 'rgba(255,255,255,.05)';
+      ctx.fillRect(x, base - H0, b.w, 2);
+    }
     const wr = srng(b.seed);
     ctx.fillStyle =
       b.type === 'blacksite' || b.type === 'precinct'
@@ -27729,7 +27743,7 @@ function drawBuildings(base) {
           : b.type === 'club'
             ? '#ff3d8b'
             : '#ffb36b';
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = flat ? 0.4 : 0;
     for (let wy = base - H0 + 8; wy < base - 60; wy += 12)
       for (let wx = x + 6; wx < x + b.w - 8; wx += 12) if (wr() < 0.45) ctx.fillRect(wx, wy, 5, 6);
     ctx.globalAlpha = 1;
@@ -29061,7 +29075,7 @@ const zOf = y => (y - FY0) * DZ;
  * hasn't picked Classic 2D. */
 function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
-  if (G.den || G.world || G.dun || G.drive || G.stealth || G.flight || G.training || G.hazard) return false;
+  if (G.drive || G.stealth || G.flight) return false; // the jobs keep their own 2D views for now
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
   if (!r3Ready() || (R3.soft && !R3.force)) return false;
   // a district is built and its shaders compiled off the main thread before it is shown; until then the
@@ -29072,8 +29086,25 @@ function r3On() {
   if (R3.pending !== key) r3Prepare(S, key);
   return false;
 }
+// which place the scene was built for: a district, the Den, a Sprawl block, a room of a building
 const r3Key = S =>
-  (G.arena ? 'a' + G.theme : 's' + G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0) + ':' + (S.len || 0);
+  (G.dun
+    ? 'room' + G.dun.b.id + ':' + G.dun.room + ':' + (G.wd ? G.wd.level : 0)
+    : G.world && G.wd
+      ? 'block' + G.wd.level + ':' + G.wd.seed
+      : G.den
+        ? 'den'
+        : G.training
+          ? 'train'
+          : G.arena
+            ? 'a' + G.theme
+            : 's' + G.stage) +
+  ':' +
+  S.name +
+  ':' +
+  (G.challenge ? 1 : 0) +
+  ':' +
+  (S.len || 0);
 function r3Prepare(S, key) {
   R3.pending = key;
   setTimeout(() => {
@@ -29246,7 +29277,19 @@ function r3Render(shx, shy) {
 // The 2D game's overlays, drawn over the 3D picture: each at its own object's spot and scale
 const R3ONE = [];
 function r3Overlays() {
-  const cl = e => e.cloaked && e.state !== 'dead';
+  const cl = e => e.cloaked && e.state !== 'dead',
+    base = FY0 - 14;
+  // doors, name signs and markers on the Sprawl's buildings and the Den's shops, each on its own 3D facade
+  if (G.world && !G.dun && G.wd)
+    for (const b of G.wd.street.buildings)
+      if (Math.abs(b.x - G.camX - W / 2) < W && r3Affine(b.x, base)) drawBuilding(b, base);
+  if (G.den) for (const n of NPCS) if (n.front && r3Affine(n.x, base)) drawStorefronts(base, n);
+  if (G.world && G.wd && !G.dun) {
+    const tr = traderOf(G.wd);
+    if (tr && r3Affine(tr.x, FY0 - 6)) drawTrader(FY0 - 6);
+  }
+  for (const T of G.totems || []) if (r3Affine(T.x, T.y)) drawTotem(T);
+  if (G.hazard && r3Affine(G.camX + W / 2, R3_MIDY)) drawHazard();
   for (const k of G.picks) if (r3Affine(k.x, k.y)) drawPick(k);
   for (const p of G.projs) if (r3Affine(p.x, p.y)) drawProj(p);
   for (const o of G.props) if (!R3_PROPS[o.kind] && r3Affine(o.x, o.y)) drawProp(o.kind, o.x - G.camX, o.y);
@@ -29803,7 +29846,18 @@ const r3Puppeted = e =>
 function r3UpdateFigs() {
   const F = R3,
     seen = new Set();
-  for (const e of G.ents) {
+  // the Den's shopkeepers stand outside the entity list; drawing them once keeps their figure current
+  if (G.den) {
+    const keep = ctx;
+    ctx = R3NULL;
+    try {
+      for (const n of NPCS) drawNPC(n);
+    } finally {
+      ctx = keep;
+    }
+  }
+  const list = G.den ? G.ents.concat(NPCS.map(n => npcEnt[n.id]).filter(Boolean)) : G.ents;
+  for (const e of list) {
     seen.add(e);
     let o = F.pool.get(e);
     // a puppet for fighters, a model for creatures and machines, the 2D drawing on a card for the rest
@@ -30742,6 +30796,39 @@ function r3Dispose(o) {
     }
   });
 }
+// Buildings at fixed spots: the Sprawl block's doors and the Den's shopfronts, in the order they stand
+const R3_BTYPE = {
+  safe: ['#18261e', 86],
+  home: ['#231c33', 94],
+  business: ['#18243a', 78],
+  hideout: ['#2a1a1c', 70],
+  blacksite: ['#10141f', 114],
+  club: ['#2a1630', 88],
+  precinct: ['#141c2e', 104],
+  clinic: ['#14262a', 82],
+  talisman: ['#241a30', 76]
+};
+function r3FixedFronts(back) {
+  const out = [];
+  if (G.world && !G.dun && G.wd && G.wd.street)
+    for (const b of G.wd.street.buildings) {
+      const t = R3_BTYPE[b.type];
+      if (!t) continue; // a hidden door sits in a gap between buildings
+      out.push({ x: b.x - b.w / 2, w: b.w, h: t[1] * 1.9, z: back, col: r3Hex(t[0], 1.7), fixed: true });
+    }
+  else if (G.den)
+    for (const n of NPCS)
+      if (n.front)
+        out.push({
+          x: n.x - n.front.w / 2,
+          w: n.front.w,
+          h: 150,
+          z: back,
+          col: r3Hex('#1c1426', 1.6),
+          fixed: true
+        });
+  return out.sort((a, b) => a.x - b.x);
+}
 function r3BuildWorld(S) {
   const T = THREE,
     F = R3;
@@ -30753,6 +30840,10 @@ function r3BuildWorld(S) {
   const W3 = (F.world = new T.Group());
   F.scene.add(W3);
   F.signBack = F.signBack || new T.MeshStandardMaterial({ color: '#0b0812', roughness: 0.6 });
+  F.moon = F.rain = F.refl = F.dance = F.exitDoor = null;
+  F.signs = [];
+  F.facades = [];
+  if (G.dun) return r3BuildRoom(S, W3);
   const tunnel = !!S.tunnel,
     matrix = !!S.matrix,
     len = Math.max(S.len || 1500, 1600) + WMAX + 400,
@@ -30905,20 +30996,32 @@ function r3BuildWorld(S) {
   const front = [],
     mid = [],
     far = [];
-  let x = -320;
-  while (x < len) {
-    const w = rr(60, 140),
-      gap = r() < 0.18 ? rr(18, 36) : 2;
-    front.push({
-      x,
-      w: tunnel ? w + gap : w,
-      h: tunnel ? 420 : rr(95, 210),
-      z: back - (!tunnel && r() < 0.25 ? 10 : 0),
-      col: r3Hex(tunnel ? S.wall : S.near, tunnel ? rr(1.6, 2.1) : rr(0.85, 1.25))
-    });
-    x += w + gap;
+  // the places with real doors on the street (the Sprawl's buildings, the Den's shops) stand where the game
+  // puts them; generic buildings fill the gaps between
+  const fixed = r3FixedFronts(back);
+  const fillRow = (x0, x1) => {
+    let x = x0;
+    while (x < x1 - 20) {
+      const w = Math.min(rr(60, 140), x1 - x),
+        gap = r() < 0.18 ? rr(18, 36) : 2;
+      front.push({
+        x,
+        w: tunnel ? w + gap : w,
+        h: tunnel ? 420 : rr(95, 210),
+        z: back - (!tunnel && r() < 0.25 ? 10 : 0),
+        col: r3Hex(tunnel ? S.wall : S.near, tunnel ? rr(1.6, 2.1) : rr(0.85, 1.25))
+      });
+      x += w + gap;
+    }
+  };
+  let at = -320;
+  for (const b of fixed) {
+    fillRow(at, b.x - 2);
+    front.push(b);
+    at = b.x + b.w + 2;
   }
-  x = -400;
+  fillRow(at, len);
+  let x = -400;
   while (x < len + 200) {
     const w = rr(90, 200);
     mid.push({ x, w, h: rr(240, 460), z: back - 130 - rr(0, 60), d: 90, col: r3Hex(S.near, rr(0.6, 0.9)) });
@@ -30965,7 +31068,7 @@ function r3BuildWorld(S) {
   if (S.signs && S.signs.length) {
     let si = 0;
     for (const b of front) {
-      if (r() > 0.62 || b.x > len - 200) continue;
+      if (b.fixed || r() > 0.62 || b.x > len - 200) continue;
       const [t, col] = S.signs[si++ % S.signs.length],
         vert = r() < 0.35,
         m = r3SignMesh(t, col, vert),
@@ -31298,10 +31401,199 @@ function r3UpdateWorld(S) {
   const fog = wx === 'fog';
   F.scene.fog.near = fog ? 380 : F.fogNear;
   F.scene.fog.far = fog ? 1300 : 2600;
-  F.gate.visible = !!G.exitOpen && !G.den;
+  if (F.exitDoor) F.exitDoor.material.color.set(G.exitOpen ? '#7dffb0' : '#ff3d4a').multiplyScalar(2);
+  if (F.dance) {
+    const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
+      beat = G.t >> 4,
+      c = F.col || (F.col = new THREE.Color());
+    let i = 0;
+    for (let ty = 0; ty < 4; ty++)
+      for (let tx = 0; tx * 40 < W; tx++) {
+        const k = (tx * 7 + ty * 3 + beat) % 9;
+        c.set(cols[(tx + ty + beat) % cols.length]).multiplyScalar(k > 3 ? 0.05 : k === 0 ? 1.4 : 0.7);
+        F.dance.setColorAt(i++, c);
+      }
+    F.dance.instanceColor.needsUpdate = true;
+  }
+  F.gate.visible = !!G.exitOpen && !G.den && !G.dun;
   if (F.gate.visible) F.gate.material.opacity = 0.25 + 0.2 * Math.sin(G.t * 0.15);
   // lightning lights the whole street for a frame or two
   F.moonLight.intensity = G.flash > 0.2 && wx === 'storm' ? 5 : 1.4;
+}
+
+/* ---------- inside a building ---------- */
+// A room of the Sprawl: the wall and trim in the building's own colours, lamp strips under the ceiling, its
+// decor (server racks, shelves, frames, tags), the exit door, and a dance floor in a club
+function r3BuildRoom(S, W3) {
+  const T = THREE,
+    F = R3,
+    D0 = G.dun,
+    b = D0.b,
+    I = INT[facOf(b)],
+    r = srng(b.seed + D0.room * 97),
+    back = -14 * DZ,
+    x0 = -60,
+    len = W + 120,
+    deep = (FY1 - FY0) * DZ + 240,
+    M = new T.Matrix4();
+  F.scene.background = new T.Color('#030206');
+  F.scene.fog = new T.Fog('#030206', 900, 2400);
+  F.fogNear = 900;
+  W3.add(new T.HemisphereLight(r3Hex(I.lamp).lerp(new T.Color('#ffffff'), 0.5), new T.Color(I.trim), 0.55));
+  const moon = new T.DirectionalLight(I.lamp, 0.6);
+  moon.position.set(-100, 300, -200);
+  const fill = new T.DirectionalLight('#b8c4ff', 0.55);
+  fill.position.set(100, 200, 600);
+  W3.add(moon, moon.target, fill, fill.target);
+  F.moonLight = moon;
+  F.fill = fill;
+  F.lamps = [];
+  F.pl = [];
+  for (let i = 0; i < 4; i++) {
+    const p = new T.PointLight('#ffffff', 0, 380, 1.2);
+    W3.add(p);
+    F.pl.push(p);
+  }
+  const blacksite = I.deco === 'rack';
+  const mat = (c, rough, metal) =>
+    new T.MeshStandardMaterial({ color: c, roughness: rough, metalness: metal || 0.1, envMapIntensity: 0.6 });
+  // floor, wall, trim, ceiling
+  const floor = new T.Mesh(
+    new T.PlaneGeometry(len, deep),
+    mat(r3Hex(I.trim, 0.9), blacksite ? 0.3 : 0.6, 0.2)
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(x0 + len / 2, 0, back + deep / 2);
+  const wall = new T.Mesh(new T.BoxGeometry(len, 200, 8), mat(r3Hex(I.wall, 1.5), 0.8));
+  wall.position.set(x0 + len / 2, 100, back - 4);
+  const trim = new T.Mesh(new T.BoxGeometry(len, 34, 3), mat(r3Hex(I.trim, 1.6), 0.6));
+  trim.position.set(x0 + len / 2, 17, back + 1.5);
+  const ceil = new T.Mesh(new T.BoxGeometry(len, 6, deep), mat('#07050b', 1));
+  ceil.position.set(x0 + len / 2, 200, back + deep / 2);
+  W3.add(floor, wall, trim, ceil);
+  // panel seams down the wall
+  const seams = Math.ceil(len / 40),
+    sm = new T.InstancedMesh(new T.BoxGeometry(1.2, 166, 1), mat('#000000', 1), seams);
+  for (let i = 0; i < seams; i++) {
+    M.makeTranslation(x0 + i * 40, 117, back + 0.5);
+    sm.setMatrixAt(i, M);
+  }
+  W3.add(sm);
+  // lamp strips, each lighting the room
+  const lampN = Math.ceil(W / 120),
+    lm = new T.InstancedMesh(
+      new T.BoxGeometry(28, 3, 10),
+      new T.MeshBasicMaterial({ color: r3Hex(I.lamp, 2.6), toneMapped: false }),
+      lampN
+    );
+  for (let i = 0; i < lampN; i++) {
+    const x = 60 + i * 120;
+    M.makeTranslation(x, 194, back + 60);
+    lm.setMatrixAt(i, M);
+    F.lamps.push({ x, y: 180, z: back + 60, col: I.lamp, k: 1.4 });
+  }
+  W3.add(lm);
+  // decor along the wall
+  for (let i = 0; i < 4; i++) {
+    const x = 40 + i * 110 + r() * 40,
+      top = 156 - (40 + r() * 30);
+    if (I.deco === 'rack') {
+      const rk = new T.Mesh(new T.BoxGeometry(26, top + 10, 14), mat('#0a0f18', 0.4, 0.6));
+      rk.position.set(x + 13, (top + 10) / 2, back + 8);
+      W3.add(rk);
+      const leds = new T.InstancedMesh(
+        new T.BoxGeometry(3, 2, 1),
+        new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+        12
+      );
+      const c = new T.Color();
+      for (let k = 0; k < 12; k++) {
+        M.makeTranslation(x + 5 + (k % 2) * 12, 20 + Math.floor(k / 2) * 12, back + 15.2);
+        leds.setMatrixAt(k, M);
+        leds.setColorAt(k, c.set(k % 3 ? '#45d2ff' : '#7dffb0').multiplyScalar(2));
+      }
+      W3.add(leds);
+    } else if (I.deco === 'shelf') {
+      for (const y of [top, top - 22]) {
+        const sh = new T.Mesh(new T.BoxGeometry(44, 3, 12), mat('#141826', 0.7));
+        sh.position.set(x + 18, y, back + 6);
+        W3.add(sh);
+        for (let k = 0; k < 5; k++) {
+          const bx = new T.Mesh(
+            new T.BoxGeometry(5, 8, 6),
+            mat(pick(['#ff6a3d', '#45d2ff', '#ffc63d', '#b98cff']), 0.5)
+          );
+          bx.position.set(x + k * 8 + 2, y + 5.5, back + 6);
+          W3.add(bx);
+        }
+      }
+    } else if (I.deco === 'frame' || I.deco === 'art') {
+      const fr = new T.Mesh(
+        new T.BoxGeometry(22, 28, 2),
+        mat(I.deco === 'art' ? '#ffc63d' : '#6b6280', 0.4, 0.5)
+      );
+      fr.position.set(x + 11, top + 14, back + 1);
+      const pic = new T.Mesh(
+        new T.BoxGeometry(18, 24, 1),
+        new T.MeshBasicMaterial({ color: r3Hex(pick(['#3a2a50', '#22324a', '#4a2a30']), 1.6) })
+      );
+      pic.position.set(x + 11, top + 14, back + 2.2);
+      W3.add(fr, pic);
+    } else if (I.deco === 'tag') {
+      // a spray tag in glowing paint
+      const pts = [];
+      let px = x,
+        py = top + 20;
+      for (let k = 1; k < 6; k++) {
+        const nx = x + k * 8,
+          ny = top + 20 - (k % 2 ? 18 : 4) * r();
+        pts.push(px, 190 - py, back + 1, nx, 190 - ny, back + 1);
+        px = nx;
+        py = ny;
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pts, 3));
+      W3.add(
+        new T.LineSegments(
+          g,
+          new T.LineBasicMaterial({
+            color: r3Hex(pick(['#ff3d8b', '#7dffb0', '#ffc63d']), 1.6),
+            toneMapped: false
+          })
+        )
+      );
+    }
+  }
+  // the way out: a door at the right with its light red until the room is clear
+  const ex = W - 26;
+  const door = new T.Mesh(new T.BoxGeometry(26, 44, 3), mat('#07050b', 0.6));
+  door.position.set(ex, 22, back + 1.5);
+  const frame = new T.Mesh(
+    new T.BoxGeometry(29, 47, 2),
+    new T.MeshBasicMaterial({ color: '#ff3d4a', toneMapped: false })
+  );
+  frame.position.set(ex, 23, back + 0.5);
+  W3.add(door, frame);
+  F.exitDoor = frame;
+  // a club's dance floor: tiles that light to the beat
+  if (b.type === 'club') {
+    const tiles = new T.InstancedMesh(
+      new T.BoxGeometry(36, 0.6, 20 * DZ),
+      new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false, transparent: true, opacity: 0.6 }),
+      Math.ceil(W / 40) * 4
+    );
+    let i = 0;
+    for (let ty = 0; ty < 4; ty++)
+      for (let tx = 0; tx * 40 < W; tx++) {
+        M.makeTranslation(tx * 40 + 20, 0.3, zOf(FY0 + 14 + ty * 23));
+        tiles.setMatrixAt(i, M);
+        tiles.setColorAt(i++, new T.Color(0, 0, 0));
+      }
+    W3.add(tiles);
+    F.dance = tiles;
+  }
+  F.gate = new T.Group();
+  r3EnvMap({ sky: [I.wall, I.trim], signs: [['', I.lamp]], win: I.lamp, moon: I.lamp });
 }
 
 /* ===== src/js/ui/attract.js ===== */

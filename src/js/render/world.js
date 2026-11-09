@@ -302,14 +302,16 @@ function drawInterior(base) {
   ctx.fillStyle = G.exitOpen ? '#7dffb0' : '#ff3d4a';
   ctx.fillRect(ex - 3, base - 52, 8, 4);
 }
-function drawStorefronts(base) {
+// The Den's shopfronts; with only, just that shopkeeper's (the 3D view draws each over its own facade)
+function drawStorefronts(base, only) {
+  const flat = !(typeof R3 !== 'undefined' && R3.on);
   for (const n of NPCS) {
-    if (!n.front) continue;
+    if (!n.front || (only && n !== only)) continue;
     const f = n.front,
       x = n.x - G.camX - f.w / 2;
     if (x > W || x + f.w < 0) continue;
     ctx.fillStyle = '#120d1a';
-    ctx.fillRect(x, base - 74, f.w, 74);
+    if (flat) ctx.fillRect(x, base - 74, f.w, 74);
     ctx.fillStyle = '#08060c';
     ctx.fillRect(x + f.w / 2 - 12, base - 44, 24, 44);
     ctx.fillStyle = f.c;

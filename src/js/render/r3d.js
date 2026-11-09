@@ -32,7 +32,7 @@ const zOf = y => (y - FY0) * DZ;
  * hasn't picked Classic 2D. */
 function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
-  if (G.den || G.world || G.dun || G.drive || G.stealth || G.flight || G.training || G.hazard) return false;
+  if (G.drive || G.stealth || G.flight) return false; // the jobs keep their own 2D views for now
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
   if (!r3Ready() || (R3.soft && !R3.force)) return false;
   // a district is built and its shaders compiled off the main thread before it is shown; until then the
@@ -43,8 +43,25 @@ function r3On() {
   if (R3.pending !== key) r3Prepare(S, key);
   return false;
 }
+// which place the scene was built for: a district, the Den, a Sprawl block, a room of a building
 const r3Key = S =>
-  (G.arena ? 'a' + G.theme : 's' + G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0) + ':' + (S.len || 0);
+  (G.dun
+    ? 'room' + G.dun.b.id + ':' + G.dun.room + ':' + (G.wd ? G.wd.level : 0)
+    : G.world && G.wd
+      ? 'block' + G.wd.level + ':' + G.wd.seed
+      : G.den
+        ? 'den'
+        : G.training
+          ? 'train'
+          : G.arena
+            ? 'a' + G.theme
+            : 's' + G.stage) +
+  ':' +
+  S.name +
+  ':' +
+  (G.challenge ? 1 : 0) +
+  ':' +
+  (S.len || 0);
 function r3Prepare(S, key) {
   R3.pending = key;
   setTimeout(() => {
@@ -217,7 +234,19 @@ function r3Render(shx, shy) {
 // The 2D game's overlays, drawn over the 3D picture: each at its own object's spot and scale
 const R3ONE = [];
 function r3Overlays() {
-  const cl = e => e.cloaked && e.state !== 'dead';
+  const cl = e => e.cloaked && e.state !== 'dead',
+    base = FY0 - 14;
+  // doors, name signs and markers on the Sprawl's buildings and the Den's shops, each on its own 3D facade
+  if (G.world && !G.dun && G.wd)
+    for (const b of G.wd.street.buildings)
+      if (Math.abs(b.x - G.camX - W / 2) < W && r3Affine(b.x, base)) drawBuilding(b, base);
+  if (G.den) for (const n of NPCS) if (n.front && r3Affine(n.x, base)) drawStorefronts(base, n);
+  if (G.world && G.wd && !G.dun) {
+    const tr = traderOf(G.wd);
+    if (tr && r3Affine(tr.x, FY0 - 6)) drawTrader(FY0 - 6);
+  }
+  for (const T of G.totems || []) if (r3Affine(T.x, T.y)) drawTotem(T);
+  if (G.hazard && r3Affine(G.camX + W / 2, R3_MIDY)) drawHazard();
   for (const k of G.picks) if (r3Affine(k.x, k.y)) drawPick(k);
   for (const p of G.projs) if (r3Affine(p.x, p.y)) drawProj(p);
   for (const o of G.props) if (!R3_PROPS[o.kind] && r3Affine(o.x, o.y)) drawProp(o.kind, o.x - G.camX, o.y);
