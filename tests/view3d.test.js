@@ -56,7 +56,7 @@ ok(
 );
 ok(/three\.js r\d+/.test(vend.slice(0, 300)) && /MIT License/.test(vend.slice(0, 3000)), 'with its licence');
 const used = new Set();
-for (const f of ['r3d.js', 'r3figs.js', 'r3world.js'])
+for (const f of fs.readdirSync(path.join(ROOT, 'src/js/render')).filter(f => /^r3.*\.js$/.test(f)))
   for (const m of fs
     .readFileSync(path.join(ROOT, 'src/js/render', f), 'utf8')
     .matchAll(/\b(?:THREE|T)\.([A-Z][A-Za-z0-9_]*)/g))

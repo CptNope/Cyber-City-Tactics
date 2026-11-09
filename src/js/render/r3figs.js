@@ -489,13 +489,15 @@ function r3UpdateFigs() {
   for (const e of G.ents) {
     seen.add(e);
     let o = F.pool.get(e);
-    const pup = r3Puppeted(e);
+    // a puppet for fighters, a model for creatures and machines, the 2D drawing on a card for the rest
+    const beast = r3Puppeted(e) ? null : r3BeastKind(e),
+      pup = r3Puppeted(e) ? 'pup' : beast || 'card';
     if (o && o.pup !== pup) {
       r3Drop(o);
       o = null;
     }
     if (!o) {
-      o = pup ? r3Puppet() : r3Card(e);
+      o = pup === 'pup' ? r3Puppet() : beast ? r3Beast(beast, e) : r3Card(e);
       o.pup = pup;
       F.pool.set(e, o);
     }
@@ -510,7 +512,11 @@ function r3UpdateFigs() {
   r3UpdateParts();
 }
 function r3Drop(o) {
-  if (o.root) {
+  if (o.beast) {
+    R3.figs.remove(o.root, o.shadow, o.ring);
+    r3Dispose(o.root);
+    o.ring.material.dispose();
+  } else if (o.root) {
     R3.figs.remove(o.root, o.shadow, o.ring);
     for (const k in o.mats) o.mats[k].dispose();
     o.orb.material.dispose();
@@ -533,6 +539,10 @@ function r3Place(o, e) {
     X = e.x,
     Zw = zOf(e.y),
     vis = fa > 0 && !blinkInv && !blinkDead && !(cloak && !seen && (G.t >> 1) % 6);
+  if (o.beast) {
+    r3PlaceBeast(o, e);
+    return;
+  }
   if (!o.root) {
     o.card.visible = fa > 0;
     if (o.card.visible) {
