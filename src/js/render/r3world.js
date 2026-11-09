@@ -203,7 +203,9 @@ function r3BuildWorld(S) {
   F.moon = F.rain = F.refl = F.dance = F.exitDoor = null;
   F.signs = [];
   F.facades = [];
+  F.fac = F.roofLights = null;
   if (G.dun) return r3BuildRoom(S, W3);
+  if (G.stealth) return r3BuildFacility(S, W3);
   const tunnel = !!S.tunnel,
     matrix = !!S.matrix,
     len = Math.max(S.len || 1500, 1600) + WMAX + 400,
@@ -762,6 +764,8 @@ function r3UpdateWorld(S) {
   const fog = wx === 'fog';
   F.scene.fog.near = fog ? 380 : F.fogNear;
   F.scene.fog.far = fog ? 1300 : 2600;
+  r3UpdateFacility();
+  r3UpdateRoof();
   if (F.exitDoor) F.exitDoor.material.color.set(G.exitOpen ? '#7dffb0' : '#ff3d4a').multiplyScalar(2);
   if (F.dance) {
     const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
@@ -992,6 +996,12 @@ function r3BuildFlight(S, W3, len, r, rr) {
   low.add(r3Row(mid, midMat, 120), r3Row(far, farMat, 220));
   W3.add(low);
   F.facades = [midMat, farMat, towMat];
+  if (G.flight.roof) {
+    r3BuildRoof(W3, S);
+    r3Moon(W3, S);
+    F.gate = new T.Group();
+    return r3EnvMap(S);
+  }
   // the towers in the flight path, tops where the 2D view draws them
   const tw = (G.flight.towers || []).map(t => ({
     x: t.x,
@@ -1028,4 +1038,314 @@ function r3BuildFlight(S, W3, len, r, rr) {
   r3Rain(W3, S);
   F.gate = new T.Group();
   r3EnvMap(S);
+}
+
+/* ---------- a drone stealth job ---------- */
+// The corp floor as a cut-away: the back wall with its long windows, a ceiling soffit with light strips, a rail
+// along the cut the cameras hang from, partition walls open only at their vents, laser gates, the terminal and
+// the exit vent. Everything the drones fly through stands on one plane (SF.floor), as in the game
+function r3BuildFacility(S, W3) {
+  const T = THREE,
+    F = R3,
+    L = G.stealth,
+    Z0 = zOf(SF.floor),
+    back = Z0 - 70,
+    len = (S.len || 3000) + 600,
+    x0 = -300,
+    M = new T.Matrix4(),
+    mat = (c, rough, metal) =>
+      new T.MeshStandardMaterial({
+        color: c,
+        roughness: rough,
+        metalness: metal || 0.2,
+        envMapIntensity: 0.7
+      }),
+    glow = (c, k) => new T.MeshBasicMaterial({ color: r3Hex(c, k || 2.2), toneMapped: false }),
+    accent = (S.signs && S.signs[0] && S.signs[0][1]) || '#45d2ff';
+  F.scene.background = new T.Color('#05040a');
+  F.scene.fog = new T.Fog('#05040a', 900, 2400);
+  F.fogNear = 900;
+  W3.add(new T.HemisphereLight('#b8c8ff', '#262a3a', 1.1));
+  const moon = new T.DirectionalLight('#9fe9ff', 0.5);
+  moon.position.set(-200, 400, -300);
+  const fill = new T.DirectionalLight('#c8d0ff', 1);
+  fill.position.set(100, 260, 600);
+  W3.add(moon, moon.target, fill, fill.target);
+  F.moonLight = moon;
+  F.fill = fill;
+  F.lamps = [];
+  F.pl = [];
+  for (let i = 0; i < 4; i++) {
+    const p = new T.PointLight('#ffffff', 0, 380, 1.2);
+    W3.add(p);
+    F.pl.push(p);
+  }
+  // floor, back wall, soffit, the rail along the cut
+  const floor = new T.Mesh(new T.PlaneGeometry(len, 260), mat('#1c2030', 0.6, 0.1));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(x0 + len / 2, 0, back + 130);
+  const wall = new T.Mesh(new T.BoxGeometry(len, SF.ceil + 20, 6), mat('#2a3044', 0.8));
+  wall.position.set(x0 + len / 2, (SF.ceil + 20) / 2, back - 3);
+  const soffit = new T.Mesh(new T.BoxGeometry(len, 12, 60), mat('#07060b', 1));
+  soffit.position.set(x0 + len / 2, SF.ceil + 6, back + 30);
+  const rail = new T.Mesh(new T.BoxGeometry(len, 4, 6), mat('#262a38', 0.4, 0.6));
+  rail.position.set(x0 + len / 2, SF.ceil + 2, Z0);
+  const trim = new T.Mesh(new T.BoxGeometry(len, 1.5, 1), glow(accent, 1.4));
+  trim.position.set(x0 + len / 2, SF.ceil - 0.5, back + 0.6);
+  W3.add(floor, wall, soffit, rail, trim);
+  // panel seams and strip lights
+  const seams = Math.ceil(len / 80),
+    sm = new T.InstancedMesh(new T.BoxGeometry(1, SF.ceil, 1), mat('#000000', 1), seams),
+    lights = new T.InstancedMesh(new T.BoxGeometry(40, 2, 8), glow('#9fe9ff', 2.4), Math.ceil(len / 160));
+  for (let i = 0; i < seams; i++) {
+    M.makeTranslation(x0 + i * 80, SF.ceil / 2, back + 0.5);
+    sm.setMatrixAt(i, M);
+  }
+  for (let i = 0; i * 160 < len; i++) {
+    const x = x0 + 40 + i * 160;
+    M.makeTranslation(x, SF.ceil, back + 24);
+    lights.setMatrixAt(i, M);
+    F.lamps.push({ x, y: SF.ceil - 8, z: back + 30, col: '#9fe9ff', k: 1.4 });
+  }
+  W3.add(sm, lights);
+  // long windows onto the night city
+  const winTex = (() => {
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 64;
+    const g = c.getContext('2d'),
+      gr = g.createLinearGradient(0, 0, 0, 64);
+    gr.addColorStop(0, S.sky ? S.sky[0] : '#1d1033');
+    gr.addColorStop(1, S.sky ? S.sky[1] : '#4a1a3a');
+    g.fillStyle = gr;
+    g.fillRect(0, 0, 256, 64);
+    const r = srng(91);
+    for (let i = 0; i < 24; i++) {
+      const bw = 8 + r() * 22,
+        bh = 18 + r() * 40,
+        bx = r() * 256;
+      g.fillStyle = '#0a0812';
+      g.fillRect(bx, 64 - bh, bw, bh);
+      g.fillStyle = S.win || '#ffb36b';
+      for (let k = 0; k < 6; k++) g.fillRect(bx + 2 + r() * (bw - 4), 64 - bh + 3 + r() * (bh - 6), 2, 2);
+    }
+    const t = new T.CanvasTexture(c);
+    t.colorSpace = T.SRGBColorSpace;
+    return t;
+  })();
+  for (let k = 0; k < 8; k++) {
+    const wx = 300 + k * 560;
+    if (wx > len) break;
+    const pane = new T.Mesh(
+      new T.PlaneGeometry(160, 46),
+      new T.MeshBasicMaterial({ map: winTex, color: new T.Color(1.3, 1.3, 1.3), toneMapped: false })
+    );
+    pane.position.set(wx + 80, SF.ceil - 34 - 23, back + 0.8);
+    const frame = new T.Mesh(new T.BoxGeometry(164, 50, 1), mat('#2a2d3a', 0.5, 0.5));
+    frame.position.set(wx + 80, SF.ceil - 57, back + 0.3);
+    W3.add(frame, pane);
+  }
+  // partition walls: steel above and below the vent, with the vent's frame lit
+  const steel = mat('#2c3142', 0.45, 0.5);
+  F.fac = { walls: [], lasers: [], cams: [] };
+  for (const w of L.walls) {
+    const lo = new T.Mesh(new T.BoxGeometry(w.w, w.gap[0], 60), steel),
+      hi = new T.Mesh(new T.BoxGeometry(w.w, SF.ceil - w.gap[1], 60), steel),
+      vent = new T.Mesh(
+        new T.BoxGeometry(w.w + 1, w.gap[1] - w.gap[0], 61),
+        new T.MeshBasicMaterial({ color: r3Hex('#9fe9ff', 1.2), toneMapped: false, wireframe: true })
+      ),
+      cap = new T.Mesh(new T.BoxGeometry(w.w, 8, 60), steel);
+    lo.position.set(w.x, w.gap[0] / 2, Z0);
+    hi.position.set(w.x, (SF.ceil + w.gap[1]) / 2, Z0);
+    vent.position.set(w.x, (w.gap[0] + w.gap[1]) / 2, Z0);
+    cap.position.set(w.x, SF.ceil - 4, Z0);
+    W3.add(lo, hi, vent, cap);
+    F.fac.walls.push({ w, lo, hi, vent, cap });
+  }
+  // laser gates: emitters top and bottom, three beams across the corridor
+  for (const l of L.lasers) {
+    const g = new T.Group(),
+      em = mat('#2a2436', 0.4, 0.6);
+    for (const y of [3, SF.ceil - 3]) {
+      const e = new T.Mesh(new T.BoxGeometry(8, 6, 60), em);
+      e.position.y = y;
+      g.add(e);
+    }
+    const beams = [];
+    for (const z of [-20, 0, 20]) {
+      const b = new T.Mesh(new T.BoxGeometry(1.2, SF.ceil - 12, 1.2), glow('#ff3d4a', 3));
+      b.position.set(0, SF.ceil / 2, z);
+      g.add(b);
+      beams.push(b);
+    }
+    g.position.set(l.x, 0, Z0);
+    W3.add(g);
+    F.fac.lasers.push({ l, beams });
+  }
+  // cameras hanging from the rail
+  for (const c of L.cams) {
+    const dome = new T.Mesh(R3.geo.head, mat('#2a2436', 0.3, 0.6));
+    dome.scale.set(6, 4, 6);
+    dome.position.set(c.x, SF.ceil - 4, Z0);
+    const led = new T.Mesh(R3.geo.gem, glow('#ff3d4a', 2.4));
+    led.scale.setScalar(1.6);
+    led.position.set(c.x, SF.ceil - 8, Z0 + 4);
+    W3.add(dome, led);
+    F.fac.cams.push({ c, led });
+  }
+  // the terminal
+  const t = L.term,
+    desk = new T.Mesh(new T.BoxGeometry(26, 30, 16), mat('#20232f', 0.4, 0.4)),
+    screen = new T.Mesh(new T.BoxGeometry(18, 11, 1), glow('#45d2ff', 2));
+  desk.position.set(t.x, 15, Z0 - 10);
+  screen.position.set(t.x, 22, Z0 - 1.6);
+  W3.add(desk, screen);
+  F.fac.screen = screen;
+  // the exit vent at the far end: a grille that lights green once the files are pulled
+  const ex = new T.Group(),
+    grille = mat('#0d0f16', 0.5, 0.4);
+  const bx = new T.Mesh(new T.BoxGeometry(32, 60, 12), grille);
+  bx.position.y = 70;
+  ex.add(bx);
+  const slats = [];
+  for (let i = 1; i < 6; i++) {
+    const sl = new T.Mesh(new T.BoxGeometry(28, 1.2, 1), glow('#4a4256', 1));
+    sl.position.set(0, 100 - i * 10, 6.2);
+    ex.add(sl);
+    slats.push(sl);
+  }
+  ex.position.set(L.exit, 0, Z0 - 10);
+  W3.add(ex);
+  F.fac.slats = slats;
+  F.gate = new T.Group();
+  r3EnvMap({ sky: ['#10121b', '#191c28'], signs: [['', accent]], win: '#9fe9ff', moon: '#45d2ff' });
+}
+// each frame: lasers blink, doors slide open, the terminal and exit change colour, the cameras' lights
+function r3UpdateFacility() {
+  const F = R3.fac;
+  if (!F) return;
+  for (const { l, beams } of F.lasers) {
+    const on = laserOn(l);
+    for (const b of beams) b.visible = on;
+  }
+  for (const { w, lo, hi, vent, cap } of F.walls) {
+    lo.visible = hi.visible = vent.visible = !w.open;
+    cap.visible = !!w.open;
+  }
+  const S = G.stealth;
+  F.screen.material.color
+    .set(S.term.done ? '#7dffb0' : '#45d2ff')
+    .multiplyScalar(S.term.done ? 2.4 : 1.6 + 0.6 * Math.sin(G.t * 0.1));
+  for (const sl of F.slats)
+    sl.material.color.set(S.data ? '#7dffb0' : '#4a4256').multiplyScalar(S.data ? 2.4 : 1);
+  const alert = G.salarm > 0;
+  for (const { c, led } of F.cams) {
+    const looped = c.offT > 0;
+    led.material.color
+      .set(
+        looped ? ((G.t >> 3) % 2 ? '#45d2ff' : '#1a3a4a') : alert || (G.t >> 4) % 2 ? '#ff3d4a' : '#3a1a1a'
+      )
+      .multiplyScalar(2.4);
+  }
+}
+
+/* ---------- the roof after a flight ---------- */
+// The Arcology roof: a deck over the city far below, a parapet along the back with two stairwell heads (their
+// lights red while security keeps coming up), a vent stack, the landing pad painted on the deck, edge lights
+function r3BuildRoof(W3, S) {
+  const T = THREE,
+    F = R3,
+    M = new T.Matrix4(),
+    back = zOf(FY0 - 16),
+    depth = (FY1 - (FY0 - 16)) * DZ + 120,
+    x0 = -200,
+    len = W + 400,
+    mat = (c, rough, metal) =>
+      new T.MeshStandardMaterial({ color: c, roughness: rough, metalness: metal || 0.2 });
+  const deck = new T.Mesh(new T.BoxGeometry(len, 8, depth), mat('#121119', 0.75, 0.2));
+  deck.position.set(x0 + len / 2, -4, back + depth / 2);
+  W3.add(deck);
+  // deck seams
+  const seams = Math.ceil(len / 48),
+    sm = new T.InstancedMesh(new T.BoxGeometry(0.8, 0.4, depth), mat('#2c2a3c', 0.8), seams);
+  for (let i = 0; i < seams; i++) {
+    M.makeTranslation(x0 + i * 48, 0.2, back + depth / 2);
+    sm.setMatrixAt(i, M);
+  }
+  W3.add(sm);
+  const par = new T.Mesh(new T.BoxGeometry(len, 14, 6), mat('#262536', 0.6));
+  par.position.set(x0 + len / 2, 7, back - 3);
+  const strip = new T.Mesh(
+    new T.BoxGeometry(len, 1, 6.4),
+    new T.MeshBasicMaterial({ color: r3Hex(S.win || '#ffb36b', 1.2), toneMapped: false })
+  );
+  strip.position.set(x0 + len / 2, 14, back - 3);
+  W3.add(par, strip);
+  F.roofLights = [];
+  for (const sx of [30, W - 92]) {
+    const hut = new T.Mesh(new T.BoxGeometry(62, 46, 40), mat('#2c2a3c', 0.5, 0.3));
+    hut.position.set(sx + 31, 23, back - 24);
+    const door = new T.Mesh(new T.BoxGeometry(22, 28, 1), mat('#0d0b14', 0.6));
+    door.position.set(sx + 31, 14, back - 3.4);
+    const lamp = new T.Mesh(R3.geo.gem, new T.MeshBasicMaterial({ color: '#7dffb0', toneMapped: false }));
+    lamp.scale.setScalar(2.4);
+    lamp.position.set(sx + 31, 34, back - 3);
+    W3.add(hut, door, lamp);
+    F.roofLights.push(lamp);
+    F.lamps.push({ x: sx + 31, y: 40, z: back + 10, col: '#ff3d4a', k: 0.6 });
+  }
+  const vent = new T.Mesh(new T.BoxGeometry(40, 24, 30), mat('#23222f', 0.5, 0.4));
+  vent.position.set(W * 0.42 + 20, 12, back - 15);
+  W3.add(vent);
+  // the pad
+  const pc = document.createElement('canvas');
+  pc.width = pc.height = 256;
+  const g = pc.getContext('2d');
+  g.strokeStyle = 'rgba(255,198,61,.6)';
+  g.lineWidth = 10;
+  g.beginPath();
+  g.arc(128, 128, 112, 0, 7);
+  g.stroke();
+  g.fillStyle = 'rgba(255,198,61,.45)';
+  g.font = '600 150px Teko, Impact, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText('H', 128, 140);
+  const pt = new T.CanvasTexture(pc);
+  pt.colorSpace = T.SRGBColorSpace;
+  const pad = new T.Mesh(
+    new T.PlaneGeometry(184, 68 * DZ),
+    new T.MeshBasicMaterial({ map: pt, transparent: true, depthWrite: false })
+  );
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.set(W * 0.5, 0.3, zOf((FY0 + FY1) / 2 + 4));
+  W3.add(pad);
+  // edge lights along the front
+  const n = Math.ceil(len / 40),
+    el = new T.InstancedMesh(
+      new T.IcosahedronGeometry(1.6, 0),
+      new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+      n
+    );
+  for (let i = 0; i < n; i++) {
+    M.makeTranslation(x0 + 12 + i * 40, 1.6, back + depth - 6);
+    el.setMatrixAt(i, M);
+    el.setColorAt(i, new T.Color(0, 0, 0));
+  }
+  W3.add(el);
+  F.edge = el;
+}
+function r3UpdateRoof() {
+  const F = R3,
+    R = G.flight && G.flight.roof;
+  if (!R || !F.roofLights) return;
+  const live = R.live && G.t % 40 < 20;
+  for (const l of F.roofLights) l.material.color.set(live ? '#ff3d4a' : '#7dffb0').multiplyScalar(2.4);
+  const c = F.col || (F.col = new THREE.Color());
+  for (let i = 0; i < F.edge.count; i++) {
+    const x = 12 + i * 40;
+    F.edge.setColorAt(i, c.set('#ff3d4a').multiplyScalar((G.t + x) % 90 < 45 ? 2.4 : 0.15));
+  }
+  F.edge.instanceColor.needsUpdate = true;
 }

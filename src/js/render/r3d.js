@@ -32,7 +32,6 @@ const zOf = y => (y - FY0) * DZ;
  * hasn't picked Classic 2D. */
 function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
-  if (G.stealth || (G.flight && G.flight.roof)) return false; // still 2D: the corp floor and the rooftop deck
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
   if (!r3Ready() || (R3.soft && !R3.force)) return false;
   // a district is built and its shaders compiled off the main thread before it is shown; until then the
@@ -45,21 +44,25 @@ function r3On() {
 }
 // which place the scene was built for: a district, the Den, a Sprawl block, a room of a building
 const r3Key = S =>
-  (G.drive
-    ? 'drive' + (G.drive.id || '')
-    : G.flight
-      ? 'flight' + (G.flight.id || '') + ':' + (G.flight.towers || []).length
-      : G.dun
-        ? 'room' + G.dun.b.id + ':' + G.dun.room + ':' + (G.wd ? G.wd.level : 0)
-        : G.world && G.wd
-          ? 'block' + G.wd.level + ':' + G.wd.seed
-          : G.den
-            ? 'den'
-            : G.training
-              ? 'train'
-              : G.arena
-                ? 'a' + G.theme
-                : 's' + G.stage) +
+  (G.stealth
+    ? 'stealth' + G.stealth.id + ':' + G.stealth.walls.map(w => w.x).join(',')
+    : G.flight && G.flight.roof
+      ? 'roof' + G.flight.id
+      : G.drive
+        ? 'drive' + (G.drive.id || '')
+        : G.flight
+          ? 'flight' + (G.flight.id || '') + ':' + (G.flight.towers || []).length
+          : G.dun
+            ? 'room' + G.dun.b.id + ':' + G.dun.room + ':' + (G.wd ? G.wd.level : 0)
+            : G.world && G.wd
+              ? 'block' + G.wd.level + ':' + G.wd.seed
+              : G.den
+                ? 'den'
+                : G.training
+                  ? 'train'
+                  : G.arena
+                    ? 'a' + G.theme
+                    : 's' + G.stage) +
   ':' +
   S.name +
   ':' +
@@ -253,6 +256,11 @@ function r3Overlays() {
   // a driving job's lane lines and finish gantry; a flight's searchlights and flak
   if (G.drive && r3Affine(G.camX + W / 2, R3_MIDY)) drawRoad();
   if (G.flight && !G.flight.roof && r3Affine(G.camX + W / 2, FL.base)) drawTowers();
+  // a stealth job: the cones of sight, keypads, the safe and the prompts, on the floor's plane
+  if (G.stealth && r3Affine(G.camX + W / 2, SF.floor)) {
+    drawFacility();
+    drawStealthCones();
+  }
   if (G.hazard && r3Affine(G.camX + W / 2, R3_MIDY)) drawHazard();
   for (const k of G.picks) if (r3Affine(k.x, k.y)) drawPick(k);
   for (const p of G.projs) if (r3Affine(p.x, p.y)) drawProj(p);
@@ -276,7 +284,8 @@ function r3Overlays() {
     }
     if (e.team === 1 && !e.air) drawFoeBar(e);
     else if (e.kind === 'ally') drawAllyBar(e);
-    if (e.kind === 'player') r3PlayerMarks(e);
+    if (e.kind === 'player' && !e.drone) r3PlayerMarks(e);
+    if (e.drone) r3DroneMarks(e);
   }
   // effects, one at a time at their own spot
   const fx = G.fx;
@@ -329,4 +338,22 @@ function r3PlayerMarks(e) {
   }
   if ((e.sp || 0) >= 100 && (G.t >> 3) % 2) txt('★', sx, sy - 64 * sc, 10, '#ffc63d', 'center');
   if (G.coop) fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+}
+
+// a stealth drone's detection meter and cloak battery, as the 2D drone draws them
+function r3DroneMarks(p) {
+  const d = p.drone,
+    sx = p.x - G.camX,
+    sy = sfY(p.z);
+  if (!d || p.out) return;
+  if (d.seen > 1 || d.seenNow) {
+    const k = d.seen / 100;
+    ctx.fillStyle = 'rgba(11,8,18,.75)';
+    ctx.fillRect(sx - 12, sy - 14, 24, 4);
+    ctx.fillStyle = k > 0.66 ? '#ff3d4a' : k > 0.33 ? '#ff9f6b' : '#ffc63d';
+    ctx.fillRect(sx - 11, sy - 13, 22 * k, 2);
+    if (d.seenNow && (G.t >> 2) % 2) txt('!', sx, sy - 16, 13, '#ff3d4a', 'center');
+  }
+  ctx.fillStyle = d.batt >= 50 ? 'rgba(69,210,255,.8)' : 'rgba(69,210,255,.3)';
+  ctx.fillRect(sx - 8, sy + 7, (16 * d.batt) / 100, 1.5);
 }

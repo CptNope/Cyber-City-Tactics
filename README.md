@@ -39,7 +39,7 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 
 ## At a glance
 
-- **In 3D:** a tilted three-quarter camera over neon low-poly streets, wet roads that pour every sign's colour back at you, rain, fog and bloom, built with three.js. The districts, the Den, the Sprawl and its buildings, driving jobs and flights over the skyline are all 3D, with 3D hounds, mechs, drones, a dragon and a VTOL. Settings → View switches back to the original flat art.
+- **In 3D:** a tilted three-quarter camera over neon low-poly streets, wet roads that pour every sign's colour back at you, rain, fog and bloom, built with three.js. The districts, the Den, the Sprawl and its buildings, driving jobs, flights over the skyline, the rooftop fights and the drone stealth jobs are all 3D, with 3D hounds, mechs, drones, a dragon and a VTOL. Settings → View switches back to the original flat art.
 - **Six districts, six bosses**, from the Gutter King under the dead monorail to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
 - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
 - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
