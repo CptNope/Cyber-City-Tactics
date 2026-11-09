@@ -84,7 +84,11 @@ const folk = w.street.buildings.filter(b => b.id && !A.isGood(b) && !A.isShop(b)
 if (hide[0]) w.looted.push(hide[0].id);
 ok(!hide[0] || Math.abs(A.blockMul(w) - 0.9) < 1e-9, 'clearing a crew hideout makes shops 10% cheaper');
 if (folk[0]) w.looted.push(folk[0].id);
-ok(!folk[0] || Math.abs(A.blockMul(w) - 0.99) < 1e-9, 'robbing a home or business makes them 10% dearer');
+// (a block without a crew hideout skips the 10% off above, so the robbery's 10% stands alone)
+ok(
+  !folk[0] || Math.abs(A.blockMul(w) - (hide[0] ? 0.99 : 1.1)) < 1e-9,
+  'robbing a home or business makes them 10% dearer'
+);
 w.looted = folk.slice(0, 5).map(b => b.id);
 ok(A.blockMul(w) <= 1.3 + 1e-9, 'and it tops out at 30%');
 w.looted = [];
