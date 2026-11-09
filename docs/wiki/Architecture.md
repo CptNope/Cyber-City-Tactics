@@ -62,7 +62,7 @@ sequenceDiagram
 
 ## The 3D view
 
-Nearly everything is drawn with three.js when the browser has WebGL 2 on a real graphics chip and **Settings → View** is 3D: the districts, Arena, Gauntlet, the title's street, the Den, Sprawl blocks and the rooms of their buildings, training, driving jobs and flights. Drone stealth jobs and a flight's rooftop deck stay 2D for now, as does everything without WebGL 2, on software WebGL, or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
+Nearly everything is drawn with three.js when the browser has WebGL 2 on a real graphics chip and **Settings → View** is 3D: the districts, Arena, Gauntlet, the title's street, the Den, Sprawl blocks and the rooms of their buildings, training, driving jobs, flights and their rooftop fights, and the drone stealth jobs (a cut-away corp floor). Everything is 2D without WebGL 2, on software WebGL, or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
 
 ```mermaid
 flowchart LR

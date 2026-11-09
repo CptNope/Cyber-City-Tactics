@@ -104,17 +104,9 @@ const { pathToFileURL } = require('url');
         render();
       });
       ok(await page.evaluate(() => R3.on === false), 'Settings → View: Classic 2D switches it off');
-      ok(
-        await page.evaluate(() => {
-          prefs.view = '3d';
-          const keep = G.stealth;
-          G.stealth = { stub: true };
-          const on = r3On();
-          G.stealth = keep;
-          return on === false;
-        }),
-        'a drone stealth job stays 2D'
-      );
+      await page.evaluate(() => {
+        prefs.view = '3d';
+      });
       // every district builds and draws
       const built = [];
       const n = await page.evaluate(() => STAGES.length);
@@ -155,7 +147,9 @@ const { pathToFileURL } = require('url');
         flight: () => {
           startFlight('skyline', false);
           setMode('play');
-        }
+        },
+        roof: () => roofStart(),
+        stealth: () => startStealth('arcology', false)
       };
       for (const [name, fn] of Object.entries(places)) {
         await page.evaluate(`(${fn})()`);

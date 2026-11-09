@@ -11,7 +11,8 @@ function r3BeastKind(e) {
   if (e.kind === 'vtol') return 'vtol';
   if (e.air) return e.big ? 'raijin' : e.gun ? 'gunship' : 'airdrone';
   if (e.veh) return e.veh === 'van' ? 'van' : e.veh === 'oil' ? 'oil' : e.veh === 'car' ? 'car' : null;
-  if (e.drone || e.mist > 0) return null;
+  if (e.drone) return 'rig';
+  if (e.mist > 0) return null;
   const d = e.d || {};
   if (d.dragon) return 'dragon';
   if (d.mech) return 'mech';
@@ -466,6 +467,26 @@ function r3Air(K, o, big, gun) {
 R3_BUILD.raijin = (K, o) => r3Air(K, o, true, false);
 R3_BUILD.gunship = (K, o) => r3Air(K, o, false, true);
 R3_BUILD.airdrone = (K, o) => r3Air(K, o, false, false);
+// a rigger's stealth drone: a slim body, two rotors, an eye in the runner's colour; it fades when cloaked
+R3_BUILD.rig = (K, o, e) => {
+  const { G3, part, mat, glow, group } = K;
+  part(G3.gem, mat('#1a1c26', 0.35, 0.6), 9, 4, 7, 0, 0, 0);
+  part(G3.box, mat('#3a3e50', 0.4, 0.6), 24, 1.4, 2, 0, 3, 0);
+  o.P.rotors = [];
+  const rm = new THREE.MeshBasicMaterial({
+    color: '#c8d2f0',
+    transparent: true,
+    opacity: 0.35,
+    toneMapped: false
+  });
+  for (const x of [-12, 12]) {
+    const r = group(x, 5, 0);
+    part(G3.box, rm, 11, 0.4, 1.6, 0, 0, 0, r);
+    part(G3.box, rm, 1.6, 0.4, 11, 0, 0, 0, r);
+    o.P.rotors.push(r);
+  }
+  o.P.eye = part(G3.box, glow(e.idx ? '#ffc63d' : '#ff3d8b', 2.6), 3, 2, 7.4, 5, 0, 0);
+};
 /* ---------- each frame: pose the model from the entity's state ---------- */
 
 const r3Wheels = (o, e, k) => {
@@ -475,6 +496,19 @@ const r3Spin = (o, k) => {
   for (let i = 0; i < o.P.rotors.length; i++) o.P.rotors[i].rotation.y = G.t * k + i;
 };
 const R3_ANIM = {
+  rig(o, e) {
+    const d = e.drone || {};
+    r3Spin(o, e.out ? 0.3 : 1.7);
+    o.body.rotation.z = e.out ? -0.6 : -Math.max(-0.2, Math.min(0.2, (d.vx || 0) * 0.08));
+    const ghost = d.cloak ? 0.28 + 0.1 * Math.sin(G.t * 0.5) : 1;
+    if (o.ghost !== ghost) {
+      o.ghost = ghost;
+      for (const m of o.mats) {
+        m.transparent = ghost < 1;
+        m.opacity = ghost;
+      }
+    }
+  },
   vtol(o, e) {
     r3Spin(o, 1.9);
     o.body.rotation.z = Math.max(-0.12, Math.min(0.12, (e.vz || 0) * 0.04));
@@ -673,7 +707,11 @@ function r3PlaceBeast(o, e) {
     s =
       o.beast === 'car' || o.beast === 'van'
         ? VEH_SCALE
-        : o.beast === 'vtol' || o.beast === 'raijin' || o.beast === 'gunship' || o.beast === 'airdrone'
+        : o.beast === 'vtol' ||
+            o.beast === 'raijin' ||
+            o.beast === 'gunship' ||
+            o.beast === 'airdrone' ||
+            o.beast === 'rig'
           ? 1
           : o.beast === 'ice' ||
               o.beast === 'drone' ||

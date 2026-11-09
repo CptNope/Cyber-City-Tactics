@@ -9,7 +9,14 @@ function drawFacility() {
   const S = G.stealth,
     C = curS(),
     cx = G.camX,
-    top = sfY(SF.ceil);
+    top = sfY(SF.ceil),
+    // in the 3D view the room, walls, terminal, exit and lasers are 3D: this draws only the labels, prompts,
+    // keypads, the safe and the doors' markings over them
+    flat = !(typeof R3 !== 'undefined' && R3.on);
+  if (flat) drawFacilityRoom(S, C, cx, top);
+  drawFacilityParts(S, cx, top, flat);
+}
+function drawFacilityRoom(S, C, cx, top) {
   // the slab above, the back wall, the floor
   ctx.fillStyle = '#07060b';
   ctx.fillRect(0, 0, W, top);
@@ -49,17 +56,21 @@ function drawFacility() {
     ctx.strokeStyle = '#2a2d3a';
     ctx.strokeRect(wx + 0.5, top + 34.5, 160, 46);
   }
+}
+function drawFacilityParts(S, cx, top, flat) {
   // the terminal
   const T = S.term,
     tx = T.x - cx;
   if (tx > -40 && tx < W + 40) {
-    ctx.fillStyle = '#20232f';
-    ctx.fillRect(tx - 13, SF.floor - 30, 26, 30);
-    ctx.fillStyle = T.done ? '#7dffb0' : '#45d2ff';
-    ctx.globalAlpha = T.done ? 0.9 : 0.55 + 0.3 * Math.sin(G.t * 0.1);
-    ctx.fillRect(tx - 9, SF.floor - 27, 18, 11);
-    ctx.globalAlpha = 1;
-    glow(tx, SF.floor - 22, 26, 16, T.done ? '#7dffb0' : '#45d2ff', 0.25);
+    if (flat) {
+      ctx.fillStyle = '#20232f';
+      ctx.fillRect(tx - 13, SF.floor - 30, 26, 30);
+      ctx.fillStyle = T.done ? '#7dffb0' : '#45d2ff';
+      ctx.globalAlpha = T.done ? 0.9 : 0.55 + 0.3 * Math.sin(G.t * 0.1);
+      ctx.fillRect(tx - 9, SF.floor - 27, 18, 11);
+      ctx.globalAlpha = 1;
+      glow(tx, SF.floor - 22, 26, 16, T.done ? '#7dffb0' : '#45d2ff', 0.25);
+    }
     txt(T.done ? 'DONE' : 'TERMINAL', tx, SF.floor - 34, 10, T.done ? '#7dffb0' : '#9fe9ff', 'center');
     // a drone close enough: say what to press, or that it's flying too high to plug in
     const near = !T.done && PL.find(p => p.drone && !p.out && Math.abs(p.x - T.x) < 38);
@@ -81,19 +92,21 @@ function drawFacility() {
   const ex = S.exit - cx;
   if (ex > -60 && ex < W + 60) {
     const col = S.data ? '#7dffb0' : '#4a4256';
-    ctx.fillStyle = '#0d0f16';
-    ctx.fillRect(ex - 16, sfY(100), 32, 60);
-    ctx.strokeStyle = col;
-    ctx.strokeRect(ex - 15.5, sfY(100) + 0.5, 31, 59);
-    for (let i = 1; i < 6; i++) ctx.fillRect(ex - 14, sfY(100) + i * 10, 28, 1);
-    if (S.data) glow(ex, sfY(70), 34, 40, '#7dffb0', 0.25);
+    if (flat) {
+      ctx.fillStyle = '#0d0f16';
+      ctx.fillRect(ex - 16, sfY(100), 32, 60);
+      ctx.strokeStyle = col;
+      ctx.strokeRect(ex - 15.5, sfY(100) + 0.5, 31, 59);
+      for (let i = 1; i < 6; i++) ctx.fillRect(ex - 14, sfY(100) + i * 10, 28, 1);
+      if (S.data) glow(ex, sfY(70), 34, 40, '#7dffb0', 0.25);
+    }
     txt(S.data ? 'EXIT · FLY IN' : 'EXIT · LOCKED', ex, sfY(104), 11, col, 'center');
     if (!S.data) txt('GET THE FILES FIRST', ex, sfY(116), 9, '#a79dc2', 'center');
   }
   // walls, open only at their vents
   for (const w of S.walls) {
     const x = w.x - cx;
-    if (x < -30 || x > W + 30 || w.open) continue;
+    if (x < -30 || x > W + 30 || w.open || !flat) continue;
     ctx.fillStyle = '#262a38';
     ctx.fillRect(x - w.w / 2, top, w.w, sfY(w.gap[1]) - top);
     ctx.fillRect(x - w.w / 2, sfY(w.gap[0]), w.w, SF.floor - sfY(w.gap[0]));
@@ -109,7 +122,7 @@ function drawFacility() {
     if (x < -30 || x > W + 30) continue;
     if (w.open) {
       ctx.fillStyle = '#262a38';
-      ctx.fillRect(x - w.w / 2, top, w.w, 8);
+      if (flat) ctx.fillRect(x - w.w / 2, top, w.w, 8);
       ctx.fillStyle = '#7dffb0';
       ctx.fillRect(x - 2, top + 9, 4, 2);
     } else {
@@ -171,8 +184,11 @@ function drawFacility() {
     const x = l.x - cx;
     if (x < -20 || x > W + 20) continue;
     ctx.fillStyle = '#2a2436';
-    ctx.fillRect(x - 4, top, 8, 6);
-    ctx.fillRect(x - 4, SF.floor - 6, 8, 6);
+    if (flat) {
+      ctx.fillRect(x - 4, top, 8, 6);
+      ctx.fillRect(x - 4, SF.floor - 6, 8, 6);
+    }
+    if (laserOn(l) && !flat) continue;
     if (laserOn(l)) {
       ctx.fillStyle = '#ff3d4a';
       ctx.fillRect(x - 0.75, top + 6, 1.5, SF.floor - top - 12);
