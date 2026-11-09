@@ -8,7 +8,10 @@
 'use strict';
 /** Which 3D model an entity gets, or null for none. */
 function r3BeastKind(e) {
-  if (e.air || e.kind === 'vtol' || e.drone || e.veh || e.mist > 0 || (e.bk && e.ride)) return null;
+  if (e.kind === 'vtol') return 'vtol';
+  if (e.air) return e.big ? 'raijin' : e.gun ? 'gunship' : 'airdrone';
+  if (e.veh) return e.veh === 'van' ? 'van' : e.veh === 'oil' ? 'oil' : e.veh === 'car' ? 'car' : null;
+  if (e.drone || e.mist > 0) return null;
   const d = e.d || {};
   if (d.dragon) return 'dragon';
   if (d.mech) return 'mech';
@@ -328,8 +331,175 @@ const R3_BUILD = {
     o.P.mark = part(G3.gem, glow('#7dffb0', 2), 3, 3, 3, 0, 44, 0);
   }
 };
+/* ---------- the road ---------- */
+// a car or the Interceptor van: body, cabin glass, wheels, head and tail lights; the van's light bar flashes
+function r3Car(K, o, e, van) {
+  const { G3, part, mat, glow, group } = K,
+    L = van ? 44 : 32,
+    body = mat(van ? '#1d2230' : e.col || '#4a6b8a', 0.3, 0.6),
+    dark = mat('#0d0a12', 0.7);
+  part(G3.box, body, L * 2, van ? 26 : 11, 24, 0, van ? 21 : 12.5, 0);
+  if (!van) part(G3.tor, body, 15, 10, 11, 1, 23, 0);
+  part(G3.box, glow('#9fe9ff', 0.7), van ? 10 : 24, 7, van ? 24.4 : 20, van ? L - 15 : 1, van ? 28 : 23, 0);
+  o.P.wheels = [];
+  for (const x of [-L + 12, L - 12])
+    for (const z of [-12, 12]) {
+      const w = group(x, van ? 7.5 : 6, z);
+      part(G3.cyl, dark, van ? 7.5 : 6, 4, van ? 7.5 : 6, 0, 0, 0, w).rotation.x = Math.PI / 2;
+      o.P.wheels.push(w);
+    }
+  part(G3.box, glow('#ffe28a', 3), 2, 3, 18, L + 0.5, van ? 14 : 13, 0);
+  part(G3.box, glow('#ff3d4a', 2.4), 2, 3, 18, -L - 0.5, van ? 14 : 13, 0);
+  if (van) {
+    part(G3.box, glow('#ff3d4a', 1.6), L * 2 + 0.5, 3, 24.5, 0, 14, 0);
+    o.P.bar = part(G3.box, glow('#ff3d4a', 3), 20, 4, 10, 0, 36, 0);
+  }
+}
+R3_BUILD.car = (K, o, e) => r3Car(K, o, e, false);
+R3_BUILD.van = (K, o, e) => r3Car(K, o, e, true);
+R3_BUILD.oil = (K, o) => {
+  const { part, glow } = K;
+  part(
+    R3.geo.disc,
+    new THREE.MeshStandardMaterial({ color: '#08060c', roughness: 0.05, metalness: 0.4 }),
+    36,
+    1,
+    10 * DZ,
+    0,
+    0.5,
+    0
+  );
+  part(R3.geo.ring, glow('#45d2ff', 0.5), 9, 1, 2 * DZ, -3, 0.6, 0);
+};
+// the bike under a rider
+function r3Bike(col) {
+  const K = r3Kit(),
+    { G3, part, mat, glow, group } = K,
+    o = { root: K.root, mats: K.mats, P: {} },
+    frame = mat('#2a2436', 0.4, 0.6),
+    dark = mat('#0d0a12', 0.7);
+  o.P.wheels = [];
+  for (const x of [-14, 13]) {
+    const w = group(x, 6.5, 0);
+    part(G3.cyl, dark, 6.5, 3, 6.5, 0, 0, 0, w).rotation.x = Math.PI / 2;
+    o.P.wheels.push(w);
+  }
+  r3Seg(part(G3.cyl, frame, 1, 1, 1), -14, 6.5, 0, -3, 15, 0, 1.4);
+  r3Seg(part(G3.cyl, frame, 1, 1, 1), 9, 16, 0, 13, 6.5, 0, 1.4);
+  o.P.tank = part(G3.tor, mat(col, 0.3, 0.5), 7, 13, 6, 4, 17.5, 0);
+  o.P.tank.rotation.z = -Math.PI / 2 + 0.1;
+  part(G3.box, mat('#14101c', 0.6), 9, 3, 7, -6.5, 17.5, 0);
+  part(G3.box, glow('#ffe28a', 3), 2, 3, 4, 14, 18, 0);
+  part(G3.box, glow('#ff3d4a', 2.4), 2, 2, 4, -17, 17, 0);
+  R3.figs.add(K.root);
+  return o;
+}
+/* ---------- the air ---------- */
+// the team's VTOL: a long hull, a glass nose, two tilt-rotor pods with spinning blades, and the door gun
+R3_BUILD.vtol = (K, o) => {
+  const { G3, part, mat, glow, group } = K,
+    hull = mat('#3a4156', 0.3, 0.6),
+    dark = mat('#1a1c26', 0.5, 0.4);
+  o.P.hull = part(G3.tor, hull, 8, 66, 10, 0, 0, 0);
+  o.P.hull.rotation.z = -Math.PI / 2;
+  part(G3.box, glow('#9fe9ff', 0.8), 12, 6, 12, 26, 2, 0);
+  part(G3.box, glow('#ff3d8b', 2), 34, 1.6, 16.4, -9, 0, 0);
+  part(G3.box, dark, 14, 10, 16.6, -5, -1, 0);
+  part(G3.box, hull, 10, 3, 52, -6, 5, 0);
+  o.P.rotors = [];
+  const rm = new THREE.MeshBasicMaterial({
+    color: '#c8d2f0',
+    transparent: true,
+    opacity: 0.35,
+    toneMapped: false
+  });
+  for (const [x, z] of [
+    [-22, 26],
+    [-22, -26],
+    [12, 26],
+    [12, -26]
+  ]) {
+    part(G3.cyl, dark, 3, 9, 3, x, 9, z);
+    const r = group(x, 14, z);
+    part(G3.box, rm, 30, 0.4, 2.4, 0, 0, 0, r);
+    part(G3.box, rm, 2.4, 0.4, 30, 0, 0, 0, r);
+    o.P.rotors.push(r);
+  }
+  o.P.gun = group(-5, -4, 9);
+  part(G3.box, mat('#ffc63d', 0.4, 0.6), 12, 2, 2, 6, 0, 0, o.P.gun);
+  part(G3.box, glow('#ffe28a', 3), 2, 3, 6, 34, 0, 0);
+};
+// enemy air: drones, gunships and the Raijin, all facing the VTOL
+function r3Air(K, o, big, gun) {
+  const { G3, part, mat, glow, group } = K,
+    L = big ? 50 : gun ? 28 : 9,
+    hull = mat(big ? '#1d2230' : gun ? '#202536' : '#1a1c26', 0.35, 0.6);
+  o.P.hull = part(G3.tor, hull, big ? 16 : gun ? 9 : 4.5, L * 2, big ? 18 : gun ? 10 : 6, 0, 0, 0);
+  o.P.hull.rotation.z = -Math.PI / 2;
+  if (big || gun)
+    part(G3.box, glow(big ? '#ff3d4a' : '#45d2ff', 2), L * 1.4, 2, (big ? 18 : 10) * 2.1, -2, 0, 0);
+  o.P.rotors = [];
+  const rm = new THREE.MeshBasicMaterial({
+    color: '#c8d2f0',
+    transparent: true,
+    opacity: 0.3,
+    toneMapped: false
+  });
+  for (const x of big ? [-26, 26] : gun ? [0] : [-8, 8]) {
+    const r = group(x, big ? 24 : gun ? 14 : 5, 0);
+    const s = big ? 60 : gun ? 42 : 9;
+    part(G3.box, rm, s, 0.4, 2.4, 0, 0, 0, r);
+    part(G3.box, rm, 2.4, 0.4, s, 0, 0, 0, r);
+    o.P.rotors.push(r);
+  }
+  part(
+    G3.gem,
+    glow('#ff3d4a', 3),
+    big ? 5 : 2.4,
+    big ? 5 : 2.4,
+    big ? 5 : 2.4,
+    big ? -L : gun ? -L : -5,
+    0,
+    0
+  );
+}
+R3_BUILD.raijin = (K, o) => r3Air(K, o, true, false);
+R3_BUILD.gunship = (K, o) => r3Air(K, o, false, true);
+R3_BUILD.airdrone = (K, o) => r3Air(K, o, false, false);
 /* ---------- each frame: pose the model from the entity's state ---------- */
+
+const r3Wheels = (o, e, k) => {
+  for (const w of o.P.wheels) w.rotation.z = -(e.walk || 0) * k;
+};
+const r3Spin = (o, k) => {
+  for (let i = 0; i < o.P.rotors.length; i++) o.P.rotors[i].rotation.y = G.t * k + i;
+};
 const R3_ANIM = {
+  vtol(o, e) {
+    r3Spin(o, 1.9);
+    o.body.rotation.z = Math.max(-0.12, Math.min(0.12, (e.vz || 0) * 0.04));
+    o.P.gun.rotation.z = -(e.aim || 0);
+  },
+  raijin(o) {
+    r3Spin(o, 1.6);
+  },
+  gunship(o) {
+    r3Spin(o, 1.8);
+  },
+  airdrone(o) {
+    r3Spin(o, 2.2);
+  },
+  car(o, e) {
+    r3Wheels(o, e, 0.22);
+  },
+  van(o, e) {
+    r3Wheels(o, e, 0.22);
+    if (o.P.bar)
+      o.P.bar.material.color
+        .set((G.t >> 3) % 2 ? '#ff3d4a' : '#45d2ff')
+        .multiplyScalar(e.state === 'dead' ? 0.2 : 3);
+    o.body.rotation.x = e.ramT > 0 ? Math.sign(e.ramY - e.y) * 0.04 : 0;
+  },
   drone(o, e) {
     const P = o.P;
     for (let i = 0; i < P.rotors.length; i++) P.rotors[i].rotation.y = G.t * 0.9 + i;
@@ -501,9 +671,18 @@ function r3PlaceBeast(o, e) {
     gone = dead && passive && e.t > 40,
     sc = ((e.d && e.d.scale) || e.scale || 1) * (e.mini ? 0.7 : 1),
     s =
-      o.beast === 'ice' || o.beast === 'drone' || o.beast === 'spirit' || passive || o.beast === 'turret'
-        ? 1
-        : sc,
+      o.beast === 'car' || o.beast === 'van'
+        ? VEH_SCALE
+        : o.beast === 'vtol' || o.beast === 'raijin' || o.beast === 'gunship' || o.beast === 'airdrone'
+          ? 1
+          : o.beast === 'ice' ||
+              o.beast === 'drone' ||
+              o.beast === 'spirit' ||
+              o.beast === 'oil' ||
+              passive ||
+              o.beast === 'turret'
+            ? 1
+            : sc,
     Zw = zOf(e.y);
   o.root.visible = fa > 0 && !blink && !gone;
   o.shadow.visible = fa > 0 && !gone;
@@ -518,7 +697,7 @@ function r3PlaceBeast(o, e) {
   }
   if (!o.root.visible) return false;
   o.root.position.set(e.x, e.z, Zw);
-  o.root.scale.set((e.face || 1) * s, s, s);
+  o.root.scale.set((e.air && e.kind !== 'vtol' ? -1 : e.face || 1) * s, s, s);
   // a hit turns it white for a frame
   const fl = e.flash > 0 && e.flash % 2;
   if (o.fl !== fl) {

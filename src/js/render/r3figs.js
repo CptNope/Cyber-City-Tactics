@@ -477,7 +477,7 @@ function r3DrawCard(C, e) {
   C.tex.needsUpdate = true;
 }
 const r3Puppeted = e =>
-  !(e.air || e.kind === 'vtol' || e.drone || e.veh || e.mist > 0 || (e.bk && e.ride)) &&
+  !(e.air || e.kind === 'vtol' || e.drone || e.veh || e.mist > 0) &&
   !(
     e.d &&
     (e.d.turret || e.d.passive || e.d.ice || e.d.spirit || e.d.fly || e.d.quad || e.d.mech || e.d.dragon)
@@ -522,7 +522,34 @@ function r3UpdateFigs() {
   r3UpdateProps();
   r3UpdateParts();
 }
+function r3Ride(o, e, X, Zw) {
+  const bk = e.bk && e.ride && !e.bk.pass ? e.bk : null;
+  if (!bk) {
+    if (o.bike) o.bike.root.visible = false;
+    return;
+  }
+  if (!o.bike) o.bike = bk.car ? r3BeastOf('car', e) : r3Bike((e.pal && e.pal.acc) || '#ff3d8b');
+  const b = o.bike,
+    down = e.state === 'dead' || e.state === 'down';
+  b.root.visible = o.root.visible || down;
+  b.root.position.set(X, down ? 0 : e.z, Zw);
+  b.root.scale.set(e.face || 1, down ? 0.45 : 1, 1);
+  if (b.beast) b.root.scale.multiplyScalar(VEH_SCALE * 0.8);
+  for (const w of b.P.wheels) w.rotation.z = -(e.walk || 0) * 0.28;
+}
+// a vehicle model used as something to sit on, not an entity of its own
+function r3BeastOf(kind, e) {
+  const K = r3Kit(),
+    o = { beast: kind, root: K.root, body: K.body, mats: K.mats, P: {} };
+  R3_BUILD[kind](K, o, e);
+  R3.figs.add(K.root);
+  return o;
+}
 function r3Drop(o) {
+  if (o.bike) {
+    R3.figs.remove(o.bike.root);
+    r3Dispose(o.bike.root);
+  }
   if (o.beast) {
     R3.figs.remove(o.root, o.shadow, o.ring);
     r3Dispose(o.root);
@@ -607,6 +634,8 @@ function r3Place(o, e) {
   }
   // a prop held overhead
   if (e.holding) r3HeldProp(e, X, Zw, sc);
+  // a rider's bike (or the open-top car) under them
+  r3Ride(o, e, X, Zw);
 }
 /* ---------- street props ---------- */
 function r3PropMesh(kind) {

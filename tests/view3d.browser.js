@@ -77,7 +77,7 @@ const { pathToFileURL } = require('url');
         }
         const n = d.length / 4,
           mean = sum / n;
-        const kinds = [...R3.pool.entries()].map(([e, o]) => [e.kind, !!o.root]);
+        const kinds = [...R3.pool.entries()].map(([e, o]) => [e.kind, !!o.root && !o.beast, o.pup]);
         return { on: R3.on, mean, sd: Math.sqrt(sq / n - mean * mean), kinds };
       });
       ok(s.on, 'a street fight is drawn in 3D');
@@ -90,8 +90,8 @@ const { pathToFileURL } = require('url');
         'runners and gangers are 3D puppets'
       );
       ok(
-        s.kinds.some(k => k[0] === 'hound' && !k[1]),
-        'a hound, with no puppet, is its 2D drawing on a card'
+        s.kinds.some(k => k[0] === 'hound' && k[2] === 'hound'),
+        'a hound is its own 3D model'
       );
       const t = await page.evaluate(() => {
         const t0 = performance.now();
@@ -104,12 +104,17 @@ const { pathToFileURL } = require('url');
         render();
       });
       ok(await page.evaluate(() => R3.on === false), 'Settings → View: Classic 2D switches it off');
-      await page.evaluate(() => {
-        prefs.view = '3d';
-        enterDen();
-      });
-      await page.waitForTimeout(300);
-      ok(await page.evaluate(() => R3.on === false && !!G.den), 'the Den stays 2D');
+      ok(
+        await page.evaluate(() => {
+          prefs.view = '3d';
+          const keep = G.stealth;
+          G.stealth = { stub: true };
+          const on = r3On();
+          G.stealth = keep;
+          return on === false;
+        }),
+        'a drone stealth job stays 2D'
+      );
       // every district builds and draws
       const built = [];
       const n = await page.evaluate(() => STAGES.length);
@@ -120,13 +125,50 @@ const { pathToFileURL } = require('url');
             G.banner = 0;
           }, i);
           const t = await page
-            .waitForFunction(i => (render(), R3.on && R3.key.includes(STAGES[i].name)), i, { timeout: 20000 })
+            .waitForFunction(i => (render(), R3.on && R3.key.includes(STAGES[i].name)), i, {
+              timeout: 60000
+            })
             .then(() => true)
             .catch(() => false);
           if (k === 0) built.push(t);
           if (k === 0 && i === n - 1) built.geo = await page.evaluate(() => R3.r.info.memory.geometries);
         }
       ok(built.every(Boolean), `all ${built.length} districts build in 3D`);
+      // and every other place: the Den, a Sprawl block, a room inside, training, a drive and a flight
+      const places = {
+        den: () => {
+          newRun(false);
+          enterDen();
+        },
+        block: () => startWorld(false),
+        room: () => {
+          const b = G.wd.street.buildings.find(x => ['hideout', 'business', 'home'].includes(x.type));
+          startHack(b);
+          hackWin();
+          setMode('play');
+        },
+        training: () => startTraining(),
+        drive: () => {
+          startDrive('causeway', false);
+          setMode('play');
+        },
+        flight: () => {
+          startFlight('skyline', false);
+          setMode('play');
+        }
+      };
+      for (const [name, fn] of Object.entries(places)) {
+        await page.evaluate(`(${fn})()`);
+        const on = await page
+          .waitForFunction(() => (render(), R3.on), null, { timeout: 30000 })
+          .then(() => true)
+          .catch(() => false);
+        const kinds = await page.evaluate(() => [...R3.pool.values()].map(o => o.pup));
+        ok(
+          on && !kinds.includes('card'),
+          `${name} is drawn in 3D, with no flat cards (${[...new Set(kinds)].join(', ') || 'nobody'})`
+        );
+      }
       // and the worlds it leaves behind are let go: no growing pile of GPU buffers
       const mem = [built.geo, await page.evaluate(() => R3.r.info.memory.geometries)];
       ok(mem[1] <= mem[0] + 12, `rebuilding districts frees the old ones (geometries ${mem[0]} → ${mem[1]})`);

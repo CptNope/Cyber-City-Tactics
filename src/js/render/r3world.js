@@ -28,7 +28,8 @@ function r3Facade(opts) {
     uDensity: { value: opts.density },
     uShop: { value: opts.shop ? 1 : 0 },
     uEra: { value: 0 },
-    uWire: { value: opts.wire ? 1 : 0 }
+    uWire: { value: opts.wire ? 1 : 0 },
+    uYOff: { value: opts.yoff || 0 }
   };
   m.userData.U = U;
   m.onBeforeCompile = sh => {
@@ -50,14 +51,14 @@ function r3Facade(opts) {
         `#include <common>
         varying vec3 vWP; varying vec3 vON;
         uniform vec2 uCell; uniform vec3 uWinCol; uniform vec3 uShopCol; uniform float uDensity;
-        uniform float uShop; uniform float uEra; uniform float uWire; uniform vec3 uAlt;
+        uniform float uShop; uniform float uEra; uniform float uWire; uniform vec3 uAlt; uniform float uYOff;
         float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`
       )
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         if (abs(vON.y) < 0.5) {
-          vec2 p = abs(vON.z) > 0.5 ? vWP.xy : vec2(vWP.z, vWP.y);
+          vec2 p = abs(vON.z) > 0.5 ? vec2(vWP.x, vWP.y - uYOff) : vec2(vWP.z, vWP.y - uYOff);
           vec2 c = floor(p / uCell), f = fract(p / uCell);
           float win = step(0.22, f.x) * step(f.x, 0.78) * step(0.25, f.y) * step(f.y, 0.75);
           float shopTop = 30.0 * uShop;
@@ -250,6 +251,7 @@ function r3BuildWorld(S) {
     W3.add(p);
     F.pl.push(p);
   }
+  if (G.flight) return r3BuildFlight(S, W3, len, r, rr);
   // the road: dark asphalt with puddles that are glossier than the rest
   const gw = 512,
     gh = 256,
@@ -953,4 +955,77 @@ function r3BuildRoom(S, W3) {
   }
   F.gate = new T.Group();
   r3EnvMap({ sky: [I.wall, I.trim], signs: [['', I.lamp]], win: I.lamp, moon: I.lamp });
+}
+
+/* ---------- a flight over the skyline ---------- */
+// The street is far below: the city drops away into the fog, and the towers the VTOL weaves between rise out
+// of it, each where the game put it, lit window by window, with a red light on its antenna
+function r3BuildFlight(S, W3, len, r, rr) {
+  const T = THREE,
+    F = R3,
+    M = new T.Matrix4(),
+    yt = FY0 + 20,
+    below = -520,
+    mid = [],
+    far = [];
+  F.scene.fog.near = 500;
+  F.scene.fog.far = 2200;
+  F.fogNear = 500;
+  let x = -600;
+  while (x < len + 600) {
+    const w = rr(90, 220);
+    mid.push({ x, w, h: rr(260, 520), z: -160 - rr(0, 200), d: 120, col: r3Hex(S.near, rr(0.6, 0.9)) });
+    x += w + rr(20, 90);
+  }
+  x = -1400;
+  while (x < len + 1400) {
+    const w = rr(140, 340);
+    far.push({ x, w, h: rr(500, 1200), z: -1000 - rr(0, 500), d: 220, col: r3Hex(S.far, rr(0.8, 1.2)) });
+    x += w + rr(20, 120);
+  }
+  const alt = S.signs && S.signs.length ? S.signs[0][1] : S.moon,
+    midMat = r3Facade({ alt, cw: 12, ch: 14, win: S.win, glow: 0.8, density: 0.14, yoff: below }),
+    farMat = r3Facade({ alt, cw: 14, ch: 16, win: S.win, glow: 1.1, density: 0.12, yoff: below }),
+    towMat = r3Facade({ alt, cw: 10, ch: 12, win: S.win, glow: 1.2, density: 0.3, yoff: below });
+  const low = new T.Group();
+  low.position.y = below;
+  low.add(r3Row(mid, midMat, 120), r3Row(far, farMat, 220));
+  W3.add(low);
+  F.facades = [midMat, farMat, towMat];
+  // the towers in the flight path, tops where the 2D view draws them
+  const tw = (G.flight.towers || []).map(t => ({
+    x: t.x,
+    w: t.w,
+    h: yt - t.top - below,
+    z: zOf(yt) + 30,
+    d: 60,
+    col: r3Hex('#1c1828', 1.4)
+  }));
+  if (tw.length) {
+    const row = r3Row(tw, towMat, 60);
+    row.position.y = below;
+    W3.add(row);
+    const ant = new T.InstancedMesh(
+      new T.BoxGeometry(2.4, 14, 2.4),
+      new T.MeshStandardMaterial({ color: '#2a2436', roughness: 0.5, metalness: 0.6 }),
+      tw.length
+    );
+    const lamp = new T.InstancedMesh(
+      new T.IcosahedronGeometry(2.2, 0),
+      new T.MeshBasicMaterial({ color: r3Hex('#ff3d4a', 3), toneMapped: false }),
+      tw.length
+    );
+    tw.forEach((t, i) => {
+      M.makeTranslation(t.x + t.w / 2, yt - G.flight.towers[i].top + 7, t.z - 30);
+      ant.setMatrixAt(i, M);
+      M.makeTranslation(t.x + t.w / 2, yt - G.flight.towers[i].top + 15, t.z - 30);
+      lamp.setMatrixAt(i, M);
+    });
+    W3.add(ant, lamp);
+    F.towerLamps = lamp;
+  }
+  r3Moon(W3, S);
+  r3Rain(W3, S);
+  F.gate = new T.Group();
+  r3EnvMap(S);
 }
