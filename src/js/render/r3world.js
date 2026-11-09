@@ -28,7 +28,8 @@ function r3Facade(opts) {
     uDensity: { value: opts.density },
     uShop: { value: opts.shop ? 1 : 0 },
     uEra: { value: 0 },
-    uWire: { value: opts.wire ? 1 : 0 }
+    uWire: { value: opts.wire ? 1 : 0 },
+    uYOff: { value: opts.yoff || 0 }
   };
   m.userData.U = U;
   m.onBeforeCompile = sh => {
@@ -50,14 +51,14 @@ function r3Facade(opts) {
         `#include <common>
         varying vec3 vWP; varying vec3 vON;
         uniform vec2 uCell; uniform vec3 uWinCol; uniform vec3 uShopCol; uniform float uDensity;
-        uniform float uShop; uniform float uEra; uniform float uWire; uniform vec3 uAlt;
+        uniform float uShop; uniform float uEra; uniform float uWire; uniform vec3 uAlt; uniform float uYOff;
         float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }`
       )
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         if (abs(vON.y) < 0.5) {
-          vec2 p = abs(vON.z) > 0.5 ? vWP.xy : vec2(vWP.z, vWP.y);
+          vec2 p = abs(vON.z) > 0.5 ? vec2(vWP.x, vWP.y - uYOff) : vec2(vWP.z, vWP.y - uYOff);
           vec2 c = floor(p / uCell), f = fract(p / uCell);
           float win = step(0.22, f.x) * step(f.x, 0.78) * step(0.25, f.y) * step(f.y, 0.75);
           float shopTop = 30.0 * uShop;
@@ -155,6 +156,39 @@ function r3Dispose(o) {
     }
   });
 }
+// Buildings at fixed spots: the Sprawl block's doors and the Den's shopfronts, in the order they stand
+const R3_BTYPE = {
+  safe: ['#18261e', 86],
+  home: ['#231c33', 94],
+  business: ['#18243a', 78],
+  hideout: ['#2a1a1c', 70],
+  blacksite: ['#10141f', 114],
+  club: ['#2a1630', 88],
+  precinct: ['#141c2e', 104],
+  clinic: ['#14262a', 82],
+  talisman: ['#241a30', 76]
+};
+function r3FixedFronts(back) {
+  const out = [];
+  if (G.world && !G.dun && G.wd && G.wd.street)
+    for (const b of G.wd.street.buildings) {
+      const t = R3_BTYPE[b.type];
+      if (!t) continue; // a hidden door sits in a gap between buildings
+      out.push({ x: b.x - b.w / 2, w: b.w, h: t[1] * 1.9, z: back, col: r3Hex(t[0], 1.7), fixed: true });
+    }
+  else if (G.den)
+    for (const n of NPCS)
+      if (n.front)
+        out.push({
+          x: n.x - n.front.w / 2,
+          w: n.front.w,
+          h: 150,
+          z: back,
+          col: r3Hex('#1c1426', 1.6),
+          fixed: true
+        });
+  return out.sort((a, b) => a.x - b.x);
+}
 function r3BuildWorld(S) {
   const T = THREE,
     F = R3;
@@ -166,6 +200,10 @@ function r3BuildWorld(S) {
   const W3 = (F.world = new T.Group());
   F.scene.add(W3);
   F.signBack = F.signBack || new T.MeshStandardMaterial({ color: '#0b0812', roughness: 0.6 });
+  F.moon = F.rain = F.refl = F.dance = F.exitDoor = null;
+  F.signs = [];
+  F.facades = [];
+  if (G.dun) return r3BuildRoom(S, W3);
   const tunnel = !!S.tunnel,
     matrix = !!S.matrix,
     len = Math.max(S.len || 1500, 1600) + WMAX + 400,
@@ -213,6 +251,7 @@ function r3BuildWorld(S) {
     W3.add(p);
     F.pl.push(p);
   }
+  if (G.flight) return r3BuildFlight(S, W3, len, r, rr);
   // the road: dark asphalt with puddles that are glossier than the rest
   const gw = 512,
     gh = 256,
@@ -318,20 +357,32 @@ function r3BuildWorld(S) {
   const front = [],
     mid = [],
     far = [];
-  let x = -320;
-  while (x < len) {
-    const w = rr(60, 140),
-      gap = r() < 0.18 ? rr(18, 36) : 2;
-    front.push({
-      x,
-      w: tunnel ? w + gap : w,
-      h: tunnel ? 420 : rr(95, 210),
-      z: back - (!tunnel && r() < 0.25 ? 10 : 0),
-      col: r3Hex(tunnel ? S.wall : S.near, tunnel ? rr(1.6, 2.1) : rr(0.85, 1.25))
-    });
-    x += w + gap;
+  // the places with real doors on the street (the Sprawl's buildings, the Den's shops) stand where the game
+  // puts them; generic buildings fill the gaps between
+  const fixed = r3FixedFronts(back);
+  const fillRow = (x0, x1) => {
+    let x = x0;
+    while (x < x1 - 20) {
+      const w = Math.min(rr(60, 140), x1 - x),
+        gap = r() < 0.18 ? rr(18, 36) : 2;
+      front.push({
+        x,
+        w: tunnel ? w + gap : w,
+        h: tunnel ? 420 : rr(95, 210),
+        z: back - (!tunnel && r() < 0.25 ? 10 : 0),
+        col: r3Hex(tunnel ? S.wall : S.near, tunnel ? rr(1.6, 2.1) : rr(0.85, 1.25))
+      });
+      x += w + gap;
+    }
+  };
+  let at = -320;
+  for (const b of fixed) {
+    fillRow(at, b.x - 2);
+    front.push(b);
+    at = b.x + b.w + 2;
   }
-  x = -400;
+  fillRow(at, len);
+  let x = -400;
   while (x < len + 200) {
     const w = rr(90, 200);
     mid.push({ x, w, h: rr(240, 460), z: back - 130 - rr(0, 60), d: 90, col: r3Hex(S.near, rr(0.6, 0.9)) });
@@ -378,7 +429,7 @@ function r3BuildWorld(S) {
   if (S.signs && S.signs.length) {
     let si = 0;
     for (const b of front) {
-      if (r() > 0.62 || b.x > len - 200) continue;
+      if (b.fixed || r() > 0.62 || b.x > len - 200) continue;
       const [t, col] = S.signs[si++ % S.signs.length],
         vert = r() < 0.35,
         m = r3SignMesh(t, col, vert),
@@ -711,8 +762,270 @@ function r3UpdateWorld(S) {
   const fog = wx === 'fog';
   F.scene.fog.near = fog ? 380 : F.fogNear;
   F.scene.fog.far = fog ? 1300 : 2600;
-  F.gate.visible = !!G.exitOpen && !G.den;
+  if (F.exitDoor) F.exitDoor.material.color.set(G.exitOpen ? '#7dffb0' : '#ff3d4a').multiplyScalar(2);
+  if (F.dance) {
+    const cols = ['#ff3d8b', '#45d2ff', '#ffc63d', '#b98cff', '#7dffb0'],
+      beat = G.t >> 4,
+      c = F.col || (F.col = new THREE.Color());
+    let i = 0;
+    for (let ty = 0; ty < 4; ty++)
+      for (let tx = 0; tx * 40 < W; tx++) {
+        const k = (tx * 7 + ty * 3 + beat) % 9;
+        c.set(cols[(tx + ty + beat) % cols.length]).multiplyScalar(k > 3 ? 0.05 : k === 0 ? 1.4 : 0.7);
+        F.dance.setColorAt(i++, c);
+      }
+    F.dance.instanceColor.needsUpdate = true;
+  }
+  F.gate.visible = !!G.exitOpen && !G.den && !G.dun;
   if (F.gate.visible) F.gate.material.opacity = 0.25 + 0.2 * Math.sin(G.t * 0.15);
   // lightning lights the whole street for a frame or two
   F.moonLight.intensity = G.flash > 0.2 && wx === 'storm' ? 5 : 1.4;
+}
+
+/* ---------- inside a building ---------- */
+// A room of the Sprawl: the wall and trim in the building's own colours, lamp strips under the ceiling, its
+// decor (server racks, shelves, frames, tags), the exit door, and a dance floor in a club
+function r3BuildRoom(S, W3) {
+  const T = THREE,
+    F = R3,
+    D0 = G.dun,
+    b = D0.b,
+    I = INT[facOf(b)],
+    r = srng(b.seed + D0.room * 97),
+    back = -14 * DZ,
+    x0 = -60,
+    len = W + 120,
+    deep = (FY1 - FY0) * DZ + 240,
+    M = new T.Matrix4();
+  F.scene.background = new T.Color('#030206');
+  F.scene.fog = new T.Fog('#030206', 900, 2400);
+  F.fogNear = 900;
+  W3.add(new T.HemisphereLight(r3Hex(I.lamp).lerp(new T.Color('#ffffff'), 0.5), new T.Color(I.trim), 0.55));
+  const moon = new T.DirectionalLight(I.lamp, 0.6);
+  moon.position.set(-100, 300, -200);
+  const fill = new T.DirectionalLight('#b8c4ff', 0.55);
+  fill.position.set(100, 200, 600);
+  W3.add(moon, moon.target, fill, fill.target);
+  F.moonLight = moon;
+  F.fill = fill;
+  F.lamps = [];
+  F.pl = [];
+  for (let i = 0; i < 4; i++) {
+    const p = new T.PointLight('#ffffff', 0, 380, 1.2);
+    W3.add(p);
+    F.pl.push(p);
+  }
+  const blacksite = I.deco === 'rack';
+  const mat = (c, rough, metal) =>
+    new T.MeshStandardMaterial({ color: c, roughness: rough, metalness: metal || 0.1, envMapIntensity: 0.6 });
+  // floor, wall, trim, ceiling
+  const floor = new T.Mesh(
+    new T.PlaneGeometry(len, deep),
+    mat(r3Hex(I.trim, 0.9), blacksite ? 0.3 : 0.6, 0.2)
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(x0 + len / 2, 0, back + deep / 2);
+  const wall = new T.Mesh(new T.BoxGeometry(len, 200, 8), mat(r3Hex(I.wall, 1.5), 0.8));
+  wall.position.set(x0 + len / 2, 100, back - 4);
+  const trim = new T.Mesh(new T.BoxGeometry(len, 34, 3), mat(r3Hex(I.trim, 1.6), 0.6));
+  trim.position.set(x0 + len / 2, 17, back + 1.5);
+  const ceil = new T.Mesh(new T.BoxGeometry(len, 6, deep), mat('#07050b', 1));
+  ceil.position.set(x0 + len / 2, 200, back + deep / 2);
+  W3.add(floor, wall, trim, ceil);
+  // panel seams down the wall
+  const seams = Math.ceil(len / 40),
+    sm = new T.InstancedMesh(new T.BoxGeometry(1.2, 166, 1), mat('#000000', 1), seams);
+  for (let i = 0; i < seams; i++) {
+    M.makeTranslation(x0 + i * 40, 117, back + 0.5);
+    sm.setMatrixAt(i, M);
+  }
+  W3.add(sm);
+  // lamp strips, each lighting the room
+  const lampN = Math.ceil(W / 120),
+    lm = new T.InstancedMesh(
+      new T.BoxGeometry(28, 3, 10),
+      new T.MeshBasicMaterial({ color: r3Hex(I.lamp, 2.6), toneMapped: false }),
+      lampN
+    );
+  for (let i = 0; i < lampN; i++) {
+    const x = 60 + i * 120;
+    M.makeTranslation(x, 194, back + 60);
+    lm.setMatrixAt(i, M);
+    F.lamps.push({ x, y: 180, z: back + 60, col: I.lamp, k: 1.4 });
+  }
+  W3.add(lm);
+  // decor along the wall
+  for (let i = 0; i < 4; i++) {
+    const x = 40 + i * 110 + r() * 40,
+      top = 156 - (40 + r() * 30);
+    if (I.deco === 'rack') {
+      const rk = new T.Mesh(new T.BoxGeometry(26, top + 10, 14), mat('#0a0f18', 0.4, 0.6));
+      rk.position.set(x + 13, (top + 10) / 2, back + 8);
+      W3.add(rk);
+      const leds = new T.InstancedMesh(
+        new T.BoxGeometry(3, 2, 1),
+        new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
+        12
+      );
+      const c = new T.Color();
+      for (let k = 0; k < 12; k++) {
+        M.makeTranslation(x + 5 + (k % 2) * 12, 20 + Math.floor(k / 2) * 12, back + 15.2);
+        leds.setMatrixAt(k, M);
+        leds.setColorAt(k, c.set(k % 3 ? '#45d2ff' : '#7dffb0').multiplyScalar(2));
+      }
+      W3.add(leds);
+    } else if (I.deco === 'shelf') {
+      for (const y of [top, top - 22]) {
+        const sh = new T.Mesh(new T.BoxGeometry(44, 3, 12), mat('#141826', 0.7));
+        sh.position.set(x + 18, y, back + 6);
+        W3.add(sh);
+        for (let k = 0; k < 5; k++) {
+          const bx = new T.Mesh(
+            new T.BoxGeometry(5, 8, 6),
+            mat(pick(['#ff6a3d', '#45d2ff', '#ffc63d', '#b98cff']), 0.5)
+          );
+          bx.position.set(x + k * 8 + 2, y + 5.5, back + 6);
+          W3.add(bx);
+        }
+      }
+    } else if (I.deco === 'frame' || I.deco === 'art') {
+      const fr = new T.Mesh(
+        new T.BoxGeometry(22, 28, 2),
+        mat(I.deco === 'art' ? '#ffc63d' : '#6b6280', 0.4, 0.5)
+      );
+      fr.position.set(x + 11, top + 14, back + 1);
+      const pic = new T.Mesh(
+        new T.BoxGeometry(18, 24, 1),
+        new T.MeshBasicMaterial({ color: r3Hex(pick(['#3a2a50', '#22324a', '#4a2a30']), 1.6) })
+      );
+      pic.position.set(x + 11, top + 14, back + 2.2);
+      W3.add(fr, pic);
+    } else if (I.deco === 'tag') {
+      // a spray tag in glowing paint
+      const pts = [];
+      let px = x,
+        py = top + 20;
+      for (let k = 1; k < 6; k++) {
+        const nx = x + k * 8,
+          ny = top + 20 - (k % 2 ? 18 : 4) * r();
+        pts.push(px, 190 - py, back + 1, nx, 190 - ny, back + 1);
+        px = nx;
+        py = ny;
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pts, 3));
+      W3.add(
+        new T.LineSegments(
+          g,
+          new T.LineBasicMaterial({
+            color: r3Hex(pick(['#ff3d8b', '#7dffb0', '#ffc63d']), 1.6),
+            toneMapped: false
+          })
+        )
+      );
+    }
+  }
+  // the way out: a door at the right with its light red until the room is clear
+  const ex = W - 26;
+  const door = new T.Mesh(new T.BoxGeometry(26, 44, 3), mat('#07050b', 0.6));
+  door.position.set(ex, 22, back + 1.5);
+  const frame = new T.Mesh(
+    new T.BoxGeometry(29, 47, 2),
+    new T.MeshBasicMaterial({ color: '#ff3d4a', toneMapped: false })
+  );
+  frame.position.set(ex, 23, back + 0.5);
+  W3.add(door, frame);
+  F.exitDoor = frame;
+  // a club's dance floor: tiles that light to the beat
+  if (b.type === 'club') {
+    const tiles = new T.InstancedMesh(
+      new T.BoxGeometry(36, 0.6, 20 * DZ),
+      new T.MeshBasicMaterial({ color: '#ffffff', toneMapped: false, transparent: true, opacity: 0.6 }),
+      Math.ceil(W / 40) * 4
+    );
+    let i = 0;
+    for (let ty = 0; ty < 4; ty++)
+      for (let tx = 0; tx * 40 < W; tx++) {
+        M.makeTranslation(tx * 40 + 20, 0.3, zOf(FY0 + 14 + ty * 23));
+        tiles.setMatrixAt(i, M);
+        tiles.setColorAt(i++, new T.Color(0, 0, 0));
+      }
+    W3.add(tiles);
+    F.dance = tiles;
+  }
+  F.gate = new T.Group();
+  r3EnvMap({ sky: [I.wall, I.trim], signs: [['', I.lamp]], win: I.lamp, moon: I.lamp });
+}
+
+/* ---------- a flight over the skyline ---------- */
+// The street is far below: the city drops away into the fog, and the towers the VTOL weaves between rise out
+// of it, each where the game put it, lit window by window, with a red light on its antenna
+function r3BuildFlight(S, W3, len, r, rr) {
+  const T = THREE,
+    F = R3,
+    M = new T.Matrix4(),
+    yt = FY0 + 20,
+    below = -520,
+    mid = [],
+    far = [];
+  F.scene.fog.near = 500;
+  F.scene.fog.far = 2200;
+  F.fogNear = 500;
+  let x = -600;
+  while (x < len + 600) {
+    const w = rr(90, 220);
+    mid.push({ x, w, h: rr(260, 520), z: -160 - rr(0, 200), d: 120, col: r3Hex(S.near, rr(0.6, 0.9)) });
+    x += w + rr(20, 90);
+  }
+  x = -1400;
+  while (x < len + 1400) {
+    const w = rr(140, 340);
+    far.push({ x, w, h: rr(500, 1200), z: -1000 - rr(0, 500), d: 220, col: r3Hex(S.far, rr(0.8, 1.2)) });
+    x += w + rr(20, 120);
+  }
+  const alt = S.signs && S.signs.length ? S.signs[0][1] : S.moon,
+    midMat = r3Facade({ alt, cw: 12, ch: 14, win: S.win, glow: 0.8, density: 0.14, yoff: below }),
+    farMat = r3Facade({ alt, cw: 14, ch: 16, win: S.win, glow: 1.1, density: 0.12, yoff: below }),
+    towMat = r3Facade({ alt, cw: 10, ch: 12, win: S.win, glow: 1.2, density: 0.3, yoff: below });
+  const low = new T.Group();
+  low.position.y = below;
+  low.add(r3Row(mid, midMat, 120), r3Row(far, farMat, 220));
+  W3.add(low);
+  F.facades = [midMat, farMat, towMat];
+  // the towers in the flight path, tops where the 2D view draws them
+  const tw = (G.flight.towers || []).map(t => ({
+    x: t.x,
+    w: t.w,
+    h: yt - t.top - below,
+    z: zOf(yt) + 30,
+    d: 60,
+    col: r3Hex('#1c1828', 1.4)
+  }));
+  if (tw.length) {
+    const row = r3Row(tw, towMat, 60);
+    row.position.y = below;
+    W3.add(row);
+    const ant = new T.InstancedMesh(
+      new T.BoxGeometry(2.4, 14, 2.4),
+      new T.MeshStandardMaterial({ color: '#2a2436', roughness: 0.5, metalness: 0.6 }),
+      tw.length
+    );
+    const lamp = new T.InstancedMesh(
+      new T.IcosahedronGeometry(2.2, 0),
+      new T.MeshBasicMaterial({ color: r3Hex('#ff3d4a', 3), toneMapped: false }),
+      tw.length
+    );
+    tw.forEach((t, i) => {
+      M.makeTranslation(t.x + t.w / 2, yt - G.flight.towers[i].top + 7, t.z - 30);
+      ant.setMatrixAt(i, M);
+      M.makeTranslation(t.x + t.w / 2, yt - G.flight.towers[i].top + 15, t.z - 30);
+      lamp.setMatrixAt(i, M);
+    });
+    W3.add(ant, lamp);
+    F.towerLamps = lamp;
+  }
+  r3Moon(W3, S);
+  r3Rain(W3, S);
+  F.gate = new T.Group();
+  r3EnvMap(S);
 }

@@ -10,9 +10,15 @@ function drawTowers() {
   // the street is far below: push it back into the dark
   ctx.fillStyle = 'rgba(5,4,10,.6)';
   ctx.fillRect(0, FY0 - 14, W, H - FY0 + 60);
+  // in the 3D view the towers themselves are 3D: this draws only the searchlights and flak over them
+  const flat = !(typeof R3 !== 'undefined' && R3.on);
   for (const t of F.towers) {
     const x = t.x - cx;
     if (x + t.w < -10 || x > W + 10) continue;
+    if (!flat) {
+      drawTowerBeams(t, x);
+      continue;
+    }
     ctx.fillStyle = '#0c0a14';
     ctx.fillRect(x, t.top, t.w, H - t.top);
     ctx.fillStyle = 'rgba(255,255,255,.06)';
@@ -27,6 +33,13 @@ function drawTowers() {
     ctx.fillStyle = '#2a2436';
     ctx.fillRect(x + t.w / 2 - 1, t.top - 14, 2, 14);
     if ((G.t + t.x) % 80 < 40) glow(x + t.w / 2, t.top - 15, 5, 5, '#ff3d4a', 0.9);
+    drawTowerBeams(t, x);
+  }
+}
+// a tower's searchlight and the flak about to burst near it
+function drawTowerBeams(t, x) {
+  const cx = G.camX;
+  {
     if (t.light) {
       const a = searchAngle(t),
         lx = x + t.w / 2,

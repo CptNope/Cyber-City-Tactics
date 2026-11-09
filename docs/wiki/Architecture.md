@@ -62,7 +62,7 @@ sequenceDiagram
 
 ## The 3D view
 
-Street fights (the districts, Arena, Gauntlet and the title's street) are drawn with three.js when the browser has WebGL 2 and **Settings → View** is 3D. Interiors, the Den, the Sprawl, jobs, training and hazards stay 2D, as does everything without WebGL 2 or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
+Nearly everything is drawn with three.js when the browser has WebGL 2 on a real graphics chip and **Settings → View** is 3D: the districts, Arena, Gauntlet, the title's street, the Den, Sprawl blocks and the rooms of their buildings, training, driving jobs and flights. Drone stealth jobs and a flight's rooftop deck stay 2D for now, as does everything without WebGL 2, on software WebGL, or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
 
 ```mermaid
 flowchart LR
@@ -79,7 +79,9 @@ flowchart LR
 | Mapping | X = x, Y = z (height), Z = (y − FY0) × DZ toward the camera |
 | Camera | looks down at atan(1/DZ), one unit = one logical pixel across at the middle lane, that lane where the 2D view puts it (`setViewOffset`) |
 | Fighters | low-poly puppets posed from the 2D figure's eased pose every frame; falls, rolls and throws turn the whole body as in 2D |
-| Everything else | its 2D drawing on a camera-facing card, so nothing is missing |
+| Creatures and machines | low-poly models (`r3beasts.js`): drones, hounds, mechs, the dragon, spirits, turrets, ICE, vending machines, chests, vaults, nodes, hostages, cars, the van, bikes, the VTOL and enemy air |
+| Places | the Sprawl's buildings and the Den's shops at their real spots, with the 2D doors and signs drawn on them; rooms built from the building's palette and decor; a flight's towers from the job |
+| Anything else | its 2D drawing on a camera-facing card, so nothing is missing |
 | The street | built once per district: wet road with glossy puddles, three instanced rows of buildings lit in the shader, neon signs and their reflections, lamps, rain in the vertex shader, district touches |
 | Overlays | foe bars, daze stars, numbers, sparks, pickups and shots drawn by their usual 2D functions over the 3D picture |
 | three.js | vendored as `vendor/three.min.js` (only the parts used); rebuild with `tools/vendor-three.mjs` |

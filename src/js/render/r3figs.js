@@ -477,7 +477,7 @@ function r3DrawCard(C, e) {
   C.tex.needsUpdate = true;
 }
 const r3Puppeted = e =>
-  !(e.air || e.kind === 'vtol' || e.drone || e.veh || e.mist > 0 || (e.bk && e.ride)) &&
+  !(e.air || e.kind === 'vtol' || e.drone || e.veh || e.mist > 0) &&
   !(
     e.d &&
     (e.d.turret || e.d.passive || e.d.ice || e.d.spirit || e.d.fly || e.d.quad || e.d.mech || e.d.dragon)
@@ -486,16 +486,29 @@ const r3Puppeted = e =>
 function r3UpdateFigs() {
   const F = R3,
     seen = new Set();
-  for (const e of G.ents) {
+  // the Den's shopkeepers stand outside the entity list; drawing them once keeps their figure current
+  if (G.den) {
+    const keep = ctx;
+    ctx = R3NULL;
+    try {
+      for (const n of NPCS) drawNPC(n);
+    } finally {
+      ctx = keep;
+    }
+  }
+  const list = G.den ? G.ents.concat(NPCS.map(n => npcEnt[n.id]).filter(Boolean)) : G.ents;
+  for (const e of list) {
     seen.add(e);
     let o = F.pool.get(e);
-    const pup = r3Puppeted(e);
+    // a puppet for fighters, a model for creatures and machines, the 2D drawing on a card for the rest
+    const beast = r3Puppeted(e) ? null : r3BeastKind(e),
+      pup = r3Puppeted(e) ? 'pup' : beast || 'card';
     if (o && o.pup !== pup) {
       r3Drop(o);
       o = null;
     }
     if (!o) {
-      o = pup ? r3Puppet() : r3Card(e);
+      o = pup === 'pup' ? r3Puppet() : beast ? r3Beast(beast, e) : r3Card(e);
       o.pup = pup;
       F.pool.set(e, o);
     }
@@ -509,8 +522,39 @@ function r3UpdateFigs() {
   r3UpdateProps();
   r3UpdateParts();
 }
+function r3Ride(o, e, X, Zw) {
+  const bk = e.bk && e.ride && !e.bk.pass ? e.bk : null;
+  if (!bk) {
+    if (o.bike) o.bike.root.visible = false;
+    return;
+  }
+  if (!o.bike) o.bike = bk.car ? r3BeastOf('car', e) : r3Bike((e.pal && e.pal.acc) || '#ff3d8b');
+  const b = o.bike,
+    down = e.state === 'dead' || e.state === 'down';
+  b.root.visible = o.root.visible || down;
+  b.root.position.set(X, down ? 0 : e.z, Zw);
+  b.root.scale.set(e.face || 1, down ? 0.45 : 1, 1);
+  if (b.beast) b.root.scale.multiplyScalar(VEH_SCALE * 0.8);
+  for (const w of b.P.wheels) w.rotation.z = -(e.walk || 0) * 0.28;
+}
+// a vehicle model used as something to sit on, not an entity of its own
+function r3BeastOf(kind, e) {
+  const K = r3Kit(),
+    o = { beast: kind, root: K.root, body: K.body, mats: K.mats, P: {} };
+  R3_BUILD[kind](K, o, e);
+  R3.figs.add(K.root);
+  return o;
+}
 function r3Drop(o) {
-  if (o.root) {
+  if (o.bike) {
+    R3.figs.remove(o.bike.root);
+    r3Dispose(o.bike.root);
+  }
+  if (o.beast) {
+    R3.figs.remove(o.root, o.shadow, o.ring);
+    r3Dispose(o.root);
+    o.ring.material.dispose();
+  } else if (o.root) {
     R3.figs.remove(o.root, o.shadow, o.ring);
     for (const k in o.mats) o.mats[k].dispose();
     o.orb.material.dispose();
@@ -533,6 +577,10 @@ function r3Place(o, e) {
     X = e.x,
     Zw = zOf(e.y),
     vis = fa > 0 && !blinkInv && !blinkDead && !(cloak && !seen && (G.t >> 1) % 6);
+  if (o.beast) {
+    r3PlaceBeast(o, e);
+    return;
+  }
   if (!o.root) {
     o.card.visible = fa > 0;
     if (o.card.visible) {
@@ -586,6 +634,8 @@ function r3Place(o, e) {
   }
   // a prop held overhead
   if (e.holding) r3HeldProp(e, X, Zw, sc);
+  // a rider's bike (or the open-top car) under them
+  r3Ride(o, e, X, Zw);
 }
 /* ---------- street props ---------- */
 function r3PropMesh(kind) {

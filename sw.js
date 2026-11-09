@@ -10,7 +10,7 @@
  */
 
 /* BUILD:MANIFEST */
-const VERSION = '2329fd2d832d';
+const VERSION = 'bd308986f063';
 const PRECACHE = [
   './',
   'index.html',
@@ -75,6 +75,7 @@ const PRECACHE = [
   'src/js/render/hud.js',
   'src/js/render/r3d.js',
   'src/js/render/r3figs.js',
+  'src/js/render/r3beasts.js',
   'src/js/render/r3world.js',
   'src/js/ui/attract.js',
   'src/js/ui/screens.js',

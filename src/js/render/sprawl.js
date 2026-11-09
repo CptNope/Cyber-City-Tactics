@@ -9,6 +9,16 @@ function drawBuildings(base) {
   for (const b of w.street.buildings) {
     const x = b.x - b.w / 2 - G.camX;
     if (x > W || x + b.w < 0) continue;
+    drawBuilding(b, base);
+  }
+}
+// One building's front. In the 3D view (R3.on) the walls and windows are 3D, so this draws only the door, the
+// name sign and the markers, over the 3D facade.
+function drawBuilding(b, base) {
+  const w = G.wd,
+    x = b.x - b.w / 2 - G.camX,
+    flat = !(typeof R3 !== 'undefined' && R3.on);
+  {
     if (b.type === 'secret') {
       const dx = b.x - G.camX,
         fd = w.found.includes(b.id),
@@ -26,7 +36,7 @@ function drawBuildings(base) {
         ctx.fill();
         ctx.globalAlpha = 1;
       }
-      continue;
+      return;
     }
     const H0 = {
         safe: 86,
@@ -50,10 +60,12 @@ function drawBuildings(base) {
         clinic: '#14262a',
         talisman: '#241a30'
       }[b.type];
-    ctx.fillStyle = col;
-    ctx.fillRect(x, base - H0, b.w, H0);
-    ctx.fillStyle = 'rgba(255,255,255,.05)';
-    ctx.fillRect(x, base - H0, b.w, 2);
+    if (flat) {
+      ctx.fillStyle = col;
+      ctx.fillRect(x, base - H0, b.w, H0);
+      ctx.fillStyle = 'rgba(255,255,255,.05)';
+      ctx.fillRect(x, base - H0, b.w, 2);
+    }
     const wr = srng(b.seed);
     ctx.fillStyle =
       b.type === 'blacksite' || b.type === 'precinct'
@@ -63,7 +75,7 @@ function drawBuildings(base) {
           : b.type === 'club'
             ? '#ff3d8b'
             : '#ffb36b';
-    ctx.globalAlpha = 0.4;
+    ctx.globalAlpha = flat ? 0.4 : 0;
     for (let wy = base - H0 + 8; wy < base - 60; wy += 12)
       for (let wx = x + 6; wx < x + b.w - 8; wx += 12) if (wr() < 0.45) ctx.fillRect(wx, wy, 5, 6);
     ctx.globalAlpha = 1;

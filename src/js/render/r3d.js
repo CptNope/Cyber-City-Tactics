@@ -32,7 +32,7 @@ const zOf = y => (y - FY0) * DZ;
  * hasn't picked Classic 2D. */
 function r3On() {
   if (typeof prefs === 'undefined' || prefs.view === '2d' || typeof THREE === 'undefined') return false;
-  if (G.den || G.world || G.dun || G.drive || G.stealth || G.flight || G.training || G.hazard) return false;
+  if (G.stealth || (G.flight && G.flight.roof)) return false; // still 2D: the corp floor and the rooftop deck
   if (gfxTier() >= 3 && prefs.view !== '3d!') return false; // a device that can't hold even the lean 2D view
   if (!r3Ready() || (R3.soft && !R3.force)) return false;
   // a district is built and its shaders compiled off the main thread before it is shown; until then the
@@ -43,8 +43,29 @@ function r3On() {
   if (R3.pending !== key) r3Prepare(S, key);
   return false;
 }
+// which place the scene was built for: a district, the Den, a Sprawl block, a room of a building
 const r3Key = S =>
-  (G.arena ? 'a' + G.theme : 's' + G.stage) + ':' + S.name + ':' + (G.challenge ? 1 : 0) + ':' + (S.len || 0);
+  (G.drive
+    ? 'drive' + (G.drive.id || '')
+    : G.flight
+      ? 'flight' + (G.flight.id || '') + ':' + (G.flight.towers || []).length
+      : G.dun
+        ? 'room' + G.dun.b.id + ':' + G.dun.room + ':' + (G.wd ? G.wd.level : 0)
+        : G.world && G.wd
+          ? 'block' + G.wd.level + ':' + G.wd.seed
+          : G.den
+            ? 'den'
+            : G.training
+              ? 'train'
+              : G.arena
+                ? 'a' + G.theme
+                : 's' + G.stage) +
+  ':' +
+  S.name +
+  ':' +
+  (G.challenge ? 1 : 0) +
+  ':' +
+  (S.len || 0);
 function r3Prepare(S, key) {
   R3.pending = key;
   setTimeout(() => {
@@ -217,7 +238,22 @@ function r3Render(shx, shy) {
 // The 2D game's overlays, drawn over the 3D picture: each at its own object's spot and scale
 const R3ONE = [];
 function r3Overlays() {
-  const cl = e => e.cloaked && e.state !== 'dead';
+  const cl = e => e.cloaked && e.state !== 'dead',
+    base = FY0 - 14;
+  // doors, name signs and markers on the Sprawl's buildings and the Den's shops, each on its own 3D facade
+  if (G.world && !G.dun && G.wd)
+    for (const b of G.wd.street.buildings)
+      if (Math.abs(b.x - G.camX - W / 2) < W && r3Affine(b.x, base)) drawBuilding(b, base);
+  if (G.den) for (const n of NPCS) if (n.front && r3Affine(n.x, base)) drawStorefronts(base, n);
+  if (G.world && G.wd && !G.dun) {
+    const tr = traderOf(G.wd);
+    if (tr && r3Affine(tr.x, FY0 - 6)) drawTrader(FY0 - 6);
+  }
+  for (const T of G.totems || []) if (r3Affine(T.x, T.y)) drawTotem(T);
+  // a driving job's lane lines and finish gantry; a flight's searchlights and flak
+  if (G.drive && r3Affine(G.camX + W / 2, R3_MIDY)) drawRoad();
+  if (G.flight && !G.flight.roof && r3Affine(G.camX + W / 2, FL.base)) drawTowers();
+  if (G.hazard && r3Affine(G.camX + W / 2, R3_MIDY)) drawHazard();
   for (const k of G.picks) if (r3Affine(k.x, k.y)) drawPick(k);
   for (const p of G.projs) if (r3Affine(p.x, p.y)) drawProj(p);
   for (const o of G.props) if (!R3_PROPS[o.kind] && r3Affine(o.x, o.y)) drawProp(o.kind, o.x - G.camX, o.y);
@@ -229,6 +265,15 @@ function r3Overlays() {
     if (e.team === 1 && e.curseT > G.t && e.state !== 'dead') drawCurse(e);
     if (e.kind === 'player' && marked(e)) drawMark(e);
     if (e.team === 1 && e.healT > 0 && e.state !== 'dead') drawHealing(e);
+    if (e.air && (e.gun || e.big) && e.hp > 0 && e.hp < e.maxHp) {
+      const bw = e.big ? 60 : 30,
+        sx = e.x - G.camX,
+        sy = e.y - e.z;
+      ctx.fillStyle = 'rgba(11,8,18,.8)';
+      ctx.fillRect(sx - bw / 2, sy - 30, bw, 3);
+      ctx.fillStyle = '#ff3d4a';
+      ctx.fillRect(sx - bw / 2, sy - 30, (bw * e.hp) / e.maxHp, 3);
+    }
     if (e.team === 1 && !e.air) drawFoeBar(e);
     else if (e.kind === 'ally') drawAllyBar(e);
     if (e.kind === 'player') r3PlayerMarks(e);
