@@ -740,6 +740,7 @@ function r3UpdateProps() {
   for (const [o, m] of F.propPool)
     if (!seen.has(o)) {
       F.figs.remove(m);
+      r3Dispose(m); // its own geometry (drums and cans) and materials; the shared box and shadow stay
       F.propPool.delete(o);
     }
 }
