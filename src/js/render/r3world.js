@@ -239,7 +239,7 @@ function r3BuildWorld(S) {
     )
   );
   const moon = new T.DirectionalLight(S.moon, 1.4);
-  moon.position.set(-200, 500, -700);
+  moon.position.set(-260, 820, -420);
   W3.add(moon, moon.target);
   F.moonLight = moon;
   const fill = new T.DirectionalLight('#b8c4ff', 0.75);
@@ -327,6 +327,7 @@ function r3BuildWorld(S) {
     })
   );
   road.rotation.x = -Math.PI / 2;
+  road.receiveShadow = true;
   road.position.set(len / 2 - 300, 0, depth / 2 - 4);
   W3.add(road);
   // lane markings: a dashed line down the middle lane
@@ -354,6 +355,7 @@ function r3BuildWorld(S) {
     new T.MeshStandardMaterial({ color: r3Hex(S.wall).multiplyScalar(1.5), roughness: 0.85 })
   );
   walk.position.set(len / 2 - 300, 1.5, back / 2);
+  kerb.receiveShadow = walk.receiveShadow = true;
   W3.add(kerb, walk);
   // buildings: the shopfront row, a taller row behind, and the skyline far off in the fog
   const front = [],
@@ -746,8 +748,7 @@ function r3UpdateWorld(S) {
   }
   // windows switch on and off over time
   for (const m of F.facades) m.userData.U.uEra.value = G.t >> 8;
-  F.moonLight.position.set(cx - 200, 500, -700);
-  F.moonLight.target.position.set(cx, 0, 0);
+  r3MoonShadow(F.moonLight, cx);
   F.fill.position.set(cx + 120, 260, 600);
   F.fill.target.position.set(cx, 0, 60);
   if (F.moon) F.moon.position.set(cx + 420 - G.camX * 0.02, 520, -2600);
@@ -835,6 +836,7 @@ function r3BuildRoom(S, W3) {
   trim.position.set(x0 + len / 2, 17, back + 1.5);
   const ceil = new T.Mesh(new T.BoxGeometry(len, 6, deep), mat('#07050b', 1));
   ceil.position.set(x0 + len / 2, 200, back + deep / 2);
+  floor.receiveShadow = true;
   W3.add(floor, wall, trim, ceil);
   // panel seams down the wall
   const seams = Math.ceil(len / 40),
@@ -1092,6 +1094,7 @@ function r3BuildFacility(S, W3) {
   rail.position.set(x0 + len / 2, SF.ceil + 2, Z0);
   const trim = new T.Mesh(new T.BoxGeometry(len, 1.5, 1), glow(accent, 1.4));
   trim.position.set(x0 + len / 2, SF.ceil - 0.5, back + 0.6);
+  floor.receiveShadow = wall.receiveShadow = true;
   W3.add(floor, wall, soffit, rail, trim);
   // panel seams and strip lights
   const seams = Math.ceil(len / 80),
@@ -1265,6 +1268,7 @@ function r3BuildRoof(W3, S) {
       new T.MeshStandardMaterial({ color: c, roughness: rough, metalness: metal || 0.2 });
   const deck = new T.Mesh(new T.BoxGeometry(len, 8, depth), mat('#121119', 0.75, 0.2));
   deck.position.set(x0 + len / 2, -4, back + depth / 2);
+  deck.receiveShadow = true;
   W3.add(deck);
   // deck seams
   const seams = Math.ceil(len / 48),
@@ -1348,4 +1352,34 @@ function r3UpdateRoof() {
     F.edge.setColorAt(i, c.set('#ff3d4a').multiplyScalar((G.t + x) % 90 < 45 ? 2.4 : 0.15));
   }
   F.edge.instanceColor.needsUpdate = true;
+}
+
+// the moon (or the room's key light) casts the shadows: a box around the view, kept steady by moving it in
+// whole shadow-map texels so the edges don't shimmer as the camera scrolls
+function r3MoonShadow(L, cx) {
+  const T = THREE,
+    tz = zOf(R3_MIDY);
+  if (!L.userData.shadowy) {
+    L.userData.shadowy = true;
+    L.userData.dir = L.position.clone().normalize();
+    L.castShadow = true;
+    L.shadow.mapSize.set(1024, 1024);
+    const c = L.shadow.camera;
+    c.left = -W * 0.7;
+    c.right = W * 0.7;
+    c.top = 260;
+    c.bottom = -260;
+    c.near = 10;
+    c.far = 2400;
+    c.updateProjectionMatrix();
+    L.shadow.bias = -0.0006;
+    L.shadow.normalBias = 0.6;
+    L.shadow.radius = 2;
+  }
+  const texel = (W * 1.4) / 1024,
+    x = Math.round(cx / texel) * texel,
+    d = L.userData.dir;
+  L.target.position.set(x, 0, tz);
+  L.position.set(x + d.x * 900, d.y * 900, tz + d.z * 900);
+  L.target.updateMatrixWorld();
 }

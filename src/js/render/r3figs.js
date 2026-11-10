@@ -118,6 +118,7 @@ function r3Puppet() {
   mats.metal.metalness = 0.7;
   const m = (geo, mat) => {
     const x = new T.Mesh(geo, mat);
+    x.castShadow = true;
     body.add(x);
     return x;
   };
@@ -299,6 +300,7 @@ function r3Pose(P, e) {
     P.helm.position.set(hd[0], hd[1] + 1.5, 0);
     P.helm.scale.set(12, 9.5, 11);
   }
+  r3Extras(P, e, hd, sh0, hip, fh);
   P.eyes.position.set(hd[0] + 4.6, hd[1] + 0.6, 0);
   P.eyes.scale.set(1.6, e.kind === 'player' || helm ? 1.6 : 1.1, e.kind === 'player' || helm ? 8 : 6);
   // arms: elbows bend back, as in 2D
@@ -557,6 +559,7 @@ function r3Drop(o) {
   } else if (o.root) {
     R3.figs.remove(o.root, o.shadow, o.ring);
     for (const k in o.mats) o.mats[k].dispose();
+    if (o.ex) for (const m of o.ex.own) m.dispose();
     o.orb.material.dispose();
     o.shield.material.dispose();
     o.ring.material.dispose();
@@ -771,5 +774,135 @@ function r3UpdateParts() {
   geo.setDrawRange(0, n);
   for (const k of ['position', 'color', 'size']) geo.attributes[k].needsUpdate = true;
   // gl_PointSize is in pixels: a unit at distance d is (canvas height / view height) * d-scaled pixels
-  F.parts.material.uniforms.uScale.value = (R3.h / VH) * (VH / (2 * Math.tan((R3_FOV * Math.PI) / 360)));
+  F.parts.material.uniforms.uScale.value =
+    ((R3.gh || R3.h) / VH) * (VH / (2 * Math.tan((R3_FOV * Math.PI) / 360)));
+}
+/* ---------- signature looks ---------- */
+// Each boss (and anyone with horns) gets pieces no ordinary fighter has: the Gutter King's horns and scrap
+// crown, Razor Mei's ponytail and scarf, the Hollow Saint's halo, the Avatar's gold horns and a ring of
+// orbiting gems, Mother Vesper's high collar and cape, Director Voss's gold mantle and orbiting runes
+const R3_EXTRAS = {
+  horns(K) {
+    const { add, gem, mat } = K,
+      bone = mat('#ece4c6', 0.5);
+    for (const z of [-3.2, 3.2]) {
+      add('horn' + z, R3.geo.cyl, bone, 1.2, 7, 1.2, -1, 5.5, z, 0, 0, -0.5);
+      add('tip' + z, gem, bone, 1, 2.6, 1, -4, 9.5, z);
+    }
+  },
+  troll(K) {
+    R3_EXTRAS.horns(K);
+    const { add, gem, mat, glow } = K,
+      scrap = mat('#8a6a3a', 0.35, 0.7);
+    for (let i = 0; i < 5; i++) add('crown' + i, gem, scrap, 1.1, 3, 1.1, -2 + i * 1.6, 7, -2 + i);
+    add('tusk1', gem, mat('#f2ead2', 0.4), 0.8, 2, 0.8, 4.5, -3, 2.2);
+    add('tusk2', gem, mat('#f2ead2', 0.4), 0.8, 2, 0.8, 4.5, -3, -2.2);
+    add('eyeg', gem, glow('#ff6a3d', 3), 1, 1, 1, 4.8, 1, 2.6);
+  },
+  blade(K) {
+    const { add, mat, glow } = K;
+    add('tail', R3.geo.cyl, mat('#f2f2f7', 0.5), 1.4, 12, 1.4, -6, -2, 0).userData.sway = 1;
+    add('visor', R3.geo.box, glow('#ff3d8b', 3), 1.4, 1.4, 9, 4.8, 1.2, 0);
+    add('scarf', R3.geo.box, mat('#ff3d8b', 0.6), 16, 2.4, 2.6, -8, -7.5, 0).userData.scarf = 1;
+  },
+  saint(K) {
+    const { add, glow } = K;
+    add('halo', R3.geo.ring, glow('#ff4a4a', 2.4), 7, 7, 7, -1, 10, 0).userData.halo = 1;
+  },
+  avatar(K) {
+    R3_EXTRAS.horns(K);
+    const { add, gem, glow } = K;
+    for (let i = 0; i < 6; i++)
+      add('orb' + i, gem, glow(i % 2 ? '#b98cff' : '#ffc63d', 2.6), 1.6, 1.6, 1.6, 0, 0, 0).userData.orb = i;
+    add('eyeg', gem, glow('#b98cff', 3.4), 1.2, 1.2, 1.2, 4.8, 1, 2.6);
+  },
+  vesper(K) {
+    const { add, mat, glow, gem } = K,
+      crim = mat('#3a0f1e', 0.6);
+    crim.side = THREE.DoubleSide;
+    add('collar', R3.geo.box, crim, 2, 9, 12, -3, 4, 0, 0, 0, -0.2).userData.shoulder = 1;
+    add('cape', R3.geo.box, crim, 2, 34, 16, -6, -22, 0).userData.cape = 1;
+    add('eyeg', gem, glow('#ff3d4a', 3.2), 1, 1, 1, 4.8, 1, 2.6);
+  },
+  archmage(K) {
+    const { add, mat, glow, gem } = K;
+    add('mantle', R3.geo.box, mat('#ffc63d', 0.3, 0.7), 11, 2.4, 11, 0, 0, 0).userData.shoulder = 1;
+    for (let i = 0; i < 3; i++)
+      add('rune' + i, gem, glow('#ffc63d', 2.8), 1.4, 2.4, 0.6, 0, 0, 0).userData.rune = i;
+  }
+};
+function r3Extras(P, e, hd, sh0, hip, fh) {
+  const key = R3_EXTRAS[e.kind] ? e.kind : (e._rig && e._rig.style) === 'horns' ? 'horns' : null;
+  if (P.exKey !== key) {
+    if (P.ex) for (const m of P.ex.list) P.body.remove(m);
+    P.ex = null;
+    P.exKey = key;
+    if (key) {
+      const list = [],
+        own = [];
+      const K = {
+        gem: R3.geo.gem,
+        mat: (c, r, m) => {
+          const x = r3Mat(c, r);
+          if (m) x.metalness = m;
+          own.push(x);
+          return x;
+        },
+        glow: (c, k) => {
+          const x = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(c).multiplyScalar(k || 2.2),
+            toneMapped: false
+          });
+          own.push(x);
+          return x;
+        },
+        add: (name, geo, mat, sx, sy, sz, x, y, z, rx, ry, rz) => {
+          const m = new THREE.Mesh(geo, mat);
+          m.castShadow = !mat.isMeshBasicMaterial;
+          m.scale.set(sx, sy, sz);
+          m.userData.at = [x, y, z];
+          m.rotation.set(rx || 0, ry || 0, rz || 0);
+          P.body.add(m);
+          list.push(m);
+          return m;
+        }
+      };
+      R3_EXTRAS[key](K);
+      P.ex = { list, own };
+    }
+  }
+  if (!P.ex) return;
+  // pieces ride on the head unless they say otherwise; capes and tails hang from the shoulders and sway
+  const t = G.t,
+    st = e.state,
+    sway =
+      (st === 'walk' ? Math.sin((e.walk || 0) * 0.2) * 0.25 : Math.sin(t * 0.05) * 0.08) - (e.vx || 0) * 0.04;
+  for (const m of P.ex.list) {
+    const [x, y, z] = m.userData.at,
+      u = m.userData;
+    if (u.cape || u.scarf) {
+      m.position.set(sh0[0] + x, sh0[1] + y, z);
+      m.rotation.z = sway + (u.scarf ? 1.3 : 0.08);
+    } else if (u.sway) {
+      m.position.set(hd[0] + x, hd[1] + y, z);
+      m.rotation.z = 0.5 + sway;
+    } else if (u.halo) {
+      m.position.set(hd[0] + x, hd[1] + y + Math.sin(t * 0.08) * 0.8, z);
+      m.rotation.set(0.25, t * 0.02, 0);
+    } else if (u.orb !== undefined) {
+      const a = t * 0.04 + (u.orb * Math.PI) / 3;
+      m.position.set(
+        (hip[0] + sh0[0]) / 2 + Math.cos(a) * 16,
+        (hip[1] + sh0[1]) / 2 + Math.sin(a * 2) * 4,
+        Math.sin(a) * 16
+      );
+      m.rotation.y = a;
+    } else if (u.rune !== undefined) {
+      const a = t * 0.07 + (u.rune * Math.PI * 2) / 3;
+      m.position.set(fh[0] + Math.cos(a) * 7, fh[1] + Math.sin(a) * 7, 6);
+      m.rotation.z = a;
+    } else if (u.shoulder) {
+      m.position.set(sh0[0] + x, sh0[1] + y, z);
+    } else m.position.set(hd[0] + x, hd[1] + y, z);
+  }
 }

@@ -50,6 +50,7 @@ function r3Kit() {
   // a part: geometry, material, size, position, parent
   const part = (geo, m, sx, sy, sz, x, y, z, parent) => {
     const p = new T.Mesh(geo, m);
+    p.castShadow = !m.isMeshBasicMaterial;
     p.scale.set(sx, sy, sz);
     p.position.set(x || 0, y || 0, z || 0);
     (parent || body).add(p);

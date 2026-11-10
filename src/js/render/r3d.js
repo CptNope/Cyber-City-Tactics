@@ -118,6 +118,7 @@ function r3Ready() {
     R3.soft = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(who);
     R3.gpu = who;
     r.setPixelRatio(1);
+    r.shadowMap.type = THREE.PCFShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping;
     r.toneMappingExposure = 0.95;
     r.outputColorSpace = THREE.SRGBColorSpace;
@@ -160,10 +161,27 @@ function r3Size() {
     st = R3.cv.style,
     l = cvs.offsetLeft + 'px',
     t = cvs.offsetTop + 'px';
-  if (R3.w !== w || R3.h !== h) {
+  // dynamic resolution: a device that's struggling draws fewer pixels before it loses frames, and very big
+  // screens are capped at about 3.7 million pixels; the canvas is stretched back to full size
+  const tier = gfxTier(),
+    cap = Math.min(1, Math.sqrt(3.7e6 / (w * h))),
+    k = Math.min(cap, tier === 0 ? 1 : tier === 1 ? 0.8 : 0.66),
+    gw = Math.round(w * k),
+    gh = Math.round(h * k);
+  if (R3.w !== w || R3.h !== h || R3.gw !== gw || R3.gh !== gh) {
     R3.w = w;
     R3.h = h;
-    R3.r.setSize(w, h, false);
+    R3.gw = gw;
+    R3.gh = gh;
+    R3.r.setSize(gw, gh, false);
+  }
+  // real shadows from the moon (or the room's lamps) on the most capable devices
+  const shadows = tier === 0 && !RM && !prefs.contrast;
+  if (shadows !== R3.r.shadowMap.enabled) {
+    R3.r.shadowMap.enabled = shadows;
+    R3.scene.traverse(o => {
+      for (const m of [].concat(o.material || [])) m.needsUpdate = true;
+    });
   }
   // sit exactly under the game canvas
   if (st.width !== cvs.style.width) st.width = cvs.style.width;

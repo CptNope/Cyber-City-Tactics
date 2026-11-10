@@ -84,6 +84,8 @@ flowchart LR
 | Anything else | its 2D drawing on a camera-facing card, so nothing is missing |
 | The street | built once per district: wet road with glossy puddles, three instanced rows of buildings lit in the shader, neon signs and their reflections, lamps, rain in the vertex shader, district touches |
 | Overlays | foe bars, daze stars, numbers, sparks, pickups and shots drawn by their usual 2D functions over the 3D picture |
+| Quality | bloom below tier 2; real moon shadows on tier 0; resolution 100/80/66% by tier, capped near 3.7 MP; tier 3 goes 2D |
+| Bosses | signature pieces on their puppets: horns and crown, ponytail and scarf, halo, orbiting gems, collar and cape, mantle and runes |
 | three.js | vendored as `vendor/three.min.js` (only the parts used); rebuild with `tools/vendor-three.mjs` |
 
 Online, the friend's browser calls `netGuestStep()` instead of `update()`: it applies the host's snapshots and eases everything toward them (see [[Online Co-op]]).
