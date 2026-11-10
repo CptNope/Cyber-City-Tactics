@@ -203,7 +203,16 @@ function r3BuildWorld(S) {
   F.moon = F.rain = F.refl = F.dance = F.exitDoor = null;
   F.signs = [];
   F.facades = [];
-  F.fac = F.roofLights = null;
+  F.fac = F.roofLights = F.city = null;
+  // the edge light on every figure takes the district's first neon colour
+  r3RimColor((S.signs && S.signs[0] && S.signs[0][1]) || S.win || '#45d2ff');
+  // two lights for the brightest effects (muzzle flashes, fireballs, impacts), shared by every place
+  r3FxInit();
+  F.fxl = [0, 1].map(() => {
+    const L = new T.PointLight('#ffffff', 0, 260, 1.4);
+    W3.add(L);
+    return L;
+  });
   if (G.dun) return r3BuildRoom(S, W3);
   if (G.stealth) return r3BuildFacility(S, W3);
   const tunnel = !!S.tunnel,
@@ -529,6 +538,7 @@ function r3BuildWorld(S) {
   if (S.market) r3Lanterns(W3, len, r);
   if (S.grid || matrix) r3Grid(W3, S, len, depth);
   if (!tunnel) r3Moon(W3, S);
+  if (!tunnel) r3BuildCity(W3, S, len, r);
   r3Rain(W3, S);
   // the exit: a gate of light at the end of the street
   const gate = new T.Mesh(

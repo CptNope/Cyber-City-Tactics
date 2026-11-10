@@ -201,11 +201,12 @@ function r3Camera(shx, shy) {
     tx = G.camX + W / 2 + shx,
     tz = zOf(R3_MIDY),
     d = VH / (2 * Math.tan((R3_FOV * Math.PI) / 360)),
-    push = typeof introK === 'function' && !RM ? 1 + 0.07 * (introK() || 0) : 1;
+    fx = r3CamFx(),
+    sx = tx + fx.sway;
   cam.aspect = W / VH;
-  cam.position.set(tx, d * Math.sin(TILT), tz + d * Math.cos(TILT));
-  cam.lookAt(tx, 0, tz);
-  cam.zoom = push;
+  cam.position.set(sx, d * Math.sin(TILT) + fx.dy, tz + d * Math.cos(TILT));
+  cam.lookAt(tx, fx.dy * 0.4, tz);
+  cam.zoom = fx.zoom;
   // the middle lane sits BAND + 216 down the view, not at its centre: shift the frustum, not the camera,
   // so the picture keeps its angle
   cam.setViewOffset(W, VH, 0, -(BAND + R3_MIDY - VH / 2) + shy, W, VH);
@@ -248,6 +249,7 @@ function r3Render(shx, shy) {
   r3Camera(shx, shy);
   r3UpdateWorld(S);
   r3UpdateFigs();
+  r3UpdateFx();
   R3.r.render(R3.scene, R3.cam);
   // the game canvas above it starts each frame clear, then takes the overlays and the HUD
   ctx.setTransform(1, 0, 0, 1, 0, 0);

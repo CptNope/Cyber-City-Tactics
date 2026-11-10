@@ -42,6 +42,7 @@ function r3Kit() {
       envMapIntensity: 0.7
     });
     m.userData.base = col;
+    m.onBeforeCompile = r3Rim;
     mats.push(m);
     return m;
   };
@@ -736,7 +737,13 @@ function r3PlaceBeast(o, e) {
   }
   if (!o.root.visible) return false;
   o.root.position.set(e.x, e.z, Zw);
-  o.root.scale.set((e.air && e.kind !== 'vtol' ? -1 : e.face || 1) * s, s, s);
+  const fc = e.air && e.kind !== 'vtol' ? -1 : e.face || 1;
+  o.root.scale.set(fc * s, s, s);
+  // creatures and machines turn a little toward the camera too; things that stand facing it stay put
+  o.root.rotation.y =
+    RM || passive || o.beast === 'spirit' || o.beast === 'ice'
+      ? 0
+      : -fc * (e.air || e.kind === 'vtol' ? 0.22 : 0.35);
   // a hit turns it white for a frame
   const fl = e.flash > 0 && e.flash % 2;
   if (o.fl !== fl) {
