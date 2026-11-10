@@ -146,12 +146,19 @@ function r3SignMesh(t, col, vert) {
   m.userData.h = th / 2.8;
   return m;
 }
+// Free everything a built place holds on the GPU: geometry, materials and every texture they use (not just
+// the colour map: roughness, emissive and alpha maps too), and the shadow map of any light that casts one.
+// Anything left behind piles up with each place built until the browser drops the WebGL context.
 function r3Dispose(o) {
   o.traverse(c => {
     if (c.geometry && !Object.values(R3.geo).includes(c.geometry)) c.geometry.dispose();
+    if (c.isLight && c.shadow && c.shadow.map) {
+      c.shadow.map.dispose();
+      c.shadow.map = null;
+    }
     for (const m of [].concat(c.material || [])) {
       if (m === R3.shadowMat || m === R3.signBack) continue;
-      if (m.map) m.map.dispose();
+      for (const k in m) if (m[k] && m[k].isTexture && m[k] !== R3.glowTex) m[k].dispose();
       m.dispose();
     }
   });
@@ -196,7 +203,10 @@ function r3BuildWorld(S) {
     F.scene.remove(F.world);
     r3Dispose(F.world);
   }
-  if (F.env) F.env.dispose();
+  if (F.envRT) F.envRT.dispose();
+  F.envRT = F.env = null;
+  if (F.skyTex) F.skyTex.dispose();
+  F.skyTex = null;
   const W3 = (F.world = new T.Group());
   F.scene.add(W3);
   F.signBack = F.signBack || new T.MeshStandardMaterial({ color: '#0b0812', roughness: 0.6 });
@@ -721,7 +731,10 @@ function r3EnvMap(S) {
     m.lookAt(0, 0, 0);
     room.add(m);
   });
-  R3.env = pm.fromScene(room, 0.04).texture;
+  // keep the whole render target: freeing only its texture leaves the target behind, one per place built
+  if (R3.envRT) R3.envRT.dispose();
+  R3.envRT = pm.fromScene(room, 0.04);
+  R3.env = R3.envRT.texture;
   R3.scene.environment = R3.env;
   pm.dispose();
   room.traverse(o => {

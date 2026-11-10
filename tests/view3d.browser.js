@@ -149,7 +149,6 @@ const sample = () => {
             .catch(() => false);
           if (k === 0) built.push(t);
           if (k === 0 && t) await look(`district-${i + 1}`);
-          if (k === 0 && i === n - 1) built.geo = await page.evaluate(() => R3.r.info.memory.geometries);
         }
       ok(built.every(Boolean), `all ${built.length} districts build in 3D`);
       // and every other place: the Den, a Sprawl block, a room inside, training, a drive and a flight
@@ -197,9 +196,21 @@ const sample = () => {
         !flat.length,
         'every district and place draws a lit scene' + (flat.length ? ': ' + flat.join(', ') : '')
       );
-      // and the worlds it leaves behind are let go: no growing pile of GPU buffers
-      const mem = [built.geo, await page.evaluate(() => R3.r.info.memory.geometries)];
-      ok(mem[1] <= mem[0] + 12, `rebuilding districts frees the old ones (geometries ${mem[0]} → ${mem[1]})`);
+      // and the worlds it leaves behind are let go, textures and shadow maps included: a leak here piles up
+      // until a phone (or CI's software WebGL) drops the context and the game falls back to 2D. Build every
+      // place a second time: the second round must end where the first did.
+      const a = await page.evaluate(() => ({ ...R3.r.info.memory }));
+      for (const fn of Object.values(places)) {
+        await page.evaluate(`(${fn})()`);
+        await page
+          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
+          .catch(() => {});
+      }
+      const b = await page.evaluate(() => ({ ...R3.r.info.memory, ok: R3.ok }));
+      ok(
+        b.ok && b.geometries <= a.geometries + 6 && b.textures <= a.textures + 6,
+        `building every place again frees the old ones (geometries ${a.geometries} → ${b.geometries}, textures ${a.textures} → ${b.textures})`
+      );
     }
     ok(!errs.length, 'no errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   } catch (e) {

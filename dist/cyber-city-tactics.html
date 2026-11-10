@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-FQsmEZt6oXZkMMszDhpXZ+PR5zQ28NCqn5VAaw7dzBE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-L/5QvHoS5QYWhN0JTAm8zKH6x69A7iz/RhRVRilJg0U='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+c28c73e';
+const APP_VERSION = '2.0.0+0f7f4e2';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -31865,12 +31865,19 @@ function r3SignMesh(t, col, vert) {
   m.userData.h = th / 2.8;
   return m;
 }
+// Free everything a built place holds on the GPU: geometry, materials and every texture they use (not just
+// the colour map: roughness, emissive and alpha maps too), and the shadow map of any light that casts one.
+// Anything left behind piles up with each place built until the browser drops the WebGL context.
 function r3Dispose(o) {
   o.traverse(c => {
     if (c.geometry && !Object.values(R3.geo).includes(c.geometry)) c.geometry.dispose();
+    if (c.isLight && c.shadow && c.shadow.map) {
+      c.shadow.map.dispose();
+      c.shadow.map = null;
+    }
     for (const m of [].concat(c.material || [])) {
       if (m === R3.shadowMat || m === R3.signBack) continue;
-      if (m.map) m.map.dispose();
+      for (const k in m) if (m[k] && m[k].isTexture && m[k] !== R3.glowTex) m[k].dispose();
       m.dispose();
     }
   });
@@ -31915,7 +31922,10 @@ function r3BuildWorld(S) {
     F.scene.remove(F.world);
     r3Dispose(F.world);
   }
-  if (F.env) F.env.dispose();
+  if (F.envRT) F.envRT.dispose();
+  F.envRT = F.env = null;
+  if (F.skyTex) F.skyTex.dispose();
+  F.skyTex = null;
   const W3 = (F.world = new T.Group());
   F.scene.add(W3);
   F.signBack = F.signBack || new T.MeshStandardMaterial({ color: '#0b0812', roughness: 0.6 });
@@ -32440,7 +32450,10 @@ function r3EnvMap(S) {
     m.lookAt(0, 0, 0);
     room.add(m);
   });
-  R3.env = pm.fromScene(room, 0.04).texture;
+  // keep the whole render target: freeing only its texture leaves the target behind, one per place built
+  if (R3.envRT) R3.envRT.dispose();
+  R3.envRT = pm.fromScene(room, 0.04);
+  R3.env = R3.envRT.texture;
   R3.scene.environment = R3.env;
   pm.dispose();
   room.traverse(o => {
