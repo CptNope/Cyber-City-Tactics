@@ -199,16 +199,24 @@ const sample = () => {
       // and the worlds it leaves behind are let go, textures and shadow maps included: a leak here piles up
       // until a phone (or CI's software WebGL) drops the context and the game falls back to 2D. Build every
       // place a second time: the second round must end where the first did.
-      const a = await page.evaluate(() => ({ ...R3.r.info.memory }));
+      // measured in the Den both times: it holds the same things every visit (the corp floor's layout is random)
+      const inDen = async () => {
+        await page.evaluate(`(${places.den})()`);
+        await page
+          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
+          .catch(() => {});
+        return page.evaluate(() => (render(), { ...R3.r.info.memory, ok: R3.ok }));
+      };
+      const a = await inDen();
       for (const fn of Object.values(places)) {
         await page.evaluate(`(${fn})()`);
         await page
           .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
           .catch(() => {});
       }
-      const b = await page.evaluate(() => ({ ...R3.r.info.memory, ok: R3.ok }));
+      const b = await inDen();
       ok(
-        b.ok && b.geometries <= a.geometries + 6 && b.textures <= a.textures + 6,
+        b.ok && b.geometries <= a.geometries + 3 && b.textures <= a.textures + 3,
         `building every place again frees the old ones (geometries ${a.geometries} → ${b.geometries}, textures ${a.textures} → ${b.textures})`
       );
     }
