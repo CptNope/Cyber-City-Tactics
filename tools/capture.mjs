@@ -15,10 +15,12 @@
  *
  * The game runs frame by frame under this script's control (the real loop is paused), and the runners are
  * driven by a tiny autopilot, so every capture is the same every time apart from the game's own dice.
+ * Everything is captured in the 3D view (forced on, even where Chromium only has software WebGL); --2d
+ * captures the classic flat view instead.
  * Playwright is a dev tool only; the game itself still has no dependencies.
  */
 import { createRequire } from 'node:module';
-import { mkdirSync, rmSync, readFileSync } from 'node:fs';
+import { mkdirSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -35,6 +37,7 @@ const want = k =>
       ? !process.argv.includes('--no-video')
       : !process.argv.includes('--video-only');
 const MEDIA = join(ROOT, 'docs/media');
+const FLAT = process.argv.includes('--2d');
 mkdirSync(OUT, { recursive: true });
 mkdirSync(MEDIA, { recursive: true });
 
@@ -44,7 +47,9 @@ const HELPERS = () => {
     // pause the real loop; we step the game ourselves
     freeze() {
       frame = () => {};
+      if (typeof R3 !== 'undefined') R3.force = true; // 3D even on software WebGL
       prefs.tips = false;
+      prefs.story = false; // no story scenes over the action
       prefs.seen = prefs.seen || {};
       prefs.seen.trainoffer = true;
       document.getElementById('ov').style.display = 'none';
@@ -85,7 +90,38 @@ const HELPERS = () => {
       }
       lerpRender(0);
     },
+    // one video frame straight from the canvases (far faster than a page screenshot on software WebGL): the
+    // 3D scene, the game canvas over it, and the caption drawn in the game's own type
+    compose(w, h) {
+      render();
+      const c = __cap.cv || (__cap.cv = document.createElement('canvas'));
+      c.width = w;
+      c.height = h;
+      const x = c.getContext('2d');
+      x.fillStyle = '#0c0a14';
+      x.fillRect(0, 0, w, h);
+      if (typeof R3 !== 'undefined' && R3.on) x.drawImage(R3.cv, 0, 0, w, h);
+      x.drawImage(document.getElementById('game'), 0, 0, w, h);
+      const [t, sub] = __cap.cap || [];
+      if (t) {
+        x.textAlign = 'center';
+        x.shadowColor = '#0c0a14';
+        x.shadowBlur = 18;
+        x.fillStyle = '#efe9ff';
+        x.font = '64px Teko, Impact, sans-serif';
+        x.fillText(t.toUpperCase(), w / 2, h * 0.24 + 52);
+        if (sub) {
+          x.fillStyle = '#a79dc2';
+          x.font = "500 22px 'Chakra Petch', sans-serif";
+          x.fillText(sub, w / 2, h * 0.24 + 92);
+        }
+        x.shadowBlur = 0;
+      }
+      return c.toDataURL('image/jpeg', 0.92);
+    },
     caption(text, sub) {
+      __cap.cap = [text, sub];
+      if (__cap.noDom) return;
       let el = document.getElementById('cap');
       if (!el) {
         el = document.createElement('div');
@@ -115,6 +151,7 @@ const HELPERS = () => {
       document.getElementById('ov').style.display = 'none';
       G.fade = 0;
       G.banner = 0;
+      G.cut = null;
       G.ents = G.ents.filter(e => e.team !== 1);
       G.waveLive = true;
       G.wave = 99;
@@ -139,15 +176,30 @@ const HELPERS = () => {
   };
 };
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+// wait for the 3D scene of whatever place is on screen to be built and compiled (it happens between frames)
+const ready3d = pg =>
+  FLAT
+    ? Promise.resolve()
+    : pg
+        .waitForFunction(() => (render(), typeof R3 === 'undefined' || R3.ok === false || R3.on), null, {
+          timeout: 90000,
+          polling: 200
+        })
+        .catch(() => console.log('  (3D not ready; captured in 2D)'));
 async function page(w, h, scale) {
   const pg = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: scale || 1 });
+  pg.setDefaultTimeout(240000); // a page screenshot of a 3D scene is slow on software WebGL
   pg.on('pageerror', e => console.error('page error:', e.message));
   await pg.goto(pathToFileURL(join(ROOT, 'index.html')).href);
   await pg.waitForFunction(() => typeof G !== 'undefined');
   await pg.evaluate(() => document.fonts.ready);
   await pg.waitForTimeout(500);
   await pg.evaluate(HELPERS);
+  await pg.evaluate(flat => {
+    prefs.view = flat ? '2d' : '3d';
+    if (typeof R3 !== 'undefined') R3.force = true;
+  }, FLAT);
   return pg;
 }
 
@@ -194,6 +246,7 @@ async function stills() {
   await pg.evaluate(() => __cap.freeze());
   for (const [name, setup, n] of STILLS) {
     await pg.evaluate(setup);
+    await ready3d(pg);
     await pg.evaluate(n => {
       if (G.world) {
         for (let i = 0; i < n; i++) {
@@ -209,16 +262,24 @@ async function stills() {
   }
   // the title screen, wordmark settled
   const t = await page(1920, 1080);
+  await ready3d(t);
   await t.waitForTimeout(1500);
+  // hold the frame still: a live 1080p loop on software WebGL can starve the screenshot
+  await t.evaluate(() => {
+    frame = () => {};
+    render();
+  });
   await t.screenshot({ path: join(OUT, 'shot-title.png') });
   await t.close();
   // install-dialog screenshots: wide 1280x720 and narrow phone portrait (390x844 at 2x)
   const wide = await page(1280, 720);
   await wide.evaluate(() => __cap.freeze());
   await wide.evaluate(() => __cap.scene(3, ['thrall', 'thrall', 'ghoul', 'vesper']));
+  await ready3d(wide);
   await wide.evaluate(() => __cap.step(110));
   await wide.screenshot({ path: join(ROOT, 'screenshots/wide-market.png') });
   await wide.evaluate(() => __cap.scene(0, ['ganger', 'orc', 'ganger', 'hound']));
+  await ready3d(wide);
   await wide.evaluate(() => __cap.step(150));
   await wide.screenshot({ path: join(ROOT, 'screenshots/wide-street.png') });
   await wide.close();
@@ -228,16 +289,21 @@ async function stills() {
     isMobile: true,
     hasTouch: true
   });
+  narrow.setDefaultTimeout(240000);
   await narrow.goto(pathToFileURL(join(ROOT, 'index.html')).href);
   await narrow.waitForFunction(() => typeof G !== 'undefined');
   await narrow.evaluate(() => document.fonts.ready);
   await narrow.evaluate(HELPERS);
   await narrow.waitForTimeout(400);
-  await narrow.evaluate(() => {
+  await narrow.evaluate(flat => {
+    prefs.view = flat ? '2d' : '3d';
     document.body.classList.add('touch');
     __cap.freeze();
     __cap.scene(0, ['ganger', 'orc', 'ganger']);
     fit();
+  }, FLAT);
+  await ready3d(narrow);
+  await narrow.evaluate(() => {
     __cap.step(120);
     document.getElementById('ov').style.display = '';
   });
@@ -261,6 +327,7 @@ async function cards() {
     const pg = await page(w * 2, Math.round(w * 2 * (9 / 16)));
     await pg.evaluate(() => __cap.freeze());
     await pg.evaluate(() => __cap.scene(3, ['thrall', 'ghoul', 'thrall', 'vesper']));
+    await ready3d(pg);
     // key art: the same street, without the HUD (render skips it on the title screen)
     await pg.evaluate(() => {
       // the runners stay on their feet for the key art
@@ -277,6 +344,9 @@ async function cards() {
       G.camX = mid - W * 0.6;
       G.mode = 'title';
       G.texts = [];
+      G.picks = []; // no loot labels or hit flashes on the key art
+      G.fx = [];
+      G.projs = [];
       render();
     });
     const frame = await pg.screenshot({ type: 'png' });
@@ -318,8 +388,11 @@ async function trailer() {
   const pg = await page(1280, 720);
   await pg.evaluate(() => __cap.freeze());
   let n = 0;
-  const grab = async () =>
-    pg.screenshot({ path: join(FR, `f${String(n++).padStart(5, '0')}.jpg`), type: 'jpeg', quality: 92 });
+  await pg.evaluate(() => (__cap.noDom = true)); // captions are drawn into the frames instead
+  const grab = async () => {
+    const url = await pg.evaluate(() => __cap.compose(1280, 720));
+    writeFileSync(join(FR, `f${String(n++).padStart(5, '0')}.jpg`), Buffer.from(url.split(',')[1], 'base64'));
+  };
   // repeat the last captured frame (a title card, an end card) for a number of video frames (30 fps)
   const hold = frames => {
     const src = join(FR, `f${String(n - 1).padStart(5, '0')}.jpg`);
@@ -353,16 +426,19 @@ async function trailer() {
   hold(60);
   // 2. the Barrens in a storm
   await pg.evaluate(() => __cap.scene(0, ['ganger', 'orc', 'ganger', 'hound', 'ganger', 'hound']));
+  await ready3d(pg);
   await cap('Two runners. One rotten city.', 'Punch, kick, shoot, cast, grab and throw');
   await play(150);
   // 3. a boss entrance
   await pg.evaluate(() => __cap.scene(1, ['blade', 'sec', 'drone'], { sp: true }));
+  await ready3d(pg);
   await cap('', '');
   await play(55); // the boss card has the screen to itself
   await cap('Six districts. Six bosses.', '');
   await play(75);
   // 4. the Undercity Market and Mother Vesper
   await pg.evaluate(() => __cap.scene(3, ['vesper', 'thrall', 'thrall', 'ghoul']));
+  await ready3d(pg);
   await cap('', '');
   await play(110);
   // 5. elites
@@ -372,6 +448,7 @@ async function trailer() {
       right: true
     })
   );
+  await ready3d(pg);
   await cap(
     'Choose who you hurt.',
     'An open-world Sprawl, a black market and two choices that change the ending'
@@ -417,6 +494,7 @@ async function readme() {
   const pg = await page(1280, 720);
   await pg.evaluate(() => __cap.freeze());
   const snap = async (name, menu) => {
+    await ready3d(pg);
     await pg.evaluate(menu => {
       document.getElementById('ov').style.display = menu ? '' : 'none';
       render();
@@ -562,7 +640,8 @@ async function readme() {
       '-i',
       mp4,
       '-vf',
-      'fps=12,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle',
+      // the 3D view's soft light compresses worse than flat art: fewer colours and frames keep it near 3 MB
+      'fps=10,scale=520:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle',
       '-loop',
       '0',
       gif

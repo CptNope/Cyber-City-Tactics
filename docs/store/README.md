@@ -24,7 +24,7 @@ The install-dialog screenshots listed in `manifest.webmanifest` live in `/screen
 NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 ```
 
-`--no-video` skips the trailer; `--video-only` makes just the trailer; `--only=stills,cards,readme,video` picks any mix (`readme` cuts the preview GIF from the existing trailer). The trailer needs `ffmpeg` on your PATH. The game runs frame by frame under the script, with a small autopilot driving both runners, so each run comes out nearly the same.
+Everything is captured in the 3D view (forced on even where Chromium only has software WebGL, so a run takes a while: a 1080p page screenshot of a 3D scene is slow there, and the trailer reads its frames straight from the game's canvases instead). `--2d` captures the classic flat view. `--no-video` skips the trailer; `--video-only` makes just the trailer; `--only=stills,cards,readme,video` picks any mix (`readme` cuts the preview GIF from the existing trailer). The trailer needs `ffmpeg` on your PATH. The game runs frame by frame under the script, with a small autopilot driving both runners, so each run comes out nearly the same.
 
 ## itch.io page copy
 
@@ -47,6 +47,7 @@ NODE_PATH=<a folder with playwright installed> node tools/capture.mjs
 > - **Jobs between the brawls:** Road Rash–style bike chases, drone stealth through corp floors (one flies, one runs overwatch), and VTOL runs over the skyline that land in a rooftop brawl.
 > - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 > - **Co-op, couch or online:** one keyboard, two controllers, or two browsers anywhere with a five-letter room code, in every mode. Training with Juno for anyone new.
+> - **Neon in 3D:** a tilted three-quarter camera over wet, rain-lit streets, low-poly fighters with coat tails and rim light, and 3D mechs, hounds, a dragon and a VTOL. Switch to the original flat art any time.
 > - **Plays anywhere:** phones, tablets, laptops and TVs. Install it and it plays offline.
 >
 > No account, no ads, no tracking. Just the game.

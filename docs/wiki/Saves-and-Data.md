@@ -63,3 +63,7 @@ flowchart TD
 | Makers and parts on items | `fixItem()` / `fixGear()` |
 
 See [[Robustness Audit]] for the save-handling fixes made in November 2026.
+
+## Privacy
+
+Saves never leave the device unless the player moves them (a backup file, a save code or a sync file). The only network traffic is online play: the lobby holds a room's two connection invites for 15 minutes and keys an hourly rate-limit counter by IP address, and the two browsers then talk directly or through Cloudflare's relay. No analytics, ads or accounts. The policy players see is [`privacy.html`](https://cptnope.github.io/Cyber-City-Tactics/privacy.html), linked from Settings; keep it in step with `server/worker.js` and `src/js/modes/net.js`.

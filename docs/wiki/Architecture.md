@@ -12,12 +12,12 @@ Plain JavaScript drawing on a `<canvas>`, with HTML menus over it. There's no fr
 | `src/js/systems/` | Cross-mode systems: legend (feats, legendaries, Codex), story scenes, skill trees, haggling |
 | `src/js/game/` | The simulation: state, flow between places, combat, props and grabs, runners, allies and crew, enemies, the update step |
 | `src/js/modes/` | Mode rules: Sprawl, black market, choices, dungeons, hacking, training, Arena, the Gauntlet, jobs (driving, drone, flight), online co-op |
-| `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()`; the 3D view of street fights (`r3d.js`, `r3figs.js`, `r3world.js`) |
+| `src/js/render/` | Drawing: figures and weapons, light, enemy looks, boss intros, vehicles, the corp floor, the skyline, backgrounds, the Sprawl street, the HUD and `render()`; the 3D view of every mode (`r3d.js`, `r3figs.js`, `r3beasts.js`, `r3fx.js`, `r3world.js`) |
 | `src/js/ui/` | HTML menus: title attract, screens, overlay and `setMode`, the single action handler |
-| `src/js/pwa.js`, `src/js/sync.js`, `src/js/main.js` | Install, updates and backups; save codes and the sync file; the game loop and boot |
+| `src/js/pwa.js`, `src/js/sync.js`, `src/js/main.js` | Install, updates, backups and the Android back button; save codes and the sync file; the game loop and boot |
 | `sw.js` | Service worker: precaches the build for offline play |
 | `server/` | The online lobby: a Cloudflare Worker with room codes and TURN relay passes |
-| `tools/` | `build.mjs` (version stamp, precache list, single-file build), local server, screenshot and trailer capture, local lobby |
+| `tools/` | `build.mjs` (version stamp, precache list, single-file build), local server, screenshot and trailer capture (in 3D), local lobby |
 | `tests/` | Headless tests in Node (a stubbed DOM in `harness.js`) and Playwright browser tests |
 | `docs/` | Architecture guide, design system and brand book, README media, store kit |
 
@@ -30,7 +30,7 @@ flowchart LR
   DATA --> SYS["systems/<br/>legend → story → skills → haggle"]
   SYS --> GAME["game/<br/>state → flow → combat → props → runners → allies → crew → enemies → update"]
   GAME --> MODES["modes/<br/>sprawl → blackmarket → choices → dungeons → hacking → training → arena → gauntlet → jobs → drive → stealth → flight → net"]
-  MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud → r3d → r3figs → r3world"]
+  MODES --> REND["render/<br/>figures → atmos → looks → intro → vehicles → facility → air → world → sprawl → hud → r3d → r3figs → r3beasts → r3fx → r3world"]
   REND --> UI["ui/<br/>attract → screens → overlay → actions"]
   UI --> PWA[pwa.js] --> SYNC[sync.js] --> MAIN[main.js: boots]
 ```
@@ -62,14 +62,14 @@ sequenceDiagram
 
 ## The 3D view
 
-Nearly everything is drawn with three.js when the browser has WebGL 2 on a real graphics chip and **Settings → View** is 3D: the districts, Arena, Gauntlet, the title's street, the Den, Sprawl blocks and the rooms of their buildings, training, driving jobs, flights and their rooftop fights, and the drone stealth jobs (a cut-away corp floor). Everything is 2D without WebGL 2, on software WebGL, or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws.
+Nearly everything is drawn with three.js when the browser has WebGL 2 on a real graphics chip and **Settings → View** is 3D: the districts, Arena, Gauntlet, the title's street, the Den, Sprawl blocks and the rooms of their buildings, training, driving jobs, flights and their rooftop fights, and the drone stealth jobs (a cut-away corp floor). Everything is 2D without WebGL 2, on software WebGL, or on graphics tier 3. The simulation doesn't change: the 3D view reads the same state the 2D one draws. A new place is built and its shaders compiled a piece at a time between frames (`r3Prepare()`), drawing 2D until it's ready, so nothing freezes.
 
 ```mermaid
 flowchart LR
   R["render()"] -->|r3On| R3["r3Render()"]
   R3 --> W["r3UpdateWorld: lights follow the fight, signs flicker, rain"]
   R3 --> F["r3UpdateFigs: drawFig on a blank context → e._pose, e._rig → puppet"]
-  R3 --> GL["three.js draws, bloom"] --> C["copied onto the game canvas"]
+  R3 --> GL["three.js draws, bloom, into #game3d"] --> C["the game canvas above it, cleared to transparent"]
   C --> O["2D overlays at each object's projected spot (r3Affine)"] --> H["renderHud(): the usual HUD"]
   R -->|otherwise| D2["the 2D street"] --> H
 ```
