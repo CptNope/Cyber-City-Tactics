@@ -272,6 +272,9 @@ const partyLvl = () => {
   const a = PL.filter(p => !p.out);
   return a.length ? a.reduce((t, p) => t + (p.lvl || 1), 0) / a.length : 1;
 };
+// a district you keep flatlining in: 10% lighter crews per retry, down to 70%
+const graceMul = () =>
+  G.grace && G.grace.st === G.stage && !gauntOn() && !G.arena && !G.world ? 1 - 0.1 * G.grace.n : 1;
 function lvlMul() {
   if (G.drive || G.stealth || (G.flight && !G.flight.roof) || G.training) return { hp: 1, dmg: 1 };
   const l = Math.max(0, partyLvl() - 1);
@@ -285,7 +288,7 @@ function spawnEnemy(kind, side) {
     DF = DIFF[G.diff],
     NG = ngMul(),
     LV = lvlMul(),
-    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp;
+    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp * graceMul();
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -304,7 +307,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg),
+    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg * graceMul()),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,

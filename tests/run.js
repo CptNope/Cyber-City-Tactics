@@ -96,7 +96,7 @@ const TESTS = [
   { file: 'chrome', minPass: 36 },
   { file: 'streetfoes', minPass: 17 },
   { file: 'grabs', minPass: 22 },
-  { file: 'balance', minPass: 4 },
+  { file: 'balance', minPass: 6 },
   { file: 'gear', minPass: 20 },
   { file: 'stealth', minPass: 64 },
   { file: 'flight', minPass: 34 },

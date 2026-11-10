@@ -675,6 +675,12 @@ ov.addEventListener('click', e => {
       setMode('title');
       break;
     case 'retry':
+      // each flatline in the same district sends its crews in a little lighter, so leveling up is never the
+      // only way through a wall (foes grow with the runners, so grinding alone barely moves the needle)
+      G.grace =
+        G.grace && G.grace.st === G.stage
+          ? { st: G.stage, n: Math.min(3, G.grace.n + 1) }
+          : { st: G.stage, n: 1 };
       for (const q of PL) {
         q.lives = maxLives();
         q.ammo = Math.max(q.ammo, 12);

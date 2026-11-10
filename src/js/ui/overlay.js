@@ -161,7 +161,7 @@ function renderOv() {
   }
   if (m === 'over') {
     h = `<div class="card"><p class="eyebrow">District ${G.stage + 1} · ${esc(STAGES[G.stage].name)}</p><h2 style="color:var(--neon)">Flatlined</h2>
-    <p>You keep levels, karma, gear and cyberware. The district restarts with full health, three lives each and half your creds. The contract resets.</p>
+    <p>You keep levels, karma, gear and cyberware. The district restarts with full health, three lives each and half your creds. The contract resets.${G.grace && G.grace.st === G.stage && G.grace.n >= 3 ? '' : ' The crews here come in a little lighter each time you fall.'}</p>
     <div class="row"><button class="btn" data-a="retry">Run it again</button><button class="btn ghost" data-a="quit">Quit to title</button></div></div>`;
   }
   if (m === 'win') {
@@ -598,5 +598,6 @@ function newRun(coop, noBrief) {
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;
+  G.grace = null;
   if (!noBrief) briefing(0, false); // the Gauntlet briefs its own first district (and must not save)
 }

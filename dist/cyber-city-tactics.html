@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-XHdXd6HDe1MdZ/YR1VVDR1j5olZ4LTToG1T5Jo9pobk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-bwG/ZWWvyAP+mO63yO9l1/qirJwdfsX1klUrzjptjfg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+44a70d5';
+const APP_VERSION = '2.0.0+21bef38';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -6663,6 +6663,9 @@ const partyLvl = () => {
   const a = PL.filter(p => !p.out);
   return a.length ? a.reduce((t, p) => t + (p.lvl || 1), 0) / a.length : 1;
 };
+// a district you keep flatlining in: 10% lighter crews per retry, down to 70%
+const graceMul = () =>
+  G.grace && G.grace.st === G.stage && !gauntOn() && !G.arena && !G.world ? 1 - 0.1 * G.grace.n : 1;
 function lvlMul() {
   if (G.drive || G.stealth || (G.flight && !G.flight.roof) || G.training) return { hp: 1, dmg: 1 };
   const l = Math.max(0, partyLvl() - 1);
@@ -6676,7 +6679,7 @@ function spawnEnemy(kind, side) {
     DF = DIFF[G.diff],
     NG = ngMul(),
     LV = lvlMul(),
-    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp;
+    hpm = (1 + depth() * 0.42) * DF.hp * NG.hp * LV.hp * graceMul();
   const x = side < 0 ? G.camX - 24 : G.camX + W + 24;
   const e = {
     kind,
@@ -6695,7 +6698,7 @@ function spawnEnemy(kind, side) {
     inv: 0,
     flash: 0,
     hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
-    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg),
+    dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg * graceMul()),
     cool: rand(20, d.cool),
     hits: 0,
     lastHit: 0,
@@ -10366,6 +10369,8 @@ function upEnemy(e) {
   }
   if (e.state === 'aim') {
     if (e.t === 22) {
+      // a fan of shots is one attack: it can land on a runner once, not once per shot
+      const vol = [];
       if (d.ranged === 'laser') {
         for (const oy of [-10, 0, 10])
           G.projs.push({
@@ -10376,7 +10381,8 @@ function upEnemy(e) {
             z: e.z + 4,
             vx: e.face * 4.4,
             dmg: e.dmg,
-            life: 110
+            life: 110,
+            vol
           });
         sfx.zap();
       } else if (d.mimic) echoSpell(e);
@@ -10391,9 +10397,10 @@ function upEnemy(e) {
             y: e.y + (n > 1 ? (i - (n - 1) / 2) * 13 : 0),
             z: e.z + 30,
             vx: e.face * 2.4,
-            dmg: e.dmg,
+            dmg: n > 1 ? Math.round(e.dmg * 0.75) : e.dmg, // a fan covers more lanes, so each shot hits lighter
             life: 170,
-            r: 5
+            r: 5,
+            vol
           });
         sfx.zap();
       }
@@ -10445,7 +10452,13 @@ function upEnemy(e) {
           q.inv <= 0
         ) {
           e.beamHit.push(q);
-          hurt(q, e.dmg, q.x >= e.x ? 1 : -1, { kd: true, big: true, col: '#45d2ff', ax: e.x });
+          // telegraphed for most of a second, so it hurts, but never more than a third of anyone's health
+          hurt(q, Math.min(e.dmg, (q.maxHp || 100) * 0.35), q.x >= e.x ? 1 : -1, {
+            kd: true,
+            big: true,
+            col: '#45d2ff',
+            ax: e.x
+          });
         }
       }
     }
@@ -10973,7 +10986,8 @@ function echoSpell(e) {
     G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#45d2ff', life: 18, max: 18, r: 24 });
     return;
   }
-  const n = k === 'chain' ? 3 : 1;
+  const n = k === 'chain' ? 3 : 1,
+    vol = [];
   for (let i = 0; i < n; i++)
     G.projs.push({
       k: 'hex',
@@ -10985,7 +10999,8 @@ function echoSpell(e) {
       vx: e.face * (k === 'bolt' ? 3.6 : 2.6),
       dmg: e.dmg * (k === 'fire' ? 1.3 : 1),
       life: 170,
-      r: 5
+      r: 5,
+      vol
     });
 }
 /* ---------- sentry turrets ---------- */
@@ -11573,6 +11588,10 @@ function update() {
         continue;
       }
       if (pr.hit && pr.hit.includes(t)) continue;
+      if (pr.vol) {
+        if (pr.vol.includes(t)) continue;
+        pr.vol.push(t);
+      }
       if (pr.k === 'fire') explode(pr);
       else if (pr.k === 'nade') {
         explode(pr, { gun: true });
@@ -33982,7 +34001,7 @@ function renderOv() {
   }
   if (m === 'over') {
     h = `<div class="card"><p class="eyebrow">District ${G.stage + 1} · ${esc(STAGES[G.stage].name)}</p><h2 style="color:var(--neon)">Flatlined</h2>
-    <p>You keep levels, karma, gear and cyberware. The district restarts with full health, three lives each and half your creds. The contract resets.</p>
+    <p>You keep levels, karma, gear and cyberware. The district restarts with full health, three lives each and half your creds. The contract resets.${G.grace && G.grace.st === G.stage && G.grace.n >= 3 ? '' : ' The crews here come in a little lighter each time you fall.'}</p>
     <div class="row"><button class="btn" data-a="retry">Run it again</button><button class="btn ghost" data-a="quit">Quit to title</button></div></div>`;
   }
   if (m === 'win') {
@@ -34419,6 +34438,7 @@ function newRun(coop, noBrief) {
   G.debrief = null;
   G.stock = [];
   G.bestCombo = 0;
+  G.grace = null;
   if (!noBrief) briefing(0, false); // the Gauntlet briefs its own first district (and must not save)
 }
 
@@ -35099,6 +35119,12 @@ ov.addEventListener('click', e => {
       setMode('title');
       break;
     case 'retry':
+      // each flatline in the same district sends its crews in a little lighter, so leveling up is never the
+      // only way through a wall (foes grow with the runners, so grinding alone barely moves the needle)
+      G.grace =
+        G.grace && G.grace.st === G.stage
+          ? { st: G.stage, n: Math.min(3, G.grace.n + 1) }
+          : { st: G.stage, n: 1 };
       for (const q of PL) {
         q.lives = maxLives();
         q.ammo = Math.max(q.ammo, 12);
