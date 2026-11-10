@@ -143,7 +143,7 @@ const sample = () => {
           }, i);
           const t = await page
             .waitForFunction(i => (render(), R3.on && R3.key.includes(STAGES[i].name)), i, {
-              timeout: 60000
+              timeout: 90000
             })
             .then(() => true)
             .catch(() => false);
@@ -180,14 +180,17 @@ const sample = () => {
       for (const [name, fn] of Object.entries(places)) {
         await page.evaluate(`(${fn})()`);
         const on = await page
-          .waitForFunction(() => (render(), R3.on), null, { timeout: 30000 })
+          // the corp floor is the heaviest place to build, and CI's software WebGL is slow: allow time
+          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
           .then(() => true)
           .catch(() => false);
         const kinds = await page.evaluate(() => [...R3.pool.values()].map(o => o.pup));
         if (on) await look(name);
         ok(
           on && !kinds.includes('card'),
-          `${name} is drawn in 3D, with no flat cards (${[...new Set(kinds)].join(', ') || 'nobody'})`
+          on
+            ? `${name} is drawn in 3D, with no flat cards (${[...new Set(kinds)].join(', ') || 'nobody'})`
+            : `${name} is drawn in 3D (timed out after 90 s waiting for it to build)`
         );
       }
       ok(
