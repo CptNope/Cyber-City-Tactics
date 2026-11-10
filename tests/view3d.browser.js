@@ -180,16 +180,17 @@ const sample = () => {
         await page.evaluate(`(${fn})()`);
         const on = await page
           // the corp floor is the heaviest place to build, and CI's software WebGL is slow: allow time
-          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
-          .then(() => true)
+          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 90000, polling: 250 })
+          .then(() => page.evaluate(() => R3.on))
           .catch(() => false);
         const kinds = await page.evaluate(() => [...R3.pool.values()].map(o => o.pup));
+        const why = on ? '' : await page.evaluate(() => R3.why || (R3.ok === false ? '3D switched off' : ''));
         if (on) await look(name);
         ok(
           on && !kinds.includes('card'),
           on
             ? `${name} is drawn in 3D, with no flat cards (${[...new Set(kinds)].join(', ') || 'nobody'})`
-            : `${name} is drawn in 3D (timed out after 90 s waiting for it to build)`
+            : `${name} is drawn in 3D (${why || 'timed out after 90 s waiting for it to build'})`
         );
       }
       ok(
@@ -203,7 +204,7 @@ const sample = () => {
       const inDen = async () => {
         await page.evaluate(`(${places.den})()`);
         await page
-          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
+          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 90000, polling: 250 })
           .catch(() => {});
         return page.evaluate(() => (render(), { ...R3.r.info.memory, ok: R3.ok }));
       };
@@ -211,7 +212,7 @@ const sample = () => {
       for (const fn of Object.values(places)) {
         await page.evaluate(`(${fn})()`);
         await page
-          .waitForFunction(() => (render(), R3.on), null, { timeout: 90000, polling: 250 })
+          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 90000, polling: 250 })
           .catch(() => {});
       }
       const b = await inDen();

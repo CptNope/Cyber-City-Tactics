@@ -80,6 +80,7 @@ function r3Prepare(S, key) {
       r3Camera(0, 0);
     } catch (e) {
       R3.ok = false; // a district that can't be built: 2D for the rest of the session
+      R3.why = 'build ' + key + ': ' + ((e && e.stack) || e); // shown in Settings' diagnostics and by the tests
       return;
     }
     // compile the shaders a piece at a time between frames, so even a browser that compiles them on the main
@@ -139,6 +140,7 @@ function r3Ready() {
     cv.addEventListener('webglcontextlost', ev => {
       ev.preventDefault();
       R3.ok = false; // back to 2D for the rest of the session
+      R3.why = 'WebGL context lost';
     });
     r3InitFigs();
     R3.ok = true;

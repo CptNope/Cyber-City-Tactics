@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-L/5QvHoS5QYWhN0JTAm8zKH6x69A7iz/RhRVRilJg0U='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-sky0vfa6DK17DdIERotKPCSVJ/jvulIENDUhpFHvd9c='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+0f7f4e2';
+const APP_VERSION = '2.0.0+ae367aa';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -29171,6 +29171,7 @@ function r3Prepare(S, key) {
       r3Camera(0, 0);
     } catch (e) {
       R3.ok = false; // a district that can't be built: 2D for the rest of the session
+      R3.why = 'build ' + key + ': ' + ((e && e.stack) || e); // shown in Settings' diagnostics and by the tests
       return;
     }
     // compile the shaders a piece at a time between frames, so even a browser that compiles them on the main
@@ -29230,6 +29231,7 @@ function r3Ready() {
     cv.addEventListener('webglcontextlost', ev => {
       ev.preventDefault();
       R3.ok = false; // back to 2D for the rest of the session
+      R3.why = 'WebGL context lost';
     });
     r3InitFigs();
     R3.ok = true;
@@ -33505,7 +33507,7 @@ function perfReport() {
     `Browser: ${navigator.userAgent}`,
     `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
     `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
-    `View: ${prefs.view}${R3.ok ? ', WebGL 2 on ' + (R3.gpu || 'an unknown GPU') + (R3.soft ? ' (software, so 2D)' : '') : R3.ok === false ? ', no WebGL 2' : ''}`,
+    `View: ${prefs.view}${R3.ok ? ', WebGL 2 on ' + (R3.gpu || 'an unknown GPU') + (R3.soft ? ' (software, so 2D)' : '') : R3.ok === false ? (R3.why ? ', 3D off: ' + String(R3.why).split('\n')[0].slice(0, 120) : ', no WebGL 2') : ''}`,
     `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
     `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
   ].join('\n');
