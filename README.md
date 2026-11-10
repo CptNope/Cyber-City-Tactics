@@ -134,6 +134,7 @@ What they say changes after each job.
 
 - **Difficulty:** Street, Runner or Prime. Foes also grow with your runners: each party level adds about 9% to their health and 8% to their damage on top of the district's own scaling, so a regular foe takes four or five punches at any level and a powerful party still has a fight (jobs keep their own tuning).
 - **New Game+:** after the final boss you can start again with your runners, levels, gear, skills, cyberware and spells. Enemies hit harder, elites are more common and loot is better. You can repeat it as often as you like.
+- **Flatlined?** *Run it again* restarts the district with your levels, gear and karma. Each time you fall in the same district its crews come back 10% lighter, down to 70%, so a wall never has to be ground past.
 - **Boss rematches:** beaten bosses can come back mid-district, already enraged: Gutter King, chromed; Razor Mei, under contract; and Voss.exe.
 - **Mutators:** optional modifiers you switch on before a run. Each one adds 20% karma and counts toward the mutator feats.
   - Glass Cannon: everyone hits 60% harder, you included
@@ -640,8 +641,8 @@ Companions carry between districts and get patched up in the Den, but if one fal
   - Razor Mei chains dashes, and at any health she may wind up a punch flurry.
   - The Gutter King grabs, and takes ten presses to break free of.
   - The Hollow Saint also summons spirits.
-  - Voss fires five-way hexes.
-  - Black ICE fires lane-wide beams. Dodge them by changing lanes or with a well-timed roll; after each beam its core vents and takes extra damage.
+  - Voss fires five-way hexes. A fan of shots like this (or an ICE sentry's laser spread) can hit you once, not once per shot, so stepping out of its middle is what counts.
+  - Black ICE fires lane-wide beams. Dodge them by changing lanes or with a well-timed roll; one that lands takes at most a third of your health. After each beam its core vents and takes extra damage.
 
 ---
 
@@ -854,6 +855,7 @@ Cyber City Tactics is a Progressive Web App.
 - **Install:** Settings → *Install the app* (or *Install app* on the title screen) in Chrome, Edge and Android browsers. On iPhone and iPad, open it in Safari, tap **Share**, then **Add to Home Screen**.
 - **Offline:** after the first visit everything is stored on the device, so it plays on a plane, in a tunnel, or with the network off.
 - **Updates:** new versions download in the background. Between fights, an *A new version is ready* bar appears; tap **Update now** when it suits you. You're never pulled out of a fight.
+- **Back button:** on Android, back pauses the fight or closes the menu you're in; on the title screen it leaves the app.
 - **Shortcuts:** long-press the app icon for *Daily challenge*, *The Sprawl*, *Arena* and *Codex*.
 - **Your saves are safe:** the game asks the browser for persistent storage so saves aren't cleared to free space. Settings → *Save backup* → **Export** downloads every save as a file; **Import** loads it on another device.
 - **Cloud save, no account:** two ways to carry your saves between devices, both in Settings.
@@ -866,7 +868,7 @@ Cyber City Tactics is a Progressive Web App.
 See **[SECURITY.md](SECURITY.md)** for how to report a problem privately and what the game does to stay safe: a strict Content Security Policy, untrusted text from saves and online partners defused before it reaches the page, an online lobby that only the game itself can use, and a locked-down CI with CodeQL scanning and Dependabot.
 
 ## Saves
-Everything is stored in the browser's `localStorage` on the device. Nothing is sent anywhere.
+Everything is stored in the browser's `localStorage` on the device. Saves are never sent anywhere; see the [privacy policy](privacy.html) for the one thing that is (online play's room codes).
 
 | Key | What |
 |---|---|
@@ -894,8 +896,11 @@ You need Node 18 or newer. Nothing has to be installed to run, build or test the
 | `npm run check` | Fails if the build is out of date (handy in CI) |
 | `npm test` | Every headless test, including two bot playthroughs (about 30 s) |
 | `npm run test:quick` | The same without the bot playthroughs |
-| `npm run test:browser` | Real-Chromium checks: both builds boot, manifest, shortcuts, offline play, the update flow (needs `npm i -D playwright`) |
+| `npm run test:browser` | Real-Chromium checks: both builds boot, manifest, shortcuts, offline play, the update flow, and the 3D view in every district and place (needs `npm i -D playwright`). Set `SHOTS_DIR=folder` to keep a picture of each place; CI attaches them to every run as `shots-3d`. |
+| `node tools/capture.mjs` | Recaptures every screenshot, the store art, the trailer and the README pictures from the game itself, in 3D (see [docs/store](docs/store/README.md)) |
 | `npm run format` | Prettier over the source (needs `npm i -D prettier`) |
+
+Releasing to stores (a domain of our own, Google Play, the WordPress plugin, the App Store) is written up step by step in **[docs/RELEASE.md](docs/RELEASE.md)**.
 
 ### Shipping a change
 1. Edit files in `src/`.
@@ -915,19 +920,21 @@ src/js/game/           simulation: state, flow, combat, runners, enemies, allies
 src/js/modes/          the Sprawl, dungeons, hacking, training, Arena, jobs (driving, drone, flight), online co-op
 src/js/render/         drawing and the HUD
 src/js/ui/             menus and buttons
-src/js/pwa.js          install, updates, backups, shortcuts
+src/js/pwa.js          install, updates, backups, shortcuts, the Android back button
 src/js/sync.js         save codes and the sync file
 src/js/main.js         game loop and boot
 src/js/render/r3*.js   the 3D view: renderer and camera, puppets, creature and vehicle models, the places
 icons/, screenshots/   app icons and install-dialog screenshots
 docs/store/            store kit: trailer, cover, social card, screenshots and itch.io copy (tools/capture.mjs)
+docs/store/android/    Play Store wrapper config (Bubblewrap) and the Digital Asset Links template
+privacy.html, _headers the privacy policy, and security headers for hosts that read a _headers file
 src/fonts/             Teko and Chakra Petch, self-hosted (SIL OFL)
 vendor/three.min.js    the parts of three.js (MIT) the 3D view uses; rebuild with tools/vendor-three.mjs
 dist/                  generated single-file build
 tools/                 build, local server, screenshot generator
 tests/                 headless tests and browser tests
 server/                the online lobby (a Cloudflare Worker: room codes and TURN relay passes)
-docs/                  architecture guide, design system and brand book
+docs/                  architecture guide, release guide, design system and brand book
 ```
 
 ---

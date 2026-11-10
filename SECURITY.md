@@ -34,6 +34,8 @@ lets someone do. You'll get a reply within a week.
 - Serve the game from its own origin (a custom domain, or the app's own bundle) rather than a shared
   `*.github.io` origin, so its storage isn't shared with other sites.
 - A store build should set the CSP as an HTTP header (or in the app's web view) as well as the meta tag, and add
-  `frame-ancestors 'none'`, which a meta tag can't set.
+  `frame-ancestors 'none'`, which a meta tag can't set. `_headers` at the repo root does this for Cloudflare Pages or Netlify
+  (plus HSTS, `Permissions-Policy`, `Referrer-Policy` and `nosniff`), and `tests/security.test.js` fails if its
+  policy drifts from the page's. `docs/RELEASE.md` has the full checklist.
 - A WordPress plugin wrapper must escape everything it prints, check a nonce and the user's capabilities in every
   handler that reads `$_GET`, `$_POST` or `$_REQUEST`, and load the game from the plugin's own folder.

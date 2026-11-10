@@ -12,10 +12,10 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | File | Runs in | Min passes | What it covers |
 |---|---|---|---|
 | `arena-bot.test.js` | headless |  | Bot plays the Arena until it falls; checks waves, perks and scoring. |
-| `balance.test.js` | headless | 4 | Foes scale with the party's level as well as the district; jobs keep their own tuning. |
+| `balance.test.js` | headless | 6 | Foes scale with the party's level as well as the district; jobs keep their own tuning; retry grace eases only the district you fell in. |
 | `blackmarket.test.js` | headless | 9 | Sable, the black-market trader. |
 | `browser.test.js` | browser |  | Browser checks with Playwright (npm i -D playwright, then npm run test:browser). |
-| `campaign-bot.test.js` | headless |  | Bot plays the whole campaign on Runner difficulty and should win. |
+| `campaign-bot.test.js` | headless |  | Bot plays the whole campaign on Runner difficulty, dodging like a careful player. It must win, and fails if it needs more than four continues (see [[Balancing]]). |
 | `choices.test.js` | headless | 17 | Choices that change the campaign. |
 | `chrome.test.js` | headless | 36 | Grabs and chrome techniques. |
 | `companions.test.js` | headless |  | Hired companions and the Barrier and Chain Lightning spells. |
@@ -44,12 +44,12 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `weather.test.js` | headless | 14 | Weather: which is where, slick wet streets, drones shorting out, gunmen in fog, the Den dry, fog break-ins, acid-rain corrosion. |
 | `tags.test.js` | headless | 15 | Graffiti tags: spraying, cred over time, painters covering a tag, stopping one, saving. |
 | `rival.test.js` | headless | 22 | Vane: where Vane turns up, the count of what hits, the memory and resistance, getting tougher, both specials, the Sprawl, the legend. |
-| `security.test.js` | headless | 29 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
+| `security.test.js` | headless | 30 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash, and `_headers` matching it with `frame-ancestors`), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
 | `online.test.js` | browser |  | Online co-op in a real Chromium. |
 | `view3d.test.js` | headless | 12 | The 3D view's plumbing: no three.js means 2D, the depth mapping and camera angle, the pose and dress the 2D figure hands the puppet, and the vendored bundle (licence, every name the renderer uses, no eval). |
-| `view3d.browser.js` | browser |  | The 3D view in Chromium on software WebGL: a lit street, puppets and cards, the Den and Classic 2D fall back, all six districts build, old districts are freed, no errors. |
-| `pwa.test.js` | headless | 12 | PWA helpers that don't need a real browser. |
+| `view3d.browser.js` | browser |  | The 3D view in Chromium on software WebGL: a lit street, puppets and 3D models, Classic 2D switches it off, all six districts and every other place (the Den, a Sprawl block, a room, training, a drive, a flight, the roof, the corp floor) build in 3D and draw a lit scene, old districts are freed, no errors. With `SHOTS_DIR` set it saves a picture of each. |
+| `pwa.test.js` | headless | 15 | PWA helpers that don't need a real browser, and the Android back button (pause, resume, leave from the title). |
 | `robust.test.js` | headless | 34 | The audit fixes: corrupt saves, "Not yet", side-job gear lock, haul once per knockdown, runner 2 drops, online message checks. |
 | `screen.test.js` | headless | 20 | Full-screen fitting on every screen shape, and every campaign district still playable at every view width (wave triggers must stay reachable when the view is wider than 480). |
 | `sets.test.js` | headless | 29 | Maker sets, cyberdecks and the four active skills, and saving the deck and the ★ choice. |
@@ -73,6 +73,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 ```mermaid
 flowchart LR
   PR[Pull request] --> CI["GitHub Actions: build is up to date →<br/>Prettier → npm test → Chromium → browser tests"]
+  CI --> SHOTS["shots-3d: a picture of every<br/>district and place, kept 14 days"]
   PR --> CF["Cloudflare Workers Builds:<br/>the lobby (server/)"]
   CI -->|green| MERGE[merge to main]
   MERGE --> PAGES[GitHub Pages serves the repo root]
@@ -80,7 +81,7 @@ flowchart LR
   PAGES --> SW["players' service worker notices the new version<br/>and offers Update now"]
 ```
 
-`main` is protected: changes go through a pull request. The harness exposes any game global as `__api.name`, and `__G`, `__PL()` and `__PARTY` for state. `step(n)`, `key(code, down)`, `tap(code)` and `click(action)` drive it.
+`main` is protected: changes go through a pull request. Open a run's summary page and download **shots-3d** to look over the 3D view without running the game. The harness exposes any game global as `__api.name`, and `__G`, `__PL()` and `__PARTY` for state. `step(n)`, `key(code, down)`, `tap(code)` and `click(action)` drive it.
 
 Tips for writing tests:
 - Hold a key for a few steps rather than `tap()` when a press must not fall between two logic steps.

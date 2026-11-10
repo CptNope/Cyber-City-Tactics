@@ -39,7 +39,7 @@ Rules:
 
 | Setting | `prefs` | What changes | Where |
 |---|---|---|---|
-| View | `view`: `3d`, `2d` | street fights in 3D (three.js) or the classic flat view; 3D falls back to 2D without WebGL 2 | render/r3d.js `r3On()` |
+| View | `view`: `3d`, `2d` | every mode in 3D (three.js: districts, the Den, Sprawl blocks and rooms, drives, flights, the roof, the corp floor) or the classic flat view; 3D falls back to 2D without WebGL 2, on software-only graphics, or in the lightest graphics tier | render/r3d.js `r3On()` |
 | Motion | `motion`: `auto`, `reduced`, `full` | `RM` (no camera push, slides or menu animations); `body.rm` stops CSS animation | `applyPrefs`, game.css |
 | High contrast | `contrast` | brighter `--muted` and `--line`, outlined buttons; every canvas word gets a 4.5 px outline | game.css `body.hc`, `txt()` |
 | Colour-blind safe | `cb` | `goodCol()`/`badCol()` blue and orange on signs and the minimap, ✓/✕ on sign names, CSS `--ok`/`--neon`, white Leeching (`afxCol`) | render/sprawl.js, game.css `body.cb` |
