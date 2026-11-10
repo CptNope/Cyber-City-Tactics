@@ -12,12 +12,10 @@ The guiding rules:
 
 What to do next, in order, with the reasons:
 1. **Check the 3D view on real phones and laptops (M).** Everything so far was tested on software graphics. A mid-range Android phone and an older iPhone decide whether the next items are polish or performance work.
-2. **Balance the Arcology and the Spire (S).** The campaign bot now needs several game overs to get through stages 4 and 5, since fireteams, rivals and weather arrived. Players will feel that wall too.
-3. **Own domain and security headers (S).** It's needed before any store listing, and it lets the server send the security policy as a header, including the rule that stops other sites from framing the game.
-4. **Google Play (M), then the WordPress plugin (M), then the App Store (L).** Google Play goes first because the game is already an installable web app and a Trusted Web Activity wraps it nearly as is. The plugin comes next, reusing the single-file build. The App Store is last: it needs a native wrapper and the strictest review.
-5. **Street-level life and 3D performance (M).** Pedestrians and parked cars at eye level, and fewer draw calls per fighter. What the real-device check finds decides how far this goes.
-6. **3D screenshot tests in CI (M).** The 3D view is now most of what players see; a picture of each district checked on every pull request stops silent breakage.
-
+2. **Own domain, then Google Play (M).** The repo side is ready (privacy policy, security headers, back button, the Bubblewrap config and `docs/RELEASE.md`). What's left needs your accounts: a domain on Cloudflare Pages, the Play Console listing and the signing fingerprint for Digital Asset Links.
+3. **The WordPress plugin (M), then the App Store (L).** The plugin reuses the single-file build. The App Store is last: it needs a native wrapper and the strictest review.
+4. **Street-level life and 3D performance (M).** Pedestrians and parked cars at eye level, and fewer draw calls per fighter. What the real-device check finds decides how far this goes.
+5. **Compare the 3D screenshots against approved pictures (S).** CI now saves a picture of every district and place on each run and fails on a blank one; the next step is a tolerance diff against approved shots.
 ---
 
 ## Shipped
@@ -61,6 +59,9 @@ What to do next, in order, with the reasons:
 - [x] **River City street fights:** street weapons, wall bounces and juggles, mercy and runners, boss taunts, a fourteenth training drill, and two feats (Street Mercy, Off the Wall)
 - [x] **New gear:** spur knuckles, fire axe, gravity hammer, assault rifle, smartgun, railgun, grenade launcher, warded duster, thermoptic cloak, exo-frame, and six affixes
 - [x] **Security pass:** a strict Content Security Policy (the single-file build allows its one script by hash), untrusted text defused in saves and online messages, the game talking only to its own lobby, a service worker that stays in its own folder, room keys and rate limits on the lobby, CI with read-only permissions and pinned actions, CodeQL with every alert fixed, Dependabot, secret scanning and private vulnerability reporting, and a security policy (`SECURITY.md`)
+- [x] **Late-game balance:** a district you keep flatlining in sends its crews in lighter each retry (down to 70%), a fan of shots lands once rather than once per shot, and Black ICE's beam can't take more than a third of a runner's health. The campaign bot plays like a careful player (it dodges shots, steps out of aimed lanes and rolls behind mech walkers) and fails CI if it needs more than four continues
+- [x] **Release prep:** a privacy policy (`privacy.html`, linked from Settings), real security headers for our own domain (`_headers`, checked against the page's policy), the Android back button pausing and closing menus, a Bubblewrap config and Digital Asset Links template (`docs/store/android/`), and a step-by-step release guide (`docs/RELEASE.md`)
+- [x] **3D screenshots in CI:** every district and place is pictured on each run, checked for a lit scene, and attached to the run for review
 - [x] **The 3D view:** every mode drawn with three.js where the device can (Settings → View switches back to the flat art). A tilted three-quarter camera over neon low-poly streets: wet roads with reflections, rain, fog and bloom. Fighters are 3D puppets posed by the game's own animation, turned toward the camera, with coat tails and hair that follow through, rim light in the district's neon, and trails on every strike. Hounds, mechs, the dragon, drones, turrets, ICE, cars, bikes and the VTOL are 3D models, and every boss has a signature look. Built in 3D: the Den, Sprawl blocks and the rooms inside them, driving jobs, flights, rooftop fights and the stealth corp floor. Also: camera push-ins for boss entrances and finishing blows; sky traffic, billboards, steam, snow and lightning; real moon shadows; and dynamic resolution. On software-only graphics the game stays 2D, and each district's shaders compile a piece at a time, so starting a stage never freezes the page
 
 ---
@@ -256,7 +257,7 @@ The next wave, picked from what playing the shipped systems turned up. Every ite
 The wave after Horizon two's open items (which stay where they are). Release work comes first, because a game nobody can install can't be played.
 
 ### Release and distribution
-- [ ] **Own domain and security headers (S).** Serve from a domain of our own (Cloudflare Pages beside the lobby worker). Send the security policy as a real header, so it can add `frame-ancestors` (no framing by other sites), plus HSTS, `Permissions-Policy` and `Referrer-Policy`. Keep the GitHub Pages copy as a mirror.
+- [ ] **Own domain and security headers (S).** *(Repo side done: `_headers` and `docs/RELEASE.md`; the domain itself is yours to set up.)* Serve from a domain of our own (Cloudflare Pages beside the lobby worker). Send the security policy as a real header, so it can add `frame-ancestors` (no framing by other sites), plus HSTS, `Permissions-Policy` and `Referrer-Policy`. Keep the GitHub Pages copy as a mirror.
 - [ ] **Google Play (M).** Wrap the installable web app as a Trusted Web Activity (Bubblewrap). Prove the domain with Digital Asset Links, make the Android back button pause and close menus instead of quitting, and list it with the store kit in `docs/store/`. Add a privacy policy and the Data safety form: saves stay on the device; the online lobby sees an IP address.
 - [ ] **WordPress plugin (M).** A block and a shortcode that embed the single-file build in a sandboxed frame, with an optional cloud save to the signed-in user's account through the REST API. Every handler that reads input checks a nonce and the user's permissions, since that's what WordPress.org review flags. Input is sanitised, output escaped, and nothing calls outside the site without the owner turning it on.
 - [ ] **App Store (L).** A Capacitor wrapper around the offline build, with safe areas, the audio unlock on first touch, and Game Center sign-in left out until it's earned. Review wants more than a web page in a box, so the native build should bring something: haptics on heavy hits and controller support out of the box.
@@ -290,7 +291,7 @@ The wave after Horizon two's open items (which stay where they are). Release wor
 - [ ] **Menus for screen readers (M).** Labels, focus order and announcements across every overlay.
 
 ### Engineering
-- [ ] **3D screenshot tests (M).** A picture of each district, the Den, a room, a drive, a flight and the corp floor, compared in CI with a tolerance, so a change that breaks the 3D view fails the pull request.
+- [ ] **3D screenshot tests (M).** *(Pictures and a blank-frame check run in CI now; the tolerance diff is next.)* A picture of each district, the Den, a room, a drive, a flight and the corp floor, compared in CI with a tolerance, so a change that breaks the 3D view fails the pull request.
 - [ ] **three.js upgrades (S).** Dependabot can't see a vendored file, so a monthly check compares `tools/vendor-three.mjs`'s pinned release with the latest and opens an issue. Upgrading is one command and a test run.
 - [ ] **Opt-in crash reports (S).** The crash card offers to copy a report (version, browser, the error and the last few steps) to paste into an issue. Nothing is ever sent on its own.
 

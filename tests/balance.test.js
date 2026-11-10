@@ -37,6 +37,16 @@ ok(
 );
 ok(hi.dmg > lo.dmg * 1.6, `and hits harder (${lo.dmg} → ${hi.dmg})`);
 ok(A.lvlMul().hp > 1.8, 'lvlMul follows the party');
+// flatlining in a district sends its crews in lighter next time, down to 70% after three falls
+G.grace = { st: G.stage, n: 3 };
+const eased = plain(11);
+ok(
+  eased.hp < hi.hp * 0.75 && eased.hp > hi.hp * 0.65,
+  `three falls ease a district's crews (${hi.hp} → ${eased.hp})`
+);
+G.grace = { st: G.stage + 1, n: 3 };
+ok(plain(11).hp === hi.hp, 'but only in that district');
+G.grace = null;
 // a drone job's guards don't scale with the crew
 click('quit');
 click('jobs');

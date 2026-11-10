@@ -167,6 +167,8 @@ function upEnemy(e) {
   }
   if (e.state === 'aim') {
     if (e.t === 22) {
+      // a fan of shots is one attack: it can land on a runner once, not once per shot
+      const vol = [];
       if (d.ranged === 'laser') {
         for (const oy of [-10, 0, 10])
           G.projs.push({
@@ -177,7 +179,8 @@ function upEnemy(e) {
             z: e.z + 4,
             vx: e.face * 4.4,
             dmg: e.dmg,
-            life: 110
+            life: 110,
+            vol
           });
         sfx.zap();
       } else if (d.mimic) echoSpell(e);
@@ -192,9 +195,10 @@ function upEnemy(e) {
             y: e.y + (n > 1 ? (i - (n - 1) / 2) * 13 : 0),
             z: e.z + 30,
             vx: e.face * 2.4,
-            dmg: e.dmg,
+            dmg: n > 1 ? Math.round(e.dmg * 0.75) : e.dmg, // a fan covers more lanes, so each shot hits lighter
             life: 170,
-            r: 5
+            r: 5,
+            vol
           });
         sfx.zap();
       }
@@ -246,7 +250,13 @@ function upEnemy(e) {
           q.inv <= 0
         ) {
           e.beamHit.push(q);
-          hurt(q, e.dmg, q.x >= e.x ? 1 : -1, { kd: true, big: true, col: '#45d2ff', ax: e.x });
+          // telegraphed for most of a second, so it hurts, but never more than a third of anyone's health
+          hurt(q, Math.min(e.dmg, (q.maxHp || 100) * 0.35), q.x >= e.x ? 1 : -1, {
+            kd: true,
+            big: true,
+            col: '#45d2ff',
+            ax: e.x
+          });
         }
       }
     }
@@ -774,7 +784,8 @@ function echoSpell(e) {
     G.fx.push({ k: 'ring', x: e.x, y: e.y, z: e.z, c: '#45d2ff', life: 18, max: 18, r: 24 });
     return;
   }
-  const n = k === 'chain' ? 3 : 1;
+  const n = k === 'chain' ? 3 : 1,
+    vol = [];
   for (let i = 0; i < n; i++)
     G.projs.push({
       k: 'hex',
@@ -786,7 +797,8 @@ function echoSpell(e) {
       vx: e.face * (k === 'bolt' ? 3.6 : 2.6),
       dmg: e.dmg * (k === 'fire' ? 1.3 : 1),
       life: 170,
-      r: 5
+      r: 5,
+      vol
     });
 }
 /* ---------- sentry turrets ---------- */

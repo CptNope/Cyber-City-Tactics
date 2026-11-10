@@ -107,6 +107,8 @@ function den() {
   );
 }
 let denDone = -1;
+let overs = 0;
+const MAX_OVERS = 4;
 // an hour of game time: since fireteams, rivals and weather the bot often needs several tries at the Arcology and the Spire
 for (let f = 0; f < 60 * 60 * 60; f++) {
   if (G.mode === 'brief') {
@@ -120,6 +122,7 @@ for (let f = 0; f < 60 * 60 * 60; f++) {
     den();
   }
   if (G.mode === 'over') {
+    overs++;
     log.push('OVER st' + G.stage + ' at ' + ((f / 60) | 0) + 's');
     click('retry');
   }
@@ -152,6 +155,49 @@ for (let f = 0; f < 60 * 60 * 60; f++) {
         return;
       }
       if (P.hp < P.maxHp * 0.35 && f % 40 === i) tap(K.h);
+      // a gunman or sentry taking aim down your lane: sidestep, as a player does when they see the tell
+      const aimer = G.ents.find(
+        e =>
+          e.team === 1 &&
+          e.state === 'aim' &&
+          e.d &&
+          e.d.ranged &&
+          Math.abs(e.y - P.y) < 12 &&
+          Math.sign(P.x - e.x) === e.face &&
+          Math.abs(e.x - P.x) < 220
+      );
+      if (aimer && f % 40 < 30) {
+        key(P.y > 216 ? K.u : K.d, true);
+        return;
+      }
+      // shots already in the air and heading this way (hex volleys, laser fans): step to the clearest lane
+      const inbound = G.projs.filter(
+        pr =>
+          pr.team === 1 &&
+          pr.life > 0 &&
+          pr.vx &&
+          Math.sign(P.x - pr.x) === Math.sign(pr.vx) &&
+          Math.abs(P.x - pr.x) < 90 &&
+          Math.abs(P.y - pr.y) < 14
+      );
+      if (inbound.length) {
+        const all = G.projs.filter(pr => pr.team === 1 && pr.life > 0 && Math.abs(P.x - pr.x) < 140);
+        const far = y => Math.min(...all.map(pr => Math.abs(y - pr.y)));
+        const safe = [__api.FY0 + 10, 192, 216, 240, __api.FY1 - 4].sort((a, b) => far(b) - far(a))[0];
+        if (Math.abs(safe - P.y) > 3) {
+          key(safe < P.y ? K.u : K.d, true);
+          return;
+        }
+      }
+      // a telegraphed lane (Black ICE's beam): step out of it, as a player would on seeing the red line
+      const beam = G.ents.find(e => e.kind === 'blackice' && e.state === 'beam' && e.t < 57);
+      if (beam && beam.beamYs.some(by => Math.abs(P.y - by) < 16)) {
+        // the lane furthest from every beam
+        const far = y => Math.min(...beam.beamYs.map(by => Math.abs(y - by)));
+        const safe = [__api.FY0 + 10, 192, 216, 240, __api.FY1 - 4].sort((a, b) => far(b) - far(a))[0];
+        key(safe < P.y ? K.u : K.d, true);
+        return;
+      }
       if (f % 600 === i * 7) tap(K.q);
       if (P.state === 'grab') {
         if (P.knees < 2 && f % 6 === 0) tap(K.p);
@@ -182,6 +228,17 @@ for (let f = 0; f < 60 * 60 * 60; f++) {
             k => ((k.k === 'gear' && PARTY.bag.length < 12) || k.k === 'chip') && k.x > G.camX + 12
           ) || null;
       if (foes.length && prop && Math.random() < 0.3 && Math.abs(prop.x - P.x) < 40) tgt = prop;
+      // mech walkers are plated in front: roll past, as the tip says, and work the vent on the back
+      if (tgt && tgt.d && tgt.d.mech && Math.sign(P.x - tgt.x) === tgt.face && Math.abs(tgt.x - P.x) < 90) {
+        const dx = tgt.x - P.x;
+        if (Math.abs(tgt.y - P.y) > 4) key(tgt.y < P.y ? K.u : K.d, true);
+        key(dx < 0 ? K.l : K.r, true);
+        if (Math.abs(dx) < 50 && f % 12 === i) {
+          tap(K.o);
+          stats.rolls++;
+        }
+        return;
+      }
       if (tgt) {
         const dx = tgt.x - P.x,
           dy = tgt.y - P.y;
@@ -265,3 +322,6 @@ for (const m of ['pause', 'sheet', 'title', 'over', 'win']) {
   __api.setMode(m);
 }
 console.log('overlays ok; music', G.mode);
+// balance tripwire: a careful-but-dumb bot should clear the campaign without many continues
+console.log('game overs', overs);
+if (overs > MAX_OVERS) console.log(`FAIL ${overs} game overs (max ${MAX_OVERS}): something got much harder`);

@@ -101,3 +101,13 @@ ok(
   !crashed && !/data-a="cont"/.test(els.ov._h),
   'corrupt saves are ignored, not fatal' + (crashed ? ': ' + crashed : '')
 );
+
+// Android's back button: pauses a fight, closes the pause menu, and lets go on the title screen
+G.pendArch = ['runner'];
+A.newRun(false);
+A.startStage(0);
+A.setMode('play');
+ok(A.backPress() && G.mode === 'pause', 'back pauses a fight');
+ok(A.backPress() && G.mode === 'play', 'and back again resumes it');
+A.setMode('title');
+ok(A.backPress() === false, 'on the title screen back leaves the app');

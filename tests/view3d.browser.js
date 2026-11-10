@@ -5,6 +5,33 @@
 'use strict';
 const path = require('path');
 const { pathToFileURL } = require('url');
+const fs = require('fs');
+// SHOTS_DIR=dir saves a screenshot of every district and place there (CI uploads them for review)
+const SHOTS = process.env.SHOTS_DIR;
+if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
+// how the stacked canvases look, shrunk to 64x36: a lit scene has colour and contrast, a failed frame is flat
+const sample = () => {
+  render();
+  const g = document.getElementById('game'),
+    c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 36;
+  const x = c.getContext('2d');
+  // the 3D canvas underneath, then the game canvas over it, as the page stacks them
+  x.drawImage(R3.cv, 0, 0, 64, 36);
+  x.drawImage(g, 0, 0, 64, 36);
+  const d = x.getImageData(0, 0, 64, 36).data;
+  let sum = 0,
+    sq = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const l = (d[i] + d[i + 1] + d[i + 2]) / 3;
+    sum += l;
+    sq += l * l;
+  }
+  const n = d.length / 4,
+    mean = sum / n;
+  return { mean, sd: Math.sqrt(sq / n - mean * mean) };
+};
 
 (async () => {
   const { chromium } = require('playwright');
@@ -56,30 +83,15 @@ const { pathToFileURL } = require('url');
       // the district is prepared off the main thread first, then shown
       await page.waitForFunction(() => R3.on, null, { timeout: 20000 });
       await page.waitForTimeout(300);
-      const s = await page.evaluate(() => {
-        render();
-        // sample the game canvas: a lit street has colour and contrast, a failed frame is flat
-        const g = document.getElementById('game'),
-          c = document.createElement('canvas');
-        c.width = 64;
-        c.height = 36;
-        const x = c.getContext('2d');
-        // the 3D canvas underneath, then the game canvas over it, as the page stacks them
-        x.drawImage(R3.cv, 0, 0, 64, 36);
-        x.drawImage(g, 0, 0, 64, 36);
-        const d = x.getImageData(0, 0, 64, 36).data;
-        let sum = 0,
-          sq = 0;
-        for (let i = 0; i < d.length; i += 4) {
-          const l = (d[i] + d[i + 1] + d[i + 2]) / 3;
-          sum += l;
-          sq += l * l;
-        }
-        const n = d.length / 4,
-          mean = sum / n;
-        const kinds = [...R3.pool.entries()].map(([e, o]) => [e.kind, !!o.root && !o.beast, o.pup]);
-        return { on: R3.on, mean, sd: Math.sqrt(sq / n - mean * mean), kinds };
-      });
+      const s = await page.evaluate(`(${sample})()`);
+      Object.assign(
+        s,
+        await page.evaluate(() => ({
+          on: R3.on,
+          kinds: [...R3.pool.entries()].map(([e, o]) => [e.kind, !!o.root && !o.beast, o.pup])
+        }))
+      );
+      if (SHOTS) await page.screenshot({ path: path.join(SHOTS, '00-street-fight.png') });
       ok(s.on, 'a street fight is drawn in 3D');
       ok(
         s.mean > 12 && s.sd > 12,
@@ -108,7 +120,20 @@ const { pathToFileURL } = require('url');
         prefs.view = '3d';
       });
       // every district builds and draws
-      const built = [];
+      const built = [],
+        flat = [];
+      // a district or place on screen: it must not be a flat frame, and CI keeps a picture of it
+      const look = async name => {
+        await page.evaluate(() => {
+          G.banner = 0;
+          G.tip = null;
+          G.toasts = []; // a feat popping up would hide the scene
+        });
+        await page.waitForTimeout(250);
+        const m = await page.evaluate(`(${sample})()`);
+        if (!(m.mean > 6 && m.sd > 6)) flat.push(`${name} (mean ${m.mean | 0}, spread ${m.sd | 0})`);
+        if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + '.png') });
+      };
       const n = await page.evaluate(() => STAGES.length);
       for (let k = 0; k < 3; k++)
         for (let i = 0; i < n; i++) {
@@ -123,6 +148,7 @@ const { pathToFileURL } = require('url');
             .then(() => true)
             .catch(() => false);
           if (k === 0) built.push(t);
+          if (k === 0 && t) await look(`district-${i + 1}`);
           if (k === 0 && i === n - 1) built.geo = await page.evaluate(() => R3.r.info.memory.geometries);
         }
       ok(built.every(Boolean), `all ${built.length} districts build in 3D`);
@@ -158,11 +184,16 @@ const { pathToFileURL } = require('url');
           .then(() => true)
           .catch(() => false);
         const kinds = await page.evaluate(() => [...R3.pool.values()].map(o => o.pup));
+        if (on) await look(name);
         ok(
           on && !kinds.includes('card'),
           `${name} is drawn in 3D, with no flat cards (${[...new Set(kinds)].join(', ') || 'nobody'})`
         );
       }
+      ok(
+        !flat.length,
+        'every district and place draws a lit scene' + (flat.length ? ': ' + flat.join(', ') : '')
+      );
       // and the worlds it leaves behind are let go: no growing pile of GPU buffers
       const mem = [built.geo, await page.evaluate(() => R3.r.info.memory.geometries)];
       ok(mem[1] <= mem[0] + 12, `rebuilding districts frees the old ones (geometries ${mem[0]} → ${mem[1]})`);

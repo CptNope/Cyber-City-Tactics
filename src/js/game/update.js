@@ -204,6 +204,10 @@ function update() {
         continue;
       }
       if (pr.hit && pr.hit.includes(t)) continue;
+      if (pr.vol) {
+        if (pr.vol.includes(t)) continue;
+        pr.vol.push(t);
+      }
       if (pr.k === 'fire') explode(pr);
       else if (pr.k === 'nade') {
         explode(pr, { gun: true });

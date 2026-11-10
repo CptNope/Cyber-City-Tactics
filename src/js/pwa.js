@@ -95,7 +95,7 @@ function pwaSettingsRows(row) {
     ) +
     syncSettingsRows(row) +
     imp +
-    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}</p>`
+    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}${typeof BUNDLED === 'undefined' ? ' · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>' : ''}</p>`
   );
 }
 
@@ -277,4 +277,41 @@ function pwaShortcut() {
   try {
     history.replaceState(null, '', location.pathname);
   } catch (err) {}
+}
+
+// Android's back button (the installed app and the Play Store build): pause the fight or step out of a menu
+// instead of quitting mid-run. A spare history entry catches the press; on the title screen it is let go, so
+// back leaves the app as usual. Chrome only honours entries added after a tap or key, hence the arming.
+const BACK_BTNS = ['resume', 'close', 'leave', 'back2title'];
+function backPress() {
+  if (G.mode === 'title') return false;
+  if (G.mode === 'hack') {
+    G.hack = null;
+    setMode('play');
+  } else if (G.mode === 'map') setMode('play');
+  else if (['play', 'den', 'pause', 'sheet', 'npc', 'bcard', 'safe', 'netmenu'].includes(G.mode))
+    globalAct('pause');
+  else {
+    for (const a of BACK_BTNS) {
+      const b = ov.querySelector(`[data-a="${a}"]:not([disabled])`);
+      if (b && b.click) {
+        b.click();
+        break;
+      }
+    }
+  }
+  return true;
+}
+if (PWA.installed && history.pushState) {
+  const guard = () => {
+    if (G.mode !== 'title' && !(history.state && history.state.cct))
+      try {
+        history.pushState({ cct: 1 }, '');
+      } catch (err) {}
+  };
+  addEventListener('popstate', () => {
+    if (backPress()) guard();
+  });
+  addEventListener('pointerdown', guard, true);
+  addEventListener('keydown', guard, true);
 }

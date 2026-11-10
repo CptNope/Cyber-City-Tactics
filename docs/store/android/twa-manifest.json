@@ -1,0 +1,43 @@
+{
+  "packageId": "io.github.cptnope.cybercitytactics",
+  "host": "YOUR-DOMAIN.example",
+  "name": "Cyber City Tactics",
+  "launcherName": "Cyber City",
+  "display": "fullscreen",
+  "orientation": "any",
+  "themeColor": "#0c0a14",
+  "themeColorDark": "#0c0a14",
+  "navigationColor": "#0c0a14",
+  "navigationColorDark": "#0c0a14",
+  "navigationDividerColor": "#0c0a14",
+  "navigationDividerColorDark": "#0c0a14",
+  "backgroundColor": "#0c0a14",
+  "enableNotifications": false,
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://YOUR-DOMAIN.example/icons/icon-512.png",
+  "maskableIconUrl": "https://YOUR-DOMAIN.example/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "cybercity"
+  },
+  "appVersionName": "2.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    { "name": "Daily challenge", "shortName": "Daily", "url": "/?go=daily", "chosenIconUrl": "https://YOUR-DOMAIN.example/icons/shortcut-daily.png" },
+    { "name": "The Sprawl", "shortName": "Sprawl", "url": "/?go=sprawl", "chosenIconUrl": "https://YOUR-DOMAIN.example/icons/shortcut-sprawl.png" },
+    { "name": "Arena", "shortName": "Arena", "url": "/?go=arena", "chosenIconUrl": "https://YOUR-DOMAIN.example/icons/shortcut-arena.png" },
+    { "name": "Codex", "shortName": "Codex", "url": "/?go=codex", "chosenIconUrl": "https://YOUR-DOMAIN.example/icons/shortcut-codex.png" }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://YOUR-DOMAIN.example/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": { "enabled": false },
+  "enableSiteSettingsShortcut": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://YOUR-DOMAIN.example/",
+  "minSdkVersion": 21,
+  "fingerprints": []
+}

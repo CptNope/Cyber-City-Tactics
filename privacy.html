@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Privacy · Cyber City Tactics</title>
+<link rel="icon" href="icons/icon-192.png">
+<style>
+  :root { --bg: #0c0a14; --fg: #e9e4f5; --dim: #a59fbd; --neon: #ff3d8b; --cyan: #45d2ff; --line: #2a2440; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  main { max-width: 44rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+  h1 { font-size: 1.9rem; margin: 0 0 .25rem; color: var(--neon); letter-spacing: .02em; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .5rem; color: var(--cyan); }
+  p, li { color: var(--fg); }
+  .dim { color: var(--dim); }
+  a { color: var(--cyan); }
+  table { width: 100%; border-collapse: collapse; margin: .5rem 0; font-size: .95rem; }
+  th, td { text-align: left; vertical-align: top; padding: .5rem .5rem .5rem 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy</h1>
+<p class="dim">Cyber City Tactics · last updated 9 November 2026</p>
+
+<p>The short version: there are no accounts, no ads, no analytics and no purchases. Your saves stay on your device. The only time the game talks to a server is when you choose to play online with a friend.</p>
+
+<h2>What stays on your device</h2>
+<p>Your runs, settings, unlocks and Codex progress are saved in your browser's local storage on this device. Nobody else can see them, and they are never uploaded. Clearing the site's data, or uninstalling the app, deletes them.</p>
+<p>If you link a sync file (in Settings, on Chrome and Edge), the game writes your saves to a file you picked. Where that file goes is up to you: a cloud folder such as Dropbox or Google Drive carries it under that service's own terms. A save code is just text you copy; it goes wherever you paste it.</p>
+
+<h2>Online play</h2>
+<p>Online play is optional. When you host or join a game:</p>
+<table>
+  <tr><th>Who</th><th>What they see</th><th>For how long</th></tr>
+  <tr><td>Our lobby (a Cloudflare Worker)</td><td>Your IP address, and the connection invite your browser makes (network addresses and a session key, no personal details), under a five-letter room code.</td><td>The room and invite are deleted after 15 minutes. Your IP address is used only to stop abuse: it keys a request counter that is cleared after an hour, and is never stored with the room.</td></tr>
+  <tr><td>The friend you play with</td><td>Your IP address (needed for a direct connection) and the game's moves.</td><td>For the session.</td></tr>
+  <tr><td>Cloudflare's relay</td><td>If your network blocks a direct connection, game traffic is relayed through Cloudflare (encrypted end to end by WebRTC).</td><td>For the session.</td></tr>
+</table>
+<p>Cloudflare processes these requests as our host; see <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener noreferrer">Cloudflare's privacy policy</a>.</p>
+
+<h2>What we never collect</h2>
+<ul>
+  <li>No names, email addresses, contacts, location or device identifiers.</li>
+  <li>No tracking, analytics, advertising or crash reporting.</li>
+  <li>No data is sold or shared for any other purpose.</li>
+</ul>
+
+<h2>Children</h2>
+<p>The game asks nobody for personal information, so it collects none from children either.</p>
+
+<h2>Changes and contact</h2>
+<p>If this page changes, the date at the top changes with it. Questions: open an issue at <a href="https://github.com/CptNope/Cyber-City-Tactics/issues" rel="noopener noreferrer">github.com/CptNope/Cyber-City-Tactics</a>.</p>
+
+<p><a href="./">← Back to the game</a></p>
+</main>
+</body>
+</html>
