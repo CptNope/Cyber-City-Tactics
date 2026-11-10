@@ -344,6 +344,9 @@ async function cards() {
       G.camX = mid - W * 0.6;
       G.mode = 'title';
       G.texts = [];
+      G.picks = []; // no loot labels or hit flashes on the key art
+      G.fx = [];
+      G.projs = [];
       render();
     });
     const frame = await pg.screenshot({ type: 'png' });
