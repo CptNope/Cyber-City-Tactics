@@ -317,7 +317,7 @@ function perfReport() {
     `Browser: ${navigator.userAgent}`,
     `Screen: ${window.innerWidth}x${window.innerHeight} at ${window.devicePixelRatio || 1}x; canvas ${cvs.width}x${cvs.height}; view ${W}x${VH}`,
     `Graphics: ${prefs.gfx}, running ${tier}; reduced motion ${RM ? 'on' : 'off'}`,
-    `View: ${prefs.view}${R3.ok ? ', WebGL 2 on ' + (R3.gpu || 'an unknown GPU') + (R3.soft ? ' (software, so 2D)' : '') : R3.ok === false ? ', no WebGL 2' : ''}`,
+    `View: ${prefs.view}${R3.ok ? ', WebGL 2 on ' + (R3.gpu || 'an unknown GPU') + (R3.soft ? ' (software, so 2D)' : '') : R3.ok === false ? (R3.why ? ', 3D off: ' + String(R3.why).split('\n')[0].slice(0, 120) : ', no WebGL 2') : ''}`,
     `Frame rate: ${PERF.fps || Math.round(1000 / PERF.ema)} fps (frame ${PERF.ema.toFixed(1)} ms), game ${PERF.lps || 60} steps/s`,
     `Input: ${isTouch() ? 'touch' : 'keyboard'}${PAD.active ? ' + controller' : ''}`
   ].join('\n');
