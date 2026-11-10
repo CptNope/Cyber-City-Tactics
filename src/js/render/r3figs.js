@@ -97,6 +97,7 @@ function r3Mat(hex, rough, emis) {
     m.emissiveIntensity = 2.2;
   }
   m.userData.base = hex;
+  m.onBeforeCompile = r3Rim;
   return m;
 }
 const R3ROLES = ['skin', 'coat', 'coat2', 'pants', 'boot', 'hair', 'acc', 'arm', 'dark'];
@@ -155,8 +156,16 @@ function r3Puppet() {
     wpn: m(G3.box, mats.metal),
     wpn2: m(G3.box, mats.dark),
     orb: m(G3.gem, new T.MeshBasicMaterial({ color: '#ff6a3d', toneMapped: false, transparent: true })),
-    shield: m(G3.box, new T.MeshStandardMaterial({ color: '#9fb4d8', transparent: true, opacity: 0.45 }))
+    shield: m(G3.box, new T.MeshStandardMaterial({ color: '#9fb4d8', transparent: true, opacity: 0.45 })),
+    // detail: a belt with a lit buckle, a raised collar, shoulder plates for the armoured, gloves
+    belt: m(G3.box, mats.dark),
+    buckle: m(G3.box, new T.MeshBasicMaterial({ color: '#45d2ff', toneMapped: false })),
+    collar: m(G3.tor, mats.coat2),
+    padF: m(G3.gem, mats.acc),
+    padB: m(G3.gem, mats.acc),
+    spine: m(G3.box, new T.MeshBasicMaterial({ color: '#45d2ff', toneMapped: false }))
   };
+  P.sec = { tail: 0, hair: 0, recoil: 0, px: null, pz: 0, fl: 0 };
   const shadow = new T.Mesh(G3.disc, R3.shadowMat);
   shadow.renderOrder = 1;
   const ring = new T.Mesh(G3.ring, new T.MeshBasicMaterial({ color: '#ff3d4a', toneMapped: false }));
@@ -277,11 +286,47 @@ function r3Pose(P, e) {
   const tx = sh0[0] - hip[0],
     ty = sh0[1] - hip[1];
   r3Seg(P.torso, hip[0], hip[1] - 1, 0, sh0[0], sh0[1] + 1, 0, 1);
-  P.torso.scale.set(6.6, Math.hypot(tx, ty) + 2, 5.2);
+  const breathe = st === 'idle' ? 1 + 0.025 * Math.sin(G.t * 0.07 + (e.x || 0)) : 1;
+  P.torso.scale.set(6.6 * breathe, Math.hypot(tx, ty) + 2, 5.2 * breathe);
+  // belt and buckle at the hips, a collar at the neck, plates on the shoulders of the armoured
+  const isP = e.kind === 'player',
+    acc = (e.pal && e.pal.acc) || '#45d2ff';
+  P.belt.position.set(hip[0], hip[1] + 1.6, 0);
+  P.belt.rotation.z = P.torso.rotation.z;
+  P.belt.scale.set(12, 1.8, 10);
+  P.buckle.position.set(hip[0] + 6, hip[1] + 1.6, 0);
+  P.buckle.scale.set(0.8, 1.6, 3);
+  if (P.bucKey !== acc) {
+    P.bucKey = acc;
+    P.buckle.material.color.set(acc).multiplyScalar(isP ? 2.4 : 0.9);
+    P.spine.material.color.set(acc).multiplyScalar(2);
+  }
+  const collar = style === 'runner' || style === 'mage' || style === 'vamp' || style === 'doc';
+  P.collar.visible = collar;
+  if (collar) {
+    P.collar.position.set(sh0[0] - 0.5, sh0[1] + 1.5, 0);
+    P.collar.scale.set(4.2, 3, 4.6);
+    P.collar.rotation.z = P.torso.rotation.z;
+  }
+  const pads = style === 'riot' || style === 'sec' || style === 'helmet' || style === 'horns';
+  P.padF.visible = P.padB.visible = pads;
+  if (pads) {
+    P.padF.position.set(sh0[0] + 1.5, sh0[1] - 1, 3.6);
+    P.padB.position.set(sh0[0] + 1.5, sh0[1] - 1, -3.6);
+    P.padF.scale.set(3.6, 2.6, 3);
+    P.padB.scale.set(3.6, 2.6, 3);
+  }
+  // a runner's cyberware: a lit line down the spine
+  P.spine.visible = isP;
+  if (isP) {
+    P.spine.position.set((hip[0] + sh0[0]) / 2 - 5.6, (hip[1] + sh0[1]) / 2, 0);
+    P.spine.rotation.z = P.torso.rotation.z;
+    P.spine.scale.set(0.8, Math.hypot(tx, ty) * 0.7, 1.4);
+  }
   // a long coat's tails, swinging with the stride
   P.tails.visible = !!LONGCOAT[style];
   if (P.tails.visible) {
-    const sw = (st === 'walk' ? Math.sin(e.walk * 0.2) * 2 : 0) - (p[14] || 0) * 0.5;
+    const sw = (st === 'walk' ? Math.sin(e.walk * 0.2) * 2 : 0) - (p[14] || 0) * 0.5 + P.sec.tail;
     r3Seg(P.tails, hip[0] - 1, hip[1] + 4, -1.5, hip[0] - 3 + sw, hip[1] - 12, -2.5, 1);
     P.tails.scale.set(12, P.tails.scale.y, 7.5);
   }
@@ -290,19 +335,20 @@ function r3Pose(P, e) {
   r3Seg(P.neck, sh0[0], sh0[1], 0, hd[0], hd[1] - 3, 0, 1.8);
   P.head.position.set(hd[0], hd[1], 0);
   P.head.scale.set(5.3, 5.8, 5);
+  P.head.rotation.y = st === 'idle' ? -0.35 : 0;
   const helm = HAIRLESS[style];
   P.hair.visible = !helm;
   P.hair.position.set(hd[0] - 0.8, hd[1] + 0.6, 0);
   P.hair.scale.set(5.9, 5.6, 5.5);
-  P.hair.rotation.set(0, 0, 0.22);
+  P.hair.rotation.set(0, 0, 0.22 + P.sec.hair);
   P.helm.visible = style === 'helmet' || style === 'riot' || style === 'sec';
   if (P.helm.visible) {
     P.helm.position.set(hd[0], hd[1] + 1.5, 0);
     P.helm.scale.set(12, 9.5, 11);
   }
   r3Extras(P, e, hd, sh0, hip, fh);
-  P.eyes.position.set(hd[0] + 4.6, hd[1] + 0.6, 0);
-  P.eyes.scale.set(1.6, e.kind === 'player' || helm ? 1.6 : 1.1, e.kind === 'player' || helm ? 8 : 6);
+  P.eyes.position.set(hd[0] + 4.2, hd[1] + 0.6, 0.6);
+  P.eyes.scale.set(1.6, e.kind === 'player' || helm ? 1.5 : 1, e.kind === 'player' || helm ? 5.4 : 4.2);
   // arms: elbows bend back, as in 2D
   const shF = [sh0[0] + 2, sh0[1] - 1],
     shB = [sh0[0] - 2, sh0[1] - 1],
@@ -617,7 +663,10 @@ function r3Place(o, e) {
     b = e.build || [1, 1];
   o.root.position.set(X, e.z, Zw);
   o.root.scale.set(e.face * sc * b[0], sc * b[1], sc);
+  // turned three-quarters toward the camera, so you see their chest and face, not a flat profile
+  o.root.rotation.y = RM ? 0 : -e.face * 0.42;
   r3Body(o, e, e.state !== 'roll' && !big && rig.sq ? rig.sq : null);
+  r3Follow(o, e, X);
   // elites keep a ground ring in their colour
   o.ring.visible = !!(e.elite && !dead && !cloak);
   if (o.ring.visible) {
@@ -905,4 +954,23 @@ function r3Extras(P, e, hd, sh0, hip, fh) {
       m.position.set(sh0[0] + x, sh0[1] + y, z);
     } else m.position.set(hd[0] + x, hd[1] + y, z);
   }
+}
+
+// follow-through: coat tails and hair trail the motion, a hit knocks the body back a little and it recovers
+function r3Follow(o, e, X) {
+  const S = o.sec;
+  if (!S) return;
+  const vx = S.px === null ? 0 : (X - S.px) * (e.face || 1),
+    vz = e.z - S.pz;
+  S.px = X;
+  S.pz = e.z;
+  S.tail += (-vx * 1.4 - S.tail) * 0.18;
+  S.hair += (-vz * 0.05 - vx * 0.03 - S.hair) * 0.2;
+  const hit = e.flash > 0 && !S.fl && e.state !== 'dead';
+  S.fl = e.flash > 0;
+  if (hit) S.recoil = 1;
+  S.recoil *= 0.8;
+  if (!RM && e.state !== 'down' && e.state !== 'dead' && e.state !== 'roll')
+    o.inner.rotation.z = S.recoil * 0.22 + o.inner.rotation.z * 0;
+  else o.inner.rotation.z = 0;
 }
