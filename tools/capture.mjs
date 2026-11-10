@@ -640,7 +640,8 @@ async function readme() {
       '-i',
       mp4,
       '-vf',
-      'fps=12,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle',
+      // the 3D view's soft light compresses worse than flat art: fewer colours and frames keep it near 3 MB
+      'fps=10,scale=520:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle',
       '-loop',
       '0',
       gif
