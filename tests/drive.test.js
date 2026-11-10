@@ -190,6 +190,7 @@ let sawVan = false,
   ended = false;
 for (let i = 0; i < 60 * 150 && !ended; i++) {
   p.hp = p.maxHp; // this test is about the course, not about surviving it
+  G.dtime = Math.min(G.dtime, 90 * 60); // nor the clock: an unlucky run of traffic crashes can eat the time
   step(1);
   if (G.ents.some(x => x.veh === 'van')) sawVan = true;
   if (G.mode === 'driveover') ended = true;
