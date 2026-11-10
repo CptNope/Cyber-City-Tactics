@@ -6,3 +6,12 @@ node_modules/
 .env
 .env.*
 .wrangler/
+
+# Android wrapper: the signing key and the generated project never go in the repo
+*.keystore
+*.jks
+*.aab
+*.apk
+docs/store/android/app/
+docs/store/android/build/
+docs/store/android/.gradle/

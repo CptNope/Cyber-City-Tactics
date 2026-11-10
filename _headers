@@ -1,0 +1,24 @@
+# Security headers for hosts that read a _headers file (Cloudflare Pages, Netlify). GitHub Pages ignores
+# this file and can't set headers, which is why index.html also carries its policy in a <meta> tag. Serving
+# the game from its own domain (needed anyway for the Play Store's Digital Asset Links) lets these apply.
+# Keep the Content-Security-Policy in step with the <meta> tag in index.html; the header adds frame-ancestors,
+# which a <meta> tag can't set.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  X-Frame-Options: DENY
+
+/sw.js
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *

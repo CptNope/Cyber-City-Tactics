@@ -96,6 +96,20 @@ const dir = name =>
     .split(/\s+/)
     .slice(1);
 ok(csp, 'the page has a Content Security Policy');
+// the _headers file (for hosts that set real headers) carries the same policy, minus localhost, plus framing
+{
+  const hdr = (read('_headers').match(/Content-Security-Policy: (.+)/) || [])[1] || '';
+  const norm = p =>
+    p
+      .split(';')
+      .map(x => x.trim().replace(/ https?:\/\/(localhost|127\.0\.0\.1):\*/g, ''))
+      .filter(x => x && !x.startsWith('frame-ancestors'))
+      .join('; ');
+  ok(
+    hdr && norm(hdr) === norm(csp) && /frame-ancestors 'none'/.test(hdr),
+    '_headers matches the page’s policy and forbids framing'
+  );
+}
 ok(dir('script-src').join(' ') === "'self'", 'scripts: only the site’s own files (no inline, no eval)');
 ok(
   dir('object-src').includes("'none'") &&

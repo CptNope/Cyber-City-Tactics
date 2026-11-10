@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-bwG/ZWWvyAP+mO63yO9l1/qirJwdfsX1klUrzjptjfg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-FQsmEZt6oXZkMMszDhpXZ+PR5zQ28NCqn5VAaw7dzBE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+21bef38';
+const APP_VERSION = '2.0.0+c28c73e';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -35553,7 +35553,7 @@ function pwaSettingsRows(row) {
     ) +
     syncSettingsRows(row) +
     imp +
-    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}</p>`
+    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}${typeof BUNDLED === 'undefined' ? ' · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>' : ''}</p>`
   );
 }
 
@@ -35735,6 +35735,43 @@ function pwaShortcut() {
   try {
     history.replaceState(null, '', location.pathname);
   } catch (err) {}
+}
+
+// Android's back button (the installed app and the Play Store build): pause the fight or step out of a menu
+// instead of quitting mid-run. A spare history entry catches the press; on the title screen it is let go, so
+// back leaves the app as usual. Chrome only honours entries added after a tap or key, hence the arming.
+const BACK_BTNS = ['resume', 'close', 'leave', 'back2title'];
+function backPress() {
+  if (G.mode === 'title') return false;
+  if (G.mode === 'hack') {
+    G.hack = null;
+    setMode('play');
+  } else if (G.mode === 'map') setMode('play');
+  else if (['play', 'den', 'pause', 'sheet', 'npc', 'bcard', 'safe', 'netmenu'].includes(G.mode))
+    globalAct('pause');
+  else {
+    for (const a of BACK_BTNS) {
+      const b = ov.querySelector(`[data-a="${a}"]:not([disabled])`);
+      if (b && b.click) {
+        b.click();
+        break;
+      }
+    }
+  }
+  return true;
+}
+if (PWA.installed && history.pushState) {
+  const guard = () => {
+    if (G.mode !== 'title' && !(history.state && history.state.cct))
+      try {
+        history.pushState({ cct: 1 }, '');
+      } catch (err) {}
+  };
+  addEventListener('popstate', () => {
+    if (backPress()) guard();
+  });
+  addEventListener('pointerdown', guard, true);
+  addEventListener('keydown', guard, true);
 }
 
 /* ===== src/js/sync.js ===== */
