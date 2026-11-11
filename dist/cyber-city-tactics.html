@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-2wqoM+ERzk7PJC3/TN4rKGkg1f4q8zmbLiY7s2ChnRY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-0XB3cCdaPcURPr6zij76m1YT23i1Z+HDijIpvt3sUt0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+e824f41';
+const APP_VERSION = '2.0.0+51fa152';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1812,13 +1812,33 @@ const A = {
   }
 };
 const sfx = {
-  hit() {
-    A.noise(0.07, 0.18, 1800);
-    A.tone(160, 0.08, 'square', 0.05, -80);
+  // rise: how far into a combo (0-40); each hit lands a little higher, so a long combo sings
+  hit(rise) {
+    const p = 1 + (rise || 0) * 0.015;
+    A.noise(0.07, 0.18, 1800 * p);
+    A.tone(160 * p, 0.08, 'square', 0.05, -80);
   },
-  heavy() {
-    A.noise(0.14, 0.25, 900);
-    A.tone(110, 0.15, 'square', 0.07, -60);
+  heavy(rise) {
+    const p = 1 + (rise || 0) * 0.012;
+    A.noise(0.14, 0.25, 900 * p);
+    A.tone(110 * p, 0.15, 'square', 0.07, -60);
+    A.tone(55, 0.22, 'sine', 0.09, -25); // the body of it
+  },
+  // a crit's bright crack on top of the hit
+  crack() {
+    A.noise(0.04, 0.12, 6500);
+    A.tone(2200, 0.04, 'square', 0.025, -1400);
+  },
+  // the blow that drops them: a low thump under everything
+  ko() {
+    A.tone(70, 0.32, 'sine', 0.12, -45);
+    A.noise(0.2, 0.16, 500);
+  },
+  // combo callouts: a rising sting, one note more each time
+  beat(i) {
+    const notes = [523, 659, 784, 1047, 1319];
+    for (let k = 0; k <= Math.min(i + 1, 4); k++)
+      setTimeout(() => A.tone(notes[k], 0.12 + (k === i + 1 ? 0.15 : 0), 'square', 0.035), k * 55);
   },
   whiff() {
     A.noise(0.05, 0.05, 4000);
@@ -6446,6 +6466,8 @@ function resetWorld() {
   G.outro = 0;
   G.afterOutro = null;
   G.slow = 0;
+  G.kick = 0;
+  G.punch = 0;
   G.flash = 0;
 }
 function makeRain(on) {
@@ -6785,6 +6807,46 @@ function roninCrit(o) {
   p.roninN = (p.roninN || 0) + 1;
   return p.roninN % 6 === 0;
 }
+/* ---------- how a hit feels ---------- */
+// weight 1 a jab, 2 a heavy blow or a crit, 3 the blow that drops them. The game holds the frame longer the
+// heavier it is (hitstop), the view jolts the way the blow travelled and springs back, and in 3D a heavy
+// blow pulls the camera in toward it. Reduced motion and the screen-shake setting keep the view still.
+const FEEL = { stop: [0, 3, 5, 8], kick: [0, 1.6, 3.6, 6], shake: [0, 2, 5, 7], punch: [0, 0, 0.5, 0.9] };
+function impact(t, dir, w, byRunner) {
+  G.stop = Math.max(G.stop || 0, FEEL.stop[w]);
+  G.shake = Math.max(G.shake, FEEL.shake[w]);
+  if (!byRunner && t.team === 1) return; // foes hitting foes (thrown bodies, crossfire) jolt nothing more
+  const k = FEEL.kick[w] * (dir || 1);
+  if (Math.abs(k) > Math.abs(G.kick || 0)) G.kick = k;
+  if (FEEL.punch[w] > (G.punch || 0)) {
+    G.punch = FEEL.punch[w];
+    G.punchX = t.x;
+    G.punchY = t.y;
+  }
+}
+// eases the jolt and the push-in back, frame by frame; held still during hitstop, so the freeze lands
+function feelTick() {
+  if (G.stop > 0) return;
+  G.kick = Math.abs(G.kick || 0) < 0.05 ? 0 : G.kick * 0.7;
+  G.punch = (G.punch || 0) < 0.01 ? 0 : G.punch * 0.88;
+}
+// a combo that keeps going gets called out, louder each time
+const COMBO_BEATS = [
+  [10, 'SLICK', '#45d2ff'],
+  [25, 'SAVAGE', '#ffc63d'],
+  [50, 'CHROME FURY', '#ff3d8b'],
+  [100, 'LEGEND', '#efe9ff']
+];
+function comboBeat(src) {
+  const i = COMBO_BEATS.findIndex(b => b[0] === G.combo);
+  if (i < 0 || !src) return;
+  const [, s, c] = COMBO_BEATS[i];
+  G.texts.push({ x: src.x, y: src.y, z: (src.z || 0) + 86, s: s + '!', c, life: 60, big: true, beat: i + 1 });
+  G.punch = Math.max(G.punch || 0, 0.35 + i * 0.15);
+  G.punchX = src.x;
+  G.punchY = src.y;
+  sfx.beat(i);
+}
 function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
@@ -6993,8 +7055,8 @@ function hurt(t, dmg, dir, o) {
     life: 34,
     big: crit
   });
-  G.stop = big ? 5 : 3;
-  G.shake = Math.max(G.shake, o.big ? 6 : crit ? 4 : 2);
+  const lethal = t.hp <= 0 && t.team === 1 && !fixed;
+  impact(t, dir, lethal ? 3 : big ? 2 : 1, !!o.src);
   if (crit) G.flash = Math.max(G.flash, 0.12);
   if (G.run) {
     if (o.src) G.run.dealt += dmg;
@@ -7002,13 +7064,17 @@ function hurt(t, dmg, dir, o) {
   }
   if (t.team === 0 && t.idx === 0) buzz(big ? 60 : 30);
   else if (o.src && o.src.idx === 0 && big) buzz(12);
-  (big ? sfx.heavy : sfx.hit)();
+  const rise = o.src ? Math.min(G.combo, 40) : 0; // a combo climbs in pitch as it builds
+  (big ? sfx.heavy : sfx.hit)(rise);
+  if (crit) sfx.crack();
+  if (lethal) sfx.ko();
   if (o.src && o.src.kind === 'player' && t.team === 1 && !o.team && t.hp > 0) teamCheck(t, o.src);
   if (o.src) {
     G.combo++;
     G.comboT = 0;
     if (G.combo > G.bestCombo) G.bestCombo = G.combo;
     if (G.combo >= 25) peak('combo', G.combo);
+    comboBeat(o.src);
     spGain(o.src, dmg * 0.8);
   }
   if (sp && sp.state !== 'dead') {
@@ -7301,6 +7367,20 @@ function kill(t, dir, o) {
     G.texts.push({ x: t.x, y: t.y, z: t.z + 64, s: 'FLATLINED', c: '#efe9ff', life: 70 });
     G.slow = 70;
     G.flash = 0.5;
+    G.punch = 1;
+  } else if (
+    t.team === 1 &&
+    !d.passive &&
+    !G.world && // the Sprawl's streets never empty for long: only a fight with waves has a last foe
+    o &&
+    o.src &&
+    !G.ents.some(e => e !== t && e.team === 1 && e.state !== 'dead' && !(e.d && e.d.passive))
+  ) {
+    // the last of them: the blow lands in slow motion, the camera leaning in
+    G.slow = Math.max(G.slow, 24);
+    G.punch = 1;
+    G.punchX = t.x;
+    G.punchY = t.y;
   }
   const em = t.elite ? 2 : 1;
   if (G.run && !d.passive) {
@@ -28629,6 +28709,11 @@ function drawGroundBand() {
   ctx.fillRect(0, y0, W, 1);
   ctx.globalAlpha = 1;
 }
+// floating text size: combo callouts (t.beat) burst in large and settle, bigger for each milestone
+function textPx(t) {
+  if (t.beat) return 24 + t.beat * 4 + (RM ? 0 : Math.max(0, t.life - 50) * 1.4);
+  return t.big ? 22 : t.sm ? 12 : 16;
+}
 function render() {
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   if (!G.bg) G.bg = genBg(STAGES[0], 1000);
@@ -28638,6 +28723,7 @@ function render() {
     shx = rand(-G.shake, G.shake) * 0.6;
     shy = rand(-G.shake, G.shake) * 0.6;
   }
+  if (G.kick && !RM && prefs.shake) shx += G.kick; // the jolt of a hit, the way it travelled
   // street fights in 3D (render/r3d.js) when the device can; the HUD below is the same either way
   const r3 = r3On();
   R3.on = r3;
@@ -28751,7 +28837,7 @@ function render() {
   ctx.globalAlpha = 1;
   for (const t of G.texts) {
     ctx.globalAlpha = Math.min(1, t.life / 12);
-    txt(t.s, t.x - G.camX, t.y - t.z, t.big ? 22 : t.sm ? 12 : 16, t.c, 'center');
+    txt(t.s, t.x - G.camX, t.y - t.z, textPx(t), t.c, 'center');
   }
   ctx.globalAlpha = 1;
   drawRain();
@@ -29295,10 +29381,10 @@ function r3Camera(shx, shy) {
     tz = zOf(R3_MIDY),
     d = VH / (2 * Math.tan((R3_FOV * Math.PI) / 360)),
     fx = r3CamFx(),
-    sx = tx + fx.sway;
+    sx = tx + fx.sway + fx.px;
   cam.aspect = W / VH;
   cam.position.set(sx, d * Math.sin(TILT) + fx.dy, tz + d * Math.cos(TILT));
-  cam.lookAt(tx, fx.dy * 0.4, tz);
+  cam.lookAt(tx + fx.px, fx.dy * 0.4, tz);
   cam.zoom = fx.zoom;
   // the middle lane sits BAND + 216 down the view, not at its centre: shift the frustum, not the camera,
   // so the picture keeps its angle
@@ -29424,7 +29510,7 @@ function r3Overlays() {
     if (p.behind) continue;
     ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
     ctx.globalAlpha = Math.min(1, t.life / 12);
-    txt(t.s, p.x, p.y, t.big ? 22 : t.sm ? 12 : 16, t.c, 'center');
+    txt(t.s, p.x, p.y, textPx(t), t.c, 'center');
   }
   ctx.globalAlpha = 1;
 }
@@ -31504,13 +31590,16 @@ function r3UpdateTrails() {
 /* ---------- the camera ---------- */
 // zoom and nudges layered on the framed camera: a boss's entrance, a finishing blow, a heavy hit, the title
 function r3CamFx() {
-  const out = R3.camFx || (R3.camFx = { zoom: 1, dy: 0, sway: 0 }),
+  const out = R3.camFx || (R3.camFx = { zoom: 1, dy: 0, sway: 0, px: 0 }),
     intro = typeof introK === 'function' ? introK() || 0 : 0,
     slow = Math.min(1, (G.slow || 0) / 30),
     punch = G.shake > 6 ? Math.min(1, (G.shake - 6) / 8) : 0,
     title = G.mode === 'title' ? 1 : 0;
-  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch;
+  // a heavy blow, a finisher or a combo callout pulls the camera in toward where it landed
+  const hit = !RM && prefs.shake ? G.punch || 0 : 0;
+  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch + 0.06 * hit;
   if (RM) want = 1;
+  out.px = hit ? (G.punchX - (G.camX + W / 2)) * 0.12 * hit : 0;
   // ease toward it, so nothing snaps
   out.zoom += (want - out.zoom) * (want > out.zoom ? 0.18 : 0.06);
   out.dy += ((RM ? 0 : -14 * intro - 6 * slow) - out.dy) * 0.08;
@@ -36158,6 +36247,7 @@ function stepOnce() {
   if (netHost()) netHostInput();
   NET.inUpd = true;
   if (G.mode === 'play' || G.mode === 'den') {
+    feelTick();
     if (G.stop > 0) {
       G.stop--;
       ran = false;

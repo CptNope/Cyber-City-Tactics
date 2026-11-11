@@ -152,7 +152,9 @@ global.tap = c => {
 };
 global.step = n => {
   for (let i = 0; i < n; i++) {
+    // hitstop and finisher slow-mo are presentation: tests count game frames, so they skip both
     __G.stop = 0;
+    __G.slow = 0;
     global.T += 1000 / 60;
     raf(global.T);
   }

@@ -294,13 +294,16 @@ function r3UpdateTrails() {
 /* ---------- the camera ---------- */
 // zoom and nudges layered on the framed camera: a boss's entrance, a finishing blow, a heavy hit, the title
 function r3CamFx() {
-  const out = R3.camFx || (R3.camFx = { zoom: 1, dy: 0, sway: 0 }),
+  const out = R3.camFx || (R3.camFx = { zoom: 1, dy: 0, sway: 0, px: 0 }),
     intro = typeof introK === 'function' ? introK() || 0 : 0,
     slow = Math.min(1, (G.slow || 0) / 30),
     punch = G.shake > 6 ? Math.min(1, (G.shake - 6) / 8) : 0,
     title = G.mode === 'title' ? 1 : 0;
-  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch;
+  // a heavy blow, a finisher or a combo callout pulls the camera in toward where it landed
+  const hit = !RM && prefs.shake ? G.punch || 0 : 0;
+  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch + 0.06 * hit;
   if (RM) want = 1;
+  out.px = hit ? (G.punchX - (G.camX + W / 2)) * 0.12 * hit : 0;
   // ease toward it, so nothing snaps
   out.zoom += (want - out.zoom) * (want > out.zoom ? 0.18 : 0.06);
   out.dy += ((RM ? 0 : -14 * intro - 6 * slow) - out.dy) * 0.08;

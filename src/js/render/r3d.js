@@ -204,10 +204,10 @@ function r3Camera(shx, shy) {
     tz = zOf(R3_MIDY),
     d = VH / (2 * Math.tan((R3_FOV * Math.PI) / 360)),
     fx = r3CamFx(),
-    sx = tx + fx.sway;
+    sx = tx + fx.sway + fx.px;
   cam.aspect = W / VH;
   cam.position.set(sx, d * Math.sin(TILT) + fx.dy, tz + d * Math.cos(TILT));
-  cam.lookAt(tx, fx.dy * 0.4, tz);
+  cam.lookAt(tx + fx.px, fx.dy * 0.4, tz);
   cam.zoom = fx.zoom;
   // the middle lane sits BAND + 216 down the view, not at its centre: shift the frustum, not the camera,
   // so the picture keeps its angle
@@ -333,7 +333,7 @@ function r3Overlays() {
     if (p.behind) continue;
     ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
     ctx.globalAlpha = Math.min(1, t.life / 12);
-    txt(t.s, p.x, p.y, t.big ? 22 : t.sm ? 12 : 16, t.c, 'center');
+    txt(t.s, p.x, p.y, textPx(t), t.c, 'center');
   }
   ctx.globalAlpha = 1;
 }

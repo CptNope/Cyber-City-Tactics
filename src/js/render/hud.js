@@ -677,6 +677,11 @@ function drawGroundBand() {
   ctx.fillRect(0, y0, W, 1);
   ctx.globalAlpha = 1;
 }
+// floating text size: combo callouts (t.beat) burst in large and settle, bigger for each milestone
+function textPx(t) {
+  if (t.beat) return 24 + t.beat * 4 + (RM ? 0 : Math.max(0, t.life - 50) * 1.4);
+  return t.big ? 22 : t.sm ? 12 : 16;
+}
 function render() {
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   if (!G.bg) G.bg = genBg(STAGES[0], 1000);
@@ -686,6 +691,7 @@ function render() {
     shx = rand(-G.shake, G.shake) * 0.6;
     shy = rand(-G.shake, G.shake) * 0.6;
   }
+  if (G.kick && !RM && prefs.shake) shx += G.kick; // the jolt of a hit, the way it travelled
   // street fights in 3D (render/r3d.js) when the device can; the HUD below is the same either way
   const r3 = r3On();
   R3.on = r3;
@@ -799,7 +805,7 @@ function render() {
   ctx.globalAlpha = 1;
   for (const t of G.texts) {
     ctx.globalAlpha = Math.min(1, t.life / 12);
-    txt(t.s, t.x - G.camX, t.y - t.z, t.big ? 22 : t.sm ? 12 : 16, t.c, 'center');
+    txt(t.s, t.x - G.camX, t.y - t.z, textPx(t), t.c, 'center');
   }
   ctx.globalAlpha = 1;
   drawRain();

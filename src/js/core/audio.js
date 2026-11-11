@@ -70,13 +70,33 @@ const A = {
   }
 };
 const sfx = {
-  hit() {
-    A.noise(0.07, 0.18, 1800);
-    A.tone(160, 0.08, 'square', 0.05, -80);
+  // rise: how far into a combo (0-40); each hit lands a little higher, so a long combo sings
+  hit(rise) {
+    const p = 1 + (rise || 0) * 0.015;
+    A.noise(0.07, 0.18, 1800 * p);
+    A.tone(160 * p, 0.08, 'square', 0.05, -80);
   },
-  heavy() {
-    A.noise(0.14, 0.25, 900);
-    A.tone(110, 0.15, 'square', 0.07, -60);
+  heavy(rise) {
+    const p = 1 + (rise || 0) * 0.012;
+    A.noise(0.14, 0.25, 900 * p);
+    A.tone(110 * p, 0.15, 'square', 0.07, -60);
+    A.tone(55, 0.22, 'sine', 0.09, -25); // the body of it
+  },
+  // a crit's bright crack on top of the hit
+  crack() {
+    A.noise(0.04, 0.12, 6500);
+    A.tone(2200, 0.04, 'square', 0.025, -1400);
+  },
+  // the blow that drops them: a low thump under everything
+  ko() {
+    A.tone(70, 0.32, 'sine', 0.12, -45);
+    A.noise(0.2, 0.16, 500);
+  },
+  // combo callouts: a rising sting, one note more each time
+  beat(i) {
+    const notes = [523, 659, 784, 1047, 1319];
+    for (let k = 0; k <= Math.min(i + 1, 4); k++)
+      setTimeout(() => A.tone(notes[k], 0.12 + (k === i + 1 ? 0.15 : 0), 'square', 0.035), k * 55);
   },
   whiff() {
     A.noise(0.05, 0.05, 4000);

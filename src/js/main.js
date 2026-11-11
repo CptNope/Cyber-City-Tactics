@@ -31,6 +31,7 @@ function stepOnce() {
   if (netHost()) netHostInput();
   NET.inUpd = true;
   if (G.mode === 'play' || G.mode === 'den') {
+    feelTick();
     if (G.stop > 0) {
       G.stop--;
       ran = false;

@@ -55,6 +55,8 @@ function resetWorld() {
   G.outro = 0;
   G.afterOutro = null;
   G.slow = 0;
+  G.kick = 0;
+  G.punch = 0;
   G.flash = 0;
 }
 function makeRain(on) {
