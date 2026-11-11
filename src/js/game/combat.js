@@ -35,6 +35,46 @@ function roninCrit(o) {
   p.roninN = (p.roninN || 0) + 1;
   return p.roninN % 6 === 0;
 }
+/* ---------- how a hit feels ---------- */
+// weight 1 a jab, 2 a heavy blow or a crit, 3 the blow that drops them. The game holds the frame longer the
+// heavier it is (hitstop), the view jolts the way the blow travelled and springs back, and in 3D a heavy
+// blow pulls the camera in toward it. Reduced motion and the screen-shake setting keep the view still.
+const FEEL = { stop: [0, 3, 5, 8], kick: [0, 1.6, 3.6, 6], shake: [0, 2, 5, 7], punch: [0, 0, 0.5, 0.9] };
+function impact(t, dir, w, byRunner) {
+  G.stop = Math.max(G.stop || 0, FEEL.stop[w]);
+  G.shake = Math.max(G.shake, FEEL.shake[w]);
+  if (!byRunner && t.team === 1) return; // foes hitting foes (thrown bodies, crossfire) jolt nothing more
+  const k = FEEL.kick[w] * (dir || 1);
+  if (Math.abs(k) > Math.abs(G.kick || 0)) G.kick = k;
+  if (FEEL.punch[w] > (G.punch || 0)) {
+    G.punch = FEEL.punch[w];
+    G.punchX = t.x;
+    G.punchY = t.y;
+  }
+}
+// eases the jolt and the push-in back, frame by frame; held still during hitstop, so the freeze lands
+function feelTick() {
+  if (G.stop > 0) return;
+  G.kick = Math.abs(G.kick || 0) < 0.05 ? 0 : G.kick * 0.7;
+  G.punch = (G.punch || 0) < 0.01 ? 0 : G.punch * 0.88;
+}
+// a combo that keeps going gets called out, louder each time
+const COMBO_BEATS = [
+  [10, 'SLICK', '#45d2ff'],
+  [25, 'SAVAGE', '#ffc63d'],
+  [50, 'CHROME FURY', '#ff3d8b'],
+  [100, 'LEGEND', '#efe9ff']
+];
+function comboBeat(src) {
+  const i = COMBO_BEATS.findIndex(b => b[0] === G.combo);
+  if (i < 0 || !src) return;
+  const [, s, c] = COMBO_BEATS[i];
+  G.texts.push({ x: src.x, y: src.y, z: (src.z || 0) + 86, s: s + '!', c, life: 60, big: true, beat: i + 1 });
+  G.punch = Math.max(G.punch || 0, 0.35 + i * 0.15);
+  G.punchX = src.x;
+  G.punchY = src.y;
+  sfx.beat(i);
+}
 function hurt(t, dmg, dir, o) {
   o = o || {};
   if (t.state === 'dead' || t.inv > 0) return false;
@@ -243,8 +283,8 @@ function hurt(t, dmg, dir, o) {
     life: 34,
     big: crit
   });
-  G.stop = big ? 5 : 3;
-  G.shake = Math.max(G.shake, o.big ? 6 : crit ? 4 : 2);
+  const lethal = t.hp <= 0 && t.team === 1 && !fixed;
+  impact(t, dir, lethal ? 3 : big ? 2 : 1, !!o.src);
   if (crit) G.flash = Math.max(G.flash, 0.12);
   if (G.run) {
     if (o.src) G.run.dealt += dmg;
@@ -252,13 +292,17 @@ function hurt(t, dmg, dir, o) {
   }
   if (t.team === 0 && t.idx === 0) buzz(big ? 60 : 30);
   else if (o.src && o.src.idx === 0 && big) buzz(12);
-  (big ? sfx.heavy : sfx.hit)();
+  const rise = o.src ? Math.min(G.combo, 40) : 0; // a combo climbs in pitch as it builds
+  (big ? sfx.heavy : sfx.hit)(rise);
+  if (crit) sfx.crack();
+  if (lethal) sfx.ko();
   if (o.src && o.src.kind === 'player' && t.team === 1 && !o.team && t.hp > 0) teamCheck(t, o.src);
   if (o.src) {
     G.combo++;
     G.comboT = 0;
     if (G.combo > G.bestCombo) G.bestCombo = G.combo;
     if (G.combo >= 25) peak('combo', G.combo);
+    comboBeat(o.src);
     spGain(o.src, dmg * 0.8);
   }
   if (sp && sp.state !== 'dead') {
@@ -551,6 +595,20 @@ function kill(t, dir, o) {
     G.texts.push({ x: t.x, y: t.y, z: t.z + 64, s: 'FLATLINED', c: '#efe9ff', life: 70 });
     G.slow = 70;
     G.flash = 0.5;
+    G.punch = 1;
+  } else if (
+    t.team === 1 &&
+    !d.passive &&
+    !G.world && // the Sprawl's streets never empty for long: only a fight with waves has a last foe
+    o &&
+    o.src &&
+    !G.ents.some(e => e !== t && e.team === 1 && e.state !== 'dead' && !(e.d && e.d.passive))
+  ) {
+    // the last of them: the blow lands in slow motion, the camera leaning in
+    G.slow = Math.max(G.slow, 24);
+    G.punch = 1;
+    G.punchX = t.x;
+    G.punchY = t.y;
   }
   const em = t.elite ? 2 : 1;
   if (G.run && !d.passive) {
