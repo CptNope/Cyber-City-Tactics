@@ -57,6 +57,9 @@ const sample = () => {
     // this machine draws WebGL in software, which the game would leave 2D: force 3D for the checks
     await page.evaluate(() => {
       if (typeof r3Ready === 'function' && r3Ready()) R3.force = true;
+      // and pin graphics to High: on CI's slow software WebGL the adaptive quality would otherwise step down,
+      // a tier per stretch of slow frames, to the lean tier, which turns 3D off for the rest of the session
+      prefs.gfx = 'high';
       prefs.tips = false;
       prefs.story = false;
       G.pendArch = ['samurai', 'runner'];
@@ -212,7 +215,7 @@ const sample = () => {
         if (up) return null;
         return page.evaluate(
           n =>
-            `${n} didn't come up again (ok ${R3.ok}, key ${R3.key || '-'}, pending ${R3.pending || '-'}${R3.why ? ', ' + String(R3.why).split('\n')[0] : ''})`,
+            `${n} didn't come up again (ok ${R3.ok}, tier ${gfxTier()}, key ${R3.key || '-'}, pending ${R3.pending || '-'}${R3.why ? ', ' + String(R3.why).split('\n')[0] : ''})`,
           name
         );
       };
