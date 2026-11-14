@@ -1,8 +1,8 @@
 <p align="center">
-  <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img src="docs/store/social-1200x630.png" alt="Cyber City Tactics: a neon brawler RPG for one or two players" width="100%"></a>
+  <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img src="docs/store/social-1200x630.png" alt="Cyber City Tactics: a neon brawler RPG for one to four players" width="100%"></a>
 </p>
 
-<h3 align="center">A neon brawler RPG for one or two players, on one keyboard or online.<br>Free in your browser. No install, no account, and it plays offline.</h3>
+<h3 align="center">A neon brawler RPG for one to four players on one screen, or two online.<br>Free in your browser. No install, no account, and it plays offline.</h3>
 
 <p align="center">
   <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img alt="Play now in your browser" src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-in%20your%20browser-ff3d8b?style=for-the-badge&labelColor=0c0a14"></a>
@@ -261,17 +261,21 @@ The first time anyone starts a run, Juno offers the drills; finish them and one 
 
 Any step can be skipped from the pause menu.
 
-### Co-op
-A second runner joins with their own archetype, level, stats, skills and gear. Creds, medkits, icebreakers and the bag are shared. To play co-op:
-- start a co-op run from any mode's start screen,
-- add Runner 2 from the pause menu, or
-- press Start on a second gamepad.
+### Co-op (up to four on one screen)
+Up to four runners play together on one screen: **Vex, Jinx, Raze and Nova**, each in their own color with a numbered marker overhead, and each with their own archetype, level, stats, skills and gear. Creds, medkits, icebreakers and the bag are shared. To play co-op:
+- pick a **Co-op crew** of 2, 3 or 4 runners on any mode's start screen, then start co-op,
+- add a runner from the pause menu (up to four; **Drop** removes the newest), or
+- press Start on another gamepad: it takes a free runner, or adds one.
 
-Want to play from two different places? See [Online co-op](#online-co-op).
+Runner 1 plays on the keyboard (or touch screen), runner 2 can share the keyboard (numpad and arrows) or use a pad, and runners 3 and 4 use gamepads. A controller keeps its runner until it disconnects, so plugging in another pad never swaps anyone's runner.
 
-**Team attacks.** When both runners land a hit on the same enemy within half a second, it triggers a combined finisher: a big knockdown hit with a moment of slow motion. Each enemy can take one every two seconds.
+Bigger crews meet bigger fights. A crew of three or four meets one extra foe per wave for each runner past two, and foes are tougher: health ×1.25 for two runners, ×1.4 for three, ×1.55 for four. With three or four the HUD switches to compact panels across the top, and the shared creds and medkits move to the bottom line. In a flight, runners 3 and 4 man their own door guns; on the road everyone rides a bike, or a window seat in the car chase.
 
-**Revive.** When a runner loses their last life, they leave a green marker where they fell. Their partner stands next to it for about two and a half seconds, without getting knocked around, to bring them back with 40% health and no spare lives. The marker goes away when you leave the scene, and then they're back next district as before.
+Want to play from two different places? See [Online co-op](#online-co-op) (two players online, for now).
+
+**Team attacks.** When two or more runners land hits on the same enemy within half a second, the crew gets a beat to pile in, then a combined finisher lands: **TEAM UP!** for two, **CREW UP!** for three, **FULL CREW!** for all four, each a heavier knockdown with a longer moment of slow motion. Each enemy can take one every two seconds.
+
+**Revive.** When a runner loses their last life, they leave a green marker where they fell. Any other runner stands next to it for about two and a half seconds, without getting knocked around, to bring them back with 40% health and no spare lives. The marker goes away when you leave the scene, and then they're back next district as before.
 
 ---
 

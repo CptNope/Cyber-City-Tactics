@@ -110,6 +110,43 @@ function drawPanel(p, x) {
     ctx.strokeRect(x - 1.5 - i * 2, 20.5 - i * 2, 99 + i * 4, 9 + i * 4);
   });
 }
+// a crew of three or four: a narrower panel each, side by side across the top, in the runner's own color
+function drawPanelMini(p, x, w) {
+  const bw = w - 10;
+  if (p.out) {
+    txt(p.name + ' · OUT', x, 18, 13, '#6b6280');
+    txt(
+      p.outX != null ? 'Revive at the marker' : 'Back next district',
+      x,
+      29,
+      10,
+      p.outX != null ? '#7dffb0' : '#6b6280'
+    );
+    return;
+  }
+  const low = p.hp > 0 && p.hp < p.maxHp * 0.25;
+  txt(p.name + ' ' + p.lvl, x, 18, 13, low && (G.t >> 3) % 2 ? '#ff3d8b' : p.pal.acc);
+  if ((p.pts > 0 || p.spts > 0) && ((G.t >> 4) % 2 || RM)) txt('+', x + bw - 22, 18, 12, '#ffc63d', 'right');
+  for (let i = 0; i < p.lives; i++)
+    fillPoly(
+      [
+        x + bw - 14 + i * 6,
+        12,
+        x + bw - 11.5 + i * 6,
+        9.5,
+        x + bw - 9 + i * 6,
+        12,
+        x + bw - 11.5 + i * 6,
+        14.5
+      ],
+      p.pal.acc
+    );
+  bar(x, 22, bw, 5, p.hp, p.maxHp, low && (G.t >> 3) % 2 ? '#ff8ab8' : '#ff3d8b', hpGhost(p));
+  bar(x, 29, Math.round(bw * Math.min(1, p.maxMp / 80)), 3, p.mp, p.maxMp, '#45d2ff');
+  bar(x, 34, bw, 2, p.sp || 0, 100, (p.sp || 0) >= 100 && (G.t >> 3) % 2 ? '#fff3c4' : '#ffc63d');
+  const sp = SPELLS[p.spells[p.spell]];
+  txt((p.eq.gun ? '▸' + p.ammo : '—') + ' · ' + sp.name.toUpperCase(), x, 44, 10, '#ffe28a');
+}
 /** Passive skills that are switched on right now, for the HUD (and the Skills tab). */
 function skillTags(p) {
   const out = [];
@@ -213,8 +250,14 @@ function drawHudTop() {
   ctx.save();
   if (!inBand) ctx.translate(0, BAND);
   ctx.scale(k, k);
-  drawPanel(PL[0], 10);
-  if (G.coop && PL[1]) drawPanel(PL[1], HW - 180);
+  const big = PL.length >= 3; // three or four runners: compact panels side by side
+  if (big) {
+    const pw = (HW - 12) / PL.length;
+    PL.forEach((p, i) => drawPanelMini(p, 6 + i * pw, pw));
+  } else {
+    drawPanel(PL[0], 10);
+    if (G.coop && PL[1]) drawPanel(PL[1], HW - 180);
+  }
   const S = curS(),
     C = PARTY.contract;
   const line1 =
@@ -294,7 +337,12 @@ function drawHudTop() {
   }
   ctx.restore();
   if (G.coop && !inBand) {
-    const s = (G.arena ? 'WAVE ' + G.awave + ' · ' : G.den ? 'THE DEN' : '') + (line2 || '');
+    const s =
+      (G.arena ? 'WAVE ' + G.awave + ' · ' : G.den ? 'THE DEN' : '') +
+      (line2 || '') +
+      (PL.length >= 3
+        ? (line2 || G.den || G.arena ? '  ·  ' : '') + '¥' + PARTY.creds + '  ·  MED ' + PARTY.med
+        : '');
     if (s) txt(s, W / 2, H - 6, 12, line2 ? col2 : '#a79dc2', 'center');
   }
 }

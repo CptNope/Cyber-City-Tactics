@@ -48,7 +48,7 @@ Fly a drone through a corp floor seen in cross-section. Cameras sweep, guards se
 
 ## Flight
 
-A VTOL run over a city that scrolls by itself. Runner 1 flies: punch for the cannon, spell for a rocket, dodge for a flare (three a flight; it clears incoming missiles). Runner 2 swings and fires the door gun, which fires on its own in solo. Searchlights on the towers lock on and call in flak. The Raijin gunship guards the drop zone. On Over the Skyline the team then drops onto the Arcology roof and fights three waves on foot. Clearing the roof pays a bonus; getting overrun blows the job.
+A VTOL run over a city that scrolls by itself. Runner 1 flies: punch for the cannon, spell for a rocket, dodge for a flare (three a flight; it clears incoming missiles). Runner 2 swings and fires the door gun, which fires on its own in solo. In a crew of three or four, runners 3 and 4 work their own door guns, each with its own aim. Searchlights on the towers lock on and call in flak. The Raijin gunship guards the drop zone. On Over the Skyline the team then drops onto the Arcology roof and fights three waves on foot. Clearing the roof pays a bonus; getting overrun blows the job.
 
 | Flight job | District | Pay | Karma | Rooftop brawl | Brief |
 |---|---|---|---|---|---|

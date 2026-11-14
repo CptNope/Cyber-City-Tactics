@@ -24,7 +24,7 @@ mindmap
       Makers, parts and rarities
       Cyberware and chrome
     Together
-      Couch co-op
+      Couch co-op: up to four
       Online co-op: room codes
     Platform
       Canvas, plain JavaScript

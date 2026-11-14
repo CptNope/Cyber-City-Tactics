@@ -253,6 +253,28 @@ function flightGunner(v, F) {
       );
       if (G.t % 2) sfx.shot();
     }
+    // runners 3 and 4 work their own door guns, each with its own aim, a little further back along the hull
+    for (let i = 2; i < PL.length; i++) {
+      const q = PL[i],
+        I2 = INP[i],
+        g = (v.guns = v.guns || {})[i] || (v.guns[i] = { aim: 0.3, t: 0 });
+      if (g.t > 0) g.t--;
+      if (q.out) continue;
+      if (I2.held.up) g.aim = Math.max(-0.9, g.aim - 0.04);
+      if (I2.held.down) g.aim = Math.min(1.25, g.aim + 0.04);
+      if ((I2.held.punch || I2.held.gun) && g.t <= 0) {
+        g.t = 6;
+        flightShot(
+          v.x - 8 * (i - 1),
+          v.z - 8,
+          Math.cos(g.aim) * 7,
+          -Math.sin(g.aim) * 7,
+          6 + attrOf(q, 'agi') * 0.8,
+          'bullet'
+        );
+        if (G.t % 2) sfx.shot();
+      }
+    }
   } else if (v.turT <= 0) {
     // the autogun: the nearest target in front and below
     let best = null;

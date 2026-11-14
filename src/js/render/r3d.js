@@ -360,6 +360,7 @@ function r3PlayerMarks(e) {
   }
   if ((e.sp || 0) >= 100 && (G.t >> 3) % 2) txt('★', sx, sy - 64 * sc, 10, '#ffc63d', 'center');
   if (G.coop) fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+  if (PL.length >= 3) txt(String(e.idx + 1), sx, sy - 62 * sc, 9, e.pal.acc, 'center'); // which runner is which
 }
 
 // a stealth drone's detection meter and cloak battery, as the 2D drone draws them
