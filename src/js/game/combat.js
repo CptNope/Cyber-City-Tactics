@@ -729,21 +729,57 @@ function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.d && t.d.dragon ? t.z - 30 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
 }
-// Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
-const TEAM_WINDOW = 30;
+// Team attack: two or more runners land hits on the same enemy within half a second for a combined finisher.
+// Once two have, the crew gets a beat (a fifth of a second) for anyone else to pile in: two make a TEAM UP,
+// three a CREW UP, all four a FULL CREW, each heavier than the last.
+const TEAM_WINDOW = 30,
+  TEAM_GATHER = 12;
+const TEAM_CALL = [null, null, 'TEAM UP!', 'CREW UP!', 'FULL CREW!'];
+const teamCrew = t =>
+  PL.filter(p => t.hitBy && t.hitBy[p.idx] != null && G.t - t.hitBy[p.idx] <= TEAM_WINDOW + TEAM_GATHER);
 function teamCheck(t, sp) {
-  const prev = t.lastBy;
-  t.lastBy = { i: sp.idx, t: G.t };
-  if (!G.coop || !prev || prev.i === sp.idx || G.t - prev.t > TEAM_WINDOW || (t.teamCD || 0) > G.t) return;
+  t.hitBy = t.hitBy || {};
+  t.hitBy[sp.idx] = G.t;
+  t.teamLast = sp;
+  if (!G.coop || (t.teamCD || 0) > G.t || t.teamAt) return;
+  const two = PL.filter(p => t.hitBy[p.idx] != null && G.t - t.hitBy[p.idx] <= TEAM_WINDOW).length >= 2;
+  if (!two) return;
+  // everyone in already: no need to wait
+  if (teamCrew(t).length >= alive().length) teamFire(t);
+  else t.teamAt = G.t + TEAM_GATHER;
+}
+// called every frame: a team-up waiting on its gather beat goes off
+function teamTick() {
+  for (const t of G.ents) if (t.teamAt && G.t >= t.teamAt) teamFire(t);
+}
+function teamFire(t) {
+  t.teamAt = 0;
+  const crew = teamCrew(t),
+    sp = t.teamLast;
+  t.hitBy = {};
+  if (crew.length < 2 || !sp || t.state === 'dead') return;
   t.teamCD = G.t + 120;
-  const a = PL[0],
-    b = PL[1],
-    dmg = Math.round(14 + (a.D.melee + b.D.melee) * 0.6);
-  G.slow = Math.max(G.slow, 16);
-  G.flash = Math.max(G.flash, 0.18);
-  G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: '#ffc63d', life: 22, max: 22, r: 46 });
-  G.texts.push({ x: t.x, y: t.y, z: t.z + 84, s: 'TEAM UP!', c: '#ffc63d', life: 60, big: true });
+  const n = crew.length,
+    dmg = Math.round(14 * (n - 1) + crew.reduce((a, p) => a + p.D.melee, 0) * 0.6);
+  G.slow = Math.max(G.slow, 12 + 4 * n);
+  G.flash = Math.max(G.flash, 0.12 + 0.06 * n);
+  G.punch = Math.max(G.punch || 0, 0.5 + 0.15 * n);
+  G.punchX = t.x;
+  G.punchY = t.y;
+  crew.forEach((p, i) =>
+    G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: p.pal.acc, life: 22, max: 22, r: 36 + 10 * i })
+  );
+  G.texts.push({
+    x: t.x,
+    y: t.y,
+    z: t.z + 84,
+    s: TEAM_CALL[Math.min(n, 4)],
+    c: '#ffc63d',
+    life: 60,
+    big: true
+  });
   bump('teamups');
+  if (n >= 3) bump('crewups');
   setTimeout0(() => {
     if (t.state !== 'dead')
       hurt(t, dmg, sp.x <= t.x ? 1 : -1, {

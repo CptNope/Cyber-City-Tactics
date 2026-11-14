@@ -140,6 +140,7 @@ const prefs = Object.assign(
     heavyTap: false, // heavy blow by double-tapping punch instead of holding it
     story: true, // short scenes as districts open and bosses arrive
     hackKind: 'varied', // 'classic': every lock is the timing minigame
+    crew: 2, // how many runners a co-op start brings, 2 to 4
     keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}

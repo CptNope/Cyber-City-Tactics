@@ -92,8 +92,7 @@ function jobCrew(coop) {
     G.muts = []; // the campaign's mutators don't follow you onto the Jobs board
     G.coop = !!coop;
     newRunStats();
-    PL = [newRunner(0)];
-    if (coop) PL.push(newRunner(1));
+    makeCrew(coop);
     PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
     for (const p of PL) {
       p.lvl = 4;

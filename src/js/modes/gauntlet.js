@@ -106,11 +106,11 @@ function gauntPickHtml() {
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Gauntlet of the day · ${esc(day)}</b><span class="st" style="color:var(--gold)">starts in ${esc(STAGES[dp.order[0]].name)} · ${esc(MUTS[dp.muts[0]])}</span></div>
     <span style="color:var(--muted);font-size:13px">The same districts, mutators and perk offers for everyone today.${today ? ` Your best today: ${today.score.toLocaleString()} (${today.cleared} cleared).` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="gauntday1">Run it solo</button><button class="btn sm ghost" data-a="gauntday2">Run it co-op</button></div></div>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="gauntday1">Run it solo</button><button class="btn sm ghost" data-a="gauntday2">Run it co-op · ${crewN(true)}</button></div></div>
     <div class="job"><b>Run a seed</b><span style="color:var(--muted);font-size:13px">A friend's Gauntlet code, like <b style="white-space:nowrap">G-K2F9QX</b>, plays their exact run.</span>
     <div class="row" style="align-items:center"><input id="gauntSeed" class="seedin" value="${esc(G.gauntPre || '')}" placeholder="G-K2F9QX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" aria-label="Gauntlet seed"><button class="btn sm" data-a="gauntseed1">Play solo</button><button class="btn sm ghost" data-a="gauntseed2">Co-op</button></div>
     ${G.seedErr ? '<span style="color:var(--neon);font-size:13px">That isn\'t a Gauntlet code. They start with G-.</span>' : ''}</div>
-    <div class="row"><button class="btn" data-a="gaunt1">New run solo</button><button class="btn ghost" data-a="gaunt2">New run co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <div class="row"><button class="btn" data-a="gaunt1">New run solo</button><button class="btn ghost" data-a="gaunt2">New run co-op · ${crewN(true)}</button><button class="btn ghost" data-a="back2title">Back</button></div>
     ${rec.best ? `<p class="ds">Best: ${rec.best.score.toLocaleString()} points, ${rec.best.cleared} of ${STAGES.length} districts (${esc(rec.best.code)}) · ${rec.runs} run${rec.runs === 1 ? '' : 's'}</p>` : ''}</div>`;
 }
 /** The line under the briefing: where in the run you are, this district's mutator, and the perks so far. */

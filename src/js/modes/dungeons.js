@@ -47,7 +47,10 @@ function enterRoom(i) {
     b.roost && last
       ? 0
       : pool.length
-        ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+        ? Math.min(
+            b.type === 'club' ? 10 : 7,
+            (b.tier + i + Math.min(2, PL.length - 1)) * (b.type === 'club' ? 2 : 1)
+          )
         : 0;
   // inner rooms of black sites can hold a Kagemori fireteam instead of three of the usual guards
   const team = b.type === 'blacksite' && i >= 1 && !b.roost && n >= 3 && r() < 0.5;
@@ -118,7 +121,7 @@ function enterRoom(i) {
       e.inv = 60;
       if (b.roost) {
         // a fixed fight rather than scaled by block: tough at any level, beatable with the right tactics
-        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (G.coop ? 1.3 : 1));
+        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (1 + 0.3 * (PL.length - 1)));
         e.dmg = Math.round(22 * DIFF[G.diff].dmg);
         e.flyCD = 600;
         tip(

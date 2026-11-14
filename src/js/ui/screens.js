@@ -56,16 +56,19 @@ const padHelp = () => `<div class="keys">
 <b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, talk, enter · hold to charge a heavy blow</span>
 <b>B</b><span>Kick · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
-<b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
+<b>Menu</b><span>Pause · on a new controller, add a runner (up to four)</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
 <p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
 const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keyFix(keysHtml));
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
 }
+// pick each runner's archetype, coat and trail. n: how many seats to show; by default runner 1 plus the
+// co-op crew (2 to 4, picked here), since solo starts just use the first card
 function archHtml(n) {
-  n = n || 2;
+  const crew = !n;
+  n = n || crewN(true);
   const row =
-    i => `<div class="job"><div class="row" style="justify-content:space-between"><b>${i ? 'Runner 2 (co-op)' : 'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
+    i => `<div class="job"><div class="row" style="justify-content:space-between"><b><span style="color:${PALS[i].acc}">●</span> ${i ? `Runner ${i + 1} (co-op)` : 'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
     <div class="row">${Object.keys(ARCH)
       .map(k =>
         archLocked(k)
@@ -95,7 +98,7 @@ function archHtml(n) {
       })
       .join('')}</div>
     ${
-      Object.keys(ARCH).some(archLocked)
+      i === 0 && Object.keys(ARCH).some(archLocked)
         ? `<span style="color:var(--muted);font-size:12px">🔒 ${Object.keys(ARCH)
             .filter(archLocked)
             .map(k => `${ARCH[k].name}: ${esc(FEATBY[ARCH[k].locked].desc)}`)
@@ -103,7 +106,13 @@ function archHtml(n) {
         : ''
     }
     <span style="color:var(--muted);font-size:12.5px">${esc(ARCH[G.pendArch[i]].desc)} Special: ${esc(ARCH[G.pendArch[i]].spDesc)}</span></div>`;
-  return `<h3>Choose your runner</h3>${row(0)}${n > 1 ? row(1) : ''}`;
+  const size = crew
+    ? `<div class="row" style="align-items:center;gap:8px"><span style="color:var(--muted);font-size:12.5px">Co-op crew</span>${seg(
+        'crew',
+        [2, 3, 4].map(k => [k, k + ' runners'])
+      )}<span style="color:var(--muted);font-size:12px">Runner 1 can use the keyboard; everyone else a controller (runner 2 can share the keyboard)</span></div>`
+    : '';
+  return `<h3>Choose your runner${n > 1 ? 's' : ''}</h3>${size}${Array.from({ length: n }, (_, i) => row(i)).join('')}`;
 }
 function codexHtml() {
   const tab = G.cxTab || 'feats',

@@ -259,8 +259,7 @@ function startArena(coop, challenge) {
   G.rngW = srng(hstr(sid + 'w'));
   G.rngP = srng(hstr(sid + 'p'));
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
+  makeCrew(coop);
   Object.assign(PARTY, {
     creds: 0,
     bag: [],
@@ -370,7 +369,7 @@ function nextArenaWave() {
     if (w >= 8) pool.push('ninja', 'feral');
     if (w >= 13) pool.push('mech');
     if (w >= 9) pool.push('glitch', 'ice');
-    const n = Math.min(7, 2 + Math.floor(w * 0.5)) + (G.coop ? 1 : 0);
+    const n = Math.min(7, 2 + Math.floor(w * 0.5)) + Math.min(2, PL.length - 1); // a bigger crew, a bigger wave
     for (let i = 0; i < n; i++) list.push(wpick(pool));
     let mechs = 0;
     list = list.map(k => (k === 'mech' && mechs++ ? 'sec' : k)); // one walker per wave is plenty

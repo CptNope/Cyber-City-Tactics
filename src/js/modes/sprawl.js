@@ -489,8 +489,7 @@ function startWorld(coop, ch) {
   G.ng = 0;
   G.coop = !!coop;
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
+  makeCrew(coop);
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   Object.assign(PARTY, {
     creds: 120 + rankOf(legLP()) * 15,

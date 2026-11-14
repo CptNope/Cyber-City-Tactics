@@ -45,7 +45,7 @@ function renderOv() {
     <p style="font-size:12.5px">Elites have a colored aura and a name tag: ${Object.values(ELITES)
       .map(x => `<b style="color:${x.col}">${x.name}</b> ${x.hint}`)
       .join(', ')}. They drop better gear.</p>
-    <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+    <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op · ${crewN(true)}</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'trainpick') {
     h = `<div class="card"><p class="eyebrow">Training · Juno's back alley</p><h2>Learn the moves</h2>
@@ -86,19 +86,19 @@ function renderOv() {
     <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Weekly challenge · ${wk.id}</b><span class="st" style="color:var(--gold)">${esc(MODS[wk.mod].name)}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(MODS[wk.mod].desc)} Same waves and perk offers for everyone this week, on Runner difficulty.${wb && wb.id === wk.id ? ` Your best this week: ${wb.score.toLocaleString()} (wave ${wb.wave}).` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="week1">Play solo</button><button class="btn sm ghost" data-a="week2">Play co-op</button></div></div>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="week1">Play solo</button><button class="btn sm ghost" data-a="week2">Play co-op · ${crewN(true)}</button></div></div>
     ${(() => {
       const dy = thisDay(),
         dd = store.load('cs_day') || {};
       return `<div class="job"><div class="row" style="justify-content:space-between"><b>Daily challenge · ${dy.day}</b><span class="st" style="color:var(--gold)">${esc(MODS[dy.mod].name)} · ${ARCH[dy.arch].short}</span></div>
     <span style="color:var(--muted);font-size:13px">A new seed every day, on Runner difficulty. Today you play as the ${ARCH[dy.arch].name}. ${esc(MODS[dy.mod].desc)}${dd.id === dy.id && dd.score ? ` Today's best: ${dd.score.toLocaleString()} (wave ${dd.wave}).` : ''}${dd.streak > 1 ? ` Streak: ${dd.streak} days.` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="day1">Play solo</button><button class="btn sm ghost" data-a="day2">Play co-op</button></div></div>`;
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="day1">Play solo</button><button class="btn sm ghost" data-a="day2">Play co-op · ${crewN(true)}</button></div></div>`;
     })()}
     ${archHtml()}
     <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
     ${G.seedPre ? '' : seedBoxHtml('Play the same waves and perk offers.')}
-    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="online">Play online</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op · ${crewN(true)}</button><button class="btn ghost" data-a="online">Play online</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
   if (m === 'perk') {
@@ -134,7 +134,7 @@ function renderOv() {
   }
   if (m === 'pause') {
     h = `<div class="card"><p class="eyebrow">Paused · ${G.world ? 'the Sprawl · block ' + G.wd.level + ' · heat ' + G.wd.heat : G.training ? 'training step ' + (G.tstep + 1) + ' of ' + TRAIN.length : G.arena ? 'arena wave ' + G.awave + ' · score ' + G.score.toLocaleString() : G.den ? 'the Den' : 'district ' + (G.stage + 1)} · ${DIFF[G.diff].name}${G.ng && !G.arena ? ' NG+' + G.ng : ''}</p><h2>Catch your breath</h2>${G.den || G.arena ? '' : jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${netHost() ? '' : G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${netHost() ? '' : crewBtns()}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if (m === 'npc') h = npcHtml(G.npc);
   if (m === 'settings') h = settingsHtml();
@@ -152,7 +152,7 @@ function renderOv() {
     ${G.seedPre ? seedBoxHtml('Play the exact same street.') : ''}
     ${archHtml()}
     ${G.seedPre ? '' : seedBoxHtml('Play the exact same street.')}
-    <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+    <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op · ${crewN(true)}</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'wiped') {
     h = `<div class="card"><p class="eyebrow">The Sprawl · block ${G.wd.level}</p><h2 style="color:var(--neon)">Flatlined</h2>
@@ -441,7 +441,7 @@ function npcHtml(id) {
         k: 'ammo',
         n: 'Ammo box',
         ds: `+16 rounds for each runner.`,
-        c: Math.round(30 * (G.coop ? 2 : 1) * buyMul()),
+        c: Math.round(30 * PL.length * buyMul()),
         ok: true
       },
       (() => {
@@ -566,6 +566,16 @@ function togglePause() {
   else if (G.mode === 'npc') setMode('den');
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
+// the pause menu's crew buttons: add the next runner (up to four), drop the newest
+function crewBtns() {
+  const add =
+      PL.length < MAX_RUNNERS
+        ? `<button class="btn ghost" data-a="join2">Add Runner ${PL.length + 1}</button>`
+        : '',
+    drop =
+      PL.length > 1 ? `<button class="btn ghost" data-a="drop2">Drop ${PL[PL.length - 1].name}</button>` : '';
+  return add + drop;
+}
 function newRun(coop, noBrief) {
   G.training = false;
   G.gaunt = null; // gauntStart() sets it again after this
@@ -580,9 +590,7 @@ function newRun(coop, noBrief) {
   G.challenge = null;
   G.rngW = G.rngP = null;
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  G.coop = !!coop;
+  makeCrew(coop);
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   Object.assign(PARTY, {
     creds: rankOf(legLP()) * 15,

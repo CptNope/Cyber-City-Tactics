@@ -24,9 +24,31 @@ const PALS = [
     acc: '#ffc63d',
     boot: '#120d16',
     cyber: '#ffe0a8'
+  },
+  {
+    skin: '#c99272',
+    coat: '#123f5c',
+    coat2: '#0d304a',
+    pants: '#1d2733',
+    hair: '#e8edf2',
+    acc: '#45d2ff',
+    boot: '#0a1018',
+    cyber: '#c8f4ff'
+  },
+  {
+    skin: '#7a4e3c',
+    coat: '#2c4a1f',
+    coat2: '#213a17',
+    pants: '#24301f',
+    hair: '#2b1a12',
+    acc: '#8dff6a',
+    boot: '#0e140b',
+    cyber: '#d6ffc4'
   }
 ];
-const NAMES = ['VEX', 'JINX'];
+// up to four runners on one screen (or online): Vex and Jinx, then Raze and Nova
+const NAMES = ['VEX', 'JINX', 'RAZE', 'NOVA'];
+const MAX_RUNNERS = 4;
 const COATS = {
   sig: { name: 'Signature' },
   chrome: { name: 'Chrome', feat: 'k100', coat: '#56626e', coat2: '#424c56', acc: '#9fe9ff' },
