@@ -57,6 +57,9 @@ const sample = () => {
     // this machine draws WebGL in software, which the game would leave 2D: force 3D for the checks
     await page.evaluate(() => {
       if (typeof r3Ready === 'function' && r3Ready()) R3.force = true;
+      // and pin graphics to High: on CI's slow software WebGL the adaptive quality would otherwise step down,
+      // a tier per stretch of slow frames, to the lean tier, which turns 3D off for the rest of the session
+      prefs.gfx = 'high';
       prefs.tips = false;
       prefs.story = false;
       G.pendArch = ['samurai', 'runner'];
@@ -201,24 +204,33 @@ const sample = () => {
       // until a phone (or CI's software WebGL) drops the context and the game falls back to 2D. Build every
       // place a second time: the second round must end where the first did.
       // measured in the Den both times: it holds the same things every visit (the corp floor's layout is random)
-      const inDen = async () => {
-        await page.evaluate(`(${places.den})()`);
-        await page
-          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 90000, polling: 250 })
-          .catch(() => {});
-        return page.evaluate(() => (render(), { ...R3.r.info.memory, ok: R3.ok }));
-      };
-      const a = await inDen();
-      for (const fn of Object.values(places)) {
+      // each build gets 45 s; one that doesn't come up stops the round and says why, instead of every place
+      // after it waiting out its own timeout (that ran CI past its time limit once)
+      const build = async (name, fn) => {
         await page.evaluate(`(${fn})()`);
-        await page
-          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 90000, polling: 250 })
-          .catch(() => {});
+        const up = await page
+          .waitForFunction(() => (render(), R3.on || R3.ok === false), null, { timeout: 45000, polling: 250 })
+          .then(() => page.evaluate(() => R3.on))
+          .catch(() => false);
+        if (up) return null;
+        return page.evaluate(
+          n =>
+            `${n} didn't come up again (ok ${R3.ok}, tier ${gfxTier()}, key ${R3.key || '-'}, pending ${R3.pending || '-'}${R3.why ? ', ' + String(R3.why).split('\n')[0] : ''})`,
+          name
+        );
+      };
+      let stuck = await build('den', places.den);
+      const a = await page.evaluate(() => (render(), { ...R3.r.info.memory }));
+      for (const [name, fn] of Object.entries(places)) {
+        if (stuck) break;
+        stuck = await build(name, fn);
       }
-      const b = await inDen();
+      if (!stuck) stuck = await build('den', places.den);
+      const b = await page.evaluate(() => (render(), { ...R3.r.info.memory, ok: R3.ok }));
       ok(
-        b.ok && b.geometries <= a.geometries + 3 && b.textures <= a.textures + 3,
-        `building every place again frees the old ones (geometries ${a.geometries} → ${b.geometries}, textures ${a.textures} → ${b.textures})`
+        !stuck && b.ok && b.geometries <= a.geometries + 3 && b.textures <= a.textures + 3,
+        stuck ||
+          `building every place again frees the old ones (geometries ${a.geometries} → ${b.geometries}, textures ${a.textures} → ${b.textures})`
       );
     }
     ok(!errs.length, 'no errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
