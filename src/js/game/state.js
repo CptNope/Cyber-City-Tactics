@@ -33,7 +33,8 @@ const G = {
   diff: 1,
   ng: 0,
   pendDiff: 1,
-  pendArch: ['runner', 'samurai'],
+  pendArch: ['runner', 'samurai', 'mage', 'runner'],
+  pendN: 0, // the crew size for a co-op start once someone joins or leaves mid-run; 0 follows prefs.crew
   zaps: [],
   slowFoes: 0,
   arena: false,
@@ -304,6 +305,25 @@ function loadGame(s) {
   fixGear();
   G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
+// how many runners a start makes: solo, co-op (the crew size picked, 2 to 4) or an exact count
+function crewN(coop) {
+  if (typeof coop === 'number') return clamp(Math.round(coop), 1, MAX_RUNNERS);
+  return coop ? clamp(G.pendN || +prefs.crew || 2, 2, MAX_RUNNERS) : 1;
+}
+// a fresh party of n runners with the archetypes picked for them
+function makeCrew(coop) {
+  PL = [];
+  for (let i = 0; i < crewN(coop); i++) PL.push(newRunner(i));
+  if (typeof PAD !== 'undefined') {
+    PAD.own = {}; // a new party: controllers pick their runners afresh
+    PAD.kb = {};
+  }
+  G.coop = PL.length > 1;
+  return PL;
+}
+// enemy toughness for the size of the crew: +25% health for a pair; a crew of three or four also meets more
+// foes (crewWave), so each runner past two adds a little less: x1.4 for three, x1.55 for four
+const crewHp = () => (PL.length <= 2 ? 1 + 0.25 * (PL.length - 1) : 1.25 + 0.15 * (PL.length - 2));
 const karmaNext = l => 50 + l * 45;
 const active = () => PL.filter(p => !p.out);
 const alive = () => PL.filter(p => !p.out && p.state !== 'dead');

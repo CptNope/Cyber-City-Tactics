@@ -11,7 +11,7 @@ flowchart LR
   DF["difficulty: DIFF[d]"] --> X
   NG["New Game+: 1 + 0.45·NG (hp), 1 + 0.3·NG (dmg)"] --> X
   LV["party level: 1 + 0.09·(L−1) (hp), 1 + 0.08·(L−1) (dmg)"] --> X
-  CO["co-op: ×1.25 hp"] --> X
+  CO["crew: ×1.25 / 1.4 / 1.55 hp for 2 / 3 / 4 runners"] --> X
   GR["retry grace: 1 − 0.1·falls in this district (to 0.7)"] --> X
   X --> FOE[a foe's health and damage]
 ```
@@ -57,3 +57,14 @@ Heavy parts add 20% damage each, and Plated parts 30% armor each. Prices are `ba
 The campaign bot (tests/campaign-bot.test.js) plays the whole campaign on Runner difficulty. It plays the way a careful but simple player would: it walks up and fights, dodges shots already in the air, steps out of a lane an enemy is aiming down or that Black ICE has marked, and rolls behind mech walkers to hit the vent.
 
 Before the November 2026 balance pass it needed anywhere from 5 to 31 continues, almost all at the Arcology's mech walker and Voss's rematch in the Host. Now it usually needs none or one, and occasionally three. **CI fails if it needs more than four** (`MAX_OVERS`), so a change that makes the late game much harder shows up on the pull request. It still plays far worse than a person.
+
+## Crews of three and four
+
+Couch co-op takes up to four runners. Two things grow with the crew:
+
+- **Foe health** (`crewHp()` in `state.js`): ×1.25 for two, ×1.4 for three, ×1.55 for four. Each runner past two adds less, because of the next point.
+- **More foes** (`crewWave()` in `update.js`): a crew of three or four meets one extra foe per wave for each runner past two. The extras are copies of the wave's ordinary foes, never a boss or a rematch, the way arcade brawlers filled the screen for a full cabinet.
+
+The Arena adds one foe per extra runner (up to two). Sprawl buildings add up to two floors' worth, and a building boss gets +30% health per extra runner. Ammo in the Den costs ¥30 per runner. Karma is still 75% each in any co-op.
+
+Team-ups grow with the crew too: two runners on one foe make a TEAM UP, three a CREW UP, four a FULL CREW. The damage is `14 × (n − 1) + 0.6 × the crew's melee`, with longer slow motion as n grows.

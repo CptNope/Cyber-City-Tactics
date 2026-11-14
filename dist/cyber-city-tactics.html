@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-0XB3cCdaPcURPr6zij76m1YT23i1Z+HDijIpvt3sUt0='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-BOjmkk1CLRs02YdpyUfJXany8ciKLZk4YkeedUjZNa4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
 <meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
@@ -1333,7 +1333,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+51fa152';
+const APP_VERSION = '2.0.0+119a507';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -1637,6 +1637,7 @@ const prefs = Object.assign(
     heavyTap: false, // heavy blow by double-tapping punch instead of holding it
     story: true, // short scenes as districts open and bosses arrive
     hackKind: 'varied', // 'classic': every lock is the timing minigame
+    crew: 2, // how many runners a co-op start brings, 2 to 4
     keys: {} // remapped keys: { '0': { action: code }, '1': {...} }
   },
   isObj(store.get('cs_prefs')) ? store.get('cs_prefs') : {}
@@ -2075,13 +2076,11 @@ function setMusic(on) {
 /* ===== src/js/core/input.js ===== */
 /* Cyber City Tactics · src/js/core/input.js
  * Keyboard maps for both runners, the touch stick and buttons (with contextual labels), and gamepads. Inputs
- * land in INP[0] and INP[1] as held/pressed flags.
+ * land in INP[0] to INP[3] (one per runner) as held/pressed flags.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 /* ================= input ================= */
-const INP = [
-  { held: {}, pressed: {} },
-  { held: {}, pressed: {} }
-];
+// one slot per runner (up to four on the couch)
+const INP = [0, 1, 2, 3].map(() => ({ held: {}, pressed: {} }));
 const KA = {
   KeyF: 'special',
   KeyA: 'left',
@@ -2275,6 +2274,7 @@ addEventListener('keydown', e => {
     who = G.coop && !netP2() ? 1 : 0;
     a = KB[c];
   }
+  if (who >= 0 && G.coop) PAD.kb[who] = true; // a runner the keyboard plays: pads leave it alone
   if (!a) return;
   e.preventDefault();
   A.unlock();
@@ -2504,7 +2504,42 @@ if (typeof ResizeObserver !== 'undefined') {
  * In play: solo, pad 1 is runner 1. Co-op: two pads map 1:1; one pad goes to runner 2 so runner 1 can stay on keyboard.
  * In menus: any pad moves focus with the D-pad or left stick, A selects, B goes back, LB/RB switch tabs. */
 const padPrev = {};
-const PAD = { active: false, name: '', nav: {}, lastA: null };
+const PAD = { active: false, name: '', nav: {}, lastA: null, own: {}, kb: {} };
+/* Which runner each controller drives, kept until it disconnects, that runner leaves or a new party starts, so
+ * plugging in another pad never swaps anyone's runner. Solo, the first pad drives runner 1. In co-op a new pad
+ * takes runner 2, 3 or 4 first and runner 1 last (runner 1 is usually on the keyboard or touch screen), never one
+ * the keyboard is already playing; with every runner taken, its Start adds a runner, up to four. Online, your
+ * pads drive your own runner. */
+function padOwner(gi) {
+  if (netP2()) return 0;
+  const o = PAD.own[gi];
+  return o != null && o < PL.length ? o : -1;
+}
+function padClaim(gi) {
+  const taken = new Set(
+      Object.entries(PAD.own)
+        .filter(([k, v]) => +k !== gi && v < PL.length)
+        .map(([, v]) => v)
+    ),
+    order = G.coop
+      ? PL.map((_, i) => i)
+          .slice(1)
+          .concat(0)
+      : [0];
+  for (const i of order)
+    if (!taken.has(i) && !(G.coop && PAD.kb[i])) {
+      PAD.own[gi] = i;
+      return i;
+    }
+  return -1;
+}
+// a pad with no runner pressed Start: a free runner if there is one, else a new one joins (couch co-op)
+function padJoin(gi) {
+  if (netP2() || (typeof NET !== 'undefined' && NET.live)) return -1;
+  let i = padClaim(gi);
+  if (i < 0 && PL.length < MAX_RUNNERS && joinRunner()) i = padClaim(gi);
+  return i;
+}
 const PAD_BTN = {
   punch: 'X',
   kick: 'B',
@@ -2537,7 +2572,8 @@ addEventListener('gamepadconnected', e => {
     lore: true
   });
 });
-addEventListener('gamepaddisconnected', () => {
+addEventListener('gamepaddisconnected', e => {
+  if (e && e.gamepad) delete PAD.own[e.gamepad.index]; // its runner is free for the next pad that picks up
   let left = [];
   try {
     left = [...navigator.getGamepads()].filter(Boolean);
@@ -2705,9 +2741,8 @@ function pollPads() {
     return;
   }
   const now = performance.now();
-  list.forEach((gp, n) => {
-    if (n > 1) return;
-    let who = G.coop && !netP2() ? (list.length >= 2 ? n : 1) : n === 0 ? 0 : -1;
+  list.forEach(gp => {
+    let who = padOwner(gp.index);
     const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed),
       ax = gp.axes[0] || 0,
       ay = gp.axes[1] || 0;
@@ -2769,8 +2804,9 @@ function pollPads() {
       if (k === 'start') {
         if (on && !was) {
           A.unlock();
-          if (!G.coop && n === 1) joinRunner2();
-          else togglePause();
+          if (who < 0 && padJoin(gp.index) >= 0) {
+            // a new runner (or a free one) picked up: no pause
+          } else togglePause();
         }
         continue;
       }
@@ -2778,6 +2814,7 @@ function pollPads() {
         if (on && !was && who >= 0) globalAct('sheet', who);
         continue;
       }
+      if (who < 0 && on && !was) who = padClaim(gp.index); // a free runner: just start playing it
       if (who < 0) continue;
       if (on && !was) kp(who, k, true);
       else if (!on && was) kp(who, k, false);
@@ -2812,9 +2849,31 @@ const PALS = [
     acc: '#ffc63d',
     boot: '#120d16',
     cyber: '#ffe0a8'
+  },
+  {
+    skin: '#c99272',
+    coat: '#123f5c',
+    coat2: '#0d304a',
+    pants: '#1d2733',
+    hair: '#e8edf2',
+    acc: '#45d2ff',
+    boot: '#0a1018',
+    cyber: '#c8f4ff'
+  },
+  {
+    skin: '#7a4e3c',
+    coat: '#2c4a1f',
+    coat2: '#213a17',
+    pants: '#24301f',
+    hair: '#2b1a12',
+    acc: '#8dff6a',
+    boot: '#0e140b',
+    cyber: '#d6ffc4'
   }
 ];
-const NAMES = ['VEX', 'JINX'];
+// up to four runners on one screen (or online): Vex and Jinx, then Raze and Nova
+const NAMES = ['VEX', 'JINX', 'RAZE', 'NOVA'];
+const MAX_RUNNERS = 4;
 const COATS = {
   sig: { name: 'Signature' },
   chrome: { name: 'Chrome', feat: 'k100', coat: '#56626e', coat2: '#424c56', acc: '#9fe9ff' },
@@ -6014,7 +6073,8 @@ const G = {
   diff: 1,
   ng: 0,
   pendDiff: 1,
-  pendArch: ['runner', 'samurai'],
+  pendArch: ['runner', 'samurai', 'mage', 'runner'],
+  pendN: 0, // the crew size for a co-op start once someone joins or leaves mid-run; 0 follows prefs.crew
   zaps: [],
   slowFoes: 0,
   arena: false,
@@ -6285,6 +6345,25 @@ function loadGame(s) {
   fixGear();
   G.sideJobs = isObj(s.sideJobs) ? s.sideJobs : {};
 }
+// how many runners a start makes: solo, co-op (the crew size picked, 2 to 4) or an exact count
+function crewN(coop) {
+  if (typeof coop === 'number') return clamp(Math.round(coop), 1, MAX_RUNNERS);
+  return coop ? clamp(G.pendN || +prefs.crew || 2, 2, MAX_RUNNERS) : 1;
+}
+// a fresh party of n runners with the archetypes picked for them
+function makeCrew(coop) {
+  PL = [];
+  for (let i = 0; i < crewN(coop); i++) PL.push(newRunner(i));
+  if (typeof PAD !== 'undefined') {
+    PAD.own = {}; // a new party: controllers pick their runners afresh
+    PAD.kb = {};
+  }
+  G.coop = PL.length > 1;
+  return PL;
+}
+// enemy toughness for the size of the crew: +25% health for a pair; a crew of three or four also meets more
+// foes (crewWave), so each runner past two adds a little less: x1.4 for three, x1.55 for four
+const crewHp = () => (PL.length <= 2 ? 1 + 0.25 * (PL.length - 1) : 1.25 + 0.15 * (PL.length - 2));
 const karmaNext = l => 50 + l * 45;
 const active = () => PL.filter(p => !p.out);
 const alive = () => PL.filter(p => !p.out && p.state !== 'dead');
@@ -6591,11 +6670,22 @@ function enterDen() {
     'Walk up to people and press J to talk or shop. Kit rents companions. The next job starts at the right end of the street.'
   );
 }
-function joinRunner2() {
-  if (G.coop) return;
-  const p = newRunner(1);
-  const p1 = PL[0];
-  applyArch(p, G.pendArch[1] !== p1.arch ? G.pendArch[1] : p1.arch === 'samurai' ? 'mage' : 'samurai');
+// another runner joins the run (couch co-op, up to four): they come in at the lead's level, with the archetype
+// picked for that seat (or the first free one, so the crew doesn't double up), next to whoever's in front
+function joinRunner() {
+  if (PL.length >= MAX_RUNNERS) return null;
+  if (typeof NET !== 'undefined' && NET.live && PL.length >= 2) return null; // online seats are their own thing
+  const idx = PL.length,
+    p = newRunner(idx),
+    p1 = PL[0],
+    taken = PL.map(q => q.arch),
+    want = G.pendArch[idx];
+  const arch =
+    want && ARCH[want] && !archLocked(want) && !taken.includes(want)
+      ? want
+      : Object.keys(ARCH).find(k => !archLocked(k) && !taken.includes(k)) || 'runner';
+  applyArch(p, arch);
+  G.pendArch[idx] = arch;
   p.lvl = p1.lvl;
   p.pts = (p1.lvl - 1) * 2;
   p.spts = (p.spts || 0) + p1.lvl - 1;
@@ -6604,27 +6694,35 @@ function joinRunner2() {
   p.mp = p.maxMp;
   PL.push(p);
   G.coop = true;
+  G.pendN = PL.length; // a restart keeps the crew together
   if (G.mode === 'play' || G.mode === 'den' || G.ret === 'play' || G.ret === 'den') {
-    p.x = clamp(p1.x - 20, G.camX + 20, G.camX + W - 20);
-    p.y = clamp(p1.y + 16, FY0 + 6, FY1);
+    const lead = alive()[0] || p1;
+    p.x = clamp(lead.x - 20 - 14 * (idx - 1), G.camX + 20, G.camX + W - 20);
+    p.y = clamp(lead.y + (idx % 2 ? 16 : -16), FY0 + 6, FY1);
     p.inv = 90;
     G.ents.push(p);
-    say(p, 'JINX JOINS', '#ffc63d', 70, 80);
+    say(p, p.name + ' JOINS', p.pal.acc, 70, 80);
   }
   sfx.level();
+  return p;
 }
-function dropRunner2() {
-  if (!G.coop) return;
-  const p = PL[1];
-  // let go of anything runner 2 had hold of, and of runner 2
+const joinRunner2 = () => (PL.length === 1 ? joinRunner() : null);
+// the last runner to join leaves (only the newest seat can go, so everyone else keeps their color and pad)
+function dropRunner() {
+  if (PL.length < 2) return;
+  const p = PL[PL.length - 1];
+  // let go of anything they had hold of, and of them
   if (p.heldBy) enemyRelease(p.heldBy);
   if (p.grab) releaseGrab(p);
   if (p.holding) dropProp(p);
+  for (const q of PL) if (q.grab === p) releaseGrab(q);
   G.ents = G.ents.filter(e => e !== p);
-  PL = [PL[0]];
-  G.coop = false;
-  // runner 1 already out of lives: there's nobody left, so the run ends as if they'd fallen
-  if (PL[0].out && G.mode !== 'title') {
+  PL = PL.slice(0, -1);
+  G.coop = PL.length > 1;
+  G.pendN = Math.max(2, PL.length);
+  if (G.sheetIdx >= PL.length) G.sheetIdx = 0;
+  // everyone left is already out of lives: the run ends as if they'd fallen
+  if (!active().length && G.mode !== 'title') {
     if (G.arena) arenaOver();
     else if (G.world) worldWipe();
     else if (gauntOn()) gauntEnd(false);
@@ -6634,6 +6732,9 @@ function dropRunner2() {
     }
   }
 }
+const dropRunner2 = () => {
+  while (PL.length > 1) dropRunner();
+};
 
 function spawnHostage(x, y) {
   const e = spawnPassive('hostage', x, y);
@@ -6719,7 +6820,7 @@ function spawnEnemy(kind, side) {
     walk: 0,
     inv: 0,
     flash: 0,
-    hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
+    hp: Math.round(d.hp * hpm * crewHp()),
     dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg * graceMul()),
     cool: rand(20, d.cool),
     hits: 0,
@@ -6735,6 +6836,7 @@ function spawnEnemy(kind, side) {
   makeLook(e); // its own skin, clothes, build and maybe an accessory (visual only)
   if (
     !d.boss &&
+    kind !== 'rival' && // Vane is never an elite (spawnRival scales him itself)
     G.mode !== 'title' &&
     (modOn('elite') || Math.random() < DF.elite + NG.elite + depth() * 0.02)
   ) {
@@ -7501,21 +7603,57 @@ function inZ(att, t) {
   const tz = t.d && t.d.fly ? t.z - 12 : t.d && t.d.dragon ? t.z - 30 : t.z;
   return tz <= att.z + 14 && tz >= att.z - 30;
 }
-// Team attack: both runners land a hit on the same enemy within half a second for a combined finisher
-const TEAM_WINDOW = 30;
+// Team attack: two or more runners land hits on the same enemy within half a second for a combined finisher.
+// Once two have, the crew gets a beat (a fifth of a second) for anyone else to pile in: two make a TEAM UP,
+// three a CREW UP, all four a FULL CREW, each heavier than the last.
+const TEAM_WINDOW = 30,
+  TEAM_GATHER = 12;
+const TEAM_CALL = [null, null, 'TEAM UP!', 'CREW UP!', 'FULL CREW!'];
+const teamCrew = t =>
+  PL.filter(p => t.hitBy && t.hitBy[p.idx] != null && G.t - t.hitBy[p.idx] <= TEAM_WINDOW + TEAM_GATHER);
 function teamCheck(t, sp) {
-  const prev = t.lastBy;
-  t.lastBy = { i: sp.idx, t: G.t };
-  if (!G.coop || !prev || prev.i === sp.idx || G.t - prev.t > TEAM_WINDOW || (t.teamCD || 0) > G.t) return;
+  t.hitBy = t.hitBy || {};
+  t.hitBy[sp.idx] = G.t;
+  t.teamLast = sp;
+  if (!G.coop || (t.teamCD || 0) > G.t || t.teamAt) return;
+  const two = PL.filter(p => t.hitBy[p.idx] != null && G.t - t.hitBy[p.idx] <= TEAM_WINDOW).length >= 2;
+  if (!two) return;
+  // everyone in already: no need to wait
+  if (teamCrew(t).length >= alive().length) teamFire(t);
+  else t.teamAt = G.t + TEAM_GATHER;
+}
+// called every frame: a team-up waiting on its gather beat goes off
+function teamTick() {
+  for (const t of G.ents) if (t.teamAt && G.t >= t.teamAt) teamFire(t);
+}
+function teamFire(t) {
+  t.teamAt = 0;
+  const crew = teamCrew(t),
+    sp = t.teamLast;
+  t.hitBy = {};
+  if (crew.length < 2 || !sp || t.state === 'dead') return;
   t.teamCD = G.t + 120;
-  const a = PL[0],
-    b = PL[1],
-    dmg = Math.round(14 + (a.D.melee + b.D.melee) * 0.6);
-  G.slow = Math.max(G.slow, 16);
-  G.flash = Math.max(G.flash, 0.18);
-  G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: '#ffc63d', life: 22, max: 22, r: 46 });
-  G.texts.push({ x: t.x, y: t.y, z: t.z + 84, s: 'TEAM UP!', c: '#ffc63d', life: 60, big: true });
+  const n = crew.length,
+    dmg = Math.round(14 * (n - 1) + crew.reduce((a, p) => a + p.D.melee, 0) * 0.6);
+  G.slow = Math.max(G.slow, 12 + 4 * n);
+  G.flash = Math.max(G.flash, 0.12 + 0.06 * n);
+  G.punch = Math.max(G.punch || 0, 0.5 + 0.15 * n);
+  G.punchX = t.x;
+  G.punchY = t.y;
+  crew.forEach((p, i) =>
+    G.fx.push({ k: 'ring', x: t.x, y: t.y, z: 26, c: p.pal.acc, life: 22, max: 22, r: 36 + 10 * i })
+  );
+  G.texts.push({
+    x: t.x,
+    y: t.y,
+    z: t.z + 84,
+    s: TEAM_CALL[Math.min(n, 4)],
+    c: '#ffc63d',
+    life: 60,
+    big: true
+  });
   bump('teamups');
+  if (n >= 3) bump('crewups');
   setTimeout0(() => {
     if (t.state !== 'dead')
       hurt(t, dmg, sp.x <= t.x ? 1 : -1, {
@@ -11502,6 +11640,7 @@ function update() {
   const slowSkip = G.slowFoes > 0 && G.t % 2 === 1;
   if (G.slowFoes > 0) G.slowFoes--;
   for (const e of G.ents) if (e.team === 1 && (!slowSkip || e.d.passive)) upEnemy(e);
+  if (G.coop) teamTick();
   for (const e of G.ents) if (e.team === 0 && e.d && e.d.turret) turretTick(e); // a hacked turret
   for (const z of G.zaps) {
     z.delay--;
@@ -11835,7 +11974,7 @@ function waves() {
       G.lock = at;
       G.waveLive = true;
       rivalWave(G.wave);
-      teamSpawnList(choiceSpawn(G.stage, w)).forEach(([k0, unit], i) => {
+      crewWave(teamSpawnList(choiceSpawn(G.stage, w))).forEach(([k0, unit], i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;
         const e = spawnEnemy(k, i % 2 ? -1 : 1);
@@ -11858,6 +11997,16 @@ function waves() {
     }
   }
   if (G.exitOpen && alive().some(p => p.x > S.len - 24)) stageClear();
+}
+// a crew of three or four: one more foe per extra runner, copied from the wave's own rank and file (never a
+// boss or a rematch), the way the arcade brawlers filled the screen for a full cabinet
+function crewWave(list) {
+  const extra = PL.length - 2;
+  if (extra <= 0) return list;
+  const grunts = list.filter(([k]) => !k.endsWith('!') && DEF[k] && !DEF[k].boss);
+  const out = list.slice();
+  for (let j = 0; j < extra && grunts.length; j++) out.push([grunts[j % grunts.length][0], null]);
+  return out;
 }
 function denTick() {
   G.denPrompt = null;
@@ -12513,8 +12662,7 @@ function startWorld(coop, ch) {
   G.ng = 0;
   G.coop = !!coop;
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
+  makeCrew(coop);
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   Object.assign(PARTY, {
     creds: 120 + rankOf(legLP()) * 15,
@@ -13550,7 +13698,10 @@ function enterRoom(i) {
     b.roost && last
       ? 0
       : pool.length
-        ? Math.min(b.type === 'club' ? 10 : 7, (b.tier + i + (G.coop ? 1 : 0)) * (b.type === 'club' ? 2 : 1))
+        ? Math.min(
+            b.type === 'club' ? 10 : 7,
+            (b.tier + i + Math.min(2, PL.length - 1)) * (b.type === 'club' ? 2 : 1)
+          )
         : 0;
   // inner rooms of black sites can hold a Kagemori fireteam instead of three of the usual guards
   const team = b.type === 'blacksite' && i >= 1 && !b.roost && n >= 3 && r() < 0.5;
@@ -13621,7 +13772,7 @@ function enterRoom(i) {
       e.inv = 60;
       if (b.roost) {
         // a fixed fight rather than scaled by block: tough at any level, beatable with the right tactics
-        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (G.coop ? 1.3 : 1));
+        e.hp = e.maxHp = Math.round(1800 * DIFF[G.diff].hp * (1 + 0.3 * (PL.length - 1)));
         e.dmg = Math.round(22 * DIFF[G.diff].dmg);
         e.flyCD = 600;
         tip(
@@ -14885,8 +15036,7 @@ function startArena(coop, challenge) {
   G.rngW = srng(hstr(sid + 'w'));
   G.rngP = srng(hstr(sid + 'p'));
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
+  makeCrew(coop);
   Object.assign(PARTY, {
     creds: 0,
     bag: [],
@@ -14996,7 +15146,7 @@ function nextArenaWave() {
     if (w >= 8) pool.push('ninja', 'feral');
     if (w >= 13) pool.push('mech');
     if (w >= 9) pool.push('glitch', 'ice');
-    const n = Math.min(7, 2 + Math.floor(w * 0.5)) + (G.coop ? 1 : 0);
+    const n = Math.min(7, 2 + Math.floor(w * 0.5)) + Math.min(2, PL.length - 1); // a bigger crew, a bigger wave
     for (let i = 0; i < n; i++) list.push(wpick(pool));
     let mechs = 0;
     list = list.map(k => (k === 'mech' && mechs++ ? 'sec' : k)); // one walker per wave is plenty
@@ -15212,11 +15362,11 @@ function gauntPickHtml() {
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Gauntlet of the day · ${esc(day)}</b><span class="st" style="color:var(--gold)">starts in ${esc(STAGES[dp.order[0]].name)} · ${esc(MUTS[dp.muts[0]])}</span></div>
     <span style="color:var(--muted);font-size:13px">The same districts, mutators and perk offers for everyone today.${today ? ` Your best today: ${today.score.toLocaleString()} (${today.cleared} cleared).` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="gauntday1">Run it solo</button><button class="btn sm ghost" data-a="gauntday2">Run it co-op</button></div></div>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="gauntday1">Run it solo</button><button class="btn sm ghost" data-a="gauntday2">Run it co-op · ${crewN(true)}</button></div></div>
     <div class="job"><b>Run a seed</b><span style="color:var(--muted);font-size:13px">A friend's Gauntlet code, like <b style="white-space:nowrap">G-K2F9QX</b>, plays their exact run.</span>
     <div class="row" style="align-items:center"><input id="gauntSeed" class="seedin" value="${esc(G.gauntPre || '')}" placeholder="G-K2F9QX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" aria-label="Gauntlet seed"><button class="btn sm" data-a="gauntseed1">Play solo</button><button class="btn sm ghost" data-a="gauntseed2">Co-op</button></div>
     ${G.seedErr ? '<span style="color:var(--neon);font-size:13px">That isn\'t a Gauntlet code. They start with G-.</span>' : ''}</div>
-    <div class="row"><button class="btn" data-a="gaunt1">New run solo</button><button class="btn ghost" data-a="gaunt2">New run co-op</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <div class="row"><button class="btn" data-a="gaunt1">New run solo</button><button class="btn ghost" data-a="gaunt2">New run co-op · ${crewN(true)}</button><button class="btn ghost" data-a="back2title">Back</button></div>
     ${rec.best ? `<p class="ds">Best: ${rec.best.score.toLocaleString()} points, ${rec.best.cleared} of ${STAGES.length} districts (${esc(rec.best.code)}) · ${rec.runs} run${rec.runs === 1 ? '' : 's'}</p>` : ''}</div>`;
 }
 /** The line under the briefing: where in the run you are, this district's mutator, and the perks so far. */
@@ -15342,8 +15492,7 @@ function jobCrew(coop) {
     G.muts = []; // the campaign's mutators don't follow you onto the Jobs board
     G.coop = !!coop;
     newRunStats();
-    PL = [newRunner(0)];
-    if (coop) PL.push(newRunner(1));
+    makeCrew(coop);
     PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
     for (const p of PL) {
       p.lvl = 4;
@@ -17413,6 +17562,28 @@ function flightGunner(v, F) {
         'bullet'
       );
       if (G.t % 2) sfx.shot();
+    }
+    // runners 3 and 4 work their own door guns, each with its own aim, a little further back along the hull
+    for (let i = 2; i < PL.length; i++) {
+      const q = PL[i],
+        I2 = INP[i],
+        g = (v.guns = v.guns || {})[i] || (v.guns[i] = { aim: 0.3, t: 0 });
+      if (g.t > 0) g.t--;
+      if (q.out) continue;
+      if (I2.held.up) g.aim = Math.max(-0.9, g.aim - 0.04);
+      if (I2.held.down) g.aim = Math.min(1.25, g.aim + 0.04);
+      if ((I2.held.punch || I2.held.gun) && g.t <= 0) {
+        g.t = 6;
+        flightShot(
+          v.x - 8 * (i - 1),
+          v.z - 8,
+          Math.cos(g.aim) * 7,
+          -Math.sin(g.aim) * 7,
+          6 + attrOf(q, 'agi') * 0.8,
+          'bullet'
+        );
+        if (G.t % 2) sfx.shot();
+      }
     }
   } else if (v.turT <= 0) {
     // the autogun: the nearest target in front and below
@@ -25233,6 +25404,7 @@ function drawFig(e) {
   if (isP && G.coop && e.state !== 'dead') {
     ctx.fillStyle = e.pal.acc;
     fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+    if (PL.length >= 3) txt(String(e.idx + 1), sx, sy - 62 * sc, 9, e.pal.acc, 'center'); // which runner is which
   }
 }
 /* ---------- weapons in hand ----------
@@ -28142,6 +28314,43 @@ function drawPanel(p, x) {
     ctx.strokeRect(x - 1.5 - i * 2, 20.5 - i * 2, 99 + i * 4, 9 + i * 4);
   });
 }
+// a crew of three or four: a narrower panel each, side by side across the top, in the runner's own color
+function drawPanelMini(p, x, w) {
+  const bw = w - 10;
+  if (p.out) {
+    txt(p.name + ' · OUT', x, 18, 13, '#6b6280');
+    txt(
+      p.outX != null ? 'Revive at the marker' : 'Back next district',
+      x,
+      29,
+      10,
+      p.outX != null ? '#7dffb0' : '#6b6280'
+    );
+    return;
+  }
+  const low = p.hp > 0 && p.hp < p.maxHp * 0.25;
+  txt(p.name + ' ' + p.lvl, x, 18, 13, low && (G.t >> 3) % 2 ? '#ff3d8b' : p.pal.acc);
+  if ((p.pts > 0 || p.spts > 0) && ((G.t >> 4) % 2 || RM)) txt('+', x + bw - 22, 18, 12, '#ffc63d', 'right');
+  for (let i = 0; i < p.lives; i++)
+    fillPoly(
+      [
+        x + bw - 14 + i * 6,
+        12,
+        x + bw - 11.5 + i * 6,
+        9.5,
+        x + bw - 9 + i * 6,
+        12,
+        x + bw - 11.5 + i * 6,
+        14.5
+      ],
+      p.pal.acc
+    );
+  bar(x, 22, bw, 5, p.hp, p.maxHp, low && (G.t >> 3) % 2 ? '#ff8ab8' : '#ff3d8b', hpGhost(p));
+  bar(x, 29, Math.round(bw * Math.min(1, p.maxMp / 80)), 3, p.mp, p.maxMp, '#45d2ff');
+  bar(x, 34, bw, 2, p.sp || 0, 100, (p.sp || 0) >= 100 && (G.t >> 3) % 2 ? '#fff3c4' : '#ffc63d');
+  const sp = SPELLS[p.spells[p.spell]];
+  txt((p.eq.gun ? '▸' + p.ammo : '—') + ' · ' + sp.name.toUpperCase(), x, 44, 10, '#ffe28a');
+}
 /** Passive skills that are switched on right now, for the HUD (and the Skills tab). */
 function skillTags(p) {
   const out = [];
@@ -28245,8 +28454,14 @@ function drawHudTop() {
   ctx.save();
   if (!inBand) ctx.translate(0, BAND);
   ctx.scale(k, k);
-  drawPanel(PL[0], 10);
-  if (G.coop && PL[1]) drawPanel(PL[1], HW - 180);
+  const big = PL.length >= 3; // three or four runners: compact panels side by side
+  if (big) {
+    const pw = (HW - 12) / PL.length;
+    PL.forEach((p, i) => drawPanelMini(p, 6 + i * pw, pw));
+  } else {
+    drawPanel(PL[0], 10);
+    if (G.coop && PL[1]) drawPanel(PL[1], HW - 180);
+  }
   const S = curS(),
     C = PARTY.contract;
   const line1 =
@@ -28326,7 +28541,12 @@ function drawHudTop() {
   }
   ctx.restore();
   if (G.coop && !inBand) {
-    const s = (G.arena ? 'WAVE ' + G.awave + ' · ' : G.den ? 'THE DEN' : '') + (line2 || '');
+    const s =
+      (G.arena ? 'WAVE ' + G.awave + ' · ' : G.den ? 'THE DEN' : '') +
+      (line2 || '') +
+      (PL.length >= 3
+        ? (line2 || G.den || G.arena ? '  ·  ' : '') + '¥' + PARTY.creds + '  ·  MED ' + PARTY.med
+        : '');
     if (s) txt(s, W / 2, H - 6, 12, line2 ? col2 : '#a79dc2', 'center');
   }
 }
@@ -29537,6 +29757,7 @@ function r3PlayerMarks(e) {
   }
   if ((e.sp || 0) >= 100 && (G.t >> 3) % 2) txt('★', sx, sy - 64 * sc, 10, '#ffc63d', 'center');
   if (G.coop) fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+  if (PL.length >= 3) txt(String(e.idx + 1), sx, sy - 62 * sc, 9, e.pal.acc, 'center'); // which runner is which
 }
 
 // a stealth drone's detection meter and cloak battery, as the 2D drone draws them
@@ -33336,16 +33557,19 @@ const padHelp = () => `<div class="keys">
 <b>Move</b><span>Left stick or D-pad</span><b>A</b><span>Jump · select in menus</span><b>X</b><span>Punch, talk, enter · hold to charge a heavy blow</span>
 <b>B</b><span>Kick · back in menus</span><b>Y</b><span>Spell (RT swaps spells)</span><b>RB</b><span>Gun</span>
 <b>LB</b><span>Dodge roll</span><b>LT</b><span>Medkit</span><b>L3 / R3</b><span>Special, or X and B together</span>
-<b>Menu</b><span>Pause · on a second controller, add Runner 2</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
+<b>Menu</b><span>Pause · on a new controller, add a runner (up to four)</span><b>View</b><span>Character sheet and skills</span><b>LB / RB in menus</b><span>Switch tabs</span></div>
 <p style="font-size:12.5px">${esc(padName(PAD.name))} connected. PlayStation and Switch pads use the same positions: Cross is A, Circle is B, Square is X, Triangle is Y.</p>${movesHtml}`;
 const helpHtml = () => (PAD.active ? padHelp() : isTouch() ? touchHelp : keyFix(keysHtml));
 function seg(key, opts) {
   return `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-a="pref:${key}:${v}" aria-pressed="${String(prefs[key]) === String(v)}">${l}</button>`).join('')}</div>`;
 }
+// pick each runner's archetype, coat and trail. n: how many seats to show; by default runner 1 plus the
+// co-op crew (2 to 4, picked here), since solo starts just use the first card
 function archHtml(n) {
-  n = n || 2;
+  const crew = !n;
+  n = n || crewN(true);
   const row =
-    i => `<div class="job"><div class="row" style="justify-content:space-between"><b>${i ? 'Runner 2 (co-op)' : 'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
+    i => `<div class="job"><div class="row" style="justify-content:space-between"><b><span style="color:${PALS[i].acc}">●</span> ${i ? `Runner ${i + 1} (co-op)` : 'Runner 1'}</b><span class="st" style="color:var(--gold)">★ ${esc(ARCH[G.pendArch[i]].spName)}</span></div>
     <div class="row">${Object.keys(ARCH)
       .map(k =>
         archLocked(k)
@@ -33375,7 +33599,7 @@ function archHtml(n) {
       })
       .join('')}</div>
     ${
-      Object.keys(ARCH).some(archLocked)
+      i === 0 && Object.keys(ARCH).some(archLocked)
         ? `<span style="color:var(--muted);font-size:12px">🔒 ${Object.keys(ARCH)
             .filter(archLocked)
             .map(k => `${ARCH[k].name}: ${esc(FEATBY[ARCH[k].locked].desc)}`)
@@ -33383,7 +33607,13 @@ function archHtml(n) {
         : ''
     }
     <span style="color:var(--muted);font-size:12.5px">${esc(ARCH[G.pendArch[i]].desc)} Special: ${esc(ARCH[G.pendArch[i]].spDesc)}</span></div>`;
-  return `<h3>Choose your runner</h3>${row(0)}${n > 1 ? row(1) : ''}`;
+  const size = crew
+    ? `<div class="row" style="align-items:center;gap:8px"><span style="color:var(--muted);font-size:12.5px">Co-op crew</span>${seg(
+        'crew',
+        [2, 3, 4].map(k => [k, k + ' runners'])
+      )}<span style="color:var(--muted);font-size:12px">Runner 1 can use the keyboard; everyone else a controller (runner 2 can share the keyboard)</span></div>`
+    : '';
+  return `<h3>Choose your runner${n > 1 ? 's' : ''}</h3>${size}${Array.from({ length: n }, (_, i) => row(i)).join('')}`;
 }
 function codexHtml() {
   const tab = G.cxTab || 'feats',
@@ -33990,7 +34220,7 @@ function renderOv() {
     <p style="font-size:12.5px">Elites have a colored aura and a name tag: ${Object.values(ELITES)
       .map(x => `<b style="color:${x.col}">${x.name}</b> ${x.hint}`)
       .join(', ')}. They drop better gear.</p>
-    <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+    <div class="row"><button class="btn" data-a="new">Start solo</button><button class="btn ghost" data-a="new2">Start co-op · ${crewN(true)}</button><button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'trainpick') {
     h = `<div class="card"><p class="eyebrow">Training · Juno's back alley</p><h2>Learn the moves</h2>
@@ -34031,19 +34261,19 @@ function renderOv() {
     <p>One street, no exits. Waves get bigger and meaner, the street changes every five waves, and a boss shows up every fifth. Clear three waves and pick a perk. You start at level 3 with points to spend.</p>
     <div class="job"><div class="row" style="justify-content:space-between"><b>Weekly challenge · ${wk.id}</b><span class="st" style="color:var(--gold)">${esc(MODS[wk.mod].name)}</span></div>
     <span style="color:var(--muted);font-size:13px">${esc(MODS[wk.mod].desc)} Same waves and perk offers for everyone this week, on Runner difficulty.${wb && wb.id === wk.id ? ` Your best this week: ${wb.score.toLocaleString()} (wave ${wb.wave}).` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="week1">Play solo</button><button class="btn sm ghost" data-a="week2">Play co-op</button></div></div>
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="week1">Play solo</button><button class="btn sm ghost" data-a="week2">Play co-op · ${crewN(true)}</button></div></div>
     ${(() => {
       const dy = thisDay(),
         dd = store.load('cs_day') || {};
       return `<div class="job"><div class="row" style="justify-content:space-between"><b>Daily challenge · ${dy.day}</b><span class="st" style="color:var(--gold)">${esc(MODS[dy.mod].name)} · ${ARCH[dy.arch].short}</span></div>
     <span style="color:var(--muted);font-size:13px">A new seed every day, on Runner difficulty. Today you play as the ${ARCH[dy.arch].name}. ${esc(MODS[dy.mod].desc)}${dd.id === dy.id && dd.score ? ` Today's best: ${dd.score.toLocaleString()} (wave ${dd.wave}).` : ''}${dd.streak > 1 ? ` Streak: ${dd.streak} days.` : ''}</span>
-    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="day1">Play solo</button><button class="btn sm ghost" data-a="day2">Play co-op</button></div></div>`;
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-a="day1">Play solo</button><button class="btn sm ghost" data-a="day2">Play co-op · ${crewN(true)}</button></div></div>`;
     })()}
     ${archHtml()}
     <h3>Open arena</h3>
     <div class="row" role="group" aria-label="Difficulty">${DIFF.map((d, i) => `<button class="btn sm${G.pendDiff === i ? '' : ' ghost'}" data-a="diff:${i}" aria-pressed="${G.pendDiff === i}">${d.name}</button>`).join('')}</div>
     ${G.seedPre ? '' : seedBoxHtml('Play the same waves and perk offers.')}
-    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op</button><button class="btn ghost" data-a="online">Play online</button><button class="btn ghost" data-a="back2title">Back</button></div>
+    <div class="row"><button class="btn" data-a="arena1">Start solo</button><button class="btn ghost" data-a="arena2">Start co-op · ${crewN(true)}</button><button class="btn ghost" data-a="online">Play online</button><button class="btn ghost" data-a="back2title">Back</button></div>
     <h3>Best runs</h3>${scoreTable()}</div>`;
   }
   if (m === 'perk') {
@@ -34079,7 +34309,7 @@ function renderOv() {
   }
   if (m === 'pause') {
     h = `<div class="card"><p class="eyebrow">Paused · ${G.world ? 'the Sprawl · block ' + G.wd.level + ' · heat ' + G.wd.heat : G.training ? 'training step ' + (G.tstep + 1) + ' of ' + TRAIN.length : G.arena ? 'arena wave ' + G.awave + ' · score ' + G.score.toLocaleString() : G.den ? 'the Den' : 'district ' + (G.stage + 1)} · ${DIFF[G.diff].name}${G.ng && !G.arena ? ' NG+' + G.ng : ''}</p><h2>Catch your breath</h2>${G.den || G.arena ? '' : jobHtml(PARTY.contract)}
-    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${netHost() ? '' : G.coop ? '<button class="btn ghost" data-a="drop2">Drop Runner 2</button>' : '<button class="btn ghost" data-a="join2">Add Runner 2</button>'}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
+    <div class="row"><button class="btn" data-a="resume">Resume</button><button class="btn ghost" data-a="sheet">Character</button>${G.world && G.wd && !G.dun ? '<button class="btn ghost" data-a="map">Block map</button>' : ''}${netHost() ? '' : crewBtns()}${G.training ? '<button class="btn ghost" data-a="skipstep">Skip this step</button>' : ''}<button class="btn ghost" data-a="settings">Settings</button><button class="btn ghost" data-a="quit">${G.training ? 'Leave training' : 'Quit to title'}</button></div>${helpHtml()}</div>`;
   }
   if (m === 'npc') h = npcHtml(G.npc);
   if (m === 'settings') h = settingsHtml();
@@ -34097,7 +34327,7 @@ function renderOv() {
     ${G.seedPre ? seedBoxHtml('Play the exact same street.') : ''}
     ${archHtml()}
     ${G.seedPre ? '' : seedBoxHtml('Play the exact same street.')}
-    <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
+    <div class="row"><button class="btn" data-a="world1">Start solo</button><button class="btn ghost" data-a="world2">Start co-op · ${crewN(true)}</button>${sw ? `<button class="btn ghost" data-a="worldcont">Continue · block ${sw.wd.level}, cred ${Math.round(sw.wd.rep)}</button>` : ''}<button class="btn ghost" data-a="back2title">Back</button></div></div>`;
   }
   if (m === 'wiped') {
     h = `<div class="card"><p class="eyebrow">The Sprawl · block ${G.wd.level}</p><h2 style="color:var(--neon)">Flatlined</h2>
@@ -34386,7 +34616,7 @@ function npcHtml(id) {
         k: 'ammo',
         n: 'Ammo box',
         ds: `+16 rounds for each runner.`,
-        c: Math.round(30 * (G.coop ? 2 : 1) * buyMul()),
+        c: Math.round(30 * PL.length * buyMul()),
         ok: true
       },
       (() => {
@@ -34511,6 +34741,16 @@ function togglePause() {
   else if (G.mode === 'npc') setMode('den');
   else if (G.mode === 'bcard' || G.mode === 'safe') setMode('play');
 }
+// the pause menu's crew buttons: add the next runner (up to four), drop the newest
+function crewBtns() {
+  const add =
+      PL.length < MAX_RUNNERS
+        ? `<button class="btn ghost" data-a="join2">Add Runner ${PL.length + 1}</button>`
+        : '',
+    drop =
+      PL.length > 1 ? `<button class="btn ghost" data-a="drop2">Drop ${PL[PL.length - 1].name}</button>` : '';
+  return add + drop;
+}
 function newRun(coop, noBrief) {
   G.training = false;
   G.gaunt = null; // gauntStart() sets it again after this
@@ -34525,9 +34765,7 @@ function newRun(coop, noBrief) {
   G.challenge = null;
   G.rngW = G.rngP = null;
   newRunStats();
-  PL = [newRunner(0)];
-  if (coop) PL.push(newRunner(1));
-  G.coop = !!coop;
+  makeCrew(coop);
   PL.forEach((p, i) => applyArch(p, G.pendArch[i]));
   Object.assign(PARTY, {
     creds: rankOf(legLP()) * 15,
@@ -34855,7 +35093,10 @@ ov.addEventListener('click', e => {
         raw = parts[2];
       const v = raw === 'true' ? true : raw === 'false' ? false : raw;
       if (k === 'music') setMusic(v);
-      else prefs[k] = v;
+      else if (k === 'crew') {
+        prefs.crew = clamp(+v || 2, 2, MAX_RUNNERS); // the co-op crew size picked before a run
+        G.pendN = 0;
+      } else prefs[k] = v;
       savePrefs();
       applyPrefs();
       renderOv();
@@ -35208,12 +35449,11 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     case 'join2':
-      joinRunner2();
+      joinRunner();
       renderOv();
       break;
     case 'drop2':
-      dropRunner2();
-      G.sheetIdx = 0;
+      dropRunner();
       renderOv();
       break;
     case 'quit':
@@ -35428,7 +35668,7 @@ ov.addEventListener('click', e => {
         }
       }
       if (arg === 'ammo') {
-        const c = Math.round(30 * (G.coop ? 2 : 1) * buyMul());
+        const c = Math.round(30 * PL.length * buyMul());
         if (PARTY.creds >= c) {
           PARTY.creds -= c;
           for (const q of PL) q.ammo += 16;

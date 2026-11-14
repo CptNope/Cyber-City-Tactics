@@ -306,7 +306,10 @@ ov.addEventListener('click', e => {
         raw = parts[2];
       const v = raw === 'true' ? true : raw === 'false' ? false : raw;
       if (k === 'music') setMusic(v);
-      else prefs[k] = v;
+      else if (k === 'crew') {
+        prefs.crew = clamp(+v || 2, 2, MAX_RUNNERS); // the co-op crew size picked before a run
+        G.pendN = 0;
+      } else prefs[k] = v;
       savePrefs();
       applyPrefs();
       renderOv();
@@ -659,12 +662,11 @@ ov.addEventListener('click', e => {
       renderOv();
       break;
     case 'join2':
-      joinRunner2();
+      joinRunner();
       renderOv();
       break;
     case 'drop2':
-      dropRunner2();
-      G.sheetIdx = 0;
+      dropRunner();
       renderOv();
       break;
     case 'quit':
@@ -879,7 +881,7 @@ ov.addEventListener('click', e => {
         }
       }
       if (arg === 'ammo') {
-        const c = Math.round(30 * (G.coop ? 2 : 1) * buyMul());
+        const c = Math.round(30 * PL.length * buyMul());
         if (PARTY.creds >= c) {
           PARTY.creds -= c;
           for (const q of PL) q.ammo += 16;

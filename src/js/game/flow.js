@@ -180,11 +180,22 @@ function enterDen() {
     'Walk up to people and press J to talk or shop. Kit rents companions. The next job starts at the right end of the street.'
   );
 }
-function joinRunner2() {
-  if (G.coop) return;
-  const p = newRunner(1);
-  const p1 = PL[0];
-  applyArch(p, G.pendArch[1] !== p1.arch ? G.pendArch[1] : p1.arch === 'samurai' ? 'mage' : 'samurai');
+// another runner joins the run (couch co-op, up to four): they come in at the lead's level, with the archetype
+// picked for that seat (or the first free one, so the crew doesn't double up), next to whoever's in front
+function joinRunner() {
+  if (PL.length >= MAX_RUNNERS) return null;
+  if (typeof NET !== 'undefined' && NET.live && PL.length >= 2) return null; // online seats are their own thing
+  const idx = PL.length,
+    p = newRunner(idx),
+    p1 = PL[0],
+    taken = PL.map(q => q.arch),
+    want = G.pendArch[idx];
+  const arch =
+    want && ARCH[want] && !archLocked(want) && !taken.includes(want)
+      ? want
+      : Object.keys(ARCH).find(k => !archLocked(k) && !taken.includes(k)) || 'runner';
+  applyArch(p, arch);
+  G.pendArch[idx] = arch;
   p.lvl = p1.lvl;
   p.pts = (p1.lvl - 1) * 2;
   p.spts = (p.spts || 0) + p1.lvl - 1;
@@ -193,27 +204,35 @@ function joinRunner2() {
   p.mp = p.maxMp;
   PL.push(p);
   G.coop = true;
+  G.pendN = PL.length; // a restart keeps the crew together
   if (G.mode === 'play' || G.mode === 'den' || G.ret === 'play' || G.ret === 'den') {
-    p.x = clamp(p1.x - 20, G.camX + 20, G.camX + W - 20);
-    p.y = clamp(p1.y + 16, FY0 + 6, FY1);
+    const lead = alive()[0] || p1;
+    p.x = clamp(lead.x - 20 - 14 * (idx - 1), G.camX + 20, G.camX + W - 20);
+    p.y = clamp(lead.y + (idx % 2 ? 16 : -16), FY0 + 6, FY1);
     p.inv = 90;
     G.ents.push(p);
-    say(p, 'JINX JOINS', '#ffc63d', 70, 80);
+    say(p, p.name + ' JOINS', p.pal.acc, 70, 80);
   }
   sfx.level();
+  return p;
 }
-function dropRunner2() {
-  if (!G.coop) return;
-  const p = PL[1];
-  // let go of anything runner 2 had hold of, and of runner 2
+const joinRunner2 = () => (PL.length === 1 ? joinRunner() : null);
+// the last runner to join leaves (only the newest seat can go, so everyone else keeps their color and pad)
+function dropRunner() {
+  if (PL.length < 2) return;
+  const p = PL[PL.length - 1];
+  // let go of anything they had hold of, and of them
   if (p.heldBy) enemyRelease(p.heldBy);
   if (p.grab) releaseGrab(p);
   if (p.holding) dropProp(p);
+  for (const q of PL) if (q.grab === p) releaseGrab(q);
   G.ents = G.ents.filter(e => e !== p);
-  PL = [PL[0]];
-  G.coop = false;
-  // runner 1 already out of lives: there's nobody left, so the run ends as if they'd fallen
-  if (PL[0].out && G.mode !== 'title') {
+  PL = PL.slice(0, -1);
+  G.coop = PL.length > 1;
+  G.pendN = Math.max(2, PL.length);
+  if (G.sheetIdx >= PL.length) G.sheetIdx = 0;
+  // everyone left is already out of lives: the run ends as if they'd fallen
+  if (!active().length && G.mode !== 'title') {
     if (G.arena) arenaOver();
     else if (G.world) worldWipe();
     else if (gauntOn()) gauntEnd(false);
@@ -223,6 +242,9 @@ function dropRunner2() {
     }
   }
 }
+const dropRunner2 = () => {
+  while (PL.length > 1) dropRunner();
+};
 
 function spawnHostage(x, y) {
   const e = spawnPassive('hostage', x, y);
@@ -308,7 +330,7 @@ function spawnEnemy(kind, side) {
     walk: 0,
     inv: 0,
     flash: 0,
-    hp: Math.round(d.hp * hpm * (G.coop ? 1.25 : 1)),
+    hp: Math.round(d.hp * hpm * crewHp()),
     dmg: Math.round(d.dmg * (1 + depth() * 0.26) * DF.dmg * NG.dmg * LV.dmg * graceMul()),
     cool: rand(20, d.cool),
     hits: 0,
@@ -324,6 +346,7 @@ function spawnEnemy(kind, side) {
   makeLook(e); // its own skin, clothes, build and maybe an accessory (visual only)
   if (
     !d.boss &&
+    kind !== 'rival' && // Vane is never an elite (spawnRival scales him itself)
     G.mode !== 'title' &&
     (modOn('elite') || Math.random() < DF.elite + NG.elite + depth() * 0.02)
   ) {

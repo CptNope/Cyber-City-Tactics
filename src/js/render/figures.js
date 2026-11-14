@@ -1590,6 +1590,7 @@ function drawFig(e) {
   if (isP && G.coop && e.state !== 'dead') {
     ctx.fillStyle = e.pal.acc;
     fillPoly([sx - 3, sy - 60 * sc, sx + 3, sy - 60 * sc, sx, sy - 56 * sc], e.pal.acc);
+    if (PL.length >= 3) txt(String(e.idx + 1), sx, sy - 62 * sc, 9, e.pal.acc, 'center'); // which runner is which
   }
 }
 /* ---------- weapons in hand ----------

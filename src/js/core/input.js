@@ -1,13 +1,11 @@
 /* Cyber City Tactics · src/js/core/input.js
  * Keyboard maps for both runners, the touch stick and buttons (with contextual labels), and gamepads. Inputs
- * land in INP[0] and INP[1] as held/pressed flags.
+ * land in INP[0] to INP[3] (one per runner) as held/pressed flags.
  * Loaded as a classic script: every file shares one global scope, in the order listed in index.html. */
 'use strict';
 /* ================= input ================= */
-const INP = [
-  { held: {}, pressed: {} },
-  { held: {}, pressed: {} }
-];
+// one slot per runner (up to four on the couch)
+const INP = [0, 1, 2, 3].map(() => ({ held: {}, pressed: {} }));
 const KA = {
   KeyF: 'special',
   KeyA: 'left',
@@ -201,6 +199,7 @@ addEventListener('keydown', e => {
     who = G.coop && !netP2() ? 1 : 0;
     a = KB[c];
   }
+  if (who >= 0 && G.coop) PAD.kb[who] = true; // a runner the keyboard plays: pads leave it alone
   if (!a) return;
   e.preventDefault();
   A.unlock();
@@ -430,7 +429,42 @@ if (typeof ResizeObserver !== 'undefined') {
  * In play: solo, pad 1 is runner 1. Co-op: two pads map 1:1; one pad goes to runner 2 so runner 1 can stay on keyboard.
  * In menus: any pad moves focus with the D-pad or left stick, A selects, B goes back, LB/RB switch tabs. */
 const padPrev = {};
-const PAD = { active: false, name: '', nav: {}, lastA: null };
+const PAD = { active: false, name: '', nav: {}, lastA: null, own: {}, kb: {} };
+/* Which runner each controller drives, kept until it disconnects, that runner leaves or a new party starts, so
+ * plugging in another pad never swaps anyone's runner. Solo, the first pad drives runner 1. In co-op a new pad
+ * takes runner 2, 3 or 4 first and runner 1 last (runner 1 is usually on the keyboard or touch screen), never one
+ * the keyboard is already playing; with every runner taken, its Start adds a runner, up to four. Online, your
+ * pads drive your own runner. */
+function padOwner(gi) {
+  if (netP2()) return 0;
+  const o = PAD.own[gi];
+  return o != null && o < PL.length ? o : -1;
+}
+function padClaim(gi) {
+  const taken = new Set(
+      Object.entries(PAD.own)
+        .filter(([k, v]) => +k !== gi && v < PL.length)
+        .map(([, v]) => v)
+    ),
+    order = G.coop
+      ? PL.map((_, i) => i)
+          .slice(1)
+          .concat(0)
+      : [0];
+  for (const i of order)
+    if (!taken.has(i) && !(G.coop && PAD.kb[i])) {
+      PAD.own[gi] = i;
+      return i;
+    }
+  return -1;
+}
+// a pad with no runner pressed Start: a free runner if there is one, else a new one joins (couch co-op)
+function padJoin(gi) {
+  if (netP2() || (typeof NET !== 'undefined' && NET.live)) return -1;
+  let i = padClaim(gi);
+  if (i < 0 && PL.length < MAX_RUNNERS && joinRunner()) i = padClaim(gi);
+  return i;
+}
 const PAD_BTN = {
   punch: 'X',
   kick: 'B',
@@ -463,7 +497,8 @@ addEventListener('gamepadconnected', e => {
     lore: true
   });
 });
-addEventListener('gamepaddisconnected', () => {
+addEventListener('gamepaddisconnected', e => {
+  if (e && e.gamepad) delete PAD.own[e.gamepad.index]; // its runner is free for the next pad that picks up
   let left = [];
   try {
     left = [...navigator.getGamepads()].filter(Boolean);
@@ -631,9 +666,8 @@ function pollPads() {
     return;
   }
   const now = performance.now();
-  list.forEach((gp, n) => {
-    if (n > 1) return;
-    let who = G.coop && !netP2() ? (list.length >= 2 ? n : 1) : n === 0 ? 0 : -1;
+  list.forEach(gp => {
+    let who = padOwner(gp.index);
     const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed),
       ax = gp.axes[0] || 0,
       ay = gp.axes[1] || 0;
@@ -695,8 +729,9 @@ function pollPads() {
       if (k === 'start') {
         if (on && !was) {
           A.unlock();
-          if (!G.coop && n === 1) joinRunner2();
-          else togglePause();
+          if (who < 0 && padJoin(gp.index) >= 0) {
+            // a new runner (or a free one) picked up: no pause
+          } else togglePause();
         }
         continue;
       }
@@ -704,6 +739,7 @@ function pollPads() {
         if (on && !was && who >= 0) globalAct('sheet', who);
         continue;
       }
+      if (who < 0 && on && !was) who = padClaim(gp.index); // a free runner: just start playing it
       if (who < 0) continue;
       if (on && !was) kp(who, k, true);
       else if (!on && was) kp(who, k, false);

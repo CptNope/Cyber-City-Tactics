@@ -38,6 +38,7 @@ function update() {
   const slowSkip = G.slowFoes > 0 && G.t % 2 === 1;
   if (G.slowFoes > 0) G.slowFoes--;
   for (const e of G.ents) if (e.team === 1 && (!slowSkip || e.d.passive)) upEnemy(e);
+  if (G.coop) teamTick();
   for (const e of G.ents) if (e.team === 0 && e.d && e.d.turret) turretTick(e); // a hacked turret
   for (const z of G.zaps) {
     z.delay--;
@@ -371,7 +372,7 @@ function waves() {
       G.lock = at;
       G.waveLive = true;
       rivalWave(G.wave);
-      teamSpawnList(choiceSpawn(G.stage, w)).forEach(([k0, unit], i) => {
+      crewWave(teamSpawnList(choiceSpawn(G.stage, w))).forEach(([k0, unit], i) => {
         const re = k0.endsWith('!'),
           k = re ? k0.slice(0, -1) : k0;
         const e = spawnEnemy(k, i % 2 ? -1 : 1);
@@ -394,6 +395,16 @@ function waves() {
     }
   }
   if (G.exitOpen && alive().some(p => p.x > S.len - 24)) stageClear();
+}
+// a crew of three or four: one more foe per extra runner, copied from the wave's own rank and file (never a
+// boss or a rematch), the way the arcade brawlers filled the screen for a full cabinet
+function crewWave(list) {
+  const extra = PL.length - 2;
+  if (extra <= 0) return list;
+  const grunts = list.filter(([k]) => !k.endsWith('!') && DEF[k] && !DEF[k].boss);
+  const out = list.slice();
+  for (let j = 0; j < extra && grunts.length; j++) out.push([grunts[j % grunts.length][0], null]);
+  return out;
 }
 function denTick() {
   G.denPrompt = null;
