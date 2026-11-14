@@ -498,7 +498,7 @@ addEventListener('gamepadconnected', e => {
   });
 });
 addEventListener('gamepaddisconnected', e => {
-  delete PAD.own[e.gamepad.index]; // its runner is free for the next pad that picks up
+  if (e && e.gamepad) delete PAD.own[e.gamepad.index]; // its runner is free for the next pad that picks up
   let left = [];
   try {
     left = [...navigator.getGamepads()].filter(Boolean);
