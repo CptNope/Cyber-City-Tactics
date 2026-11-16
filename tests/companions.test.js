@@ -90,7 +90,8 @@ for (const type of ['brick', 'drone', 'ember']) {
   const g = foe('ganger', 90, 0);
   g.cool = 60;
   let aggro = false;
-  for (let i = 0; i < 360 && g.state !== 'dead'; i++) {
+  // ten seconds: the drone plinks from range, so its kill time varies with the dice (six was sometimes short)
+  for (let i = 0; i < 600 && g.state !== 'dead'; i++) {
     step(1);
     if (g.tgt === a) aggro = true;
   }
