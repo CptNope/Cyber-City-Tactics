@@ -46,7 +46,7 @@ Every test loads the real game scripts. Headless tests run in Node with a stubbe
 | `rival.test.js` | headless | 22 | Vane: where Vane turns up, the count of what hits, the memory and resistance, getting tougher, both specials, the Sprawl, the legend. |
 | `security.test.js` | headless | 30 | Security guards: saves and snapshots defused, the CSP (and the single file's script hash, and `_headers` matching it with `frame-ancestors`), no inline handlers or eval, the lobby allow-list, the service worker's scope, and CI locked down (read-only, pinned Actions, exact dev tools). |
 | `mechanics.test.js` | headless |  | Core combat mechanics. |
-| `online.test.js` | browser |  | Online co-op in a real Chromium. |
+| `online.test.js` | browser |  | Online co-op in a real Chromium: long codes and room codes, a second friend joining the same room code mid-run as runner 3 with their own buttons, leaving and dropping (the bench), rejoining as the same runner. |
 | `view3d.test.js` | headless | 12 | The 3D view's plumbing: no three.js means 2D, the depth mapping and camera angle, the pose and dress the 2D figure hands the puppet, and the vendored bundle (licence, every name the renderer uses, no eval). |
 | `view3d.browser.js` | browser |  | The 3D view in Chromium on software WebGL: a lit street, puppets and 3D models, Classic 2D switches it off, all six districts and every other place (the Den, a Sprawl block, a room, training, a drive, a flight, the roof, the corp floor) build in 3D and draw a lit scene, old districts are freed, no errors. With `SHOTS_DIR` set it saves a picture of each. |
 | `pwa.test.js` | headless | 15 | PWA helpers that don't need a real browser, and the Android back button (pause, resume, leave from the title). |

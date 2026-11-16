@@ -308,6 +308,9 @@ function loadGame(s) {
 // how many runners a start makes: solo, co-op (the crew size picked, 2 to 4) or an exact count
 function crewN(coop) {
   if (typeof coop === 'number') return clamp(Math.round(coop), 1, MAX_RUNNERS);
+  // hosting online: the host plus a runner for every seat a friend holds
+  if (coop && typeof NET !== 'undefined' && NET.role === 'host' && NET.live && NET.peers)
+    return clamp(1 + Math.max(1, ...NET.peers.map(q => q.seat)), 2, MAX_RUNNERS);
   return coop ? clamp(G.pendN || +prefs.crew || 2, 2, MAX_RUNNERS) : 1;
 }
 // a fresh party of n runners with the archetypes picked for them

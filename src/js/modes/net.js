@@ -123,7 +123,11 @@ const NET = {
   pc: null,
   dc: null,
   ice: NET_ICE,
-  // host
+  // host: every connected friend is a peer with its own seat (runner 2, 3 or 4), line, buttons and picture of
+  // the game so far; NET.pc/NET.dc are the invite still waiting for the next friend (or, on a guest, the host)
+  peers: [],
+  pend: null,
+  me: 1, // guest: which runner is ours (the host says, in 'start')
   nid: 0,
   sent: new Map(), // nid -> {key: last sent JSON}
   gsent: {},
@@ -146,6 +150,32 @@ const NET = {
   lostMsg: ''
 };
 const netHost = () => NET.role === 'host' && NET.live;
+const NET_SEATS = 3; // up to three friends online, runners 2 to 4
+// a host-side friend: its own connection, buttons and delta state (what it has already been sent)
+const netPeer = (pc, dc) => ({
+  pc,
+  dc,
+  seat: 0,
+  rIn: null,
+  rInT: 0,
+  rCnt: {},
+  rxT: performance.now(),
+  sent: new Map(),
+  gsent: {},
+  gref: {},
+  bgRef: null,
+  snapN: 0,
+  fullNext: false,
+  fullT: 0,
+  helloed: false,
+  friend: null
+});
+const netSeatPeer = s => NET.peers.find(q => q.seat === s);
+// the lowest runner slot no friend holds, or 0 when all three are taken
+function netFreeSeat() {
+  for (let s = 1; s <= NET_SEATS; s++) if (!netSeatPeer(s)) return s;
+  return 0;
+}
 const netGuest = () => NET.role === 'guest' && NET.live;
 // true when runner 2's buttons come over the network, so this keyboard and pad drive runner 1 only
 const netP2 = () => netHost();
@@ -163,8 +193,13 @@ const unb64u = s => {
   for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
   return u;
 };
-async function packCode(desc) {
-  const raw = new TextEncoder().encode(JSON.stringify({ t: desc.type, s: desc.sdp, v: APP_VERSION }));
+// an SDP's ICE username fragment: names which invite a reply answers
+const netUfrag = sdp => ((sdp || '').match(/a=ice-ufrag:(\S+)/) || [])[1] || '';
+// forOffer: a reply carries the invite it answers, so a host holding a newer invite can tell it's stale
+async function packCode(desc, forOffer) {
+  const o = { t: desc.type, s: desc.sdp, v: APP_VERSION };
+  if (forOffer) o.o = forOffer;
+  const raw = new TextEncoder().encode(JSON.stringify(o));
   if (typeof CompressionStream === 'undefined') return 'CCT1p' + b64u(raw);
   const st = new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'));
   return 'CCT1z' + b64u(new Uint8Array(await new Response(st).arrayBuffer()));
@@ -179,7 +214,7 @@ async function unpackCode(code) {
     u = new Uint8Array(await new Response(st).arrayBuffer());
   }
   const o = JSON.parse(new TextDecoder().decode(u));
-  return { type: o.t, sdp: o.s, v: o.v };
+  return { type: o.t, sdp: o.s, v: o.v, o: typeof o.o === 'string' ? o.o : '' };
 }
 // codes are fixed once ICE gathering finishes (no trickle), so give it a few seconds at most
 function iceDone(pc) {
@@ -280,22 +315,29 @@ function netPollStop() {
 // the host waits for the friend's reply to land in the room
 function netPollAnswer() {
   netPollStop();
-  const room = NET.room;
+  const room = NET.room,
+    pend = NET.pend;
+  // waits for the friend holding this invite (the first, or the next one once a game is going)
+  const waiting = () => NET.room === room && NET.pend === pend && !!pend && !pend.helloed;
   NET.pollT = setInterval(async () => {
-    if (NET.room !== room || NET.status !== 'offer') return netPollStop();
+    if (!waiting()) return netPollStop();
     try {
       // the room's key proves this is the host: nobody else can read the friend's reply (it holds their address)
       const r = await lobby(
         '/rooms/' + room + '/answer' + (NET.roomKey ? '?key=' + encodeURIComponent(NET.roomKey) : '')
       );
-      if (NET.room !== room || NET.status !== 'offer') return;
+      if (!waiting()) return;
       if (r.status === 200) {
         netPollStop();
         const d = await r.json();
         netAnswer(d.answer);
       } else if (r.status === 404) {
         netPollStop();
-        netFail(new Error('That room expired. Host again for a new code.'));
+        if (NET.live) {
+          // mid-game the invite for the next seat lapsed: put up a fresh one under the same room key
+          NET.pend = null;
+          netOpenSeat();
+        } else netFail(new Error('That room expired. Host again for a new code.'));
       }
     } catch (e) {}
   }, 1500);
@@ -304,12 +346,61 @@ function netFail(e) {
   // a host whose room is gone has nothing left to rejoin: drop the code and the runner kept for it
   if (NET.role === 'host' && !NET.live) {
     NET.room = '';
-    NET.away = null;
   }
   NET.status = 'error';
   NET.err = (e && e.message) || String(e);
   if (G.mode === 'netlost') NET.lostMsg = NET.err; // a rejoin that didn't take: say why on the same card
   if (G.mode === 'online' || G.mode === 'netlost') renderOv();
+}
+// a fresh invite for the next friend: its own connection, waiting in NET.pc / NET.pend
+async function netPendOffer() {
+  const pc = netPc(await netIce()),
+    peer = netPeer(pc, null);
+  NET.pend = peer;
+  netBind(pc.createDataChannel('cct', { ordered: true }), peer);
+  await pc.setLocalDescription(await pc.createOffer());
+  await iceDone(pc);
+  if (pc !== NET.pc) return null;
+  NET.code = await packCode(pc.localDescription);
+  return pc;
+}
+// once a friend is in, the same room code opens again for the next one (up to three friends): the lobby's
+// reopen swaps in a new invite under the host's room key. Without a lobby, a new long code to pass on.
+// fresh: throw away an invite that's been waiting (a long-idle offer can fail to connect), e.g. after a drop
+async function netOpenSeat(fresh) {
+  if (fresh && NET.pend && !NET.pend.helloed && !NET.opening) {
+    const old = NET.pend;
+    NET.pend = null;
+    if (NET.pc === old.pc) NET.pc = NET.dc = null;
+    netPollStop();
+    try {
+      if (old.dc) old.dc.close();
+    } catch (e) {}
+    try {
+      if (old.pc) old.pc.close();
+    } catch (e) {}
+  }
+  if (NET.role !== 'host' || NET.opening || NET.pend || !netFreeSeat()) return;
+  NET.opening = true;
+  try {
+    const pc = await netPendOffer();
+    if (!pc) return;
+    NET.draft = '';
+    if (NET.room && NET.roomKey) {
+      const r = await lobby('/rooms/' + NET.room + '/reopen', { offer: NET.code, key: NET.roomKey }).catch(
+        () => null
+      );
+      if (pc !== NET.pc) return;
+      if (r && r.ok) {
+        if (!NET.live) NET.status = 'offer';
+        netPollAnswer();
+      } else NET.lobbyDown = true;
+    } else if (!NET.live) NET.status = 'offer';
+  } catch (e) {
+  } finally {
+    NET.opening = false;
+    if (G.mode === 'online' || G.mode === 'nethub') renderOv();
+  }
 }
 async function netStartHost() {
   netClose();
@@ -319,7 +410,9 @@ async function netStartHost() {
   try {
     if (typeof RTCPeerConnection === 'undefined') throw new Error("This browser can't do online play.");
     const pc = netPc(await netIce());
-    netBind(pc.createDataChannel('cct', { ordered: true }));
+    const peer = netPeer(pc, null);
+    NET.pend = peer;
+    netBind(pc.createDataChannel('cct', { ordered: true }), peer);
     await pc.setLocalDescription(await pc.createOffer());
     await iceDone(pc);
     if (pc !== NET.pc) return;
@@ -349,9 +442,25 @@ async function netAnswer(code) {
     const d = await unpackCode(code);
     if (d.type !== 'answer')
       throw new Error('That is an invite code. Paste the reply code your friend sent back.');
-    NET.status = 'connecting';
+    // a reply to an invite we've since replaced: it can never connect. Put up a fresh invite (which also
+    // clears the room's reply slot) and let the friend, who retries, answer that one
+    if (d.o && NET.pc && NET.pc.localDescription && d.o !== netUfrag(NET.pc.localDescription.sdp)) {
+      if (NET.room && NET.roomKey) {
+        NET.pend = NET.pend || netPeer(NET.pc, NET.dc);
+        netOpenSeat(true);
+        return;
+      }
+      throw new Error('That reply is for an older invite code. Send your friend the current one.');
+    }
+    if (!NET.live) NET.status = 'connecting';
     renderOv();
     await NET.pc.setRemoteDescription({ type: 'answer', sdp: d.sdp });
+    // a reply that hasn't become a line in 7 s won't: with a room, put up a fresh invite for the friend's retry
+    const pend = NET.pend;
+    if (NET.room && NET.roomKey && pend)
+      setTimeout(() => {
+        if (NET.role === 'host' && NET.pend === pend && !pend.helloed) netOpenSeat(true);
+      }, 7000);
   } catch (e) {
     netFail(e);
   }
@@ -395,29 +504,54 @@ async function netStartJoin(code) {
     await pc.setLocalDescription(await pc.createAnswer());
     await iceDone(pc);
     if (pc !== NET.pc) return;
-    NET.code = await packCode(pc.localDescription);
+    NET.code = await packCode(pc.localDescription, netUfrag(d.sdp));
     NET.room = room;
     if (room) NET.lastRoom = room;
     NET.status = 'answer';
     if (room) {
       const r = await lobby('/rooms/' + room + '/answer', { answer: NET.code }).catch(() => null);
+      // the host is still seating the friend before us: their room opens again in a moment, so knock again
+      if (r && r.status === 409 && !NET.rejoining && (NET.joinTries = (NET.joinTries || 0) + 1) <= 6) {
+        NET.status = 'joining';
+        NET.err = '';
+        if (G.mode === 'online') renderOv();
+        setTimeout(() => {
+          if (NET.role === 'guest' && !NET.live && NET.status === 'joining') netStartJoin(room);
+        }, 2500);
+        return;
+      }
       if (r && r.status === 409)
         throw new Error(
           NET.rejoining
             ? "The host hasn't reopened the room yet. Give it a few seconds and try again."
-            : 'Someone already joined that room. Ask the host to host again.'
+            : "That room is full, or the host isn't taking more runners. Ask the host to host again."
         );
       NET.status = r && r.ok ? 'sent' : 'answer';
+      NET.joinTries = 0;
+      // the host may have swapped in a newer invite just as we fetched this one: if the line doesn't come up,
+      // fetch whatever invite the room holds now and answer that (a few times)
+      if (NET.status === 'sent')
+        setTimeout(() => {
+          if (
+            NET.role === 'guest' &&
+            !NET.live &&
+            NET.status === 'sent' &&
+            NET.pc === pc &&
+            (NET.reTries = (NET.reTries || 0) + 1) <= 3
+          )
+            netStartJoin(room);
+        }, 8000);
     }
   } catch (e) {
     return netFail(e);
   }
   if (G.mode === 'online') renderOv();
 }
-function netBind(dc) {
+function netBind(dc, peer) {
   NET.dc = dc;
+  if (peer) peer.dc = dc;
   dc.addEventListener('open', () => {
-    if (dc !== NET.dc) return;
+    if (peer ? peer.dc !== dc : dc !== NET.dc) return;
     if (NET.role === 'guest')
       netSend({
         k: 'hello',
@@ -427,20 +561,20 @@ function netBind(dc) {
       });
   });
   dc.addEventListener('message', e => {
-    if (dc !== NET.dc) return;
+    if (peer ? peer.dc !== dc : dc !== NET.dc) return;
     try {
-      netRecv(e.data);
+      netRecv(e.data, peer);
     } catch (err) {
       console.error('Cyber City Tactics net message', err);
     }
   });
   dc.addEventListener('close', () => {
-    if (dc === NET.dc)
-      netLost(NET.role === 'guest' ? 'The connection to the host dropped.' : 'Your partner dropped.', true);
+    if (peer) {
+      if (peer.dc === dc) netPeerLost(peer, true);
+    } else if (dc === NET.dc) netLost('The connection to the host dropped.', true);
   });
 }
-function netSend(o) {
-  const dc = NET.dc;
+function netSendTo(dc, o) {
   if (!dc || dc.readyState !== 'open') return false;
   try {
     dc.send(typeof o === 'string' ? o : JSON.stringify(o));
@@ -449,42 +583,48 @@ function netSend(o) {
     return false;
   }
 }
+// a guest talks to the host; the host talks to every friend at once
+function netSend(o) {
+  if (NET.role === 'host') {
+    const msg = typeof o === 'string' ? o : JSON.stringify(o);
+    let any = false;
+    for (const q of NET.peers) any = netSendTo(q.dc, msg) || any;
+    return any;
+  }
+  return netSendTo(NET.dc, o);
+}
 // tear everything down without telling anyone (used before starting over)
 function netClose() {
-  const pc = NET.pc,
-    dc = NET.dc;
+  const conns = [[NET.pc, NET.dc]].concat(NET.peers.map(q => [q.pc, q.dc]));
   NET.pc = NET.dc = null;
+  NET.peers = [];
+  NET.pend = null;
+  NET.opening = false;
   netPollStop();
   NET.room = '';
   NET.roomKey = '';
   NET.lobbyDown = false;
   NET.relay = false;
-  try {
-    if (dc) dc.close();
-  } catch (e) {}
-  try {
-    if (pc) pc.close();
-  } catch (e) {}
+  for (const [pc, dc] of conns) {
+    try {
+      if (dc) dc.close();
+    } catch (e) {}
+    try {
+      if (pc) pc.close();
+    } catch (e) {}
+  }
   NET.live = false;
   NET.role = null;
   NET.status = '';
   NET.err = '';
   NET.code = '';
-  NET.rIn = null;
-  NET.rCnt = {};
-  NET.sent = new Map();
-  NET.gsent = {};
-  NET.gref = {};
-  NET.bgRef = null;
+  NET.me = 1;
   NET.sfxQ = [];
   NET.ents = new Map();
   NET.q = [];
   NET.cnt = {};
   NET.hmode = '';
-  NET.helloed = false;
   NET.waitFull = false;
-  NET.fullNext = false;
-  NET.rInT = 0;
 }
 // leaving on purpose: say goodbye first so the other side shows a clean message
 function netLeave() {
@@ -493,38 +633,80 @@ function netLeave() {
   netClose();
   if (guest) attract(); // put a valid street back behind the menus
 }
-// dropped: the connection failed rather than someone choosing to leave, so a rejoin makes sense
+// a runner whose friend isn't connected: off the street and out of the fight (not dropped from the crew, so
+// nobody else's runner, color or controller moves), until that friend, or a new one, takes the seat
+function netBench(p) {
+  if (!p || p.netAway) return;
+  p.netAway = true;
+  if (p.heldBy) enemyRelease(p.heldBy);
+  if (p.grab) releaseGrab(p);
+  if (p.holding) dropProp(p);
+  for (const q of PL) if (q.grab === p) releaseGrab(q);
+  G.ents = G.ents.filter(e => e !== p);
+  p.out = true;
+  p.outX = null;
+}
+function netUnbench(p) {
+  if (!p || !p.netAway) return;
+  p.netAway = false;
+  p.out = false;
+  p.holding = null;
+  p.inv = 90;
+  p.hp = Math.max(p.hp, Math.round(p.maxHp * 0.6));
+  if (p.lives < 1) p.lives = 1;
+  const lead = PL.find(q => q !== p && !q.out) || PL[0];
+  p.x = clamp(lead.x - 20, G.camX + 20, G.camX + W - 20);
+  p.y = clamp(lead.y + 16, FY0 + 6, FY1);
+  if ((G.mode === 'play' || G.mode === 'den' || G.ret === 'play' || G.ret === 'den') && !G.ents.includes(p))
+    G.ents.push(p);
+  say(p, (p.name || 'RUNNER') + ' IS IN', '#ffc63d', 70, 80);
+}
+// host: one friend's line went (dropped, or they left): their runner sits out, the room opens for them again
+function netPeerLost(peer, dropped) {
+  if (!NET.peers.includes(peer)) return;
+  NET.peers = NET.peers.filter(q => q !== peer);
+  try {
+    if (peer.dc) peer.dc.close();
+  } catch (e) {}
+  try {
+    if (peer.pc) peer.pc.close();
+  } catch (e) {}
+  const p = PL[peer.seat];
+  if (p && G.mode !== 'nethub' && G.mode !== 'title') {
+    // left on purpose from the newest seat: the runner goes with them; otherwise (a drop, or someone after
+    // them still playing) the runner waits on the bench so they, or the next friend, can pick it back up
+    if (!dropped && p === PL[PL.length - 1]) dropRunner();
+    else netBench(p);
+    G.texts.push({
+      x: G.camX + W / 2,
+      y: 140,
+      z: 0,
+      s: (p.name || 'A RUNNER') + (dropped ? ' DROPPED' : ' LEFT'),
+      c: '#ff3d8b',
+      life: 110,
+      big: true
+    });
+  }
+  if (!NET.peers.length) NET.live = false; // back to playing alone: this keyboard drives everything again
+  if (NET.room && NET.roomKey && lobbyUrl()) netOpenSeat(true);
+  else if (!NET.peers.length && !NET.room) netClose();
+  if (G.mode === 'nethub' || G.mode === 'online') renderOv();
+}
+// dropped: the connection failed rather than someone choosing to leave, so a rejoin makes sense (guest side;
+// on the host, a whole session going down)
 function netLost(msg, dropped) {
-  const role = NET.role,
-    was = NET.live,
-    room = NET.room,
-    key = NET.roomKey,
-    away = role === 'host' && was && dropped && PL[1] ? PL[1] : null;
-  netClose();
+  const role = NET.role;
   if (role === 'host') {
-    if (was && G.coop) {
-      dropRunner2();
-      G.texts.push({
-        x: G.camX + W / 2,
-        y: 140,
-        z: 0,
-        s: dropped ? 'PARTNER DROPPED' : 'PARTNER LEFT',
-        c: '#ff3d8b',
-        life: 110,
-        big: true
-      });
-    }
-    // keep their runner and reopen the same room code, so they can come straight back
-    if (away && room && key && lobbyUrl()) {
-      NET.away = away;
-      netRehost(room, key);
-    }
+    for (const q of NET.peers.slice()) netPeerLost(q, dropped);
     if (G.mode === 'online') {
       NET.status = 'error';
       NET.err = msg;
       renderOv();
     }
-  } else if (role === 'guest') {
+    return;
+  }
+  netClose();
+  if (role === 'guest') {
     NET.lostMsg = msg;
     NET.canRejoin = !!(dropped && NET.lastRoom && lobbyUrl());
     NET.rejoining = false;
@@ -533,37 +715,15 @@ function netLost(msg, dropped) {
     setMode('netlost');
   }
 }
-async function netRehost(room, key) {
-  NET.role = 'host';
-  NET.status = 'making';
-  try {
-    const pc = netPc(await netIce());
-    netBind(pc.createDataChannel('cct', { ordered: true }));
-    await pc.setLocalDescription(await pc.createOffer());
-    await iceDone(pc);
-    if (pc !== NET.pc) return;
-    NET.code = await packCode(pc.localDescription);
-    const r = await lobby('/rooms/' + room + '/reopen', { offer: NET.code, key });
-    if (pc !== NET.pc) return;
-    if (!r.ok) throw new Error('reopen ' + r.status);
-    NET.room = room;
-    NET.roomKey = key;
-    NET.status = 'offer';
-    netPollAnswer();
-  } catch (e) {
-    NET.away = null;
-    netClose();
-  }
-}
-// the host's tag while the friend is away
+// the host's tag while a friend is away: the room code to come back on
 function netAwayTag() {
-  return NET.role === 'host' && NET.away && NET.room && !NET.live
-    ? 'PARTNER DROPPED · ROOM ' + NET.room + ' TO REJOIN'
-    : '';
+  if (NET.role !== 'host' || !NET.room) return '';
+  const away = PL.filter(p => p.netAway).map(p => p.name);
+  return away.length ? away.join(' · ') + ' AWAY · ROOM ' + NET.room + ' TO REJOIN' : '';
 }
 
 /* ---------- messages ---------- */
-function netRecv(data) {
+function netRecv(data, peer) {
   const fix = [];
   if (typeof data !== 'string' || data.length > NET_MAX_MSG) return;
   const m = JSON.parse(data, function (k, v) {
@@ -575,17 +735,24 @@ function netRecv(data) {
   });
   if (!m || typeof m !== 'object') return;
   NET.rxT = performance.now();
-  if (m.k === 'in' && NET.role === 'host') {
-    if (netInOk(m)) {
-      NET.rIn = m;
-      NET.rInT = NET.rxT;
-    }
-  } else if (m.k === 'act' && NET.role === 'host' && NET.live) netRemoteAct(m.a, m.m);
-  else if (m.k === 'hello' && NET.role === 'host' && !NET.helloed) {
-    NET.helloed = true; // once per connection: a second hello can't swap runners mid-run
-    netHostBegin(m);
-  } else if (m.k === 'full' && NET.role === 'host' && NET.live) netResync();
-  else if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
+  if (NET.role === 'host') {
+    if (!peer) return;
+    peer.rxT = NET.rxT;
+    const seated = NET.peers.includes(peer);
+    if (m.k === 'in') {
+      if (seated && netInOk(m)) {
+        peer.rIn = m;
+        peer.rInT = NET.rxT;
+      }
+    } else if (m.k === 'act' && seated) netRemoteAct(m.a, m.m, peer.seat);
+    else if (m.k === 'hello' && !peer.helloed) {
+      peer.helloed = true; // once per connection: a second hello can't swap runners mid-run
+      netHostBegin(m, peer);
+    } else if (m.k === 'full' && seated) netResync(peer);
+    else if (m.k === 'bye' && seated) netPeerLost(peer, false);
+    return;
+  }
+  if (m.k === 'start' && NET.role === 'guest') netGuestBegin(m);
   else if (m.k === 's' && NET.role === 'guest') {
     m.fix = fix;
     // snapshots are deltas: dropping one would leave stale pieces, so a long backlog asks for a fresh picture
@@ -598,7 +765,7 @@ function netRecv(data) {
       NET.fullAskT = 0;
     }
   } else if (m.k === 'bye')
-    netLost(NET.role === 'guest' ? 'The host left the game.' : 'Your partner left the game.', false);
+    netLost(m.full ? 'That game is full: it already has four runners.' : 'The host left the game.', false);
 }
 
 /* ---------- host ---------- */
@@ -612,68 +779,69 @@ function netInOk(m) {
   return true;
 }
 // the friend fell behind: everything goes again in full on the next snapshot
-function netResync() {
+function netResync(peer) {
   const now = performance.now();
-  if (now - (NET.fullT || -1e9) < 1000) return;
-  NET.fullT = now;
-  NET.sent = new Map();
-  NET.gsent = {};
-  NET.gref = {};
-  NET.bgRef = null;
-  NET.fullNext = true;
+  if (now - (peer.fullT || -1e9) < 1000) return;
+  peer.fullT = now;
+  peer.sent = new Map();
+  peer.gsent = {};
+  peer.gref = {};
+  peer.bgRef = null;
+  peer.fullNext = true;
 }
-function netHostBegin(m) {
-  if (netOwn(ARCH, m.arch) && !archLocked(m.arch)) G.pendArch[1] = m.arch;
+// a friend said hello: give them a seat (the runner they had, if they dropped and came back, else the lowest
+// free one), take their archetype and looks for it, and tell them which runner they are
+function netHostBegin(m, peer) {
+  const away = PL.findIndex((p, i) => i > 0 && p.netAway && !netSeatPeer(i)),
+    seat = away > 0 ? away : netFreeSeat();
+  if (!seat) {
+    netSendTo(peer.dc, { k: 'bye', full: 1 });
+    return;
+  }
+  peer.seat = seat;
+  if (NET.pend === peer) {
+    NET.pend = null;
+    NET.pc = NET.dc = null; // the invite became this friend's line; the next friend gets a new one
+  }
+  NET.peers.push(peer);
+  if (netOwn(ARCH, m.arch) && !archLocked(m.arch) && away < 0) G.pendArch[seat] = m.arch;
   G.pendCoat = (G.pendCoat || LEG.pendCoat || ['sig', 'sig']).slice();
   G.pendTrail = (G.pendTrail || LEG.pendTrail || ['none', 'none']).slice();
   // the friend's own unlocks aren't ours to check, so only looks this save has opened
-  if (netOwn(COATS, m.coat) && (typeof coatOpen !== 'function' || coatOpen(m.coat))) G.pendCoat[1] = m.coat;
+  if (netOwn(COATS, m.coat) && (typeof coatOpen !== 'function' || coatOpen(m.coat)))
+    G.pendCoat[seat] = m.coat;
   if (netOwn(TRAILS, m.trail) && (typeof trailOpen !== 'function' || trailOpen(m.trail)))
-    G.pendTrail[1] = m.trail;
+    G.pendTrail[seat] = m.trail;
   NET.live = true;
   NET.status = 'live';
-  NET.sent = new Map();
-  NET.gsent = {};
-  NET.gref = {};
-  NET.bgRef = null;
-  NET.hmode = '';
-  NET.friend = { arch: G.pendArch[1] };
-  netSend({ k: 'start', v: APP_VERSION });
-  // back from a drop, mid-run: the same runner walks back in
-  const away = NET.away;
-  NET.away = null;
-  if (away && PL.length === 1 && G.mode !== 'nethub' && G.mode !== 'title' && !G.training) {
-    const p1 = PL[0];
-    PL.push(away);
-    G.coop = true;
-    away.out = false;
-    away.holding = null;
-    away.inv = 90;
-    away.x = clamp(p1.x - 20, G.camX + 20, G.camX + W - 20);
-    away.y = clamp(p1.y + 16, FY0 + 6, FY1);
-    if (G.mode === 'play' || G.mode === 'den' || G.ret === 'play' || G.ret === 'den') G.ents.push(away);
-    say(away, (away.name || 'RUNNER 2') + ' IS BACK', '#ffc63d', 70, 80);
-    return;
-  }
-  setMode('nethub');
+  peer.friend = { arch: G.pendArch[seat] };
+  netSendTo(peer.dc, { k: 'start', v: APP_VERSION, seat });
+  netResync(peer);
+  // more seats left: the room opens again for the next friend
+  if (netFreeSeat()) netOpenSeat();
+  // mid-run: the runner walks (back) in; between runs, the hub shows who's here
+  if (G.mode === 'nethub' || G.mode === 'title' || G.mode === 'online') return setMode('nethub');
+  if (PL[seat] && PL[seat].netAway) netUnbench(PL[seat]);
 }
-// runner 2's buttons, as last reported by the friend
+// each friend's buttons, as they last reported them, on their own runner
 function netHostInput() {
-  const r = NET.rIn;
-  if (!r) return;
-  const s = INP[1];
-  // the friend reports at least every 10 frames; a quiet line lets go of the buttons instead of running on
-  if (performance.now() - (NET.rInT || 0) > 300) {
-    for (const a of NET_ACTS) s.held[a] = false;
-    return;
-  }
-  for (let i = 0; i < NET_ACTS.length; i++) {
-    const a = NET_ACTS[i];
-    s.held[a] = r.h.charCodeAt(i) === 49;
-    const c = r.c[a] || 0;
-    if (c !== (NET.rCnt[a] || 0)) {
-      s.pressed[a] = true;
-      NET.rCnt[a] = c;
+  for (const peer of NET.peers) {
+    const r = peer.rIn,
+      s = INP[peer.seat];
+    if (!r || !s) continue;
+    // a friend reports at least every 10 frames; a quiet line lets go of the buttons instead of running on
+    if (performance.now() - (peer.rInT || 0) > 300) {
+      for (const a of NET_ACTS) s.held[a] = false;
+      continue;
+    }
+    for (let i = 0; i < NET_ACTS.length; i++) {
+      const a = NET_ACTS[i];
+      s.held[a] = r.h.charCodeAt(i) === 49;
+      const c = r.c[a] || 0;
+      if (c !== (peer.rCnt[a] || 0)) {
+        s.pressed[a] = true;
+        peer.rCnt[a] = c;
+      }
     }
   }
 }
@@ -691,10 +859,10 @@ function netJson(v, top) {
     return x;
   });
 }
-function netEntDelta(e, full) {
+function netEntDelta(P, e, full) {
   const nid = netNid(e);
-  let last = NET.sent.get(nid);
-  if (!last || full) NET.sent.set(nid, (last = {}));
+  let last = P.sent.get(nid);
+  if (!last || full) P.sent.set(nid, (last = {}));
   const out = {};
   let n = 0;
   for (const k in e) {
@@ -737,29 +905,30 @@ function netFresh(list, cap) {
     }
   return out;
 }
-function netSnapshot() {
+// one friend's next picture: only what changed since the last one they were sent (each friend has their own)
+function netSnapshot(P) {
   const ents = G.ents.slice();
   for (const p of PL) if (!ents.includes(p)) ents.push(p);
   const parts = [];
   for (const e of ents) {
-    const d = netEntDelta(e);
+    const d = netEntDelta(P, e);
     if (d) parts.push(d);
   }
   // forget entities that are gone, so a reused object would resend in full
   const live = new Set(ents.map(netNid));
-  for (const k of NET.sent.keys()) if (!live.has(k)) NET.sent.delete(k);
+  for (const k of P.sent.keys()) if (!live.has(k)) P.sent.delete(k);
   // G: numbers and strings every time; objects when they're replaced, and re-checked a few times a second
   const g = {},
-    deep = NET.snapN++ % 8 === 0;
+    deep = P.snapN++ % 8 === 0;
   for (const k of Object.keys(G)) {
     if (NET_GDENY.has(k) || k.charCodeAt(0) === 95) continue;
     const v = G[k];
     if (typeof v === 'function') continue;
-    if (v && typeof v === 'object' && !deep && NET.gref[k] === v) continue;
-    NET.gref[k] = v;
+    if (v && typeof v === 'object' && !deep && P.gref[k] === v) continue;
+    P.gref[k] = v;
     const j = v === undefined ? '"$U"' : netJson(v);
-    if (NET.gsent[k] !== j) {
-      NET.gsent[k] = j;
+    if (P.gsent[k] !== j) {
+      P.gsent[k] = j;
       g[k] = j;
     }
   }
@@ -774,11 +943,11 @@ function netSnapshot() {
     hg: typeof haggle !== 'undefined' ? haggle : null,
     o: G.ents.map(netNid),
     pl: PL.map(netNid),
-    sx: NET.sfxQ.splice(0)
+    sx: NET.sfxOut || []
   };
   let out =
     '{"k":"s",' +
-    (NET.fullNext ? '"f":1,' : '') +
+    (P.fullNext ? '"f":1,' : '') +
     netJson(head).slice(1, -1) +
     ',"e":[' +
     parts.join(',') +
@@ -794,33 +963,47 @@ function netSnapshot() {
     netJson(netFresh(G.texts, 20)) +
     ',"nf":' +
     netJson(netFresh(G.fx, 20));
-  if (NET.gsent.$pk !== pk) out += ',"pk":' + (NET.gsent.$pk = pk);
-  if (NET.gsent.$pp !== pp) out += ',"pp":' + (NET.gsent.$pp = pp);
+  if (P.gsent.$pk !== pk) out += ',"pk":' + (P.gsent.$pk = pk);
+  if (P.gsent.$pp !== pp) out += ',"pp":' + (P.gsent.$pp = pp);
   // the street's backdrop only when the scene changes, and the shared wallet and bag now and then
-  if (G.bg !== NET.bgRef) {
-    NET.bgRef = G.bg;
+  if (G.bg !== P.bgRef) {
+    P.bgRef = G.bg;
     out += ',"bg":' + netJson(G.bg);
   }
-  if (deep || NET.gref.$party !== PARTY.bag) {
-    NET.gref.$party = PARTY.bag;
+  if (deep || P.gref.$party !== PARTY.bag) {
+    P.gref.$party = PARTY.bag;
     const pa = netJson(PARTY);
-    if (NET.gsent.$pa !== pa) out += ',"pa":' + (NET.gsent.$pa = pa);
+    if (P.gsent.$pa !== pa) out += ',"pa":' + (P.gsent.$pa = pa);
   }
-  NET.fullNext = false;
+  P.fullNext = false;
   return out + '}';
 }
 function netHostTick() {
+  if (NET.role !== 'host') return;
+  const now = performance.now();
+  // a friend sends buttons several times a second; a quarter minute of silence is a dropped line
+  for (const q of NET.peers.slice()) if (now - q.rxT > 15000) netPeerLost(q, true);
   if (!NET.live) return;
-  // the friend sends buttons several times a second; a quarter minute of silence is a dropped line
-  if (performance.now() - NET.rxT > 15000) return netLost('Lost touch with your partner.', true);
-  // whatever the host starts, the friend is runner 2 in it (training stays a solo thing)
-  if ((G.mode === 'play' || G.mode === 'den') && PL.length < 2 && !G.training) {
-    joinRunner2();
+  // in a run, every seated friend has a runner on the street and every empty seat's runner sits out
+  // (training stays a solo thing)
+  if ((G.mode === 'play' || G.mode === 'den') && !G.training) {
+    const top = Math.max(0, ...NET.peers.map(q => q.seat));
+    while (PL.length <= top && PL.length < MAX_RUNNERS) if (!joinRunner()) break;
+    for (let i = 1; i < PL.length; i++) {
+      const p = PL[i];
+      if (netSeatPeer(i)) {
+        if (p.netAway) netUnbench(p);
+      } else if (!p.netAway) netBench(p);
+      else if (G.ents.includes(p)) G.ents = G.ents.filter(e => e !== p); // a scene reset put them back
+    }
   }
   if (tick % 2) return;
-  const dc = NET.dc;
-  if (!dc || dc.readyState !== 'open' || dc.bufferedAmount > 1 << 20) return;
-  netSend(netSnapshot());
+  NET.sfxOut = NET.sfxQ.splice(0);
+  for (const q of NET.peers) {
+    const dc = q.dc;
+    if (!dc || dc.readyState !== 'open' || dc.bufferedAmount > 1 << 20) continue;
+    netSendTo(dc, netSnapshot(q));
+  }
 }
 // sounds and songs that happen on the host during a step play on the friend's side too
 function netHookSfx() {
@@ -840,7 +1023,8 @@ function netHookSfx() {
 netHookSfx();
 
 /* ---------- guest ---------- */
-function netGuestBegin() {
+function netGuestBegin(m) {
+  NET.me = clamp((m && +m.seat) || 1, 1, NET_SEATS); // which runner the host gave us
   NET.live = true;
   NET.status = 'live';
   NET.ents = new Map();
@@ -948,13 +1132,14 @@ function netApply(s) {
   for (const a of s.sx) if (typeof sfx[a[0]] === 'function') sfx[a[0]].apply(sfx, a.slice(1));
   NET.hm = s.hm;
   // first picture: say which runner is yours
-  if (!NET.greeted && PL[1] && PL[1].name && !G.banner && NET.hm === 'play') {
+  const me = PL[NET.me];
+  if (!NET.greeted && me && me.name && !G.banner && NET.hm === 'play') {
     NET.greeted = true;
     G.texts.push({
       x: G.camX + W / 2,
       y: 120,
       z: 0,
-      s: 'YOU ARE ' + PL[1].name,
+      s: 'YOU ARE ' + me.name,
       c: '#ffc63d',
       life: 120,
       big: true
@@ -1009,8 +1194,8 @@ function netGuestStep() {
   // the host's menus: perks, pause, the run's end
   const hm = NET.hm;
   if (NET.optOut && NET.optOut !== hm) NET.optOut = '';
-  if (NET_SHARED.has(hm) && hm !== NET.optOut && PL[1] && (G.mode === 'play' || G.mode === 'netwait')) {
-    G.sheetIdx = 1;
+  if (NET_SHARED.has(hm) && hm !== NET.optOut && PL[NET.me] && (G.mode === 'play' || G.mode === 'netwait')) {
+    G.sheetIdx = NET.me;
     setMode(hm);
     NET.shopSig = netShopSig();
   } else if (NET_SHARED.has(G.mode) && hm !== G.mode)
@@ -1090,13 +1275,32 @@ function netHtml(m) {
         ? `The run is over: wave ${G.awave}, ${(G.score || 0).toLocaleString()} points. Your partner can start another one.`
         : what;
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>${over ? (NET.hm === 'win' ? 'You did it' : 'Run over') : 'One moment'}</h2><p>${txt}</p>
-    <div class="row">${PL[1] && (PL[1].pts || PL[1].spts) && !over ? '<button class="btn" data-a="netsheet">Your character (points to spend)</button>' : ''}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
+    <div class="row">${PL[NET.me] && (PL[NET.me].pts || PL[NET.me].spts) && !over ? '<button class="btn" data-a="netsheet">Your character (points to spend)</button>' : ''}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
   }
-  if (m === 'nethub')
-    return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>Your friend is here</h2>
-    <p>${NET.friend && ARCH[NET.friend.arch] ? `They're playing the ${esc(ARCH[NET.friend.arch].name)}. ` : ''}Pick what to play. Whatever you start, your friend joins it as Runner 2: the Arena and its challenges, the campaign (new or continued), the Sprawl or a job; or they can watch you train. You run the menus, shops and briefings; they can spend their own points from their character sheet.</p>
+  if (m === 'nethub') {
+    const here = NET.peers
+        .slice()
+        .sort((a, b) => a.seat - b.seat)
+        .map(
+          q =>
+            `<li><span style="color:${PALS[q.seat].acc}">●</span> <b>${NAMES[q.seat]}</b> (runner ${q.seat + 1})${q.friend && ARCH[q.friend.arch] ? ` · ${esc(ARCH[q.friend.arch].name)}` : ''}</li>`
+        )
+        .join(''),
+      free = netFreeSeat(),
+      more = NET.room
+        ? `<p>${free ? `Room <b class="roomcode sm">${NET.room}</b> is still open: up to ${NET_SEATS - NET.peers.length} more friend${NET_SEATS - NET.peers.length === 1 ? '' : 's'} can join with it, now or mid-run.` : 'All four seats are taken.'}</p>`
+        : free && NET.pend && NET.code
+          ? `<details class="netmore"><summary>Invite another friend (long code)</summary><textarea class="netcode" readonly rows="3" aria-label="Invite code for the next friend">${esc(NET.code)}</textarea>
+    <div class="row"><button class="btn sm" data-a="netcopy">Copy code</button></div>
+    <textarea class="netcode" data-net="draft" rows="3" placeholder="Paste their reply code here" aria-label="Reply code"></textarea>
+    <div class="row"><button class="btn sm" data-a="netconnect">Connect</button></div></details>`
+          : '';
+    return `<div class="card"><p class="eyebrow">Online co-op · connected</p><h2>${NET.peers.length > 1 ? 'Your crew is here' : 'Your friend is here'}</h2>
+    <ul class="crew">${here}</ul>${more}
+    <p>Pick what to play. Whatever you start, each friend joins it as their own runner: the Arena and its challenges, the campaign (new or continued), the Sprawl or a job; or they can watch you train. You run the menus, shops and briefings; they can spend their own points from their character sheets.</p>
     <div class="row"><button class="btn" data-a="arenapick">Arena</button><button class="btn ghost" data-a="pick">Campaign</button>${store.load('cs_save3') ? '<button class="btn ghost" data-a="cont">Continue campaign</button>' : ''}<button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="trainpick">Training (they watch)</button></div>
     <div class="row"><button class="btn ghost" data-a="netleave">End online game</button></div></div>`;
+  }
   if (m === 'netmenu')
     return `<div class="card"><p class="eyebrow">Online co-op</p><h2>Paused for you</h2><p>The fight keeps going on your partner's screen while this is open.</p>
     <div class="row"><button class="btn" data-a="netresume">Back to the fight</button>${soundBtns()}<button class="btn ghost" data-a="netleave">Leave the game</button></div></div>`;
@@ -1116,11 +1320,11 @@ function netHtml(m) {
     <textarea class="netcode" data-net="draft" rows="3" placeholder="Paste the reply code here" aria-label="Reply code">${esc(NET.draft)}</textarea>
     <div class="row"><button class="btn" data-a="netconnect"${busy ? ' disabled' : ''}>${st === 'connecting' ? 'Connecting…' : 'Connect'}</button></div>`;
   if (!NET.role || st === 'error' || st === '') {
-    body = `<p>Play with a friend in another browser, on another device, anywhere: the Arena, the campaign or the Sprawl. One of you hosts; the other joins${lob ? ' with a five-letter room code' : ' by swapping two codes over chat or text'}. No accounts.</p>
+    body = `<p>Play with up to three friends in other browsers, on other devices, anywhere: the Arena, the campaign or the Sprawl. One of you hosts; the other joins${lob ? ' with a five-letter room code' : ' by swapping two codes over chat or text'}. No accounts.</p>
     ${err}
     ${archHtml(1)}
     <div class="row"><button class="btn" data-a="nethost">Host a game</button><button class="btn ghost" data-a="netjoin">Join a game</button><button class="btn ghost" data-a="netback">Back</button></div>
-    <p style="color:var(--muted);font-size:12.5px">The host plays as Runner 1 and runs the menus; the friend plays as Runner 2 with the archetype and coat chosen above. ${lob ? 'The two browsers connect directly; when a network blocks that, the game is relayed through Cloudflare.' : 'Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.'}</p>`;
+    <p style="color:var(--muted);font-size:12.5px">Up to four runners: the host plays as Runner 1 and runs the menus; up to three friends join with the same room code, each as their own runner with the archetype and coat they choose above. ${lob ? 'The two browsers connect directly; when a network blocks that, the game is relayed through Cloudflare.' : 'Works best on the same Wi-Fi; across the internet it works on most home networks, but some office and school networks block direct connections.'}</p>`;
   } else if (NET.role === 'host') {
     const link = netInviteLink();
     if (st === 'making') body = '<p>Opening a room…</p>';
@@ -1226,19 +1430,19 @@ function netShopSig() {
 }
 function netGuestSheet() {
   if (G.mode === 'sheet') return setMode('play');
-  if (!PL[1]) return;
-  G.sheetIdx = 1;
+  if (!PL[NET.me]) return;
+  G.sheetIdx = NET.me;
   G.ret = 'play';
   setMode('sheet');
   NET.sheetSig = netSheetSig();
 }
 // what a friend's click may name: plain ids only, and only ones the table it points into really holds
 const NET_PROTO = new Set(['__proto__', 'constructor', 'prototype']);
-function netActOk(a) {
+function netActOk(a, seat) {
   const parts = a.split(':'),
     name = parts[0],
     arg = parts[1],
-    p = PL[1];
+    p = PL[seat];
   if (parts.length > 3 || parts.some(x => !/^[A-Za-z0-9_.-]{0,40}$/.test(x) || NET_PROTO.has(x)))
     return false;
   const tbl = {
@@ -1258,15 +1462,16 @@ function netActOk(a) {
   if (name === 'spell') return !!p && /^\d+$/.test(arg) && +arg < (p.spells || []).length;
   return true;
 }
-function netRemoteAct(a, mode) {
-  if (typeof a !== 'string' || a.length > 80 || PL.length < 2 || !netActOk(a)) return;
+// a friend's click on their own character sheet, or at the host's counter, run on the host as their runner
+function netRemoteAct(a, mode, seat) {
+  if (typeof a !== 'string' || a.length > 80 || !(seat >= 1) || !PL[seat] || !netActOk(a, seat)) return;
   const name = a.split(':')[0];
   // a shop click only counts while the host is still at that same counter
   const ok = NET_REMOTE.has(name) || (NET_SHOP.has(name) && NET_SHARED.has(G.mode) && mode === G.mode);
   if (!ok) return;
   const si = G.sheetIdx,
     btn = document.createElement('button');
-  G.sheetIdx = 1;
+  G.sheetIdx = seat;
   btn.dataset.a = a;
   btn.hidden = true;
   ov.appendChild(btn);
@@ -1306,7 +1511,7 @@ function netAct(a, b) {
       return true;
     }
     if (NET_REMOTE.has(a)) {
-      if (G.sheetIdx === 1 && b && b.dataset) {
+      if (G.sheetIdx === NET.me && b && b.dataset) {
         netSend({ k: 'act', a: b.dataset.a });
         sfx.click();
       }
@@ -1316,6 +1521,7 @@ function netAct(a, b) {
   switch (a) {
     case 'netrejoin':
       NET.rejoining = true;
+      NET.reTries = 0;
       netStartJoin(NET.lastRoom);
       return true;
     case 'netsheet':
@@ -1335,6 +1541,8 @@ function netAct(a, b) {
       renderOv();
       return true;
     case 'netanswer':
+      NET.joinTries = 0;
+      NET.reTries = 0;
       if (NET.draft.trim()) netStartJoin(NET.draft);
       return true;
     case 'netconnect':

@@ -1,6 +1,6 @@
 # Online co-op
 
-Two browsers play one game over WebRTC, peer to peer. The host's game is the real one; the friend sends button presses and draws what the host sends back. A small Cloudflare Worker (`server/worker.js`) only swaps the connection details and hands out relay passes. It never sees gameplay.
+Up to four browsers play one game over WebRTC: the host and up to three friends, each friend on their own peer-to-peer line to the host (a star, no friend-to-friend links). The host's game is the real one; each friend sends button presses and draws what the host sends back. A small Cloudflare Worker (`server/worker.js`) only swaps the connection details and hands out relay passes. It never sees gameplay.
 
 ## Connecting
 
@@ -26,8 +26,14 @@ sequenceDiagram
   L-->>H: {answer}
   H-->>F: data channel opens
   F->>H: hello {arch, coat, trail}
-  H->>F: start {v}
+  H->>F: start {v, seat}
+  H->>L: POST /rooms/K7QHM/reopen {offer, key}
+  Note over H,L: a fresh invite for the next friend, same room code
 ```
+
+**More friends, one code.** The lobby holds one invite per room. As soon as a friend is seated, the host puts a fresh invite in the same room with `/reopen` (its room key proves it's the host), so the next friend types the same code. That repeats until three friends are in. Seats are runners 2 to 4 (`seat` 1 to 3 in `start`); a friend gets the lowest free seat, or the benched runner of someone who dropped.
+
+**Races.** A friend can fetch an invite just as the host swaps in a newer one. Every reply carries the invite it answers (its ICE username fragment, `o` in the packed code), and the host ignores a reply to an invite it no longer holds and puts up a fresh one. Both sides also give a handshake a few seconds: a reply that hasn't become a line in 7 s makes the host reopen, and a friend still not connected after 8 s fetches the current invite and answers again (up to three times). A friend who hits a room that's mid-seating (409) knocks again every 2.5 s, six times.
 
 With `?lobby=off`, or when the lobby can't be reached, the same offer and answer are packed into long `CCT1z…` codes (deflate-raw, base64url) for the players to swap by hand.
 
@@ -38,6 +44,7 @@ Every message is JSON with a `k` field.
 | `k` | Direction | Contents |
 |---|---|---|
 | `hello` | friend → host | `arch`, `coat`, `trail`. Accepted once per connection |
+| `start` | host → friend | `v` (the version), `seat` (1 to 3: which runner is theirs) |
 | `in` | friend → host | `h`: 13 held flags (`0`/`1`), `c`: a press counter per button |
 | `act` | friend → host | `a`: a menu button's action, `m`: the shop the friend is at |
 | `full` | friend → host | none: the friend fell behind and wants a fresh picture |
@@ -91,7 +98,9 @@ stateDiagram-v2
   Solo --> [*]
 ```
 
-The host keeps runner 2 (`NET.away`) while the room is reopened, so the friend walks back in with the same gear. A failed reopen, or a new run, clears it.
+A dropped friend's runner goes on the bench (`netBench`: off the street, `out`, flagged `netAway`) instead of leaving the crew, so nobody else's runner, color or controller shifts, and the room reopens. Whoever comes back with the code (or the next friend) takes the benched runner and walks back in with the same gear (`netUnbench`). Every host tick reconciles the crew: a seat with a friend has a runner on the street, a seat without one sits out, even after a scene reset puts everyone back. A friend who leaves on purpose from the newest seat takes their runner with them.
+
+Each friend gets their own delta stream: the host keeps, per friend, what it has already sent (`sent`, `gsent`, `gref`), so a friend who joins mid-run starts from a full picture without forcing one on everyone else. Sounds from a step go to every friend.
 
 ## The lobby
 

@@ -25,7 +25,7 @@ mindmap
       Cyberware and chrome
     Together
       Couch co-op: up to four
-      Online co-op: room codes
+      Online co-op: room codes, up to four
     Platform
       Canvas, plain JavaScript
       PWA: offline and updates

@@ -135,12 +135,15 @@ ok(!A.netInOk({ h: '0000000000000', c: { hack: 1 } }), 'a press counter for an u
 A.newRun(true);
 const Q = __PL()[1];
 Q.spells = ['bolt'];
-ok(A.netActOk('unequip:weapon'), 'a click on a real gear slot passes');
-ok(!A.netActOk('unequip:__proto__'), 'a click naming __proto__ is refused');
-ok(!A.netActOk('unequip:toString'), 'a slot the runner does not have is refused');
-ok(!A.netActOk('gmod:nope'), 'an unknown gun mod is refused');
-ok(A.netActOk('spell:0') && !A.netActOk('spell:4') && !A.netActOk('spell:-1'), 'spell picks stay in range');
-ok(!A.netActOk('attr:str:x:y'), 'clicks with extra pieces are refused');
+ok(A.netActOk('unequip:weapon', 1), 'a click on a real gear slot passes');
+ok(!A.netActOk('unequip:__proto__', 1), 'a click naming __proto__ is refused');
+ok(!A.netActOk('unequip:toString', 1), 'a slot the runner does not have is refused');
+ok(!A.netActOk('gmod:nope', 1), 'an unknown gun mod is refused');
+ok(
+  A.netActOk('spell:0', 1) && !A.netActOk('spell:4', 1) && !A.netActOk('spell:-1', 1),
+  'spell picks stay in range'
+);
+ok(!A.netActOk('attr:str:x:y', 1), 'clicks with extra pieces are refused');
 // the guest never lets a snapshot key reach an object's prototype
 NET.ents = new Map();
 A.netApply({

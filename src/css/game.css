@@ -1267,3 +1267,18 @@ body.cb .hklanes .blk {
   background: #ffa630;
   box-shadow: 0 0 8px #ffa630;
 }
+/* online co-op: the crew in the hub, and the room code inline */
+ul.crew {
+  list-style: none;
+  margin: 6px 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.roomcode.sm {
+  display: inline-block;
+  font-size: 1.15em;
+  padding: 0 6px;
+  margin: 0;
+  letter-spacing: 0.12em;
+}
