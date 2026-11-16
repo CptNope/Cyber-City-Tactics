@@ -10,6 +10,28 @@ function physics(e) {
     e.z += e.vz;
     e.x += e.vx;
     wallBounce(e);
+    // a foe slammed down hard (off a launch, a slam) bounces once off the street, still juggleable
+    if (
+      e.z <= 0 &&
+      e.team === 1 &&
+      e.state === 'down' &&
+      !e.thrown &&
+      e.vz < -4.6 &&
+      e.hp > 0 &&
+      !(e.d && e.d.boss) &&
+      G.t - (e.gbT === undefined ? -99 : e.gbT) > 45
+    ) {
+      e.gbT = G.t;
+      e.z = 0;
+      e.vz = 2.1;
+      e.vx *= 0.5;
+      e.bounced = true;
+      e.landAt = G.t;
+      burst(e.x, e.y, 4, '#a79dc2', 8);
+      G.shake = Math.max(G.shake, 3);
+      sfx.heavy();
+      return;
+    }
     if (e.z <= 0) {
       if (e.vz < -2) e.landAt = G.t; // a real drop, not a hop: the renderer squashes on landing
       e.z = 0;

@@ -108,3 +108,69 @@ foe(9999);
 A.hurt(a, 3, 1, {});
 ok(G.kick === 0, 'a foe hit by no runner leaves the camera alone');
 ok(spare.hp > 0, 'done');
+
+/* ---------- round 2: how foes react ---------- */
+// a jab: a flinch on the spot; a heavy blow: a longer stagger and a step back
+fresh();
+foe(9999);
+const j1 = foe(9999);
+A.hurt(j1, 2, 1, { src: P, melee: true });
+ok(j1.state === 'hurt' && !j1.stagger && !j1.slide, 'a jab: a flinch on the spot');
+fresh();
+foe(9999);
+const h1 = foe(9999),
+  hx = h1.x;
+A.hurt(h1, 2, 1, { src: P, melee: true, kb: 8 });
+ok(h1.stagger && h1.slide > 0, 'a heavy blow: a stagger, sliding back the way it was hit');
+step(18);
+ok(h1.state === 'hurt' && h1.x > hx, 'still reeling after a jab would be over, a step further back');
+step(10);
+ok(h1.state !== 'hurt', 'then back on their feet');
+
+// an uppercut launches: high, straight up, juggleable at once
+fresh();
+foe(9999);
+const u1 = foe(9999);
+P.state = 'upper';
+A.hurt(u1, 4, 1, { src: P, melee: true, kd: true });
+P.state = 'idle';
+ok(
+  u1.state === 'down' && u1.vz >= 5 && Math.abs(u1.vx) < 1.5 && u1.bounced,
+  'an uppercut launches them high'
+);
+ok(
+  G.texts.some(t => t.s === 'LAUNCH!'),
+  'with a LAUNCH! call'
+);
+step(10);
+ok(A.canJuggle(u1, P), 'and they can be juggled in the air without a wall');
+
+// slammed down hard, they bounce once off the street
+fresh();
+foe(9999);
+const g1 = foe(9999);
+A.setS(g1, 'down');
+g1.z = 12;
+g1.vz = -6;
+g1.gbT = undefined;
+step(2);
+ok(g1.gbT !== undefined && g1.vz > 0, 'a foe slammed down hard bounces off the street');
+const vz1 = g1.vz;
+step(1); // off the street again
+for (let i = 0; i < 40 && g1.z > 0; i++) step(1);
+ok(vz1 > 0 && g1.z === 0 && g1.vz === 0, 'once, then they stay down');
+
+// a boss knockout is a moment: bars, a push-in, a held beat
+fresh();
+const boss = A.spawnEnemy('troll', 1);
+boss.x = P.x + 30;
+boss.y = P.y;
+boss.hp = 5;
+boss.inv = 0;
+A.hurt(boss, 999, 1, { src: P, melee: true });
+ok(G.ko && G.ko.x === boss.x, 'a boss knockout starts the moment, on the boss');
+const ko0 = A.koAmt();
+for (let i = 0; i < 20; i++) A.feelTick();
+ok(ko0 < 0.2 && A.koAmt() === 1, 'the bars ease in and hold');
+for (let i = 0; i < 100; i++) A.feelTick();
+ok(!G.ko && A.koAmt() === 0, 'then the moment ends');

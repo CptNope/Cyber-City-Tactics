@@ -71,7 +71,7 @@ const TESTS = [
   { file: 'graphics', minPass: 38 },
   { file: 'robust', minPass: 34 },
   { file: 'streetfights', minPass: 33 },
-  { file: 'feel', minPass: 13 },
+  { file: 'feel', minPass: 25 },
   { file: 'fourplayer', minPass: 33 },
   { file: 'sets', minPass: 29 },
   { file: 'livingsprawl', minPass: 32 },

@@ -75,7 +75,16 @@ function upEnemy(e) {
     return;
   }
   if (e.state === 'hurt') {
-    if (e.t > 14) setS(e, 'idle');
+    // a jab's flinch is short and on the spot; a heavy blow's stagger is longer and slides them back
+    if (e.slide) {
+      e.x += e.slide;
+      e.slide = Math.abs(e.slide) < 0.1 ? 0 : e.slide * 0.8;
+    }
+    if (e.t > (e.stagger ? 24 : 14)) {
+      e.stagger = false;
+      e.slide = 0;
+      setS(e, 'idle');
+    }
     e.healT = 0; // a medic hit mid-revive starts over
     return;
   }

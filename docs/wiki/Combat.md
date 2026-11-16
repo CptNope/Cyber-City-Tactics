@@ -188,6 +188,19 @@ flowchart LR
 | Needs | in the air (z ≥ 6), moving at least 1.5 px a step, not a boss, once per knockdown |
 | Bounce | reverses at 75% speed, pops up (vz ≥ 3), takes 3 + 5% of max HP |
 | Juggle | `canJuggle`: a runner's hits land on a bounced foe still in the air, up to three, each one relaunching it |
+| Launcher | a runner's uppercut sends a foe that isn't already being juggled straight up (vz 5.4) and opens the juggle at once, no wall needed (`LAUNCH!`) |
+| Ground bounce | a foe slammed down hard (falling faster than 4.6, not thrown, not a boss) bounces once off the street (vz 2.1), still juggleable; then they stay down |
+
+### Hit reactions
+
+| Blow | Reaction | Where |
+|---|---|---|
+| Jab, flurry | a flinch on the spot, 14 frames | `hurt()`, `upEnemy` |
+| Heavy (knockback ≥ 7, or a big hit) | a stagger of 24 frames, sliding back about 6 px: far enough to read, never out of reach of the next swing in a combo | `t.stagger`, `t.slide` |
+| Knockdown | down, flung back | as before |
+| Uppercut | launched (above) | |
+
+A boss's knockout is its own moment (`G.ko`, `koAmt()` in combat.js): letterbox bars slide in (deeper than a boss's entrance), the 3D camera pushes in and holds on the boss, the game drops into slow motion and FLATLINED lands as a big call, for just under two seconds. Reduced motion keeps the bars and drops the push-in.
 
 ### Mercy, runners and taunts
 

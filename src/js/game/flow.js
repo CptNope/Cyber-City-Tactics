@@ -57,6 +57,7 @@ function resetWorld() {
   G.slow = 0;
   G.kick = 0;
   G.punch = 0;
+  G.ko = null;
   G.flash = 0;
 }
 function makeRain(on) {
