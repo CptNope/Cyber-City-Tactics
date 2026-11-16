@@ -140,7 +140,9 @@ const { pathToFileURL } = require('url');
     await fr.keyboard.press('KeyJ');
     await fr.waitForTimeout(400);
     ok((await fr.evaluate(() => NET.cnt.punch)) >= 1, 'friend counts the tap');
-    await host.waitForFunction(() => window.__seen || NET.rCnt.punch >= 1, null, { timeout: 3000 });
+    await host.waitForFunction(() => window.__seen || (NET.peers[0] && NET.peers[0].rCnt.punch >= 1), null, {
+      timeout: 3000
+    });
     ok(true, 'the tap reaches the host as a press');
     // mirrored state
     await host.waitForFunction(() => G.ents.some(e => e.team === 1), null, { timeout: 15000 });
@@ -184,7 +186,7 @@ const { pathToFileURL } = require('url');
     ok(p1.join() !== p2.join(), 'foes move on the friend’s screen');
     // bandwidth: only what changed goes over the wire, so a fight costs a few KB a second
     await host.evaluate(() => {
-      const dc = NET.dc,
+      const dc = NET.peers[0].dc, // the friend's own line
         send = dc.send.bind(dc);
       window.__bytes = 0;
       window.__msgs = 0;
@@ -453,24 +455,82 @@ const { pathToFileURL } = require('url');
       (await host.evaluate(() => PL[1].arch)) === 'samurai',
       'friend typed the room code → connected, nothing pasted back'
     );
+    // ---- a second friend joins the same room code mid-run: runner 3, with their own buttons ----
+    const T = await open();
+    const t3 = T.page;
+    await withLobby(t3, `http://localhost:${lport}`);
+    await host.waitForFunction(() => NET.pend && NET.status === 'live', null, { timeout: 15000 });
+    await t3.click('[data-a="online"]');
+    await t3.click('[data-a="arch:0:mage"]');
+    await t3.click('[data-a="netjoin"]');
+    await t3.fill('textarea[data-net="draft"]', room);
+    await t3.click('[data-a="netanswer"]');
+    await host.waitForFunction(
+      () => NET.peers.length === 2 && PL.length === 3 && G.ents.includes(PL[2]),
+      null,
+      {
+        timeout: 25000
+      }
+    );
+    await t3.waitForFunction(() => NET.live && NET.me === 2 && G.mode === 'play' && PL.length === 3, null, {
+      timeout: 15000
+    });
+    ok(
+      (await host.evaluate(() => PL[2].arch + ':' + PL[2].name)) === 'mage:RAZE',
+      'a second friend types the same room code mid-run → runner 3 (Raze), their archetype'
+    );
+    ok(
+      (await fr.evaluate(() => NET.me)) === 1 && (await fr.evaluate(() => PL.length)) === 3,
+      'the first friend stays runner 2 and sees runner 3 arrive'
+    );
+    const r3x0 = await host.evaluate(() => PL[2].x);
+    await t3.keyboard.down('ArrowRight');
+    await host.waitForTimeout(700);
+    await t3.keyboard.up('ArrowRight');
+    const r3x1 = await host.evaluate(() => PL[2].x);
+    ok(
+      Math.abs(r3x1 - r3x0) > 15,
+      `runner 3's keys move runner 3 on the host (${Math.round(r3x0)} → ${Math.round(r3x1)})`
+    );
+    ok(
+      await t3.evaluate(() => G.texts.some(t => /YOU ARE RAZE/.test(t.s)) || NET.greeted),
+      'runner 3 is told who they are'
+    );
+    // they leave on purpose from the newest seat: their runner goes with them, the others play on
+    await t3.keyboard.press('Escape');
+    await t3.click('[data-a="netleave"]');
+    await host.waitForFunction(() => NET.peers.length === 1 && PL.length === 2 && NET.live, null, {
+      timeout: 10000
+    });
+    ok(true, 'runner 3 leaves → back to two, the first friend still connected');
+    // a 409 is the lobby saying the room is busy seating someone: the page knocks again, so it's expected
+    const tErrs = T.errs.filter(e => !/status of 409/.test(e));
+    ok(!tErrs.length, 'third page: no errors' + (tErrs.length ? ': ' + tErrs.slice(0, 3).join(' | ') : ''));
+    await T.page.context().close();
     // a dropped connection (no goodbye): the host keeps the runner and reopens the room; the friend rejoins
     await host.evaluate(() => (PL[1].karma = 4242));
     await fr.waitForFunction(() => PL[1] && PL[1].karma === 4242, null, { timeout: 5000 });
     await fr.evaluate(() => NET.pc.close());
     await host.waitForFunction(
-      r => !NET.live && NET.away && NET.status === 'offer' && NET.room === r && PL.length === 1,
+      r =>
+        !NET.live &&
+        NET.pend &&
+        NET.room === r &&
+        PL.length === 2 &&
+        PL[1].netAway &&
+        !G.ents.includes(PL[1]),
       room,
       { timeout: 15000 }
     );
     ok(
-      /PARTNER DROPPED · ROOM/.test(await host.evaluate(() => netAwayTag())),
-      'host: partner dropped, room reopened under the same code'
+      /JINX AWAY · ROOM/.test(await host.evaluate(() => netAwayTag())),
+      'host: partner dropped, their runner waits on the bench, room reopened under the same code'
     );
     await fr.waitForFunction(() => G.mode === 'netlost' && NET.canRejoin, null, { timeout: 15000 });
     ok(/Rejoin room/.test(await fr.textContent('#ov .card')), 'friend: a Rejoin button for the same room');
     await fr.click('[data-a="netrejoin"]');
     await host.waitForFunction(
-      () => NET.live && PL.length === 2 && PL[1].karma === 4242 && G.mode === 'play',
+      () => NET.live && PL.length === 2 && PL[1].karma === 4242 && !PL[1].netAway && G.mode === 'play',
       null,
       { timeout: 20000 }
     );

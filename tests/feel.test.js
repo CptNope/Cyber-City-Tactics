@@ -23,6 +23,7 @@ const foe = hp => {
   return e;
 };
 const fresh = () => {
+  P.D.crit = -1; // no random crits: a crit counts as a heavy blow, which would blur jab against heavy
   G.ents = G.ents.filter(e => e.team !== 1);
   G.stop = G.slow = G.kick = G.punch = 0;
   G.combo = 0;

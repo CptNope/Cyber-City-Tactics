@@ -580,7 +580,7 @@ function newRun(coop, noBrief) {
   G.training = false;
   G.gaunt = null; // gauntStart() sets it again after this
   // a runner kept for a dropped partner belongs to the old run
-  if (typeof NET !== 'undefined' && !NET.live) NET.away = null;
+
   G.choices = {};
   G.sideJobs = {};
   cjobClear();

@@ -2,7 +2,7 @@
   <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img src="docs/store/social-1200x630.png" alt="Cyber City Tactics: a neon brawler RPG for one to four players" width="100%"></a>
 </p>
 
-<h3 align="center">A neon brawler RPG for one to four players on one screen, or two online.<br>Free in your browser. No install, no account, and it plays offline.</h3>
+<h3 align="center">A neon brawler RPG for one to four players, on one screen or online.<br>Free in your browser. No install, no account, and it plays offline.</h3>
 
 <p align="center">
   <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img alt="Play now in your browser" src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-in%20your%20browser-ff3d8b?style=for-the-badge&labelColor=0c0a14"></a>
@@ -271,7 +271,7 @@ Runner 1 plays on the keyboard (or touch screen), runner 2 can share the keyboar
 
 Bigger crews meet bigger fights. A crew of three or four meets one extra foe per wave for each runner past two, and foes are tougher: health ×1.25 for two runners, ×1.4 for three, ×1.55 for four. With three or four the HUD switches to compact panels across the top, and the shared creds and medkits move to the bottom line. In a flight, runners 3 and 4 man their own door guns; on the road everyone rides a bike, or a window seat in the car chase.
 
-Want to play from two different places? See [Online co-op](#online-co-op) (two players online, for now).
+Want to play from different places? See [Online co-op](#online-co-op): up to four online, too.
 
 **Team attacks.** When two or more runners land hits on the same enemy within half a second, the crew gets a beat to pile in, then a combined finisher lands: **TEAM UP!** for two, **CREW UP!** for three, **FULL CREW!** for all four, each a heavier knockdown with a longer moment of slow motion. Each enemy can take one every two seconds.
 
@@ -281,22 +281,23 @@ Want to play from two different places? See [Online co-op](#online-co-op) (two p
 
 ## Online co-op
 
-Play with a friend in another browser, on another device, anywhere. No accounts and nothing to install.
+Play with up to three friends in other browsers, on other devices, anywhere: four runners online, the host plus three. No accounts and nothing to install.
 
 | Host | Friend |
 |---|---|
 | ![The host's room code card](docs/media/online-room.png) | ![The friend typing the room code](docs/media/online-join.png) |
 | 1. **Online co-op › Host a game.** You get a five-letter room code, and a **Copy invite link** button. | 2. **Online co-op › Join a game**, type the code (or just open the invite link), and press **Join**. |
 
-3. You're connected. The host picks what to play: the **Arena** (and its daily and weekly challenges), a **new or continued campaign**, **the Sprawl**, or a **job** from the Jobs board; **Training** is solo, so the friend watches. Whatever the host starts, the friend joins it as Runner 2 with the archetype and coat they picked.
-4. The host runs the briefings, shops and Den menus, and the friend sees what's going on ("your partner is shopping…"). The friend opens their own **character sheet (C)** any time to spend attribute and skill points, change spells and swap gear.
-5. Quitting a run takes the host back to the online menu, so you can switch modes without reconnecting. **End online game** when you're done.
+3. You're connected. **More friends join with the same room code**: the room opens again for the next one as soon as someone's in, up to three friends (runners 2, 3 and 4: Jinx, Raze and Nova), before a run or in the middle of one. The host's online menu lists who's here.
+4. The host picks what to play: the **Arena** (and its daily and weekly challenges), a **new or continued campaign**, **the Sprawl**, or a **job** from the Jobs board; **Training** is solo, so friends watch. Whatever the host starts, each friend joins it as their own runner with the archetype and coat they picked.
+5. The host runs the briefings, shops and Den menus, and friends see what's going on ("your partner is shopping…"). Each friend opens their own **character sheet (C)** any time to spend attribute and skill points, change spells and swap gear.
+6. Quitting a run takes the host back to the online menu, so you can switch modes without reconnecting. **End online game** when you're done.
 
 **How it connects.** The two browsers talk directly (WebRTC). A small Cloudflare Worker in [`server/`](server/README.md) only swaps the connection details behind the room code and, on networks that block direct connections (many offices and schools), hands out passes for Cloudflare's relay. The game itself never goes through a server of ours. If the lobby is ever unreachable, the game falls back to swapping two long codes by hand.
 
 **Shopping together.** When the host walks up to Doc Kessler, Ratchet, Old Wen, Sable or the safehouse, the friend sees the same counter and buys, sells and haggles for their own runner, with the shared wallet updating on both screens.
 
-**Dropped connections.** If the friend's connection drops (not if they choose to leave), the host's game keeps their runner aside and reopens the same room code; the friend's screen offers **Rejoin room K7Q2X**, and they walk back into the run with everything they had.
+**Dropped connections.** If a friend's connection drops (not if they choose to leave), their runner waits on the bench, out of the fight, and the same room code stays open; the friend's screen offers **Rejoin room K7Q2X**, and they walk back into the run as the same runner with everything they had. Nobody else's runner, color or controls change while they're gone. A friend who leaves on purpose takes their runner with them if they were the newest to join; otherwise it waits on the bench for them or the next friend.
 
 **Good to know.** Training is solo, but the friend can watch it. The host's game is the real one: saves, unlocks and high scores land on the host's device.
 
