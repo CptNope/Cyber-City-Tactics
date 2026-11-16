@@ -7,7 +7,7 @@
 function placeRunners(x0) {
   PL.forEach((p, i) => {
     p.x = x0 + i * 14;
-    p.y = 212 + i * 20;
+    p.y = [212, 232, 192, 252][i] || 212; // a crew of four fans out across the street, all on it
     p.z = 0;
     p.vz = 0;
     p.vx = 0;
@@ -184,7 +184,7 @@ function enterDen() {
 // picked for that seat (or the first free one, so the crew doesn't double up), next to whoever's in front
 function joinRunner() {
   if (PL.length >= MAX_RUNNERS) return null;
-  if (typeof NET !== 'undefined' && NET.live && PL.length >= 2) return null; // online seats are their own thing
+  if (typeof NET !== 'undefined' && NET.live && NET.role === 'guest') return null; // only the host adds runners
   const idx = PL.length,
     p = newRunner(idx),
     p1 = PL[0],
