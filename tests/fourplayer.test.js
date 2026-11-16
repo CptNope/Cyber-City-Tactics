@@ -38,12 +38,14 @@ ok(
 );
 
 // tougher foes for a bigger crew
-const hp4 = A.spawnEnemy('ganger', 1).maxHp;
+// the weakest of a few spawns: any one can roll as an elite (more health), which would blur the comparison
+const baseHp = () => Math.min(...Array.from({ length: 8 }, () => A.spawnEnemy('ganger', 1).maxHp));
+const hp4 = baseHp();
 A.prefs.crew = 2;
 A.newRun(false);
 A.startStage(0);
 step(5);
-const hp1 = A.spawnEnemy('ganger', 1).maxHp;
+const hp1 = baseHp();
 ok(Math.abs(hp4 / hp1 - 1.55) < 0.12, `a crew of four faces foes with +55% health (${hp1} → ${hp4})`);
 ok(
   A.crewWave([
