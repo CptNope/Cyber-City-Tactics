@@ -64,9 +64,11 @@ function introPush() {
 }
 // Letterbox bars over the street, drawn before the HUD so health bars stay readable on top of them
 function drawIntroBars() {
-  const k = introK();
+  // a boss's entrance, or its knockout (koAmt in combat.js): the bars are a little deeper for the knockout
+  const ko = typeof koAmt === 'function' ? koAmt() : 0,
+    k = Math.max(introK(), ko);
   if (!k) return;
-  const bar = 14 * k;
+  const bar = (ko > introK() ? 20 : 14) * k;
   ctx.fillStyle = '#07050b';
   ctx.fillRect(0, BAND, W, bar);
   ctx.fillRect(0, BAND + H - bar, W, bar);

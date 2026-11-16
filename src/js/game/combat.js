@@ -54,9 +54,16 @@ function impact(t, dir, w, byRunner) {
 }
 // eases the jolt and the push-in back, frame by frame; held still during hitstop, so the freeze lands
 function feelTick() {
+  if (G.ko && ++G.ko.t >= G.ko.n) G.ko = null; // the knockout moment plays out in real frames, slow-mo or not
   if (G.stop > 0) return;
   G.kick = Math.abs(G.kick || 0) < 0.05 ? 0 : G.kick * 0.7;
   G.punch = (G.punch || 0) < 0.01 ? 0 : G.punch * 0.88;
+}
+// 0..1: how far the boss knockout moment is in, easing in over a third of a second and out at the end
+function koAmt() {
+  const k = G.ko;
+  if (!k) return 0;
+  return Math.min(1, k.t / 20, (k.n - k.t) / 25);
 }
 // a combo that keeps going gets called out, louder each time
 const COMBO_BEATS = [
@@ -467,6 +474,8 @@ function hurt(t, dmg, dir, o) {
   }
   if (o.kd || (t.hits >= 3 && !o.flurry)) {
     setS(t, 'down');
+    // an uppercut launches: straight up and high, and the juggle window opens at once (no wall needed)
+    const launch = o.src && o.src.team === 0 && o.src.state === 'upper' && t.team === 1 && !t.juggles;
     if (t.club) dropClub(t); // knocked flat: the street weapon goes flying
     if (t.team === 1 && o.src && o.src.team === 0 && grabbable(Object.assign({}, t, { state: 'idle' })))
       tip(
@@ -474,12 +483,21 @@ function hurt(t, dmg, dir, o) {
         'Knocked down? PUNCH beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.',
         'Knocked down? Press J beside them to haul them back up into a grab. Foes on their last legs reel and can be grabbed too.'
       );
-    t.vz = 2.8;
-    t.vx = dir * 2.2;
+    t.vz = launch ? 5.4 : 2.8;
+    t.vx = dir * (launch ? 0.9 : 2.2);
+    if (launch) {
+      t.bounced = true;
+      G.texts.push({ x: t.x, y: t.y, z: t.z + 60, s: 'LAUNCH!', c: '#45d2ff', life: 30, sm: true });
+    }
     t.hits = 0;
     if (t.team === 0) sfx.hurt();
   } else {
     setS(t, 'hurt');
+    // a jab makes them flinch where they stand; a heavy blow (a kick, a big hit) sends them staggering back
+    // (just a step: far enough to read, never out of reach of the next swing in a combo)
+    const heavyish = (o.big || (o.kb || 0) >= 7) && !o.flurry;
+    t.stagger = heavyish;
+    t.slide = heavyish ? dir * 1.2 : 0;
     if (t.team === 0) sfx.hurt();
     // two hits in a row leave a foe dazed (stars over its head): walk into it and you grab it
     // (a Concussive or Voltaic weapon dazes on the first hit)
@@ -592,10 +610,15 @@ function kill(t, dir, o) {
   }
   const d = t.d;
   if (d.boss) {
-    G.texts.push({ x: t.x, y: t.y, z: t.z + 64, s: 'FLATLINED', c: '#efe9ff', life: 70 });
+    G.texts.push({ x: t.x, y: t.y, z: t.z + 64, s: 'FLATLINED', c: '#efe9ff', life: 70, beat: 4 });
     G.slow = 70;
     G.flash = 0.5;
     G.punch = 1;
+    // the boss goes down as a moment: letterbox bars slide in and the camera holds on them (see koTick)
+    G.ko = { x: t.x, y: t.y, t: 0, n: 110 };
+    G.punchX = t.x;
+    G.punchY = t.y;
+    sfx.ko();
   } else if (
     t.team === 1 &&
     !d.passive &&

@@ -300,10 +300,16 @@ function r3CamFx() {
     punch = G.shake > 6 ? Math.min(1, (G.shake - 6) / 8) : 0,
     title = G.mode === 'title' ? 1 : 0;
   // a heavy blow, a finisher or a combo callout pulls the camera in toward where it landed
-  const hit = !RM && prefs.shake ? G.punch || 0 : 0;
-  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch + 0.06 * hit;
+  const hit = !RM && prefs.shake ? G.punch || 0 : 0,
+    // a boss knockout: the camera pushes in on them and holds while the bars are up
+    ko = !RM && G.ko ? koAmt() : 0;
+  let want = 1 + 0.12 * intro + 0.07 * slow + 0.02 * punch + 0.06 * hit + 0.16 * ko;
   if (RM) want = 1;
-  out.px = hit ? (G.punchX - (G.camX + W / 2)) * 0.12 * hit : 0;
+  out.px = ko
+    ? (G.ko.x - (G.camX + W / 2)) * 0.35 * ko
+    : hit
+      ? (G.punchX - (G.camX + W / 2)) * 0.12 * hit
+      : 0;
   // ease toward it, so nothing snaps
   out.zoom += (want - out.zoom) * (want > out.zoom ? 0.18 : 0.06);
   out.dy += ((RM ? 0 : -14 * intro - 6 * slow) - out.dy) * 0.08;
