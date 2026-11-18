@@ -15,3 +15,5 @@ node_modules/
 docs/store/android/app/
 docs/store/android/build/
 docs/store/android/.gradle/
+docs/store/youtube/.work/
+docs/store/youtube/*.mp4
