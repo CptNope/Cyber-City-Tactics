@@ -912,13 +912,18 @@ async function youtube() {
     await c.screenshot({ path: file, omitBackground: !!transparent });
     await c.close();
   };
+  // a caption on a soft dark band, so it reads over the combat numbers
   const capH = (t, sub, w, h, size, top) =>
-    `<div class="cap" style="top:${top}px;font-size:${size}px;padding:0 ${Math.round(w * 0.06)}px">${t}${
-      sub ? `<div class="sub" style="font-size:${Math.round(size * 0.3)}px">${sub}</div>` : ''
-    }</div>`;
+    `<div class="cap" style="top:${top}px;font-size:${size}px"><div style="padding:${Math.round(size * 0.22)}px ${Math.round(w * 0.08)}px ${Math.round(size * 0.18)}px;background:linear-gradient(90deg,rgba(12,10,20,0),rgba(12,10,20,.78) 18%,rgba(12,10,20,.78) 82%,rgba(12,10,20,0))">${t}${
+      sub ? `<div class="sub" style="font-size:${Math.round(size * 0.32)}px">${sub}</div>` : ''
+    }</div></div>`;
   const wm = big =>
     `<div class="wm" style="gap:${Math.round(big * 0.07)}px"><div class="city" style="font-size:${big}px">Cyber City</div><div class="bar" style="font-size:${Math.round(big * 0.56)}px;padding:${Math.round(big * 0.08)}px ${Math.round(big * 0.24)}px 0">Tactics</div></div>`;
   const onlineB64 = readFileSync(join(TMP, 'online.jpg')).toString('base64');
+  const jpg = (c, i) =>
+    readFileSync(join(clips[c].dir, `f${String(i).padStart(5, '0')}.jpg`)).toString('base64');
+  const blurBg = (c, i, dim) =>
+    `<div style="position:absolute;inset:-60px;background:url(data:image/jpeg;base64,${jpg(c, i)}) center/cover;filter:blur(16px) brightness(${dim || 0.32})"></div>`;
 
   // a video made of segments; each segment is a clip range, a held card, or the online still
   const build = async (name, w, h, segs, song) => {
@@ -1124,16 +1129,13 @@ async function youtube() {
   const W1 = 1920,
     H1 = 1080;
   const c1 = (t, sub) => capH(t, sub, W1, H1, 112, 300);
+  // the online screen as a sharp inset, the pitch beside it
   const onlineCard = (w, h, title, size) =>
-    `<div style="position:absolute;inset:0;background:url(data:image/jpeg;base64,${onlineB64}) center/cover;filter:brightness(.55)"></div>` +
-    capH(
-      title,
-      'Host a game, share the code, and up to three friends drop in, mid-run if they like.',
-      w,
-      h,
-      size,
-      Math.round(h * 0.07)
-    );
+    blurBg('brawl', 200) +
+    `<div style="position:absolute;left:${Math.round(w * 0.05)}px;top:50%;transform:translateY(-50%);width:${Math.round(w * 0.36)}px">
+      <div style="font:600 ${size}px/0.92 Teko,Impact,sans-serif;text-transform:uppercase;color:#efe9ff">${title}</div>
+      <div style="margin-top:24px;font-size:${Math.round(size * 0.34)}px;color:#d6cff0;line-height:1.3">Host a game, share the code, and up to three friends drop in, even mid-run.</div></div>
+     <div style="position:absolute;right:${Math.round(w * 0.04)}px;top:50%;transform:translateY(-50%);width:${Math.round(w * 0.55)}px;aspect-ratio:16/9;background:url(data:image/jpeg;base64,${onlineB64}) center/cover;border:3px solid #ff3d8b;box-shadow:0 0 60px rgba(255,61,139,.35)"></div>`;
   await build(
     'cyber-city-tactics-trailer',
     W1,
@@ -1141,7 +1143,7 @@ async function youtube() {
     [
       { clip: 'brawl', from: 0, to: 96, cap: c1('Four runners.<br>One rotten city.'), fadeIn: true },
       {
-        card: `<div style="position:absolute;left:150px;top:50%;transform:translateY(-55%)">${wm(260)}<div style="margin-top:40px;font-size:40px;color:#a79dc2">Seattle, 2079 · a neon brawler RPG for 1–4 players</div></div>`,
+        card: `${blurBg('brawl', 60)}<div style="position:absolute;left:150px;top:50%;transform:translateY(-55%)">${wm(260)}<div style="margin-top:40px;font-size:40px;color:#a79dc2">Seattle, 2079 · a neon brawler RPG for 1–4 players</div></div>`,
         dur: 3
       },
       {
@@ -1177,7 +1179,7 @@ async function youtube() {
         cap: c1('Pile on for a<br><span class="pink">FULL CREW</span> finisher')
       },
       {
-        card: `<div style="position:absolute;left:150px;top:50%;transform:translateY(-55%)">${wm(220)}
+        card: `${blurBg('finale', 200)}<div style="position:absolute;left:150px;top:50%;transform:translateY(-55%)">${wm(220)}
           <div style="margin-top:44px;font-size:46px;color:#efe9ff">Free in your browser.</div>
           <div style="margin-top:10px;font-size:32px;color:#a79dc2">No account, no ads. Phones, laptops and TVs. Installs and plays offline.</div>
           <div style="margin-top:40px;font-size:40px" class="gold">cptnope.itch.io/cyber-city-tactics</div></div>`,
@@ -1213,10 +1215,10 @@ async function youtube() {
       { clip: 'flight', from: 20, to: 95, cap: cs('VTOL runs') },
       { clip: 'elites', from: 30, to: 120, cap: cs('Couch or online', 'One five-letter room code') },
       {
-        card: `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 70px">${wm(170)}
-          <div style="margin-top:60px;font-size:64px;color:#efe9ff">Free. No download.</div>
-          <div style="margin-top:16px;font-size:40px;color:#a79dc2">Play it on itch.io</div>
-          <div style="margin-top:30px;font-size:38px" class="gold">cptnope.itch.io/<br>cyber-city-tactics</div></div>`,
+        card: `${blurBg('finale', 200)}<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 60px">${wm(190)}
+          <div style="margin-top:70px;font:600 110px/0.95 Teko,Impact,sans-serif;text-transform:uppercase;color:#efe9ff">Free.<br>No download.</div>
+          <div style="margin-top:30px;font-size:52px;color:#d6cff0">Play it on itch.io</div>
+          <div style="margin-top:24px;font-size:46px;line-height:1.25" class="gold">cptnope.itch.io/<br>cyber-city-tactics</div></div>`,
         cardCss: '.wm{align-items:center}',
         dur: 4,
         fadeOut: true
@@ -1229,12 +1231,12 @@ async function youtube() {
   const frameB64 = (c, i) =>
     readFileSync(join(clips[c].dir, `f${String(i).padStart(5, '0')}.jpg`)).toString('base64');
   const thumbBg = (c, i, pos) =>
-    `<div style="position:absolute;inset:0;background:url(data:image/jpeg;base64,${frameB64(c, i)}) ${pos || 'center'}/cover"></div>`;
+    `<div style="position:absolute;inset:0;background:url(data:image/jpeg;base64,${frameB64(c, i)}) ${pos || 'center'}/150% no-repeat"></div>`; // zoomed past the HUD
   await html(
     join(YT, 'thumbnail-trailer.png'),
     1280,
     720,
-    thumbBg('finale', 150, '65% center') +
+    thumbBg('finale', 150, '62% 80%') +
       `<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(12,10,20,.95) 0%,rgba(12,10,20,.75) 42%,rgba(12,10,20,0) 72%)"></div>
        <div style="position:absolute;left:56px;top:54px">${wm(118)}</div>
        <div class="cap" style="text-align:left;left:56px;right:auto;top:300px;font-size:150px">4-Player<br><span class="pink">Brawler</span></div>
@@ -1256,7 +1258,7 @@ async function youtube() {
     join(YT, 'thumbnail-alt.png'),
     1280,
     720,
-    thumbBg('boss', 70, 'center') +
+    thumbBg('boss', 70, '40% 75%') +
       `<div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(12,10,20,.95) 0%,rgba(12,10,20,.2) 55%,rgba(12,10,20,0) 100%)"></div>
        <div class="cap" style="bottom:120px;top:auto;font-size:132px">Six districts.<br><span class="cyan">Six bosses.</span></div>
        <div style="position:absolute;right:40px;top:36px">${wm(64)}</div>`
