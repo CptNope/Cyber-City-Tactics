@@ -6,7 +6,8 @@
 
 <p align="center">
   <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img alt="Play now in your browser" src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-in%20your%20browser-ff3d8b?style=for-the-badge&labelColor=0c0a14"></a>
-  <a href="https://cptnope.github.io/Cyber-City-Tactics/docs/store/trailer.mp4"><img alt="Watch the trailer" src="https://img.shields.io/badge/%E2%96%B6%20TRAILER-22%20seconds-45d2ff?style=for-the-badge&labelColor=0c0a14"></a>
+  <a href="https://youtu.be/vNOPQPze3B8"><img alt="Watch the trailer on YouTube" src="https://img.shields.io/badge/%E2%96%B6%20TRAILER-on%20YouTube-45d2ff?style=for-the-badge&labelColor=0c0a14&logo=youtube&logoColor=white"></a>
+  <a href="https://youtube.com/shorts/3gRvIEijyrs"><img alt="Watch the Short" src="https://img.shields.io/badge/%E2%96%B6%20SHORT-30%20seconds-b98cff?style=for-the-badge&labelColor=0c0a14&logo=youtubeshorts&logoColor=white"></a>
   <a href="https://cptnope.itch.io/cyber-city-tactics"><img alt="Play on itch.io" src="https://img.shields.io/badge/itch.io-play%20free-fa5c5c?style=for-the-badge&labelColor=0c0a14&logo=itchdotio&logoColor=white"></a>
   <a href="https://cptnope.itch.io/cyber-city-tactics/donate"><img alt="Support the game" src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT-donate%20on%20itch-ffc63d?style=for-the-badge&labelColor=0c0a14"></a>
 </p>
@@ -37,8 +38,8 @@ It's plain JavaScript with no framework and no runtime dependencies, split into 
 ## Trailer
 
 <p align="center">
-  <a href="https://cptnope.github.io/Cyber-City-Tactics/docs/store/trailer.mp4"><img src="docs/media/trailer-preview.gif" alt="Trailer preview: two runners fighting through the districts" width="100%"></a>
-  <br><sub>A few seconds of the trailer. Click it for the full 22-second video.</sub>
+  <a href="https://youtu.be/vNOPQPze3B8"><img src="docs/media/trailer-preview.gif" alt="Trailer preview: four runners brawling through a rainy neon street" width="100%"></a>
+  <br><sub>A few seconds of the trailer. Click it for the full video on YouTube, or watch <a href="https://youtube.com/shorts/3gRvIEijyrs">the Short</a>.</sub>
 </p>
 
 ## At a glance

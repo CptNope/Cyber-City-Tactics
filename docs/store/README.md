@@ -1,5 +1,7 @@
 # Store kit
 
+**On YouTube:** [the trailer](https://youtu.be/vNOPQPze3B8) and [the Short](https://youtube.com/shorts/3gRvIEijyrs). They're built by `node tools/capture.mjs --only=youtube` (see [`youtube/DESCRIPTIONS.md`](youtube/DESCRIPTIONS.md) for the copy).
+
 Everything needed for an itch.io page (or any store listing), captured from the game itself by `tools/capture.mjs`, so it always matches what players see.
 
 ## Files
