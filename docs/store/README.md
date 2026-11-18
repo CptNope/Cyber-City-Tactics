@@ -30,7 +30,7 @@ Everything is captured in the 3D view (forced on even where Chromium only has so
 
 **Title:** Cyber City Tactics
 
-**Short description:** A neon brawler RPG for one or two players. Free in your browser.
+**Short description:** A neon brawler RPG in 3D for one to four players, couch or online. Free in your browser.
 
 **Genre:** Action · **Tags:** beat-em-up, cyberpunk, local-co-op, online-co-op, rpg, open-world, driving, stealth, offline
 
@@ -38,7 +38,7 @@ Everything is captured in the 3D view (forced on even where Chromium only has so
 
 > Seattle, 2079. Magic came back, dragons came with it, and the corps bought the sky.
 >
-> You and a friend are two shadowrunners with a fixer called Juno and six districts between you and Director Voss. Punch, kick, shoot, cast, grab, throw and pile drive your way from the gang turf under the dead monorail to the Kagemori host itself.
+> You and up to three friends are shadowrunners with a fixer called Juno and six districts between you and Director Voss. Punch, kick, shoot, cast, grab, throw and pile drive your way from the gang turf under the dead monorail to the Kagemori host itself.
 >
 > - **Six districts, six bosses**, from the Gutter King to Mother Vesper's ghoul night market and the Black ICE inside the corp's network.
 > - **Two choices that change the ending.** Sell the books or leak them. Wipe the core or keep the key.
@@ -46,7 +46,7 @@ Everything is captured in the 3D view (forced on even where Chromium only has so
 > - **Fists from River City Ransom and Double Dragon:** daze a foe, grab it, then punch, knee, throw it any direction or leap and pile drive it. Buy chrome that teaches new moves: Mach fists, Dragon feet, Grand slam, a sprint. Foes grab back, unload flurries and throw the furniture.
 > - **Jobs between the brawls:** Road Rash–style bike chases, drone stealth through corp floors (one flies, one runs overwatch), and VTOL runs over the skyline that land in a rooftop brawl.
 > - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
-> - **Co-op, couch or online:** one keyboard, two controllers, or two browsers anywhere with a five-letter room code, in every mode. Training with Juno for anyone new.
+> - **Up to four players, couch or online:** a full crew on one screen with controllers, or four browsers anywhere on one five-letter room code, in every mode. Team up on one foe for a TEAM UP, CREW UP or FULL CREW finisher. Training with Juno for anyone new.
 > - **Neon in 3D:** a tilted three-quarter camera over wet, rain-lit streets, low-poly fighters with coat tails and rim light, and 3D mechs, hounds, a dragon and a VTOL. Switch to the original flat art any time.
 > - **Plays anywhere:** phones, tablets, laptops and TVs. Install it and it plays offline.
 >
