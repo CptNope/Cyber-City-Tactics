@@ -1153,7 +1153,8 @@ async function youtube() {
           'Fights in the spirit of River City Ransom and Double Dragon, now in 3D'
         )
       },
-      { clip: 'boss', from: 0, to: 210, cap: c1('Six districts. Six bosses.') },
+      { clip: 'boss', from: 0, to: 66 }, // the boss card has the screen to itself
+      { clip: 'boss', from: 66, to: 210, cap: c1('Six districts. Six bosses.') },
       { clip: 'vesper', from: 0, to: 180, cap: c1('Ghoul markets. Spirits. A dragon.') },
       { clip: 'elites', from: 0, to: 180, cap: c1('Choose who you hurt.', 'Two choices change the ending') },
       {
