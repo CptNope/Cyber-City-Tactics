@@ -9,6 +9,8 @@ Everything needed for an itch.io page (or any store listing), captured from the 
 | `trailer.mp4` | 1280×720, about 22 s, H.264 | Trailer: upload to YouTube or itch's video slot |
 | `cover-630x500.png` | 630×500 | itch.io cover image |
 | `social-1200x630.png` | 1200×630 | Link previews (set as `og:image` in `index.html`) |
+| `wide-cover-1260x540.png` | 1260×540 (21:9) | itch.io wide cover (Metadata › Promo images) |
+| `logo.png` | 1039×147, transparent | itch.io logo (Metadata › Promo images) |
 | `shot-street-storm.png` | 1920×1080 | Two runners in a storm on Rustline |
 | `shot-undercity-market.png` | 1920×1080 | Mother Vesper's night market |
 | `shot-neon-market-boss.png` | 1920×1080 | Razor Mei's entrance |
