@@ -1,6 +1,6 @@
 # Cyber City Tactics wiki
 
-A neon brawler RPG for one or two players, couch or online, that runs in any browser and installs as an offline app. This wiki explains how the game plays, how the code is put together, and how to change it safely. Every data table here is generated from the game's own code, so it matches the build it was made from.
+A neon brawler RPG for one to four players, couch or online, that runs in any browser and installs as an offline app. This wiki explains how the game plays, how the code is put together, and how to change it safely. Every data table here is generated from the game's own code, so it matches the build it was made from.
 
 **Play:** https://cptnope.github.io/Cyber-City-Tactics/ · **Code:** https://github.com/CptNope/Cyber-City-Tactics
 

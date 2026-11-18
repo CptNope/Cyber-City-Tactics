@@ -371,7 +371,7 @@ async function cards() {
       .tag{position:absolute;left:${Math.round(w * 0.06)}px;bottom:${Math.round(h * 0.08)}px;color:#a79dc2;font-size:${Math.round(big * 0.24)}px}
       </style></head><body><div class="bg"></div><div class="shade"></div>
       <div class="wm"><div class="city">Cyber City</div><div class="bar">Tactics</div></div>
-      <div class="tag">Neon brawler RPG · 1–2 players, couch or online · free in your browser</div></body></html>`);
+      <div class="tag">Neon brawler RPG · 1–4 players, couch or online · free in your browser</div></body></html>`);
     await card.evaluate(() => document.fonts.ready);
     await card.waitForTimeout(200);
     await card.screenshot({ path: join(OUT, file) });
@@ -421,7 +421,7 @@ async function trailer() {
   };
   // 1. title card
   await card(
-    `<p class="eyebrow" style="font-size:18px">Seattle sprawl, 2079 · brawler RPG for one or two</p>`
+    `<p class="eyebrow" style="font-size:18px">Seattle sprawl, 2079 · brawler RPG for one to four</p>`
   );
   hold(60);
   // 2. the Barrens in a storm

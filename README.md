@@ -7,6 +7,8 @@
 <p align="center">
   <a href="https://cptnope.github.io/Cyber-City-Tactics/"><img alt="Play now in your browser" src="https://img.shields.io/badge/%E2%96%B6%20PLAY%20NOW-in%20your%20browser-ff3d8b?style=for-the-badge&labelColor=0c0a14"></a>
   <a href="https://cptnope.github.io/Cyber-City-Tactics/docs/store/trailer.mp4"><img alt="Watch the trailer" src="https://img.shields.io/badge/%E2%96%B6%20TRAILER-22%20seconds-45d2ff?style=for-the-badge&labelColor=0c0a14"></a>
+  <a href="https://cptnope.itch.io/cyber-city-tactics"><img alt="Play on itch.io" src="https://img.shields.io/badge/itch.io-play%20free-fa5c5c?style=for-the-badge&labelColor=0c0a14&logo=itchdotio&logoColor=white"></a>
+  <a href="https://cptnope.itch.io/cyber-city-tactics/donate"><img alt="Support the game" src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT-donate%20on%20itch-ffc63d?style=for-the-badge&labelColor=0c0a14"></a>
 </p>
 <p align="center">
   <a href="https://github.com/CptNope/Cyber-City-Tactics/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/CptNope/Cyber-City-Tactics/actions/workflows/ci.yml/badge.svg"></a>
@@ -19,11 +21,13 @@
 
 Seattle, 2079. Magic came back, dragons came with it, and the corps bought the sky.
 
-**Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG set in a cyberpunk sprawl where magic is real. Street samurai, combat mages, gunslingers, deckers, shamans and riggers fight gangs, corps, spirits and ICE across six districts, an open-world street and an endless Arena. You and a friend punch, kick, shoot, cast, grab and throw your way from the gang turf under the dead monorail to the Kagemori host itself.
+**Cyber City Tactics** is a vector-drawn, River City Ransom–style brawler RPG set in a cyberpunk sprawl where magic is real. Street samurai, combat mages, gunslingers, deckers, shamans and riggers fight gangs, corps, spirits and ICE across six districts, an open-world street and an endless Arena. You and up to three friends punch, kick, shoot, cast, grab and throw your way from the gang turf under the dead monorail to the Kagemori host itself.
 
 It's plain JavaScript with no framework and no runtime dependencies, split into small files by system. It runs in any modern browser on phones, tablets, laptops and TVs, and it installs as an app (PWA) that plays fully offline.
 
-- **Play it:** https://cptnope.github.io/Cyber-City-Tactics/
+- **Play it:** https://cptnope.github.io/Cyber-City-Tactics/ (installable, plays offline) or on [itch.io](https://cptnope.itch.io/cyber-city-tactics)
+- **Support it:** the game is free and always will be. If you enjoy it, [a donation on itch.io](https://cptnope.itch.io/cyber-city-tactics/donate) of any size keeps it growing.
+- **Project page:** [jeremyanderson.tech](https://jeremyanderson.tech/project/cyber-city-tactics/)
 - **What's next:** [ROADMAP.md](ROADMAP.md)
 - **Store kit** (trailer, screenshots, cover art, itch.io copy): [`docs/store/`](docs/store/README.md)
 - **Brand and design:** the [Brand Book](https://claude.ai/artifact/SJeAWr27Fua7MpdYEhZqS7) (story, voice, logo, color, type) and the [Design System](https://claude.ai/artifact/7MgLArML6pr2ZNGthKNg7Q) (tokens, components, icons), plus the [Design Panels](https://claude.ai/artifact/QRGJ2rzUJLrJbqcxjpcKoc) (key art, store and social art, annotated screens). Copies of all three live in [`docs/design/`](docs/design/); the live values are in `src/css/game.css`.

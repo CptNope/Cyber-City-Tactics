@@ -1,4 +1,4 @@
-Cyber City Tactics is a neon brawler RPG for one or two players, set in a rain-soaked Seattle in 2079. Everything here is taken from the game's own code (`CptNope/Cyber-City-Tactics`): the colors and sizes from `src/css/game.css`, the canvas colors from `src/js/render/`. The full brand story, voice and applications live in the **Cyber City Tactics Brand Book**; this system is the part you build with.
+Cyber City Tactics is a neon brawler RPG for one to four players, set in a rain-soaked Seattle in 2079. Everything here is taken from the game's own code (`CptNope/Cyber-City-Tactics`): the colors and sizes from `src/css/game.css`, the canvas colors from `src/js/render/`. The full brand story, voice and applications live in the **Cyber City Tactics Brand Book**; this system is the part you build with.
 
 ## Content fundamentals
 
