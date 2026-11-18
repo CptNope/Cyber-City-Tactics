@@ -322,7 +322,8 @@ async function stills() {
 async function cards() {
   for (const [file, w, h, big] of [
     ['cover-630x500.png', 630, 500, 64],
-    ['social-1200x630.png', 1200, 630, 96]
+    ['social-1200x630.png', 1200, 630, 96],
+    ['wide-cover-1260x540.png', 1260, 540, 112] // 21:9, itch.io's featured banner
   ]) {
     const pg = await page(w * 2, Math.round(w * 2 * (9 / 16)));
     await pg.evaluate(() => __cap.freeze());
@@ -378,6 +379,26 @@ async function cards() {
     await card.close();
     console.log('card', file);
   }
+  // the wordmark alone, on one line, on a transparent background (itch.io's logo slot)
+  const css = readFileSync(join(ROOT, 'src/css/game.css'), 'utf8');
+  const fontCss = (css.match(/@font-face\s*{[^}]*}/g) || [])
+    .join('\n')
+    .replace(
+      /url\('\.\.\/fonts\/([^']+)'\)/g,
+      (_, f) => `url('data:font/woff;base64,${readFileSync(join(ROOT, 'src/fonts', f)).toString('base64')}')`
+    );
+  const lg = await browser.newPage({ viewport: { width: 1400, height: 300 }, deviceScaleFactor: 1 });
+  await lg.setContent(`<!doctype html><html><head><style>${fontCss}
+    body{margin:0;background:transparent}
+    .wm{display:inline-flex;align-items:center;gap:22px;padding:16px 20px 8px;font-family:Teko,Impact,sans-serif;font-weight:600;text-transform:uppercase;line-height:.82}
+    .city{font-size:150px;color:#efe9ff;text-shadow:-4px 0 #ff3d8b,4px 0 #45d2ff,0 0 3px #0c0a14}
+    .bar{font-size:84px;background:#ff3d8b;color:#0c0a14;padding:12px 30px 0;letter-spacing:.14em}
+    </style></head><body><div class="wm"><div class="city">Cyber City</div><div class="bar">Tactics</div></div></body></html>`);
+  await lg.evaluate(() => document.fonts.ready);
+  await lg.waitForTimeout(200);
+  await (await lg.$('.wm')).screenshot({ path: join(OUT, 'logo.png'), omitBackground: true });
+  await lg.close();
+  console.log('card logo.png');
 }
 
 // ---------- trailer ----------
