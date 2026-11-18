@@ -1182,7 +1182,8 @@ async function youtube() {
         card: `${blurBg('finale', 200)}<div style="position:absolute;left:150px;top:50%;transform:translateY(-55%)">${wm(220)}
           <div style="margin-top:44px;font-size:46px;color:#efe9ff">Free in your browser.</div>
           <div style="margin-top:10px;font-size:32px;color:#a79dc2">No account, no ads. Phones, laptops and TVs. Installs and plays offline.</div>
-          <div style="margin-top:40px;font-size:40px" class="gold">cptnope.itch.io/cyber-city-tactics</div></div>`,
+          <div style="margin-top:40px;font-size:40px" class="gold">cptnope.itch.io/cyber-city-tactics</div>
+          <div style="margin-top:14px;font-size:30px;color:#ff3d8b">♥ Enjoying it? Support the game with a donation of any size on itch.io</div></div>`,
         dur: 6,
         fadeOut: true
       }
@@ -1218,7 +1219,8 @@ async function youtube() {
         card: `${blurBg('finale', 200)}<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 60px">${wm(190)}
           <div style="margin-top:70px;font:600 110px/0.95 Teko,Impact,sans-serif;text-transform:uppercase;color:#efe9ff">Free.<br>No download.</div>
           <div style="margin-top:30px;font-size:52px;color:#d6cff0">Play it on itch.io</div>
-          <div style="margin-top:24px;font-size:46px;line-height:1.25" class="gold">cptnope.itch.io/<br>cyber-city-tactics</div></div>`,
+          <div style="margin-top:24px;font-size:46px;line-height:1.25" class="gold">cptnope.itch.io/<br>cyber-city-tactics</div>
+          <div style="margin-top:40px;font-size:42px;color:#ff3d8b">♥ Support the game:<br>donate any amount on itch.io</div></div>`,
         cardCss: '.wm{align-items:center}',
         dur: 4,
         fadeOut: true

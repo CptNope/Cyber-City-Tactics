@@ -39,6 +39,9 @@ Made by Jeremy Anderson: https://jeremyanderson.tech/project/cyber-city-tactics/
 Source code: https://github.com/CptNope/Cyber-City-Tactics
 Offline app: https://cptnope.github.io/Cyber-City-Tactics/
 
+♥ Support the game
+Cyber City Tactics is free and always will be. If you enjoy it, a donation of any size keeps it growing: https://cptnope.itch.io/cyber-city-tactics/donate
+
 All footage, music and sound effects are captured from the game itself.
 
 #indiegame #cyberpunk #beatemup #coop #browsergame
@@ -59,8 +62,11 @@ A 4-player brawler that runs in your browser 👊 #Shorts
 
 Cyber City Tactics: a free neon cyberpunk brawler RPG for 1–4 players, couch or online. No download.
 ▶ Play free: https://cptnope.itch.io/cyber-city-tactics
+♥ Support the game: https://cptnope.itch.io/cyber-city-tactics/donate
 
 #Shorts #indiegame #beatemup #cyberpunk #coop
+
+**Note:** links in a Short's description aren't clickable on mobile, so pin the comment below too, and add the itch.io link to your channel's links (Customize channel › Basic info › Links) so it shows on your channel page.
 
 **Related video:** link the trailer once it's up (YouTube Studio › the Short › Related video).
 
@@ -68,4 +74,10 @@ Cyber City Tactics: a free neon cyberpunk brawler RPG for 1–4 players, couch o
 
 ## Pinned comment (trailer)
 
-Thanks for watching! It's free in your browser: https://cptnope.itch.io/cyber-city-tactics. Grab three friends and try for a FULL CREW finisher, then tell me which boss got you.
+Thanks for watching! It's free in your browser: https://cptnope.itch.io/cyber-city-tactics
+If you enjoy it, you can support the game here (any amount helps): https://cptnope.itch.io/cyber-city-tactics/donate
+Grab three friends and try for a FULL CREW finisher, then tell me which boss got you.
+
+## Pinned comment (Short)
+
+Play it free: https://cptnope.itch.io/cyber-city-tactics ♥ Support the game: https://cptnope.itch.io/cyber-city-tactics/donate
