@@ -47,7 +47,7 @@ Everything is captured in the 3D view (forced on even where Chromium only has so
 > - **The Sprawl:** an open-world street of doors to crack. Corps and gangs are fair game; families and corner shops aren't, and the city remembers. Cops, heat, street cred, a black-market trader and a 60-slot stash.
 > - **Fists from River City Ransom and Double Dragon:** daze a foe, grab it, then punch, knee, throw it any direction or leap and pile drive it. Buy chrome that teaches new moves: Mach fists, Dragon feet, Grand slam, a sprint. Foes grab back, unload flurries and throw the furniture.
 > - **Jobs between the brawls:** Road Rash–style bike chases, drone stealth through corp floors (one flies, one runs overwatch), and VTOL runs over the skyline that land in a rooftop brawl.
-> - **A real RPG under it:** karma levels, four skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
+> - **A real RPG under it:** karma levels, five skill trees, cyberware, spells, 70+ feats, legendaries and a Codex of lore to piece together.
 > - **Up to four players, couch or online:** a full crew on one screen with controllers, or four browsers anywhere on one five-letter room code, in every mode. Team up on one foe for a TEAM UP, CREW UP or FULL CREW finisher. Training with Juno for anyone new.
 > - **Neon in 3D:** a tilted three-quarter camera over wet, rain-lit streets, low-poly fighters with coat tails and rim light, and 3D mechs, hounds, a dragon and a VTOL. Switch to the original flat art any time.
 > - **Plays anywhere:** phones, tablets, laptops and TVs. Install it and it plays offline.

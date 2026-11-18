@@ -20,7 +20,7 @@ mindmap
       Chrome moves
     RPG
       Karma levels and attributes
-      Four skill trees
+      Five skill trees
       Makers, parts and rarities
       Cyberware and chrome
     Together
