@@ -17,7 +17,7 @@ The Workers Free plan covers the lobby: a game uses a few dozen requests to conn
    Or, from this folder: `npx wrangler deploy`.
 2. For the relay, make a TURN key under **Realtime › TURN Server**. Add its ID and API token to the Worker under **Settings › Variables and Secrets** as the secrets `TURN_KEY_ID` and `TURN_KEY_API_TOKEN`. Without them the lobby still gives out room codes, using STUN only.
 3. Put the Worker's URL (`https://cct-lobby.<your-subdomain>.workers.dev`) in `NET_LOBBY` in `src/js/modes/net.js`.
-4. If the game is served anywhere other than `https://cptnope.github.io`, add that origin to `ALLOWED_ORIGINS` in `wrangler.toml`. Localhost is always allowed.
+4. If the game is served anywhere other than GitHub Pages (`https://cptnope.github.io`) or itch.io (whose HTML5 games run on `html.itch.zone`, `html-classic.itch.zone` and the older `v6p9d9t4.ssl.hwcdn.net`), add that origin to `ALLOWED_ORIGINS` in `wrangler.toml`. Localhost is always allowed.
 
 ## API
 

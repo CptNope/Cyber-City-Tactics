@@ -5,9 +5,10 @@ compatibility_date = "2026-10-01"
 workers_dev = true
 preview_urls = false # only the one production URL exists
 
-# Where the game is served. Localhost is always allowed for development.
+# Where the game is served. Localhost is always allowed for development. itch.io runs HTML5 games in an
+# iframe on its own domains (html.itch.zone, html-classic.itch.zone, and the older hwcdn host).
 [vars]
-ALLOWED_ORIGINS = "https://cptnope.github.io"
+ALLOWED_ORIGINS = "https://cptnope.github.io,https://html.itch.zone,https://html-classic.itch.zone,https://v6p9d9t4.ssl.hwcdn.net"
 
 [[durable_objects.bindings]]
 name = "ROOMS"
