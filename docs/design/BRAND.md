@@ -172,7 +172,7 @@ Hits should feel heavy, menus should feel instant, and nothing should wait on an
 **Store and install listing:**
 
 - *Name:* Cyber City Tactics
-- *Short description (80 characters):* A neon brawler RPG for one or two. Punch, shoot, cast and hack. Plays offline.
+- *Short description (80 characters):* A neon brawler RPG for one to four. Punch, shoot, cast and hack. Plays offline.
 - *Long description opens with:* "Seattle, 2079. Pick a runner, take a job, and choose who you hurt." Then three short paragraphs: the campaign and co-op, the Sprawl and its choices, the secrets and the Codex.
 - *Category:* Games, Action RPG.
 

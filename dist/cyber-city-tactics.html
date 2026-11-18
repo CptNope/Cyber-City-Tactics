@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-zYSiMwBd0hRYivYHOG/sCLJKpqCl4qIfS6S3hoSxue8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'sha256-pc1rbCnKEPQiY0EPz1YuVVLgSk9IqANskq//ZKOPe5Q='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self' https://cct-lobby.jca2016satx.workers.dev http://localhost:* http://127.0.0.1:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Cyber City Tactics</title>
-<meta name="description" content="A vector brawler RPG for one or two players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
+<meta name="description" content="A vector brawler RPG for one to four players, couch or online: a six-district campaign, an open-world Sprawl, Arena waves, driving, drone and flight jobs, skill trees, legendaries and secrets. Plays offline.">
 <meta property="og:title" content="Cyber City Tactics">
-<meta property="og:description" content="A neon brawler RPG for one or two players, couch or online. Six districts, an open-world Sprawl, and every job a choice. Free in your browser; plays offline.">
+<meta property="og:description" content="A neon brawler RPG for one to four players, couch or online. Six districts, an open-world Sprawl, and every job a choice. Free in your browser; plays offline.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://cptnope.github.io/Cyber-City-Tactics/">
 <meta property="og:site_name" content="Cyber City Tactics">
@@ -23,7 +23,7 @@
 <meta property="og:video:height" content="720">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Cyber City Tactics">
-<meta name="twitter:description" content="A neon brawler RPG for one or two players, couch or online. Free in your browser; plays offline.">
+<meta name="twitter:description" content="A neon brawler RPG for one to four players, couch or online. Free in your browser; plays offline.">
 <meta name="twitter:image" content="https://cptnope.github.io/Cyber-City-Tactics/docs/store/social-1200x630.png?v=2">
 <meta name="twitter:image:alt" content="Cyber City Tactics: two runners brawling through a neon night market">
 <link rel="canonical" href="https://cptnope.github.io/Cyber-City-Tactics/">
@@ -1348,7 +1348,7 @@ const BUNDLED = true;
 /* ===== src/js/version.js ===== */
 /* Cyber City Tactics · src/js/version.js
  * Written by tools/build.mjs. Do not edit by hand. */
-const APP_VERSION = '2.0.0+1d7766d';
+const APP_VERSION = '2.0.0+c482e25';
 
 /* ===== src/js/core/canvas.js ===== */
 /* Cyber City Tactics · src/js/core/canvas.js
@@ -34490,8 +34490,8 @@ function renderOv() {
       boot = G.booted ? '' : ' boot'; // the sign powers on once per session, never on later visits
     G.booted = true;
     if (G.mode === 'title') G.pendDiff = sv && DIFF[sv.diff] ? sv.diff : 1;
-    h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one or two</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
-    <p>Two shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
+    h = `<div class="card"><p class="eyebrow">Seattle sprawl, 2079 · brawler RPG for one to four</p><h1 class="wordmark${boot}" aria-label="Cyber City Tactics"><span class="wm-city">Cyber City</span><span class="wm-bar">Tactics</span></h1>
+    <p>Up to four shadowrunners, a fixer with a grudge and six districts between you and Director Voss, from the gang turf to the Kagemori host itself. Level up with karma, loot gear off the street, grab and throw whatever isn't bolted down, and spend it all in the Den.</p>
     <div class="row"><button class="btn" data-a="pick">New run</button><button class="btn ghost" data-a="arenapick">Arena</button><button class="btn ghost" data-a="gauntpick">Gauntlet</button><button class="btn ghost" data-a="jobs">Jobs</button><button class="btn ghost" data-a="online">Online co-op</button><button class="btn ghost" data-a="worldpick">The Sprawl</button><button class="btn ghost" data-a="codex">Codex · ${esc(RANKS[rankOf(legLP())][1])}</button><button class="btn ghost" data-a="trainpick">Training</button>${sv ? `<button class="btn ghost" data-a="cont">Continue · ${(DIFF[sv.diff] || DIFF[1]).name}${sv.ng ? ' NG+' + sv.ng : ''}, ${sv.phase === 'den' ? 'the Den after district ' + (sv.stage + 1) : 'district ' + (sv.stage + 1)}</button>` : ''}<button class="btn ghost" data-a="settings">Settings</button>${PWA.deferred && !PWA.installed ? '<button class="btn ghost" data-a="install">Install app</button>' : ''}</div>${helpHtml()}</div>`;
   }
   if (m === 'pick') {
@@ -36187,7 +36187,7 @@ function pwaSettingsRows(row) {
     ) +
     syncSettingsRows(row) +
     imp +
-    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}${typeof BUNDLED === 'undefined' ? ' · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>' : ''}</p>`
+    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''} · <a href="${typeof BUNDLED === 'undefined' ? 'privacy.html' : 'https://cptnope.github.io/Cyber-City-Tactics/privacy.html'}" target="_blank" rel="noopener">Privacy</a> · <a href="https://cptnope.itch.io/cyber-city-tactics/donate" target="_blank" rel="noopener">Support the game</a></p>`
   );
 }
 

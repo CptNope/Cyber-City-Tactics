@@ -95,7 +95,7 @@ function pwaSettingsRows(row) {
     ) +
     syncSettingsRows(row) +
     imp +
-    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''}${typeof BUNDLED === 'undefined' ? ' · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>' : ''}</p>`
+    `<p class="ds" style="margin-top:8px">Version ${esc(typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'dev')}${PWA.waiting ? ' · update ready' : ''} · <a href="${typeof BUNDLED === 'undefined' ? 'privacy.html' : 'https://cptnope.github.io/Cyber-City-Tactics/privacy.html'}" target="_blank" rel="noopener">Privacy</a> · <a href="https://cptnope.itch.io/cyber-city-tactics/donate" target="_blank" rel="noopener">Support the game</a></p>`
   );
 }
 
