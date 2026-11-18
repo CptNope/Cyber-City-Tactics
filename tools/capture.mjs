@@ -723,7 +723,8 @@ async function youtube() {
   // capture `frames` video frames; `setup` runs first, `drive` (optional) replaces the autopilot each logic step
   const clip = async (name, frames, setup, drive) => {
     const dir = join(TMP, name);
-    if (BUILD_ONLY || (PICK.length && !PICK.includes(name))) {
+    if (PICK.length && !PICK.includes(name)) return; // another process captures this one
+    if (BUILD_ONLY) {
       clips[name] = { dir, frames, ev: JSON.parse(readFileSync(join(dir, 'ev.json'), 'utf8')) };
       return;
     }
